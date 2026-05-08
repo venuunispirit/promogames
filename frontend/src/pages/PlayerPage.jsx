@@ -127,7 +127,7 @@ function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm }) {
             <img
               src={confirmGifUrl}
               alt="Quiz submitted!"
-              style={{ maxWidth: '100%', maxHeight: 180, width: 'auto', height: 'auto', borderRadius: 16, objectFit: 'contain' }}
+              style={{ maxWidth: '100%', maxHeight: 220, width: 'auto', height: 'auto', borderRadius: 16, objectFit: 'contain' }}
             />
           </div>
         ) : (
@@ -880,7 +880,7 @@ export default function PlayerPage() {
               width: '100%',
               background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
               color: '#fff', border: 'none',
-              padding: '16px 28px', borderRadius: 14,
+              padding: '10px 20px', borderRadius: 14,
               fontSize: 17, fontWeight: 700,
               cursor: 'pointer', fontFamily: ff,
               boxShadow: `0 6px 24px ${primaryColor}55`,

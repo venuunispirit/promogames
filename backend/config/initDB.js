@@ -129,6 +129,37 @@ async function initDB() {
 
   console.log('🚀 Running migrations...');
 
+  /* CLIENTS */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS clients (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      company_name VARCHAR(255) NOT NULL,
+      contact_name VARCHAR(255),
+      email VARCHAR(150),
+      phone VARCHAR(50),
+      address TEXT,
+      notes TEXT,
+      slug VARCHAR(255) UNIQUE,
+      logo_url VARCHAR(500),
+      created_by INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `, 'clients table');
+
+  /* SOUNDS */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS sounds (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      name VARCHAR(255) NOT NULL,
+      sound_type VARCHAR(50),
+      file_url VARCHAR(500) NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'sounds table');
+
   /* QUESTIONS MIGRATIONS */
   await addColumn(connection, 'questions', 'question_bg_image_url', 'VARCHAR(500)');
   await addColumn(connection, 'questions', 'sound_correct_id', 'INT DEFAULT NULL');
@@ -158,6 +189,8 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'game_logo_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'font_family', "VARCHAR(100) DEFAULT 'DM Sans'");
   await addColumn(connection, 'quiz_settings', 'submit_confirm_gif_url', 'VARCHAR(500)');
+  /* GAMES MIGRATIONS */
+  await addColumn(connection, 'games', 'client_id', 'INT');
 
   console.log('👤 Creating admin user...');
 

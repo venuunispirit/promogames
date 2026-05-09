@@ -127,7 +127,7 @@ function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm }) {
             <img
               src={confirmGifUrl}
               alt="Quiz submitted!"
-              style={{ maxWidth: '100%', maxHeight: 220, width: 'auto', height: 'auto', borderRadius: 16, objectFit: 'contain' }}
+              style={{ maxWidth: '100%', maxHeight: 380, width: 'auto', height: 'auto', borderRadius: 16, objectFit: 'contain' }}
             />
           </div>
         ) : (
@@ -480,11 +480,11 @@ export default function PlayerPage() {
         }}>
           {gameLogo && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-              <img src={gameLogo} alt="Logo" style={{ maxWidth: '100%', maxHeight: 160, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 10, display: 'block' }} />
+              <img src={gameLogo} alt="Logo" style={{ maxWidth: '100%', maxHeight: 300, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 10, display: 'block' }} />
             </div>
           )}
-          <h1 style={{ color: hasBgImg ? '#fff' : '#1a1a2e', fontFamily: ff, fontSize: 'clamp(22px,6vw,30px)', textAlign: 'center', marginBottom: 6, lineHeight: 1.2, textShadow: hasBgImg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none', fontWeight: 800 }}>{game.name}</h1>
-          {game.description && <p style={{ color: hasBgImg ? 'rgba(255,255,255,0.85)' : '#666', textAlign: 'center', marginBottom: 20, fontSize: 14, lineHeight: 1.6 }}>{game.description}</p>}
+          <h1 style={{ color: hasBgImg ? '#fff' : '#1a1a2e', fontFamily: ff, fontSize: 'clamp(22px,6vw,30px)', textAlign: 'center', marginBottom: 6, lineHeight: 1, textShadow: hasBgImg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none', fontWeight: 800 }}>{game.name}</h1>
+          {game.description && <p style={{ color: hasBgImg ? 'rgba(255,255,255,0.85)' : '#666', textAlign: 'center', marginBottom: 20, fontSize: 12, lineHeight: 1.6 }}>{game.description}</p>}
           {s.intro_text && (
             <div style={{ background: hasBgImg ? 'rgba(255,255,255,0.15)' : `${primaryColor}12`, border: `1.5px solid ${hasBgImg ? 'rgba(255,255,255,0.3)' : primaryColor + '30'}`, borderRadius: 12, padding: '12px 16px', marginBottom: 24, color: hasBgImg ? '#fff' : '#444', fontSize: 13, textAlign: 'center', lineHeight: 1.6 }}>
               {s.intro_text}
@@ -854,7 +854,7 @@ export default function PlayerPage() {
         }}>
           {gameLogo && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-              <img src={gameLogo} alt="Logo" style={{ maxWidth: '80%', maxHeight: 80, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 10 }} />
+              <img src={gameLogo} alt="Logo" style={{ maxWidth: '80%', maxHeight: 280, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 10 }} />
             </div>
           )}
           <div style={{ fontSize: 60, marginBottom: 12, animation: 'bounce 0.6s 0.3s ease both' }}>🎉</div>

@@ -1,17 +1,11 @@
-import { Outlet, NavLink, useNavigate } from 'react-router-dom'
+import { Outlet, Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
-import { useState } from 'react'
-
-const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: '⊡', end: true },
-  { to: '/dashboard/clients', label: 'Clients', icon: '🏢' },
-  { to: '/dashboard/games', label: 'Games', icon: '🎮' },
-]
+import { useTheme } from '../pages/ThemeContext'
 
 export default function DashboardLayout() {
-  const { user, logout } = useAuth()
+  const { logout } = useAuth()
+  const { isDark, toggleTheme } = useTheme()
   const navigate = useNavigate()
-  const [sidebarOpen, setSidebarOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -19,87 +13,143 @@ export default function DashboardLayout() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', background: 'var(--bg)' }}>
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div onClick={() => setSidebarOpen(false)}
-          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 40, display: 'none' }}
-          className="mobile-overlay"
-        />
-      )}
-
-      {/* Sidebar */}
-      <aside style={{
-        width: 240,
-        background: 'var(--bg2)',
-        borderRight: '1px solid var(--border)',
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'var(--bg)',
+      transition: 'var(--transition)',
+    }}>
+      {/* Navigation Bar */}
+      <nav style={{
+        background: 'var(--surface)',
+        borderBottom: '1px solid var(--border)',
+        padding: '16px 44px',
         display: 'flex',
-        flexDirection: 'column',
-        flexShrink: 0,
+        alignItems: 'center',
+        justifyContent: 'space-between',
         position: 'sticky',
         top: 0,
-        height: '100vh',
-        zIndex: 50,
+        zIndex: 100,
+        boxShadow: 'var(--shadow-sm)',
       }}>
-        {/* Logo */}
-        <div style={{ padding: '24px 20px', borderBottom: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 36, height: 36, background: 'var(--primary)', borderRadius: 8, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>🎮</div>
-            <div>
-              <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 15 }}>QuizPlatform</div>
-              <div style={{ fontSize: 11, color: 'var(--text2)' }}>Admin Dashboard</div>
-            </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 32 }}>
+          {/* Logo */}
+          <Link to="/dashboard" style={{ 
+            fontSize: 20, 
+            fontWeight: 900, 
+            color: 'var(--primary)',
+            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            gap: 8,
+          }}>
+            🎮 QuizPlatform
+          </Link>
+
+          {/* Nav Links */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            {[
+              { to: '/dashboard', label: 'Dashboard' },
+              { to: '/dashboard/games', label: 'Games' },
+              { to: '/dashboard/clients', label: 'Clients' },
+            ].map(link => (
+              <Link
+                key={link.to}
+                to={link.to}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: 8,
+                  fontSize: 14,
+                  fontWeight: 600,
+                  color: 'var(--text2)',
+                  textDecoration: 'none',
+                  transition: 'var(--transition)',
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'var(--surface2)'
+                  e.currentTarget.style.color = 'var(--text)'
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent'
+                  e.currentTarget.style.color = 'var(--text2)'
+                }}
+              >
+                {link.label}
+              </Link>
+            ))}
           </div>
         </div>
 
-        {/* Nav */}
-        <nav style={{ flex: 1, padding: '16px 12px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-          {navItems.map(item => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              end={item.end}
-              style={({ isActive }) => ({
+        {/* Right side - Theme Toggle & Logout */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {/* Theme Toggle */}
+          <button
+            onClick={toggleTheme}
+            style={{
+              position: 'relative',
+              width: 56,
+              height: 28,
+              borderRadius: 99,
+              background: isDark ? 'var(--primary)' : 'var(--border)',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'var(--transition)',
+              boxShadow: 'inset 0 2px 4px rgba(0,0,0,0.1)',
+            }}
+            aria-label="Toggle theme"
+          >
+            <div
+              style={{
+                position: 'absolute',
+                top: 2,
+                left: isDark ? 30 : 2,
+                width: 24,
+                height: 24,
+                borderRadius: '50%',
+                background: '#fff',
+                transition: 'var(--transition)',
                 display: 'flex',
                 alignItems: 'center',
-                gap: 10,
-                padding: '10px 12px',
-                borderRadius: 'var(--radius-sm)',
-                fontSize: 14,
-                fontWeight: 500,
-                color: isActive ? '#fff' : 'var(--text2)',
-                background: isActive ? 'var(--primary)' : 'transparent',
-                transition: 'all 0.15s',
-                textDecoration: 'none',
-              })}
+                justifyContent: 'center',
+                fontSize: 12,
+                boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
+              }}
             >
-              <span style={{ fontSize: 16 }}>{item.icon}</span>
-              {item.label}
-            </NavLink>
-          ))}
-        </nav>
+              {isDark ? '🌙' : '☀️'}
+            </div>
+          </button>
 
-        {/* User */}
-        <div style={{ padding: '16px 12px', borderTop: '1px solid var(--border)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', marginBottom: 4 }}>
-            <div style={{ width: 32, height: 32, background: 'var(--primary-dark)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
-              {user?.name?.[0]?.toUpperCase() || 'A'}
-            </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.name}</div>
-              <div style={{ fontSize: 11, color: 'var(--text2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{user?.email}</div>
-            </div>
-          </div>
-          <button className="btn btn-ghost btn-sm" onClick={handleLogout} style={{ width: '100%', justifyContent: 'center' }}>
-            Sign Out
+          {/* Logout Button */}
+          <button
+            onClick={handleLogout}
+            style={{
+              padding: '8px 16px',
+              borderRadius: 8,
+              fontSize: 14,
+              fontWeight: 600,
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              color: 'var(--text2)',
+              cursor: 'pointer',
+              transition: 'var(--transition)',
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--error-bg)'
+              e.currentTarget.style.color = 'var(--error)'
+              e.currentTarget.style.borderColor = 'var(--error)'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent'
+              e.currentTarget.style.color = 'var(--text2)'
+              e.currentTarget.style.borderColor = 'var(--border)'
+            }}
+          >
+            Logout
           </button>
         </div>
-      </aside>
+      </nav>
 
-      {/* Main content */}
-      <main style={{ flex: 1, overflow: 'auto', minWidth: 0 }}>
-        <Outlet />
-      </main>
+      {/* Main Content */}
+      <Outlet />
     </div>
   )
 }

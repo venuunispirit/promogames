@@ -1,5 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { ThemeProvider } from "./pages/ThemeContext"
+import './pages/Theme.css'
 import LoginPage from './pages/LoginPage'
 import DashboardLayout from './components/DashboardLayout'
 import DashboardHome from './pages/DashboardHome'
@@ -13,14 +15,21 @@ import GameResponsesPage from './pages/GameResponsesPage'
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
   if (loading) return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', background: 'var(--bg)' }}>
+    <div style={{ 
+      display: 'flex', 
+      alignItems: 'center', 
+      justifyContent: 'center', 
+      height: '100vh', 
+      background: 'var(--bg)',
+      transition: 'var(--transition)',
+    }}>
       <div className="loader-spin" />
     </div>
   )
   return user ? children : <Navigate to="/login" replace />
 }
 
-export default function App() {
+function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
@@ -41,5 +50,13 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+  )
+}
+
+export default function App() {
+  return (
+    <ThemeProvider>
+      <AppRoutes />
+    </ThemeProvider>
   )
 }

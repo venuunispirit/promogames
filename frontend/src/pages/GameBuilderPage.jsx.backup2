@@ -335,18 +335,10 @@ export default function GameBuilderPage() {
   const saveQuestion = async (q) => {
     try {
       const formData = new FormData()
-      formData.append('question_text', q.question_text || '')
-      formData.append('question_type', q.question_type || 'right_wrong')
+      formData.append('question_text', q.question_text)
+      formData.append('question_type', q.question_type)
       formData.append('question_color', q.question_color || '#e8e8f0')
-      formData.append('question_order', q.question_order ?? 0)
-      formData.append('num_options', q.num_options ?? 4)
-      formData.append('sound_correct', q.sound_correct || '')
-      formData.append('sound_wrong', q.sound_wrong || '')
-      formData.append('sound_neutral', q.sound_neutral || '')
-      formData.append('sound_correct_id', q.sound_correct_id || '')
-      formData.append('sound_wrong_id', q.sound_wrong_id || '')
       formData.append('sound_neutral_id', q.sound_neutral_id || '')
-      formData.append('overlay_duration', q.overlay_duration ?? 3)
       formData.append('overlay_idle_time', q.overlay_idle_time ?? 3)
       formData.append('overlay_animation_in', q.overlay_animation_in || 'flyFromBottom')
       formData.append('overlay_animation_out', q.overlay_animation_out || 'flyToTop')
@@ -371,12 +363,8 @@ export default function GameBuilderPage() {
         }
       }
       showToast('Question saved ✅')
-    } catch (err) {
-      console.error('Save error:', err.response?.data || err.message)
-      showToast('Error saving question: ' + (err.response?.data?.message || err.message), 'error')
-    }
+    } catch { showToast('Error saving question', 'error') }
   }
-
 
   const deleteQuestion = async (q) => {
     if (!confirm('Delete this question?')) return

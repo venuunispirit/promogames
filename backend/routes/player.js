@@ -26,8 +26,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       q.options = options;
     }
 
-    const backendBase = process.env.BACKEND_URL || 'https://www.promogames.in';
-    const toAbs = (url) => (!url || url.startsWith('http')) ? url : `${backendBase}${url}`;
+    // backendBase not needed - Nginx proxies /uploads/ correctly
+    const toAbs = (url) => url || null;
 
     const soundMap = {};
     for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -137,11 +137,26 @@ router.post('/session/complete', async (req, res) => {
       const template = emailTemplates[0];
       const scoreText = session.total_scoreable > 0
         ? `You scored <strong>${session.score} out of ${session.total_scoreable}</strong>.` : '';
-      const bodyContent = (template.body_html || '')
+      // Strip markdown code fences if present
+      const rawBody = (template.body_html || '').replace(/^```html[\s\S]*?\n/, '').replace(/^```[\s\S]*?\n/, '').replace(/```\s*$/, '').trim();
+
+      // Calculate performance message
+      const pct = session.total_scoreable > 0 ? (session.score / session.total_scoreable) * 100 : 0;
+      const perfMsg = pct === 100 ? 'Perfect score! You nailed every single one. You truly know your desserts! 🏆'
+        : pct >= 70 ? 'Great job! You got most of them right. A true dessert enthusiast! 🎉'
+        : pct >= 40 ? 'Good effort! Keep exploring and you will master them all. 🍰'
+        : 'Thanks for playing! Every expert starts somewhere. Come back and try again! 😊';
+
+      const bodyContent = rawBody
+        .replace(/\{\{player_name\}\}/g, playerName)
         .replace(/\{\{name\}\}/g, playerName)
         .replace(/\{\{score\}\}/g, session.score)
         .replace(/\{\{total\}\}/g, session.total_scoreable)
-        .replace(/\{\{game_name\}\}/g, games[0]?.name || 'Game');
+        .replace(/\{\{total_questions\}\}/g, session.total_scoreable)
+        .replace(/\{\{game_name\}\}/g, games[0]?.name || 'Game')
+        .replace(/\{\{time_taken\}\}/g, 'N/A')
+        .replace(/\{\{performance_message\}\}/g, perfMsg)
+        .replace(/\{\{website_link\}\}/g, 'https://www.thirdwavecoffeeroasters.com/');
 
       const htmlEmail = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
         <body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">

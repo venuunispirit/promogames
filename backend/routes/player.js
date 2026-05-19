@@ -215,7 +215,6 @@ router.post('/session/complete', async (req, res) => {
   }
 });
 
-
 // GET /api/play/hero-games — public endpoint for website homepage ranked games
 router.get('/hero-games', async (req, res) => {
   try {
@@ -236,7 +235,6 @@ router.get('/hero-games', async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-
 
 // GET /api/play/play-page-games — public, games shown on website play section
 router.get('/play-page-games', async (req, res) => {

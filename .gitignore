@@ -1,1 +1,9 @@
 *.zip
+*.bak
+.DS_Store
+backend/uploads/images/*
+backend/uploads/sounds/*
+!backend/uploads/images/.gitkeep
+!backend/uploads/sounds/.gitkeep
+node_modules/
+.env

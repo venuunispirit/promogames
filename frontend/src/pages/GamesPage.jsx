@@ -5,61 +5,93 @@ import api from '../api'
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
 const CATEGORY_META = {
-  quiz:   { label:'Quiz',   bg:'#EEF2FF', fg:'#4338CA', dot:'#818CF8' },
-  survey: { label:'Survey', bg:'#F0FDF4', fg:'#15803D', dot:'#4ADE80' },
-  poll:   { label:'Poll',   bg:'#FFF7ED', fg:'#C2410C', dot:'#FB923C' },
+  quiz:   { label:'Quiz',   bg:' #EEF2FF', fg:' #4338CA', dot:' #818CF8' },
+  survey: { label:'Survey', bg:' #F0FDF4', fg:' #15803D', dot:' #4ADE80' },
+  poll:   { label:'Poll',   bg:' #FFF7ED', fg:' #C2410C', dot:' #FB923C' },
+  crossword: {
+    label:'Crossword',
+    bg:' #FDF2F8',
+    fg:' #BE185D',
+    dot:' #EC4899'
+  },
 }
-const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F4F6', fg:'#374151', dot:'#9CA3AF' }
+const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:' #F3F4F6', fg:' #374151', dot:' #9CA3AF' }
 
 const CSS = `
 @import url('${FONT_URL}');
 .gp *,.gp *::before,.gp *::after{box-sizing:border-box;margin:0;padding:0}
-.gp{font-family:'DM Sans',sans-serif;color:#111827;background:#F8F9FB;min-height:100vh}
+.gp{font-family:'DM Sans',sans-serif;color: #111827;background: #F8F9FB;min-height:100vh}
 @keyframes gpFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes gpModalIn{from{opacity:0;transform:scale(0.96)translateY(6px)}to{opacity:1;transform:none}}
 @keyframes gpToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes gpSpin{to{transform:rotate(360deg)}}
 @keyframes gpPulse{0%,100%{opacity:1}50%{opacity:.5}}
-.gp-card{background:#fff;border-radius:16px;border:1.5px solid #EAECF0;padding:22px 22px 18px;cursor:pointer;transition:border-color .18s,box-shadow .18s,transform .18s;animation:gpFadeUp .3s ease both}
-.gp-card:hover{border-color:#A5B4FC;box-shadow:0 6px 28px rgba(99,102,241,.1);transform:translateY(-2px)}
-.gp-card.inactive{border-color:#F3F4F6;opacity:.8}
-.gp-card:hover .gp-hover-actions{opacity:1}
-.gp-hover-actions{opacity:0;transition:opacity .15s}
-.gp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color:#111;background:#FAFAFA;outline:none;transition:border-color .15s,background .15s}
-.gp-input:focus{border-color:#818CF8;background:#fff}
-.gp-select{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color:#111;background:#FAFAFA;outline:none;appearance:none;cursor:pointer;transition:border-color .15s}
-.gp-select:focus{border-color:#818CF8}
-.gp-label{display:block;font-size:10.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+@keyframes gpRowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* Inputs & selects */
+.gp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid  #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color: #111;background: #FAFAFA;outline:none;transition:border-color .15s,background .15s}
+.gp-input:focus{border-color: #818CF8;background: #fff}
+.gp-select{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid  #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color: #111;background: #FAFAFA;outline:none;appearance:none;cursor:pointer;transition:border-color .15s}
+.gp-select:focus{border-color: #818CF8}
+.gp-label{display:block;font-size:10.5px;font-weight:700;color: #9CA3AF;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
 .gp-field{margin-bottom:16px}
-.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:#18181B;color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
-.gp-primary-btn:hover{background:#27272A}
+
+/* Buttons */
+.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background: #18181B;color: #fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
+.gp-primary-btn:hover{background: #27272A}
 .gp-primary-btn:active{transform:scale(.98)}
 .gp-primary-btn:disabled{opacity:.55;cursor:not-allowed}
-.gp-ghost-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:1.5px solid #E5E7EB;background:#fff;color:#374151;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s;white-space:nowrap}
-.gp-ghost-btn:hover{background:#F3F4F6;border-color:#D1D5DB}
-.gp-icon-btn{width:32px;height:32px;border-radius:8px;border:1.5px solid #E5E7EB;background:#F9FAFB;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#374151;transition:background .13s}
-.gp-icon-btn:hover{background:#F0F0F0}
-.gp-icon-btn.del{border-color:#FEE2E2;background:#FFF5F5;color:#DC2626}
-.gp-icon-btn.del:hover{background:#FEE2E2}
-.gp-toggle{width:38px;height:22px;border-radius:100px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0}
-.gp-toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.gp-toggle.on{background:#4F46E5}
-.gp-toggle.on::after{transform:translateX(16px)}
-.gp-toggle.off{background:#D1D5DB}
+.gp-ghost-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1.5px solid  #E5E7EB;background: #fff;color: #374151;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s;white-space:nowrap}
+.gp-ghost-btn:hover{background: #F3F4F6;border-color: #D1D5DB}
+.gp-icon-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid  #E5E7EB;background: #F9FAFB;display:flex;align-items:center;justify-content:center;cursor:pointer;color: #374151;transition:background .13s;flex-shrink:0}
+.gp-icon-btn:hover{background: #F0F0F0}
+.gp-icon-btn.del{border-color: #FEE2E2;background: #FFF5F5;color: #DC2626}
+.gp-icon-btn.del:hover{background: #FEE2E2}
+
+/* Toggle */
+.gp-toggle{width:34px;height:20px;border-radius:100px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;padding:0}
+.gp-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background: #fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.gp-toggle.on{background: #4F46E5}
+.gp-toggle.on::after{transform:translateX(14px)}
+.gp-toggle.off{background: #D1D5DB}
+
+/* Table */
+.gp-table-wrap{background: #fff;border-radius:16px;border:1.5px solid  #EAECF0;overflow:hidden;animation:gpFadeUp .3s ease both}
+.gp-table{width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif}
+.gp-table thead tr{background: #F9FAFB;border-bottom:1.5px solid  #EAECF0}
+.gp-table thead th{padding:11px 14px;text-align:left;font-size:11px;font-weight:700;color: #6B7280;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;user-select:none}
+.gp-table thead th.center{text-align:center}
+.gp-table tbody tr{border-bottom:1px solid  #F3F4F6;transition:background .13s;animation:gpRowIn .25s ease both}
+.gp-table tbody tr:last-child{border-bottom:none}
+.gp-table tbody tr:hover{background: #FAFBFF}
+.gp-table tbody tr.inactive-row{opacity:.7}
+.gp-table tbody td{padding:13px 14px;font-size:13px;color: #374151;vertical-align:middle}
+.gp-table tbody td.center{text-align:center}
+
+/* Sort caret */
+.gp-th-btn{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color: #6B7280;text-transform:uppercase;letter-spacing:.08em;padding:0;font-family:'DM Sans',sans-serif}
+.gp-th-btn:hover{color: #374151}
+
+/* Tooltip toggle label */
+.gp-toggle-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
+.gp-toggle-label{font-size:10px;color: #9CA3AF;font-weight:500;white-space:nowrap}
 `
 
 const Ico = {
-  plus: () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>,
-  close: () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>,
-  search: () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
-  wrench: () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
-  chart: () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
-  link: () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
-  trash: () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
+  plus:     () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>,
+  close:    () => <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>,
+  search:   () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>,
+  wrench:   () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>,
+  chart:    () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>,
+  link:     () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>,
+  trash:    () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>,
   question: () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3M12 17h.01"/></svg>,
-  play: () => <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
-  spin: () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{animation:'gpSpin .75s linear infinite'}}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
-  building: () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M15 3v18M3 9h18M3 15h18"/></svg>,
+  play:     () => <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>,
+  spin:     () => <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" style={{animation:'gpSpin .75s linear infinite'}}><path d="M21 12a9 9 0 1 1-6.219-8.56"/></svg>,
+  globe:    () => <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>,
+  star:     () => <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
+  caretUp:  () => <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>,
+  caretDn:  () => <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>,
 }
 
 function Toast({ msg, type, onClose }) {
@@ -68,12 +100,12 @@ function Toast({ msg, type, onClose }) {
   return (
     <div style={{
       position:'fixed',bottom:28,right:28,zIndex:9999,
-      background: ok ? '#052E16' : '#450A0A', color:'#fff',
+      background: ok ? ' #052E16' : ' #450A0A', color:' #fff',
       padding:'13px 20px 13px 16px',borderRadius:12,fontSize:13.5,
       fontFamily:"'DM Sans',sans-serif",fontWeight:500,
       display:'flex',alignItems:'center',gap:10,
       boxShadow:'0 8px 32px rgba(0,0,0,.24)',
-      borderLeft:`3px solid ${ok?'#22C55E':'#EF4444'}`,
+      borderLeft:`3px solid ${ok?' #22C55E':' #EF4444'}`,
       animation:'gpToastIn .28s cubic-bezier(.34,1.56,.64,1)',maxWidth:420,
     }}>
       {ok?'✓':'✕'} {msg}
@@ -81,65 +113,28 @@ function Toast({ msg, type, onClose }) {
   )
 }
 
-function GameCard({ game, onNavigate, onCopyLink, onToggle, onDelete, delay }) {
-  const cat = catMeta(game.category)
+// Inline toggle that calls API immediately
+function FieldToggle({ gameId, field, value, label, onUpdated, onError }) {
+  const [loading, setLoading] = useState(false)
+  const toggle = async e => {
+    e.stopPropagation()
+    setLoading(true)
+    try {
+      await api.put(`/games/${gameId}`, { [field]: value ? 0 : 1 })
+      onUpdated()
+    } catch { onError('Failed to update') }
+    finally { setLoading(false) }
+  }
   return (
-    <div className={`gp-card ${game.is_active ? '' : 'inactive'}`} style={{animationDelay:`${delay}ms`}}
-      onClick={() => onNavigate(`/dashboard/games/${game.id}/responses`)}>
-      {/* Top row */}
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:14}}>
-        <span style={{display:'inline-flex',alignItems:'center',gap:6,background:cat.bg,color:cat.fg,fontSize:11.5,fontWeight:600,padding:'4px 10px',borderRadius:100,letterSpacing:'.01em'}}>
-          <span style={{width:6,height:6,borderRadius:'50%',background:cat.dot,flexShrink:0}} />
-          {cat.label}
-        </span>
-        <div style={{display:'flex',alignItems:'center',gap:8}}>
-          <button
-            className={`gp-toggle ${game.is_active ? 'on' : 'off'}`}
-            title={game.is_active ? 'Deactivate' : 'Activate'}
-            onClick={e => { e.stopPropagation(); onToggle(game) }}
-          />
-          <button className="gp-icon-btn del" title="Delete" onClick={e=>{e.stopPropagation();onDelete(game.id)}}>
-            <Ico.trash/>
-          </button>
-        </div>
-      </div>
-
-      {/* Title */}
-      <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:17,color:'#0D0D1A',letterSpacing:'-0.02em',lineHeight:1.3,marginBottom:6,cursor:'pointer'}}>
-        {game.name}
-      </h3>
-      <div style={{display:'flex',alignItems:'center',gap:6,color:'#9CA3AF',fontSize:12.5,marginBottom:14}}>
-        <Ico.building/> {game.company_name}
-      </div>
-
-      {/* URL slug */}
-      <div style={{background:'#F8F9FB',borderRadius:8,padding:'8px 12px',fontSize:11.5,color:'#6B7280',fontFamily:'monospace',letterSpacing:'0.01em',marginBottom:14,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-        /play/{game.slug}/{game.client_slug}
-      </div>
-
-      {/* Stats row */}
-      <div style={{display:'flex',gap:16,marginBottom:16}}>
-        <div style={{display:'flex',alignItems:'center',gap:5,fontSize:12.5,color:'#6B7280'}}>
-          <span style={{color:'#9CA3AF'}}><Ico.question/></span> {game.question_count||0} questions
-        </div>
-        <div style={{display:'flex',alignItems:'center',gap:5,fontSize:12.5,color:'#6B7280'}}>
-          <span style={{color:'#9CA3AF'}}><Ico.play/></span> {game.play_count||0} plays
-        </div>
-      </div>
-
-      {/* Actions */}
-      <div style={{display:'flex',gap:7,paddingTop:14,borderTop:'1px solid #F3F4F6',flexWrap:'wrap'}} onClick={e=>e.stopPropagation()}>
-        <button className="gp-ghost-btn" style={{background:'#18181B',color:'#fff',borderColor:'#18181B'}}
-          onClick={() => onNavigate(`/dashboard/games/${game.id}/builder`)}>
-          <Ico.wrench/> Builder
-        </button>
-        <button className="gp-ghost-btn" onClick={() => onNavigate(`/dashboard/games/${game.id}/responses`)}>
-          <Ico.chart/> Responses
-        </button>
-        <button className="gp-ghost-btn" onClick={() => onCopyLink(game)}>
-          <Ico.link/> Copy Link
-        </button>
-      </div>
+    <div className="gp-toggle-wrap">
+      <button
+        className={`gp-toggle ${value ? 'on' : 'off'}`}
+        onClick={toggle}
+        disabled={loading}
+        title={`${value ? 'Disable' : 'Enable'} ${label}`}
+        style={loading ? { opacity: 0.5 } : {}}
+      />
+      <span className="gp-toggle-label">{value ? 'On' : 'Off'}</span>
     </div>
   )
 }
@@ -150,41 +145,55 @@ function CreateModal({ clients, onClose, onCreated, onError }) {
   const navigate = useNavigate()
   const set = k => e => setForm(f => ({...f,[k]:e.target.value}))
 
-  const handleSubmit = async e => {
-    e.preventDefault(); setSubmitting(true)
-    try {
-      const res = await api.post('/games', form)
-      onCreated()
-      onClose()
-      navigate(`/dashboard/games/${res.data.game.id}/builder`)
-    } catch(err) { onError(err.response?.data?.message||'Error creating game'); setSubmitting(false) }
+const handleSubmit = async e => {
+  e.preventDefault()
+  setSubmitting(true)
+
+  try {
+    const res = await api.post('/games', form)
+
+    const game = res.data.game
+
+    onCreated()
+    onClose()
+
+    if (game.category === 'crossword') {
+      navigate(`/dashboard/games/${game.id}/crossword-builder`)
+    } else {
+      navigate(`/dashboard/games/${game.id}/builder`)
+    }
+
+  } catch (err) {
+    onError(err.response?.data?.message || 'Error creating game')
+    setSubmitting(false)
   }
+}
 
   return (
     <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
-      <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:500,maxHeight:'92vh',overflow:'auto',padding:'34px 30px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{background:' #fff',borderRadius:20,width:'100%',maxWidth:500,maxHeight:'92vh',overflow:'auto',padding:'34px 30px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
           <div>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:22,color:'#0D0D1A',letterSpacing:'-0.02em'}}>New Game</h2>
-            <p style={{color:'#9CA3AF',fontSize:13,marginTop:5}}>Configure the game — you'll build questions next.</p>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:22,color:' #0D0D1A',letterSpacing:'-0.02em'}}>New Game</h2>
+            <p style={{color:' #9CA3AF',fontSize:13,marginTop:5}}>Configure the game — you'll build questions next.</p>
           </div>
           <button className="gp-icon-btn" onClick={onClose}><Ico.close/></button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="gp-field">
-            <label className="gp-label">Client <span style={{color:'#EF4444'}}>*</span></label>
+            <label className="gp-label">Client <span style={{color:' #EF4444'}}>*</span></label>
             <div style={{position:'relative'}}>
               <select className="gp-select" value={form.client_id} onChange={set('client_id')} required>
                 <option value="">Select a client…</option>
                 {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
               </select>
-              <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'#9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:' #9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
             </div>
           </div>
 
           <div className="gp-field">
-            <label className="gp-label">Game Name <span style={{color:'#EF4444'}}>*</span></label>
+            <label className="gp-label">Game Name <span style={{color:' #EF4444'}}>*</span></label>
             <input className="gp-input" value={form.name} onChange={set('name')} placeholder="e.g. Product Knowledge Quiz" required />
           </div>
 
@@ -195,13 +204,13 @@ function CreateModal({ clients, onClose, onCreated, onError }) {
                 <button key={k} type="button"
                   onClick={() => setForm(f=>({...f,category:k}))}
                   style={{
-                    padding:'10px 8px',borderRadius:10,border:`2px solid ${form.category===k ? v.dot : '#E5E7EB'}`,
-                    background: form.category===k ? v.bg : '#FAFAFA',
+                    padding:'10px 8px',borderRadius:10,border:`2px solid ${form.category===k ? v.dot : ' #E5E7EB'}`,
+                    background: form.category===k ? v.bg : ' #FAFAFA',
                     cursor:'pointer',transition:'all .14s',
                     display:'flex',flexDirection:'column',alignItems:'center',gap:4,
                   }}>
                   <span style={{width:8,height:8,borderRadius:'50%',background:v.dot}} />
-                  <span style={{fontSize:13,fontWeight:600,color:form.category===k?v.fg:'#374151',fontFamily:"'DM Sans',sans-serif"}}>
+                  <span style={{fontSize:13,fontWeight:600,color:form.category===k?v.fg:' #374151',fontFamily:"'DM Sans',sans-serif"}}>
                     {v.label}
                   </span>
                 </button>
@@ -215,7 +224,7 @@ function CreateModal({ clients, onClose, onCreated, onError }) {
           </div>
 
           <div className="gp-field" style={{marginBottom:26}}>
-            <label className="gp-label">Redirect URL <span style={{color:'#9CA3AF',fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:11}}>(after game ends)</span></label>
+            <label className="gp-label">Redirect URL <span style={{color:' #9CA3AF',fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:11}}>(after game ends)</span></label>
             <input className="gp-input" type="url" value={form.redirect_url} onChange={set('redirect_url')} placeholder="https://yoursite.com/thankyou" />
           </div>
 
@@ -231,6 +240,42 @@ function CreateModal({ clients, onClose, onCreated, onError }) {
   )
 }
 
+// Column definitions — order here = order in table
+const COLUMNS = [
+  { key:'name',              label:'Game Name',     sortable:true  },
+  { key:'company_name',      label:'Client',        sortable:true  },
+  { key:'category',          label:'Category',      sortable:false },
+  { key:'question_count',    label:'Questions',     sortable:true,  center:true },
+  { key:'play_count',        label:'Plays',         sortable:true,  center:true },
+  { key:'is_active',         label:'Active',        sortable:false, center:true },
+  { key:'show_in_play_page', label:'Play Page',     sortable:false, center:true },
+  { key:'show_in_hero_page', label:'Hero / Home',   sortable:false, center:true },
+  { key:'slug',              label:'URL Slug',      sortable:false },
+  { key:'created_at',        label:'Created',       sortable:true  },
+  { key:'actions',           label:'Actions',       sortable:false, center:true },
+]
+
+function SortTh({ col, sortKey, sortDir, onSort }) {
+  const active = sortKey === col.key
+  return (
+    <th className={col.center ? 'center' : ''}>
+      {col.sortable ? (
+        <button className="gp-th-btn" onClick={() => onSort(col.key)}
+          style={active ? {color:' #4338CA'} : {}}>
+          {col.label}
+          <span style={{color: active ? ' #4338CA' : ' #D1D5DB', marginLeft:2}}>
+            {active && sortDir === 'asc' ? <Ico.caretUp/> : <Ico.caretDn/>}
+          </span>
+        </button>
+      ) : (
+        <span style={{fontSize:11,fontWeight:700,color:' #6B7280',textTransform:'uppercase',letterSpacing:'.08em'}}>
+          {col.label}
+        </span>
+      )}
+    </th>
+  )
+}
+
 export default function GamesPage() {
   const [games, setGames] = useState([])
   const [clients, setClients] = useState([])
@@ -239,6 +284,8 @@ export default function GamesPage() {
   const [toast, setToast] = useState(null)
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('all')
+  const [sortKey, setSortKey] = useState('created_at')
+  const [sortDir, setSortDir] = useState('desc')
   const navigate = useNavigate()
 
   const load = () =>
@@ -248,45 +295,80 @@ export default function GamesPage() {
 
   useEffect(() => { load() }, [])
 
+  const showToast = (msg, type='success') => setToast({msg, type})
+
   const handleDelete = async id => {
-    if (!confirm('Delete this game and all its questions?')) return
-    try { await api.delete(`/games/${id}`); setToast({msg:'Game deleted',type:'success'}); load() }
-    catch { setToast({msg:'Delete failed',type:'error'}) }
+    if (!confirm('Delete this game and all its questions, images and sounds?')) return
+    try { await api.delete(`/games/${id}`); showToast('Game deleted'); load() }
+    catch { showToast('Delete failed','error') }
   }
 
-  const toggleActive = async game => {
-    try { await api.put(`/games/${game.id}`,{...game,is_active:game.is_active?0:1}); load() } catch{}
+  const toggleField = async (game, field) => {
+    try {
+      await api.put(`/games/${game.id}`, { [field]: game[field] ? 0 : 1 })
+      load()
+    } catch { showToast('Failed to update','error') }
   }
 
-  const copyLink = game => {
+  const copyLink = (game, e) => {
+    e.stopPropagation()
     const link = `${window.location.origin}/play/${game.slug}/${game.client_slug}`
     navigator.clipboard.writeText(link)
-    if (!game.is_active) setToast({msg:'Link copied — game is currently inactive.',type:'error'})
-    else setToast({msg:'Game link copied!',type:'success'})
+    if (!game.is_active) showToast('Link copied — game is currently inactive.','error')
+    else showToast('Game link copied!')
   }
 
+  const handleSort = key => {
+    if (sortKey === key) setSortDir(d => d === 'asc' ? 'desc' : 'asc')
+    else { setSortKey(key); setSortDir('asc') }
+  }
+
+  // Filter
   const filtered = games.filter(g => {
-    const matchSearch = !search || [g.name,g.company_name].some(v=>v?.toLowerCase().includes(search.toLowerCase()))
-    const matchCat = filterCat==='all' || g.category===filterCat
+    const matchSearch = !search || [g.name, g.company_name].some(v => v?.toLowerCase().includes(search.toLowerCase()))
+    const matchCat = filterCat === 'all' || g.category === filterCat
     return matchSearch && matchCat
   })
 
-  const stats = { total: games.length, active: games.filter(g=>g.is_active).length, plays: games.reduce((a,g)=>a+(g.play_count||0),0) }
+  // Sort
+  const sorted = [...filtered].sort((a, b) => {
+    let av = a[sortKey], bv = b[sortKey]
+    if (sortKey === 'created_at') { av = new Date(av); bv = new Date(bv) }
+    else if (typeof av === 'string') { av = av?.toLowerCase() || ''; bv = bv?.toLowerCase() || '' }
+    else { av = av ?? 0; bv = bv ?? 0 }
+    if (av < bv) return sortDir === 'asc' ? -1 : 1
+    if (av > bv) return sortDir === 'asc' ? 1 : -1
+    return 0
+  })
+
+  const stats = {
+    total: games.length,
+    active: games.filter(g => g.is_active).length,
+    plays: games.reduce((a,g) => a + (g.play_count||0), 0),
+    onPlayPage: games.filter(g => g.show_in_play_page).length,
+    onHero: games.filter(g => g.show_in_hero_page).length,
+  }
+
+  const fmtDate = dt => {
+    if (!dt) return '—'
+    const d = new Date(dt)
+    return d.toLocaleDateString('en-IN', {day:'2-digit',month:'short',year:'numeric'})
+  }
 
   return (
     <div className="gp">
       <style>{CSS}</style>
-      <div style={{padding:'36px 40px',maxWidth:1120,margin:'0 auto'}}>
+      <div style={{padding:'36px 40px',maxWidth:1400,margin:'0 auto'}}>
 
         {/* Header */}
-        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:32,flexWrap:'wrap',gap:16}}>
+        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:28,flexWrap:'wrap',gap:16}}>
           <div>
-            <p style={{fontSize:11,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Management</p>
-            <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:'#0D0D1A',letterSpacing:'-0.03em',lineHeight:1}}>
+            <p style={{fontSize:11,fontWeight:700,color:' #9CA3AF',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Management</p>
+            <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:' #0D0D1A',letterSpacing:'-0.03em',lineHeight:1}}>
               Games
             </h1>
-            <p style={{fontSize:13.5,color:'#9CA3AF',marginTop:8}}>
-              {stats.total} game{stats.total!==1?'s':''} · {stats.active} active · {stats.plays.toLocaleString()} total plays
+            <p style={{fontSize:13,color:' #9CA3AF',marginTop:8}}>
+              {stats.total} game{stats.total!==1?'s':''} &middot; {stats.active} active &middot; {stats.plays.toLocaleString()} plays &middot; {stats.onPlayPage} on play page &middot; {stats.onHero} on hero
             </p>
           </div>
           <button className="gp-primary-btn" onClick={() => setShowForm(true)}><Ico.plus/> Create Game</button>
@@ -294,10 +376,10 @@ export default function GamesPage() {
 
         {/* Filters */}
         {games.length > 0 && (
-          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:28,flexWrap:'wrap'}}>
-            <div style={{position:'relative',flex:'0 0 300px'}}>
-              <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:'#9CA3AF'}}><Ico.search/></span>
-              <input className="gp-input" style={{paddingLeft:40}} placeholder="Search games…" value={search} onChange={e=>setSearch(e.target.value)} />
+          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20,flexWrap:'wrap'}}>
+            <div style={{position:'relative',flex:'0 0 280px'}}>
+              <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:' #9CA3AF'}}><Ico.search/></span>
+              <input className="gp-input" style={{paddingLeft:40,height:38,padding:'0 14px 0 40px'}} placeholder="Search games or client…" value={search} onChange={e=>setSearch(e.target.value)} />
             </div>
             <div style={{display:'flex',gap:6}}>
               {['all','quiz','survey','poll'].map(k => {
@@ -306,10 +388,10 @@ export default function GamesPage() {
                 const active = filterCat === k
                 return (
                   <button key={k} onClick={()=>setFilterCat(k)} style={{
-                    padding:'7px 14px',borderRadius:9,border:`1.5px solid ${active?'#A5B4FC':'#E5E7EB'}`,
-                    background: active ? '#EEF2FF' : '#fff',
-                    color: active ? '#4338CA' : '#374151',
-                    fontSize:12.5,fontWeight:600,cursor:'pointer',
+                    padding:'6px 14px',borderRadius:9,border:`1.5px solid ${active?' #A5B4FC':' #E5E7EB'}`,
+                    background: active ? ' #EEF2FF' : ' #fff',
+                    color: active ? ' #4338CA' : ' #374151',
+                    fontSize:12,fontWeight:600,cursor:'pointer',
                     fontFamily:"'DM Sans',sans-serif",
                     transition:'all .13s',
                   }}>
@@ -321,34 +403,198 @@ export default function GamesPage() {
           </div>
         )}
 
-        {/* States */}
+        {/* Column legend for new toggles */}
+        <div style={{display:'flex',gap:20,marginBottom:14,flexWrap:'wrap'}}>
+          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:' #6B7280'}}>
+            <span style={{display:'inline-flex',alignItems:'center',gap:4,background:' #EEF2FF',color:' #4338CA',padding:'3px 9px',borderRadius:100,fontWeight:600,fontSize:11}}>
+              <Ico.globe/> Play Page
+            </span>
+            Show game in the public website's games section
+          </div>
+          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:' #6B7280'}}>
+            <span style={{display:'inline-flex',alignItems:'center',gap:4,background:' #FFF7ED',color:' #C2410C',padding:'3px 9px',borderRadius:100,fontWeight:600,fontSize:11}}>
+              <Ico.star/> Hero / Home
+            </span>
+            Feature game in the homepage hero section
+          </div>
+        </div>
+
+        {/* Table */}
         {loading ? (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:'#9CA3AF',fontSize:14}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:' #9CA3AF',fontSize:14}}>
             <Ico.spin/> Loading games…
           </div>
         ) : games.length === 0 ? (
           <div style={{textAlign:'center',padding:'80px 0'}}>
-            <div style={{width:72,height:72,borderRadius:18,background:'#F5F3FF',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
-              <svg width="30" height="30" fill="none" stroke="#6366F1" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg>
+            <div style={{width:72,height:72,borderRadius:18,background:' #F5F3FF',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
+              <svg width="30" height="30" fill="none" stroke=" #6366F1" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg>
             </div>
-            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A',marginBottom:8}}>No games yet</h3>
-            <p style={{color:'#9CA3AF',fontSize:14,marginBottom:24}}>Create your first game to get started.</p>
+            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:' #0D0D1A',marginBottom:8}}>No games yet</h3>
+            <p style={{color:' #9CA3AF',fontSize:14,marginBottom:24}}>Create your first game to get started.</p>
             <button className="gp-primary-btn" onClick={()=>setShowForm(true)}><Ico.plus/> Create Game</button>
           </div>
-        ) : filtered.length === 0 ? (
-          <div style={{textAlign:'center',padding:'60px 0',color:'#9CA3AF',fontSize:14}}>
+        ) : sorted.length === 0 ? (
+          <div style={{textAlign:'center',padding:'60px 0',color:' #9CA3AF',fontSize:14}}>
             No games match your filters.
           </div>
         ) : (
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(310px,1fr))',gap:16}}>
-            {filtered.map((g,i) => (
-              <GameCard key={g.id} game={g} delay={i*40}
-                onNavigate={navigate}
-                onCopyLink={copyLink}
-                onToggle={toggleActive}
-                onDelete={handleDelete}
-              />
-            ))}
+          <div className="gp-table-wrap" style={{overflowX:'auto'}}>
+            <table className="gp-table">
+              <thead>
+                <tr>
+                  {COLUMNS.map(col => (
+                    <SortTh key={col.key} col={col} sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {sorted.map((game, i) => {
+                  const cat = catMeta(game.category)
+                  return (
+                    <tr
+                      key={game.id}
+                      className={game.is_active ? '' : 'inactive-row'}
+                      style={{animationDelay:`${i*30}ms`, cursor:'pointer'}}
+                      onClick={() => navigate(`/dashboard/games/${game.id}/responses`)}
+                    >
+                      {/* Game Name */}
+                      <td style={{minWidth:180}}>
+                        <div style={{fontWeight:600,color:' #0D0D1A',fontSize:13.5,fontFamily:"'DM Sans',sans-serif",marginBottom:2}}>
+                          {game.name}
+                        </div>
+                        {game.description && (
+                          <div style={{fontSize:11.5,color:' #9CA3AF',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                            {game.description}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Client */}
+                      <td style={{minWidth:130}}>
+                        <span style={{fontSize:12.5,color:' #374151',fontWeight:500}}>
+                          {game.company_name || '—'}
+                        </span>
+                      </td>
+
+                      {/* Category */}
+                      <td style={{minWidth:90}}>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:5,background:cat.bg,color:cat.fg,fontSize:11,fontWeight:600,padding:'3px 9px',borderRadius:100,letterSpacing:'.01em'}}>
+                          <span style={{width:5,height:5,borderRadius:'50%',background:cat.dot,flexShrink:0}} />
+                          {cat.label}
+                        </span>
+                      </td>
+
+                      {/* Questions */}
+                      <td className="center" style={{minWidth:80}}>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,color:' #6B7280',fontWeight:500}}>
+                          <Ico.question/> {game.question_count||0}
+                        </span>
+                      </td>
+
+                      {/* Plays */}
+                      <td className="center" style={{minWidth:80}}>
+                        <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,color:' #6B7280',fontWeight:500}}>
+                          <Ico.play/> {(game.play_count||0).toLocaleString()}
+                        </span>
+                      </td>
+
+                      {/* Active toggle */}
+                      <td className="center" style={{minWidth:72}} onClick={e => e.stopPropagation()}>
+                        <div className="gp-toggle-wrap">
+                          <button
+                            className={`gp-toggle ${game.is_active ? 'on' : 'off'}`}
+                            title={game.is_active ? 'Deactivate game' : 'Activate game'}
+                            onClick={e => { e.stopPropagation(); toggleField(game, 'is_active') }}
+                          />
+                          <span className="gp-toggle-label">{game.is_active ? 'On' : 'Off'}</span>
+                        </div>
+                      </td>
+
+                      {/* Show in Play Page */}
+                      <td className="center" style={{minWidth:80}} onClick={e => e.stopPropagation()}>
+                        <div className="gp-toggle-wrap">
+                          <button
+                            className={`gp-toggle ${game.show_in_play_page ? 'on' : 'off'}`}
+                            title={game.show_in_play_page ? 'Remove from play page' : 'Show on play page'}
+                            onClick={e => { e.stopPropagation(); toggleField(game, 'show_in_play_page') }}
+                          />
+                          <span className="gp-toggle-label">{game.show_in_play_page ? 'On' : 'Off'}</span>
+                        </div>
+                      </td>
+
+                      {/* Show in Hero Page */}
+                      <td className="center" style={{minWidth:80}} onClick={e => e.stopPropagation()}>
+                        <div className="gp-toggle-wrap">
+                          <button
+                            className={`gp-toggle ${game.show_in_hero_page ? 'on' : 'off'}`}
+                            title={game.show_in_hero_page ? 'Remove from hero' : 'Feature on homepage hero'}
+                            onClick={e => { e.stopPropagation(); toggleField(game, 'show_in_hero_page') }}
+                          />
+                          <span className="gp-toggle-label">{game.show_in_hero_page ? 'On' : 'Off'}</span>
+                        </div>
+                      </td>
+
+                      {/* URL Slug */}
+                      <td style={{minWidth:180}}>
+                        <div style={{background:' #F8F9FB',borderRadius:6,padding:'5px 9px',fontSize:11,color:' #6B7280',fontFamily:'monospace',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
+                          /play/{game.slug}/{game.client_slug}
+                        </div>
+                      </td>
+
+                      {/* Created At */}
+                      <td style={{minWidth:100,fontSize:12,color:' #9CA3AF',whiteSpace:'nowrap'}}>
+                        {fmtDate(game.created_at)}
+                      </td>
+
+                      {/* Actions */}
+                      <td className="center" style={{minWidth:150}} onClick={e => e.stopPropagation()}>
+                        <div style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center',flexWrap:'nowrap'}}>
+                          <button className="gp-ghost-btn" style={{background:' #18181B',color:' #fff',borderColor:' #18181B',padding:'5px 11px'}}
+                            onClick={() => {
+  if (game.category === 'crossword') {
+    navigate(`/dashboard/games/${game.id}/crossword-builder`)
+  } else {
+    navigate(`/dashboard/games/${game.id}/builder`)
+  }
+}}
+                            title="Open Builder">
+                            <Ico.wrench/> Builder
+                          </button>
+                          <button className="gp-ghost-btn" style={{padding:'5px 11px'}}
+                            onClick={() => navigate(`/dashboard/games/${game.id}/responses`)}
+                            title="View Responses">
+                            <Ico.chart/>
+                          </button>
+                          <button className="gp-ghost-btn" style={{padding:'5px 11px'}}
+                            onClick={e => copyLink(game, e)}
+                            title="Copy game link">
+                            <Ico.link/>
+                          </button>
+                          <button className="gp-icon-btn del"
+                            onClick={e => { e.stopPropagation(); handleDelete(game.id) }}
+                            title="Delete game">
+                            <Ico.trash/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+
+            {/* Table footer */}
+            <div style={{padding:'12px 16px',borderTop:'1px solid  #F3F4F6',display:'flex',alignItems:'center',justifyContent:'space-between',background:' #FAFAFA'}}>
+              <span style={{fontSize:12,color:' #9CA3AF'}}>
+                Showing {sorted.length} of {games.length} game{games.length!==1?'s':''}
+              </span>
+              <div style={{display:'flex',gap:16,fontSize:12,color:' #6B7280'}}>
+                <span>✅ Active: <strong>{stats.active}</strong></span>
+                <span>🌐 Play Page: <strong>{stats.onPlayPage}</strong></span>
+                <span>⭐ Hero: <strong>{stats.onHero}</strong></span>
+                <span>🎮 Total Plays: <strong>{stats.plays.toLocaleString()}</strong></span>
+              </div>
+            </div>
           </div>
         )}
       </div>
@@ -358,7 +604,7 @@ export default function GamesPage() {
           clients={clients}
           onClose={() => setShowForm(false)}
           onCreated={load}
-          onError={msg => setToast({msg,type:'error'})}
+          onError={msg => showToast(msg,'error')}
         />
       )}
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

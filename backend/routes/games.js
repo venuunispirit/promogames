@@ -3,6 +3,23 @@ const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 const upload = require('../config/upload');
+const path = require('path');
+const fs = require('fs');
+
+// Helper: delete a file stored as a /uploads/... URL from disk
+function deleteUploadFile(urlPath) {
+  if (!urlPath) return;
+  try {
+    const abs = path.join(__dirname, '..', urlPath);
+    if (fs.existsSync(abs)) {
+      fs.unlinkSync(abs);
+      console.log('🗑️  Deleted file:', urlPath);
+    }
+  } catch (e) {
+    console.warn('⚠️  Could not delete file:', urlPath, e.message);
+  }
+}
+
 
 function slugify(text) {
   return text.toString().toLowerCase()
@@ -64,16 +81,58 @@ router.post('/', auth, async (req, res) => {
 });
 
 router.put('/:id', auth, async (req, res) => {
-  const { name, description, redirect_url, is_active, category } = req.body;
   try {
-    await db.query('UPDATE games SET name=?, description=?, redirect_url=?, is_active=?, category=? WHERE id=?', [name, description, redirect_url, is_active, category, req.params.id]);
+    const allowed = ['name','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page'];
+    const booleans = ['is_active','show_in_play_page','show_in_hero_page'];
+    const fields = []; const values = [];
+    for (const key of allowed) {
+      if (req.body[key] !== undefined) {
+        fields.push(`${key}=?`);
+        values.push(booleans.includes(key) ? (req.body[key] ? 1 : 0) : req.body[key]);
+      }
+    }
+    if (fields.length === 0) return res.status(400).json({ success: false, message: 'No fields to update' });
+    values.push(req.params.id);
+    await db.query(`UPDATE games SET ${fields.join(', ')} WHERE id=?`, values);
     res.json({ success: true, message: 'Game updated' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
 router.delete('/:id', auth, async (req, res) => {
   try {
-    await db.query('DELETE FROM games WHERE id = ?', [req.params.id]);
+    const gameId = req.params.id;
+
+    // ── Collect all file URLs associated with this game before deleting ──
+
+    // 1. quiz_settings images
+    const [settingsRows] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [gameId]);
+    if (settingsRows[0]) {
+      const s = settingsRows[0];
+      ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url'].forEach(f => deleteUploadFile(s[f]));
+    }
+
+    // 2. question images + option images
+    const [questions] = await db.query('SELECT * FROM questions WHERE game_id = ?', [gameId]);
+    for (const q of questions) {
+      deleteUploadFile(q.question_image_url);
+      deleteUploadFile(q.question_bg_image_url);
+      const [options] = await db.query('SELECT * FROM options WHERE question_id = ?', [q.id]);
+      for (const opt of options) {
+        deleteUploadFile(opt.option_image_url);
+        deleteUploadFile(opt.option_overlay_image_url);
+      }
+    }
+
+    // 3. sound files
+    const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [gameId]);
+    for (const s of sounds) {
+      deleteUploadFile(s.url || s.file_url);
+    }
+
+    // ── Now delete the game (cascades to questions, options, settings, sounds, sessions) ──
+    await db.query('DELETE FROM games WHERE id = ?', [gameId]);
+
+    console.log(`🗑️  Game ${gameId} and all associated files deleted.`);
     res.json({ success: true, message: 'Game deleted' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });

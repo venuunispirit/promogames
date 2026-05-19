@@ -5,10 +5,7 @@ const bcrypt = require('bcryptjs');
 /* ================= HELPERS ================= */
 
 async function columnExists(conn, table, column) {
-  const [rows] = await conn.query(
-    `SHOW COLUMNS FROM \`${table}\` LIKE ?`,
-    [column]
-  );
+  const [rows] = await conn.query(`SHOW COLUMNS FROM \`${table}\` LIKE ?`, [column]);
   return rows.length > 0;
 }
 
@@ -16,9 +13,7 @@ async function addColumn(conn, table, column, definition) {
   try {
     const exists = await columnExists(conn, table, column);
     if (!exists) {
-      await conn.query(
-        `ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`
-      );
+      await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
       console.log(`✅ Added ${table}.${column}`);
     }
   } catch (err) {
@@ -48,15 +43,9 @@ async function initDB() {
   });
 
   console.log('🔧 Initializing database...');
-
   const dbName = process.env.DB_NAME || 'quiz_platform';
 
-  await safeQuery(
-    connection,
-    `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`,
-    'Database ready'
-  );
-
+  await safeQuery(connection, `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`, 'Database ready');
   await connection.query(`USE \`${dbName}\``);
 
   console.log('📦 Creating base tables...');
@@ -160,8 +149,129 @@ async function initDB() {
     )
   `, 'sounds table');
 
-  /* QUESTIONS MIGRATIONS */
+  /* FORM FIELDS */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS form_fields (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      field_label VARCHAR(255),
+      field_type VARCHAR(50) DEFAULT 'text',
+      field_options JSON,
+      is_required TINYINT(1) DEFAULT 0,
+      field_order INT DEFAULT 0,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'form_fields table');
+
+  /* EMAIL TEMPLATES */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS email_templates (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      sender_name VARCHAR(255),
+      sender_email VARCHAR(255),
+      subject VARCHAR(500),
+      header_color VARCHAR(20) DEFAULT '#6366f1',
+      header_text VARCHAR(500),
+      body_html TEXT,
+      footer_text TEXT,
+      is_enabled TINYINT(1) DEFAULT 1,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'email_templates table');
+
+  /* PLAYER SESSIONS */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS player_sessions (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      session_token VARCHAR(255) UNIQUE,
+      player_data JSON,
+      score INT DEFAULT 0,
+      total_scoreable INT DEFAULT 0,
+      completed TINYINT(1) DEFAULT 0,
+      email_sent TINYINT(1) DEFAULT 0,
+      source_type VARCHAR(20) DEFAULT 'direct',
+      completed_at TIMESTAMP NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'player_sessions table');
+
+  /* PLAYER ANSWERS */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS player_answers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      session_id INT NOT NULL,
+      question_id INT DEFAULT NULL,
+      crossword_word_id INT DEFAULT NULL,
+      option_id INT DEFAULT NULL,
+      answer_text VARCHAR(500),
+      is_correct TINYINT(1) DEFAULT 0,
+      question_type VARCHAR(50),
+      answered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES player_sessions(id) ON DELETE CASCADE
+    )
+  `, 'player_answers table');
+
+  /* ── NEW: CROSSWORD TABLES ── */
+  console.log('🔤 Creating crossword tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS crossword_words (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      word_text VARCHAR(255) NOT NULL,
+      clue_text TEXT,
+      start_row INT DEFAULT 0,
+      start_col INT DEFAULT 0,
+      direction ENUM('across','down') DEFAULT 'across',
+      word_order INT DEFAULT 0,
+      word_color VARCHAR(20) DEFAULT '#7c6ff7',
+      overlay_image_url VARCHAR(500),
+      sound_correct_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'crossword_words table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS crossword_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      grid_rows INT DEFAULT 10,
+      grid_cols INT DEFAULT 10,
+      cell_size INT DEFAULT 40,
+      show_timer TINYINT(1) DEFAULT 1,
+      time_limit_seconds INT DEFAULT 0,
+      allow_hints TINYINT(1) DEFAULT 1,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      description_text TEXT,
+      bg_color VARCHAR(20) DEFAULT '#f8f8ff',
+      primary_color VARCHAR(20) DEFAULT '#7c6ff7',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_correct_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'crossword_settings table');
+
+  /* ── EXISTING COLUMN MIGRATIONS (all from your original, unchanged) ── */
+  console.log('🔄 Running column migrations...');
+
+  /* QUESTIONS */
   await addColumn(connection, 'questions', 'question_bg_image_url', 'VARCHAR(500)');
+  await addColumn(connection, 'questions', 'sound_correct', 'VARCHAR(500)');
+  await addColumn(connection, 'questions', 'sound_wrong', 'VARCHAR(500)');
+  await addColumn(connection, 'questions', 'sound_neutral', 'VARCHAR(500)');
   await addColumn(connection, 'questions', 'sound_correct_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'questions', 'sound_wrong_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'questions', 'sound_neutral_id', 'INT DEFAULT NULL');
@@ -171,17 +281,18 @@ async function initDB() {
   await addColumn(connection, 'questions', 'overlay_animation_out', "VARCHAR(50) DEFAULT 'flyToTop'");
   await addColumn(connection, 'questions', 'question_image_animation', "VARCHAR(50) DEFAULT 'float'");
 
-  /* OPTIONS MIGRATIONS */
+  /* OPTIONS */
   await addColumn(connection, 'options', 'option_overlay_image_url', 'VARCHAR(500)');
   await addColumn(connection, 'options', 'option_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
 
-  /* QUIZ SETTINGS MIGRATIONS */
+  /* QUIZ SETTINGS */
   await addColumn(connection, 'quiz_settings', 'bg_image_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'thankyou_bg_image_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'terms_enabled', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'quiz_settings', 'terms_text', 'TEXT');
   await addColumn(connection, 'quiz_settings', 'terms_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'send_email', 'TINYINT(1) DEFAULT 1');
+  await addColumn(connection, 'quiz_settings', 'win_sound_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'win_sound_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'quiz_settings', 'lose_sound_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'quiz_settings', 'sound_correct_id', 'INT DEFAULT NULL');
@@ -189,27 +300,38 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'game_logo_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'font_family', "VARCHAR(100) DEFAULT 'DM Sans'");
   await addColumn(connection, 'quiz_settings', 'submit_confirm_gif_url', 'VARCHAR(500)');
-  /* GAMES MIGRATIONS */
+  await addColumn(connection, 'quiz_settings', 'allow_back', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'time_per_question', 'INT DEFAULT 0');
+
+  /* GAMES */
   await addColumn(connection, 'games', 'client_id', 'INT');
+  await addColumn(connection, 'games', 'slug', 'VARCHAR(255)');
+  await addColumn(connection, 'games', 'description', 'TEXT');
+  await addColumn(connection, 'games', 'redirect_url', 'VARCHAR(500)');
+  await addColumn(connection, 'games', 'is_active', 'TINYINT(1) DEFAULT 1');
+  await addColumn(connection, 'games', 'show_in_play_page', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'games', 'show_in_hero_page', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'games', 'created_by', 'INT');
+  await addColumn(connection, 'games', 'updated_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+
+  /* PLAYER SESSIONS */
+  await addColumn(connection, 'player_sessions', 'source_type', "VARCHAR(20) DEFAULT 'direct'");
+  await addColumn(connection, 'player_sessions', 'completed_at', 'TIMESTAMP NULL');
+  await addColumn(connection, 'player_sessions', 'email_sent', 'TINYINT(1) DEFAULT 0');
+
+  /* SOUNDS — url column used by sounds.js route */
+  await addColumn(connection, 'sounds', 'url', 'VARCHAR(500)');
 
   console.log('👤 Creating admin user...');
 
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@yourdomain.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
-
   const hashedPassword = await bcrypt.hash(adminPassword, 10);
 
   try {
-    const [existingAdmin] = await connection.query(
-      'SELECT id FROM users WHERE email = ?',
-      [adminEmail]
-    );
-
+    const [existingAdmin] = await connection.query('SELECT id FROM users WHERE email = ?', [adminEmail]);
     if (existingAdmin.length === 0) {
-      await connection.query(
-        'INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)',
-        ['Admin', adminEmail, hashedPassword, 'admin']
-      );
+      await connection.query('INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)', ['Admin', adminEmail, hashedPassword, 'admin']);
       console.log(`✅ Admin created: ${adminEmail}`);
     } else {
       console.log('ℹ️ Admin already exists');
@@ -219,7 +341,6 @@ async function initDB() {
   }
 
   await connection.end();
-
   console.log('✅ Migration completed successfully!');
 }
 

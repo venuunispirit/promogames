@@ -11,6 +11,9 @@ import GameBuilderPage from './pages/GameBuilderPage'
 import PlayerPage from './pages/PlayerPage'
 import LandingPage from './pages/LandingPage'
 import GameResponsesPage from './pages/GameResponsesPage'
+import ArcadePage from './pages/ArcadePage'
+// import CrosswordBuilderPage from './pages/CrosswordBuilderTab'
+import CrosswordBuilderTab from './pages/CrosswordBuilderTab'
 
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth()
@@ -28,14 +31,14 @@ function ProtectedRoute({ children }) {
   )
   return user ? children : <Navigate to="/login" replace />
 }
-
 function AppRoutes() {
   return (
     <Routes>
       {/* Public routes */}
       <Route path="/" element={<LandingPage />} />
       <Route path="/login" element={<LoginPage />} />
-      
+      <Route path="/arcade" element={<ArcadePage />} />
+
       {/* Player game route */}
       <Route path="/play/:gameName/:companyName" element={<PlayerPage />} />
 
@@ -45,6 +48,10 @@ function AppRoutes() {
         <Route path="clients" element={<ClientsPage />} />
         <Route path="games" element={<GamesPage />} />
         <Route path="games/:id/builder" element={<GameBuilderPage />} />
+        <Route
+  path="games/:id/crossword-builder"
+  element={<CrosswordBuilderTab />}
+/>
         <Route path="games/:id/responses" element={<GameResponsesPage />} />
       </Route>
 

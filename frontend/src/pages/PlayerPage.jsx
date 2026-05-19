@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 
 const api = axios.create({ baseURL: '/api' })
@@ -186,6 +186,7 @@ function validateField(value, fieldType, isRequired) {
 
 export default function PlayerPage() {
   const { gameName, companyName } = useParams()
+  const [searchParams] = useSearchParams()
   const [phase, setPhase] = useState('loading')
   const [game, setGame] = useState(null)
   const [errorMsg, setErrorMsg] = useState('Game not found')
@@ -286,7 +287,7 @@ export default function PlayerPage() {
     if (hasErrors) return
     setSubmitting(true)
     try {
-      const res = await api.post('/play/session/start', { game_id: game.id, player_data: formData })
+      const res = await api.post('/play/session/start', { game_id: game.id, player_data: formData, source_type: searchParams.get('source') === 'direct' ? 'direct' : 'link' })
       setSessionToken(res.data.session_token)
       setPhase('playing')
     } catch (err) {

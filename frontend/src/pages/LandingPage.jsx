@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 const NAV = [
   { label: "About Us",    href: "#about"    },
   { label: "Games",       href: "#games",   dropdown: true },
-  { label: "Play",        href: "#play"     },
+  { label: "Play",        href: "/arcade"     },
   { label: "Leaderboard",        href: "#blog"     },
   { label: "Contact Us",  href: "#contact"  },
 ];
@@ -372,11 +372,38 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .footer-contact-item{font-family:var(--fb);font-size:14px;color:rgba(255,255,255,.65);display:flex;align-items:center;gap:10px}
 .footer-contact-item a{color:rgba(255,255,255,.65);text-decoration:none;transition:color .2s}
 .footer-contact-item a:hover{color:#fff}
+/* RANKED GAMES */
+.rg-section{padding:70px 6% 60px;position:relative;overflow:hidden}
+.rg-section::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(146,16,246,0.4),transparent)}
+.rg-kicker{font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:10px}
+.rg-heading{font-family:var(--fh);font-size:clamp(22px,3vw,40px);font-weight:400;line-height:1.15;letter-spacing:-0.01em;margin-bottom:8px}
+.rg-sub{font-family:var(--fb);font-size:14px;color:var(--muted);margin-bottom:40px}
+.rg-track{display:flex;gap:0;align-items:flex-end;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+.rg-track::-webkit-scrollbar{display:none}
+.rg-item{position:relative;flex-shrink:0;cursor:pointer;transition:transform .32s cubic-bezier(.22,1,.36,1)}
+.rg-item:hover{transform:scale(1.04) translateY(-6px);z-index:10}
+.rg-rank{position:absolute;left:-10px;top:-18px;font-family:var(--fh);font-size:clamp(60px,7vw,100px);font-weight:400;line-height:1;color:transparent;-webkit-text-stroke:2px rgba(227, 227, 227, 0.45);user-select:none;z-index:20;pointer-events:none;transition:color .3s,-webkit-text-stroke .3s}
+.rg-item:hover .rg-rank{-webkit-text-stroke:2px rgba(146,16,246,0.85);text-shadow:0 0 40px rgba(146,16,246,0.3)}
+.rg-card{width:210px;height:290px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);position:relative;transition:border-color .3s,box-shadow .3s}.rg-item:hover .rg-card{border-color:rgba(146,16,246,0.5);box-shadow:0 16px 48px rgba(146,16,246,0.18),0 0 0 1px rgba(146,16,246,0.2)}
+.rg-card-img{width:100%;height:65%;object-fit:cover;display:block;transition:transform .4s}
+.rg-item:hover .rg-card-img{transform:scale(1.08)}
+.rg-card-body{position:absolute;bottom:0;left:0;right:0;padding:10px 12px 12px;background:linear-gradient(to top,rgba(10,5,20,0.97) 0%,rgba(10,5,20,0.6) 60%,transparent 100%)}
+.rg-card-name{font-family:var(--fb);font-size:12.5px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rg-card-plays{font-family:var(--fb);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.rg-card-badge{position:absolute;top:8px;right:8px;background:rgba(146,16,246,0.7);border:1px solid rgba(146,16,246,0.5);backdrop-filter:blur(8px);padding:3px 8px;border-radius:100px;font-family:var(--fb);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff}
+.rg-card-overlay{position:absolute;inset:0;background:rgba(146,16,246,0.12);opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;border-radius:14px}
+.rg-item:hover .rg-card-overlay{opacity:1}
+.rg-play-btn{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.4);transform:scale(0.6);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.rg-item:hover .rg-play-btn{transform:scale(1)}
+.rg-empty{text-align:center;padding:60px 20px;font-family:var(--fb);font-size:14px;color:var(--muted)}
+@keyframes rgSlideIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.rg-item{animation:rgSlideIn .5s cubic-bezier(.22,1,.36,1) both};
 
 @media(max-width:1100px){.navbar{width:78%}}
 @media(max-width:900px){.nav-links,.nav-btn-cta{display:none}.ham{display:flex}.nav-wrap{padding:12px 20px;display:block}.navbar{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}.hero-inner{grid-template-columns:1fr;gap:32px}.hero-stats{flex-wrap:wrap;gap:16px}.hst{flex:1 1 calc(50% - 16px);padding-right:0;border-right:none!important}}
 @media(max-width:768px){.hero-h1{font-size:30px}.exp-track{flex-direction:column!important;height:auto!important;gap:8px}.exp-card{flex:none!important;width:100%!important;height:130px;border-radius:14px;transition:height .5s cubic-bezier(.22,1,.36,1)!important}.exp-card.active{height:260px!important}.footer-main{grid-template-columns:1fr}.hex-row.offset{padding-left:72px}.hex-cell{width:118px;height:104px;margin:0 3px}.hex-panel-grid{grid-template-columns:1fr}.hex-panel-right{border-top:1px solid rgba(255,255,255,.07);flex-direction:row;justify-content:center;gap:24px;padding:20px 24px}.cov-card{width:250px;height:370px;margin-left:-125px;margin-top:-185px}.carousel-stage{height:400px}.cov-card.pos-1{transform:translateX(170px) translateZ(-180px) rotateY(-26deg) scale(0.78)}.cov-card.pos--1{transform:translateX(-170px) translateZ(-180px) rotateY(26deg) scale(0.78)}.stats-strip{flex-wrap:wrap;gap:24px}.stat-item{min-width:40%}body{cursor:auto}.cursor-dot,.cursor-ring{display:none}}
 `;
+
 
 /* ─── SUB-COMPONENTS ────────────────────────────────── */
 const Arr = ({ size = 20 }) => (
@@ -647,7 +674,85 @@ function ChangingText() {
     </section>
   );
 }
+/* ─── RANKED GAMES ──────────────────────────────────── */
+function RankedGames() {
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    fetch('/api/play/hero-games')
+      .then(r => r.json())
+      .then(d => { if (d.success) setGames(d.games || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading || games.length === 0) return null;
+
+  // Placeholder game art colors for when there's no image
+  const COLORS = ['#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497'];
+
+  return (
+    <section className="rg-section">
+      <p className="rg-kicker">🔥 Trending Now</p>
+      <h2 className="rg-heading">Top Games This Week</h2>
+      <p className="rg-sub">Play brand games from our partners — live &amp; free</p>
+
+      <div className="rg-track">
+        {games.map((game, i) => (
+          <div
+            key={game.id}
+            className="rg-item"
+            style={{ animationDelay: `${i * 60}ms`, marginLeft: i === 0 ? 0 : i < 3 ? 36 : 24, marginTop: 28 }}
+            onClick={() => window.open(`/play/${game.slug}/${game.client_slug}`, '_blank')}
+          >
+            {/* Big rank number */}
+            <span className="rg-rank">{i + 1}</span>
+
+            <div className="rg-card">
+              {/* Game image or color fallback */}
+              {game.game_logo_url || game.bg_image_url ? (
+                <img
+                  className="rg-card-img"
+                  src={game.game_logo_url || game.bg_image_url}
+                  alt={game.name}
+                  loading="lazy"
+                />
+              ) : (
+                <div className="rg-card-img" style={{
+                  background: `linear-gradient(135deg, ${COLORS[i % COLORS.length]}44, ${COLORS[(i+2) % COLORS.length]}22)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 40
+                }}>
+                  🎮
+                </div>
+              )}
+
+              {/* Category badge */}
+              <span className="rg-card-badge">{game.category || 'Quiz'}</span>
+
+              {/* Bottom info */}
+              <div className="rg-card-body">
+                <div className="rg-card-name">{game.name}</div>
+                <div className="rg-card-plays">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  {(game.play_count || 0).toLocaleString()} plays
+                </div>
+              </div>
+
+              {/* Hover overlay with play button */}
+              <div className="rg-card-overlay">
+                <div className="rg-play-btn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#9210f6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
 /* ─── MAIN COMPONENT ────────────────────────────────── */
 export default function PromoGamesHome() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -793,7 +898,7 @@ export default function PromoGamesHome() {
           </div>
         ))}
       </div>
-
+ <RankedGames />
       {/* SERVICES */}
       <section id="services">
         <div className="svc-head">

@@ -1,10 +1,10 @@
 require('dotenv').config();
 const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const fs = require('fs');
+const cors    = require('cors');
+const path    = require('path');
+const fs      = require('fs');
 
-const app = express();
+const app  = express();
 const PORT = process.env.PORT || 5051;
 
 const uploadDirs = [
@@ -45,6 +45,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'uploads'), {
   }
 }));
 
+// ── Existing routes (unchanged) ──────────────────────────────────────────────
 app.use('/api/auth',    require('./routes/auth'));
 app.use('/api/clients', require('./routes/clients'));
 app.use('/api/games',   require('./routes/games'));
@@ -52,6 +53,13 @@ app.use('/api/quiz',    require('./routes/quiz'));
 app.use('/api/upload',  require('./routes/upload'));
 app.use('/api/sounds',  require('./routes/sounds'));
 app.use('/api/play',    require('./routes/player'));
+app.use('/api/pauth',       require('./routes/Pauth'));
+app.use('/api/leaderboard', require('./routes/leaderboard'));
+app.use('/api/players-admin', require('./routes/players-admin'));
+app.use('/api/crossword', require('./routes/crossword'));
+
+// ── NEW: PromoPlayer auth routes ─────────────────────────────────────────────
+// app.use('/api/pauth',   require('../routes/pauth'));
 
 app.get('/api/health', (req, res) => {
   res.json({ status: 'OK', message: '🎮 Quiz Platform API is running', timestamp: new Date() });

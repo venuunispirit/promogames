@@ -6,7 +6,8 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "init-db": "node config/initDB.js"
+    "init-db": "node config/initDB.js",
+    "init-promo": "node config/initPromo.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

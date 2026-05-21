@@ -2,11 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 
 /* ─── DATA ─────────────────────────────────────────── */
 const NAV = [
-  { label: "About Us",    href: "#about"    },
-  { label: "Games",       href: "#games",   dropdown: true },
   { label: "Play",        href: "/arcade"     },
-  { label: "Leaderboard",        href: "#blog"     },
-  { label: "Contact Us",  href: "#contact"  },
+  { label: "Leaderboard", href: "/leaderboard" },
 ];
 
 const GAME_DROPDOWN = [
@@ -134,9 +131,9 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 
 /* NAV */
 .nav-wrap{position:fixed;top:0;left:0;right:0;z-index:1000;padding:18px 0;pointer-events:none;display:flex;justify-content:center}
-.navbar{pointer-events:all;width:62%;max-width:900px;min-width:580px;display:flex;align-items:center;justify-content:space-between;padding:11px 20px 11px 18px;border-radius:100px;background:rgba(10,5,20,0.82);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(146,16,246,0.22);box-shadow:0 8px 48px rgba(0,0,0,0.60),0 0 0 0.5px rgba(146,16,246,0.08) inset}
+.navbar{pointer-events:all;width:62%;max-width:700px;min-width:580px;display:flex;align-items:center;justify-content:space-between;padding:11px 20px 11px 18px;border-radius:100px;background:rgba(10,5,20,0.82);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(146,16,246,0.22);box-shadow:0 8px 48px rgba(0,0,0,0.60),0 0 0 0.5px rgba(146,16,246,0.08) inset}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-mark{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:linear-gradient(135deg,var(--purple),var(--purple3));display:grid;place-items:center;font-family:var(--fb);font-weight:800;font-size:18px}
+.logo-mark{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:transparent;display:grid;place-items:center;font-family:var(--fb);font-weight:800;font-size:18px}
 .logo-name{font-family:var(--fh);font-weight:400;font-size:15px;color:#fff;white-space:nowrap;letter-spacing:.5px}
 .nav-links{list-style:none;display:flex;gap:26px;align-items:center;position:relative}
 .nav-links a{font-family:var(--fb);font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;position:relative;transition:color .22s;cursor:none}
@@ -144,7 +141,7 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .nav-links a:hover{color:#fff}
 .nav-links a:hover::after{width:100%}
 .nav-divider{width:1px;height:22px;background:rgba(255,255,255,0.15);margin:0 4px}
-.login-link{font-family:var(--fb);font-size:13.5px;font-weight:700;color:#fff!important;padding:7px 18px;border-radius:100px;border:1px solid rgba(146,16,246,0.45)!important;background:rgba(146,16,246,0.12);transition:background .2s,border-color .2s!important;cursor:none}
+.login-link{font-family:var(--fb);font-size:13.5px;font-weight:700;color:#fff!important;padding:7px 18px;border-radius:100px;border:1px solid rgba(146,16,246,0.45)!important;background:rgba(146,16,246,0.12);transition:background .2s,border-color .2s!important;cursor:none; margin-right:40px;}
 .login-link:hover{background:rgba(146,16,246,0.28)!important;border-color:rgba(146,16,246,0.7)!important}
 .login-link::after{display:none!important}
 .nav-btn-cta{position:relative;overflow:hidden;display:inline-flex;align-items:center;height:38px;padding:0 22px;border-radius:100px;border:none;background:linear-gradient(90deg,var(--purple2),var(--purple));text-decoration:none;cursor:none;white-space:nowrap;font-family:var(--fb);font-weight:700;font-size:13px;color:#fff;transition:opacity .2s}
@@ -811,28 +808,14 @@ export default function PromoGamesHome() {
       <div className="nav-wrap">
         <nav className="navbar">
           <a href="#home" className="logo">
-            <div className="logo-mark">🎮</div>
+            <img src="/favicon.png" alt="Promogames" className="logo-mark" style={{borderRadius:'9px',objectFit:'cover'}} />
             <span className="logo-name">Promogames</span>
           </a>
+          <div style={{flex:1}} />
           <ul className="nav-links">
             {NAV.map(n => (
-              <li key={n.label} className={n.dropdown ? "dd-wrap" : ""}>
-                {n.dropdown ? (
-                  <>
-                    <a href={n.href}>{n.label} ▾</a>
-                    <div className="dd-content">
-                      <div className="dd-title">🎮 Available Games</div>
-                      <ul className="dd-list">
-                        {GAME_DROPDOWN.map(g => (
-                          <li key={g.label}><span>{g.icon}</span> {g.label}</li>
-                        ))}
-                      </ul>
-                      <a href="#games" className="dd-explore">EXPLORE GAMES</a>
-                    </div>
-                  </>
-                ) : (
-                  <a href={n.href}>{n.label}</a>
-                )}
+              <li key={n.label}>
+                <a href={n.href}>{n.label}</a>
               </li>
             ))}
             <li><div className="nav-divider" /></li>
@@ -847,7 +830,7 @@ export default function PromoGamesHome() {
       </div>
       <div className={`mob-overlay${menuOpen ? " open" : ""}`}>
         {NAV.map(n => <a key={n.label} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>)}
-        <a href="#login" style={{ fontSize: 18, fontFamily: "var(--fb)", fontWeight: 700, border: "1px solid rgba(146,16,246,0.5)", padding: "12px 32px", borderRadius: 100 }}>Log in</a>
+        <a href="/login" style={{ fontSize: 18, fontFamily: "var(--fb)", fontWeight: 700, border: "1px solid rgba(146,16,246,0.5)", padding: "12px 32px", borderRadius: 100 }}>Log in</a>
         <a href="tel:+916366870248" className="mob-cta">Talk to an Expert</a>
       </div>
 
@@ -976,7 +959,7 @@ export default function PromoGamesHome() {
             <div className="footer-contact-item">📧 <a href="mailto:hello@promogames.in">hello@promogames.in</a></div>
             <div style={{ marginTop: 20 }}>
               <div style={{ fontFamily: "var(--fb)", fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--purple)", marginBottom: 12 }}>Quick Links</div>
-              {[["About Us", "#about"], ["Explore Games", "#games"], ["Play", "#play"], ["Blog", "#blog"], ["Log in", "login"]].map(([label, href]) => (
+              {[["About Us", "#about"], ["Explore Games", "#games"], ["Play", "#play"], ["Blog", "#blog"], ["Log in", "/login"]].map(([label, href]) => (
                 <div key={label} style={{ marginBottom: 8 }}>
                   <a href={href} style={{ fontFamily: "var(--fb)", fontSize: 14, color: "rgba(255,255,255,0.6)", textDecoration: "none", transition: "color .2s" }}
                     onMouseEnter={e => e.target.style.color = "#fff"}

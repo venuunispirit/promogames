@@ -40,5 +40,13 @@ router.delete('/sounds/:id', auth, async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
-
+// GET all sounds (for dropdowns)
+router.get('/', auth, async (req, res) => {
+  try {
+    const [sounds] = await db.query('SELECT * FROM sounds ORDER BY name ASC');
+    res.json({ success: true, sounds });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
 module.exports = router;

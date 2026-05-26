@@ -63,8 +63,6 @@ const OVERLAY_STYLES = `
   }
 `
 
-const Q_IMG_ANIM_KEYS = ['float', 'breathe', 'pulse', 'shimmer', 'kenburns', 'none']
-
 function PageLoader({ primaryColor = '#7c6ff7', bg }) {
   return (
     <div style={{ minHeight: '100dvh', background: bg || '#f8f8ff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
@@ -368,7 +366,7 @@ export default function PlayerPage() {
     } catch {}
 
     // ── Overlay or advance ──
-    // We wait 1200ms (audio plays) before doing anything, then show overlay or advance
+    // We wait 1200ms (audio plays, correct answer revealed) before showing overlay or advancing
     if (opt.option_overlay_image_url) {
       const animIn = question.overlay_animation_in || 'flyFromBottom'
       const animOut = question.overlay_animation_out || 'flyToTop'
@@ -408,26 +406,25 @@ export default function PlayerPage() {
     return { background: solidColor || '#f4f4ff' }
   }
 
-  // ── Compute per-option style for right_wrong reveal ──
-  const getOptionStyle = (opt, question) => {
+  // ── CHANGE: getOptionStyle now accepts selectedOpt as param for wrong-answer correct reveal ──
+  const getOptionStyle = (opt, question, currentSelectedOpt) => {
     if (!answered) return { bg: opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: '2px solid transparent', shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
 
     const isRightWrong = question.question_type === 'right_wrong'
-    const isSelected = selectedOpt?.id === opt.id
+    const isSelected = currentSelectedOpt?.id === opt.id
 
     if (isRightWrong) {
       if (opt.is_correct) {
-        // Always show correct option as green after answering
+        // Always show correct option green — even when wrong answer selected
         return { bg: '#22c55e', text: '#fff', border: '2px solid #16a34a', shadow: '0 4px 20px rgba(34,197,94,0.45)', opacity: 1, scale: 'scale(1)' }
       } else if (isSelected) {
-        // Selected wrong option = red
+        // The wrong option the user picked — show red
         return { bg: '#ef4444', text: '#fff', border: '2px solid #dc2626', shadow: '0 4px 20px rgba(239,68,68,0.45)', opacity: 1, scale: 'scale(0.97)' }
       } else {
-        // Non-selected wrong options = red but dimmed
-        return { bg: '#ef4444', text: '#fff', border: '2px solid #dc2626', shadow: 'none', opacity: 0.55, scale: 'scale(0.97)' }
+        // Other wrong options — dimmed red
+        return { bg: '#ef4444', text: '#fff', border: '2px solid #dc2626', shadow: 'none', opacity: 0.45, scale: 'scale(0.97)' }
       }
     } else {
-      // Survey / neutral
       if (isSelected) {
         return { bg: primaryColor, text: '#fff', border: `2px solid ${primaryColor}`, shadow: `0 4px 16px ${primaryColor}55`, opacity: 1, scale: 'scale(0.97)' }
       }
@@ -441,7 +438,6 @@ export default function PlayerPage() {
 
   if (phase === 'already_played') {
     const bgStyle = getPageBg(null, s.bg_image_url, s.bg_color)
-    const hasBgImg = !!s.bg_image_url
     return (
       <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', fontFamily: ff }}>
         <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', borderRadius: 24, padding: 'clamp(32px,8vw,48px) clamp(24px,6vw,40px)', maxWidth: 480, width: '100%', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.7)' }}>
@@ -577,25 +573,28 @@ export default function PlayerPage() {
     }
 
     return (
+      /*
+        OUTER SHELL — locks to full device screen height on every phone/tablet/desktop.
+        Nothing can push outside this box.
+      */
       <div style={{
-        minHeight: '100vh',
+        height: '100dvh',
+        maxHeight: '100dvh',
+        overflow: 'hidden',
         ...bgStyle,
-        backgroundAttachment: 'fixed',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
         fontFamily: ff,
         position: 'relative',
-        overflowX: 'hidden',
+        paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
         paddingLeft: 'env(safe-area-inset-left)',
         paddingRight: 'env(safe-area-inset-right)',
+        boxSizing: 'border-box',
       }}>
 
-        {/* ── OVERLAY ── full screen, image fills height */}
+        {/* ── OVERLAY — covers entire screen, image shown fully without cropping ── */}
         {isOverlayActive && overlayData && (
           <div style={{
             position: 'fixed',
@@ -608,14 +607,15 @@ export default function PlayerPage() {
             background: 'rgba(0,0,0,0.82)',
             backdropFilter: 'blur(6px)',
             WebkitBackdropFilter: 'blur(6px)',
-            // Safe area
-            paddingBottom: 'env(safe-area-inset-bottom)',
           }}>
+            {/*
+              Image: width+height both 100% of viewport, object-fit:contain
+              ensures full image is always visible regardless of its aspect ratio or screen size
+            */}
             <img
               src={overlayData.src}
               alt=""
               style={{
-                // Fill as much of the screen height as possible
                 width: '100vw',
                 height: '100dvh',
                 objectFit: 'contain',
@@ -652,158 +652,209 @@ export default function PlayerPage() {
           </div>
         )}
 
-        {/* Top area: progress — logo commented out */}
+        {/*
+          CONTENT COLUMN — fills all available height between safe-area paddings.
+          maxWidth caps it on tablets/desktops while phones use full width.
+        */}
         <div style={{
           width: '100%',
-          maxWidth: 600,
-          padding: 'clamp(16px,4vw,24px) 50px 0',
+          maxWidth: 520,
+          flex: 1,
+          minHeight: 0,
+          display: 'flex',
+          flexDirection: 'column',
           boxSizing: 'border-box',
+          padding: '0 14px',
         }}>
-          {/* LOGO — uncomment to show game logo above progress bar
-          {gameLogo && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, animation: 'questionEnter 0.4s ease' }}>
-              <img src={gameLogo} alt="Logo" style={{ maxWidth: 120, maxHeight: 48, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 8 }} />
-            </div>
-          )}
-          */}
 
+          {/* ── Progress bar — fixed height, never shrinks ── */}
           {s.show_progress !== 0 && (
-            <div style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, color: hasBgImage ? 'rgba(255,255,255,0.9)' : '#888', fontWeight: 600 }}>
+            <div style={{ flexShrink: 0, paddingTop: 12, paddingBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 12, color: hasBgImage ? 'rgba(255,255,255,0.9)' : '#888', fontWeight: 600 }}>
                 <span>Question {currentQ + 1} of {game.questions.length}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
-              <div style={{ height: 6, background: hasBgImage ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ height: 5, background: hasBgImage ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius: 10, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${progress}%`, background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`, borderRadius: 10, transition: 'width 0.5s ease' }} />
               </div>
             </div>
           )}
-        </div>
 
-        {/* Question card — 50px margin each side */}
-        <div
-          key={questionKey}
-          style={{
-            width: 'calc(100% - 100px)', // 50px each side
-            maxWidth: 560,
-            margin: 'clamp(8px,2vw,14px) 50px clamp(20px,5vw,40px)',
-            background: hasBgImage ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.97)',
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
-            borderRadius: 22,
-            overflow: 'hidden',
-            border: hasBgImage ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
-            boxShadow: hasBgImage ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
-            animation: 'questionEnter 0.4s cubic-bezier(0.34,1.3,0.64,1)',
-            boxSizing: 'border-box',
-            // Ensure card doesn't go too small on tiny screens
-            minWidth: 0,
-          }}>
-
-          {/* Question image */}
-          {question.question_image_url && (() => {
-            const idleAnimDef = qImgAnimKey !== 'none'
-              ? (() => {
-                  const map = {
-                    float:    'qImgFloat 3.2s ease-in-out 0.55s infinite',
-                    breathe:  'qImgBreathe 2.8s ease-in-out 0.55s infinite',
-                    pulse:    'qImgPulse 2.4s ease-in-out 0.55s infinite',
-                    shimmer:  'qImgShimmer 3s ease-in-out 0.55s infinite',
-                    kenburns: 'qImgKenBurns 8s ease-in-out 0.55s infinite alternate',
-                  }
-                  return map[qImgAnimKey] || map.float
-                })()
-              : null
-            const combinedAnim = idleAnimDef
-              ? `qImgEntrance 0.5s 0.05s both cubic-bezier(0.34,1.3,0.64,1), ${idleAnimDef}`
-              : `qImgEntrance 0.5s 0.05s both cubic-bezier(0.34,1.3,0.64,1)`
-            return (
-              <div style={{ width: '100%', overflow: 'hidden', background: hasBgImage ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.04)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,20px) clamp(12px,3vw,20px) 0', boxSizing: 'border-box' }}>
-                <img
-                  src={question.question_image_url}
-                  alt=""
-                  style={{
-                    width: 'auto', maxWidth: '100%', height: 'auto',
-                    maxHeight: 'clamp(160px,35vw,260px)',
-                    objectFit: 'contain', display: 'block',
-                    borderRadius: 12,
-                    boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
-                    animation: combinedAnim,
-                    transformOrigin: 'center center',
-                  }}
-                />
-              </div>
-            )
-          })()}
-
-          <div style={{ padding: 'clamp(16px,4vw,24px) clamp(14px,4vw,20px) clamp(14px,4vw,20px)', boxSizing: 'border-box' }}>
-
-            {/* Question text */}
-            <h2 style={{
-              color: hasBgImage ? '#fff' : (question.question_color || '#1a1a2e'),
-              fontSize: 'clamp(15px,4vw,20px)',
-              lineHeight: 1.48,
-              textAlign: 'center',
-              fontFamily: ff,
-              marginBottom: 'clamp(14px,3.5vw,22px)',
-              textShadow: hasBgImage ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
-              fontWeight: 700,
-              animation: 'questionEnter 0.45s 0.1s both ease',
-              paddingTop: question.question_image_url ? 0 : 'clamp(4px,1vw,8px)',
-              margin: `0 0 clamp(14px,3.5vw,22px)`,
+          {/*
+            CARD — flex:1 + minHeight:0 makes it fill exactly the remaining vertical space.
+            display:flex + flexDirection:column lets its children share that space.
+            NO fixed heights, NO overflow:auto on the card itself — the card IS the screen.
+          */}
+          <div
+            key={questionKey}
+            style={{
+              flex: 1,
+              minHeight: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              background: hasBgImage ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.97)',
+              backdropFilter: 'blur(20px)',
+              WebkitBackdropFilter: 'blur(20px)',
+              borderRadius: 22,
+              border: hasBgImage ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
+              boxShadow: hasBgImage ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
+              animation: 'questionEnter 0.4s cubic-bezier(0.34,1.3,0.64,1)',
+              marginBottom: 12,
+              overflow: 'hidden',
+              boxSizing: 'border-box',
             }}>
-              {question.question_text}
-            </h2>
 
-            {/* Options */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px,2vw,11px)' }}>
-              {(question.options || []).map((opt, optIdx) => {
-                const os = getOptionStyle(opt, question)
-                return (
-                  <button
-                    key={opt.id}
-                    onClick={() => handleOptionSelect(opt, sessionToken)}
-                    disabled={answered}
+            {/*
+              IMAGE SECTION — flex:1 with minHeight:0 so it takes up free space above the options.
+              The image itself uses maxHeight:100% + objectFit:contain so it's always fully visible
+              no matter its aspect ratio or the phone's screen height.
+            */}
+            {question.question_image_url && (() => {
+              const idleAnimDef = qImgAnimKey !== 'none'
+                ? (() => {
+                    const map = {
+                      float:    'qImgFloat 3.2s ease-in-out 0.55s infinite',
+                      breathe:  'qImgBreathe 2.8s ease-in-out 0.55s infinite',
+                      pulse:    'qImgPulse 2.4s ease-in-out 0.55s infinite',
+                      shimmer:  'qImgShimmer 3s ease-in-out 0.55s infinite',
+                      kenburns: 'qImgKenBurns 8s ease-in-out 0.55s infinite alternate',
+                    }
+                    return map[qImgAnimKey] || map.float
+                  })()
+                : null
+              const combinedAnim = idleAnimDef
+                ? `qImgEntrance 0.5s 0.05s both cubic-bezier(0.34,1.3,0.64,1), ${idleAnimDef}`
+                : `qImgEntrance 0.5s 0.05s both cubic-bezier(0.34,1.3,0.64,1)`
+              return (
+                <div style={{
+                  flex: 1,
+                  minHeight: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  padding: '14px 14px 0',
+                  background: hasBgImage ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.03)',
+                  overflow: 'hidden',
+                  boxSizing: 'border-box',
+                }}>
+                  <img
+                    src={question.question_image_url}
+                    alt=""
                     style={{
-                      background: os.bg,
-                      border: os.border,
-                      borderRadius: 14,
-                      // Bigger tap target for real mobile
-                      padding: 'clamp(14px,3.5vw,18px) clamp(14px,3.5vw,18px)',
-                      minHeight: 52,
-                      color: os.text,
-                      fontSize: 'clamp(14px,3.8vw,16px)',
-                      fontWeight: 600,
-                      cursor: answered ? 'default' : 'pointer',
-                      textAlign: 'center',
-                      lineHeight: 1.35,
-                      fontFamily: ff,
-                      transition: 'all 0.25s ease',
-                      boxShadow: os.shadow,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      gap: 10,
-                      transform: os.scale,
+                      /*
+                        width:100% fills horizontally, height:100% fills vertically (within the flex container),
+                        object-fit:contain ensures the full image is always visible — no cropping ever.
+                        This works on any screen size automatically.
+                      */
                       width: '100%',
-                      opacity: os.opacity,
-                      touchAction: 'manipulation',
-                      animation: `questionEnter 0.4s ${0.15 + optIdx * 0.06}s both ease`,
-                      WebkitTapHighlightColor: 'transparent',
-                      userSelect: 'none',
-                      WebkitUserSelect: 'none',
-                    }}>
-                    {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ width: 'auto', height: 40, objectFit: 'contain', borderRadius: 8, flexShrink: 0 }} />}
-                    <span style={{ flex: 1, textAlign: 'center' }}>{opt.option_text}</span>
-                  </button>
-                )
-              })}
+                      height: '100%',
+                      objectFit: 'contain',
+                      display: 'block',
+                      borderRadius: 10,
+                      animation: combinedAnim,
+                      transformOrigin: 'center center',
+                    }}
+                  />
+                </div>
+              )
+            })()}
+
+            {/*
+              BOTTOM SECTION — question text + options. flexShrink:0 so it never gets squished.
+              Options use flex:1 with justifyContent:space-evenly to spread across available height.
+            */}
+            <div style={{
+              flexShrink: 0,
+              display: 'flex',
+              flexDirection: 'column',
+              padding: '12px 14px 14px',
+              gap: 10,
+              boxSizing: 'border-box',
+            }}>
+
+              {/* CHANGE: game logo in questions page — kept hidden, uncomment to show */}
+              {/*
+              {gameLogo && (
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+                  <img src={gameLogo} alt="Logo" style={{ maxWidth: 120, maxHeight: 44, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 8 }} />
+                </div>
+              )}
+              */}
+
+              {/* Question text */}
+              <h2 style={{
+                color: hasBgImage ? '#fff' : (question.question_color || '#1a1a2e'),
+                fontSize: 'clamp(13px,3.8vw,18px)',
+                lineHeight: 1.4,
+                textAlign: 'center',
+                fontFamily: ff,
+                margin: 0,
+                textShadow: hasBgImage ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
+                fontWeight: 700,
+                animation: 'questionEnter 0.45s 0.1s both ease',
+              }}>
+                {question.question_text}
+              </h2>
+
+              {/* Options — evenly distributed, flex:1 on each so they fill remaining space */}
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 8,
+              }}>
+                {(question.options || []).map((opt, optIdx) => {
+                  const os = getOptionStyle(opt, question, selectedOpt)
+                  return (
+                    <button
+                      key={opt.id}
+                      onClick={() => handleOptionSelect(opt, sessionToken)}
+                      disabled={answered}
+                      style={{
+                        background: os.bg,
+                        border: os.border,
+                        borderRadius: 14,
+                        /*
+                          flex:1 makes every option take equal vertical space,
+                          so 4 options on a tall phone look the same as on a short one.
+                        */
+                        flex: 1,
+                        minHeight: 48,
+                        color: os.text,
+                        fontSize: 'clamp(13px,3.5vw,15px)',
+                        fontWeight: 600,
+                        cursor: answered ? 'default' : 'pointer',
+                        textAlign: 'center',
+                        lineHeight: 1.3,
+                        fontFamily: ff,
+                        transition: 'all 0.25s ease',
+                        boxShadow: os.shadow,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                        transform: os.scale,
+                        width: '100%',
+                        opacity: os.opacity,
+                        touchAction: 'manipulation',
+                        animation: `questionEnter 0.4s ${0.15 + optIdx * 0.06}s both ease`,
+                        WebkitTapHighlightColor: 'transparent',
+                        userSelect: 'none',
+                        WebkitUserSelect: 'none',
+                        padding: '0 14px',
+                        boxSizing: 'border-box',
+                      }}>
+                      {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ width: 'auto', height: 32, objectFit: 'contain', borderRadius: 8, flexShrink: 0 }} />}
+                      <span style={{ flex: 1, textAlign: 'center' }}>{opt.option_text}</span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
           </div>
         </div>
 
         {completing && (
-          <div style={{ marginTop: 8, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: '#555' }}>
+          <div style={{ marginBottom: 12, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: '#555' }}>
             <span style={{ width: 16, height: 16, border: `2px solid ${primaryColor}44`, borderTopColor: primaryColor, borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
             Saving results…
           </div>

@@ -15,7 +15,6 @@ function loadFont(font) {
   document.head.appendChild(link)
 }
 
-/* ── All animation CSS ── */
 const OVERLAY_STYLES = `
   @keyframes flyFromBottom  { from { transform: translateY(110vh) scale(0.9); opacity:0 } to { transform: translateY(0) scale(1); opacity:1 } }
   @keyframes flyFromTop     { from { transform: translateY(-110vh) scale(0.9); opacity:0 } to { transform: translateY(0) scale(1); opacity:1 } }
@@ -40,7 +39,6 @@ const OVERLAY_STYLES = `
   @keyframes nextBtnIn      { from { opacity:0; transform: translateY(16px) scale(0.9) } to { opacity:1; transform: translateY(0) scale(1) } }
   @keyframes pulse          { 0%,100% { box-shadow: 0 0 0 0 currentColor } 50% { box-shadow: 0 0 0 8px transparent } }
 
-  /* Question image idle animations */
   @keyframes qImgFloat      { 0%,100% { transform: translateY(0px) scale(1) } 50% { transform: translateY(-10px) scale(1.02) } }
   @keyframes qImgBreathe    { 0%,100% { transform: scale(1); opacity:1 } 50% { transform: scale(1.04); opacity:0.9 } }
   @keyframes qImgPulse      { 0%,100% { transform: scale(1); filter: brightness(1) } 50% { transform: scale(1.05); filter: brightness(1.08) } }
@@ -48,12 +46,23 @@ const OVERLAY_STYLES = `
   @keyframes qImgKenBurns   { 0% { transform: scale(1) translate(0,0) } 100% { transform: scale(1.08) translate(-2%,-2%) } }
   @keyframes qImgEntrance   { from { opacity:0; transform: scale(0.88) translateY(16px) } to { opacity:1; transform: scale(1) translateY(0) } }
 
-  /* Modal */
   @keyframes modalIn        { from { opacity:0; transform: scale(0.82) translateY(32px) } to { opacity:1; transform: scale(1) translateY(0) } }
   @keyframes backdropIn     { from { opacity:0 } to { opacity:1 } }
+
+  @keyframes optionReveal   { from { transform: scale(1) } 50% { transform: scale(0.96) } to { transform: scale(1) } }
+
+  * { -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    margin: 0; padding: 0;
+    overscroll-behavior: none;
+    -webkit-text-size-adjust: 100%;
+    height: 100%;
+    min-height: 100dvh;
+    min-height: -webkit-fill-available;
+  }
 `
 
-/* Question image idle animation keys (used in builder dropdown + PlayerPage) */
 const Q_IMG_ANIM_KEYS = ['float', 'breathe', 'pulse', 'shimmer', 'kenburns', 'none']
 
 function PageLoader({ primaryColor = '#7c6ff7', bg }) {
@@ -101,7 +110,6 @@ function ScoreRing({ score, total, primaryColor }) {
   )
 }
 
-/* ── Submission Confirmation Modal ── */
 function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm }) {
   return (
     <div style={{
@@ -112,62 +120,29 @@ function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm }) {
       animation: 'backdropIn 0.3s ease'
     }}>
       <div style={{
-        background: '#fff',
-        borderRadius: 28,
+        background: '#fff', borderRadius: 28,
         padding: 'clamp(28px,7vw,44px) clamp(20px,6vw,36px)',
-        maxWidth: 400, width: '100%',
-        textAlign: 'center',
+        maxWidth: 400, width: '100%', textAlign: 'center',
         boxShadow: '0 24px 80px rgba(0,0,0,0.35)',
         animation: 'modalIn 0.45s cubic-bezier(0.34,1.56,0.64,1)',
-        fontFamily: ff,
-        boxSizing: 'border-box'
+        fontFamily: ff, boxSizing: 'border-box'
       }}>
-        {/* Confirmation GIF or fallback emoji */}
         {confirmGifUrl ? (
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-            <img
-              src={confirmGifUrl}
-              alt="Quiz submitted!"
-              style={{ maxWidth: '100%', maxHeight: 380, width: 'auto', height: 'auto', borderRadius: 16, objectFit: 'contain' }}
-            />
+            <img src={confirmGifUrl} alt="Quiz submitted!" style={{ maxWidth: '100%', maxHeight: 380, width: 'auto', height: 'auto', borderRadius: 16, objectFit: 'contain' }} />
           </div>
         ) : (
           <div style={{ fontSize: 68, marginBottom: 16, animation: 'bounce 0.6s ease both' }}>🎉</div>
         )}
-
-        <h2 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.25 }}>
-          Quiz Submitted!
-        </h2>
-        <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>
-          Your responses have been recorded.<br />Redirecting you now…
-        </p>
-
-        {/* Animated progress bar */}
+        <h2 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.25 }}>Quiz Submitted!</h2>
+        <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>Your responses have been recorded.<br />Redirecting you now…</p>
         <div style={{ height: 5, background: `${primaryColor}22`, borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
-          <div style={{
-            height: '100%',
-            background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`,
-            borderRadius: 10,
-            animation: 'redirectBar 3s linear forwards'
-          }} />
+          <div style={{ height: '100%', background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`, borderRadius: 10, animation: 'redirectBar 3s linear forwards' }} />
         </div>
-
-        <button
-          onClick={onConfirm}
-          style={{
-            background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-            color: '#fff', border: 'none', borderRadius: 50,
-            padding: '14px 36px', fontSize: 16, fontWeight: 700,
-            cursor: 'pointer', fontFamily: ff,
-            boxShadow: `0 8px 28px ${primaryColor}55`,
-            touchAction: 'manipulation'
-          }}>
+        <button onClick={onConfirm} style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 8px 28px ${primaryColor}55`, touchAction: 'manipulation' }}>
           Continue Now →
         </button>
-
-        <style>{`
-          @keyframes redirectBar { from { width: 0% } to { width: 100% } }
-        `}</style>
+        <style>{`@keyframes redirectBar { from { width: 0% } to { width: 100% } }`}</style>
       </div>
     </div>
   )
@@ -180,10 +155,6 @@ function validateField(value, fieldType, isRequired) {
   if (fieldType === 'phone' && !/^[\d\s+\-()\u0900-\u097F]{7,20}$/.test(value)) return 'Enter a valid phone number'
   return ''
 }
-
-/* ── Overlay State Machine ──
-   idle → (option selected, 1s delay) → flyingIn → visible (Next btn visible) → flyingOut → done
-*/
 
 export default function PlayerPage() {
   const { gameName, companyName } = useParams()
@@ -207,11 +178,11 @@ export default function PlayerPage() {
   const [questionKey, setQuestionKey] = useState(0)
 
   // Overlay state machine
-  const [overlayState, setOverlayState] = useState('hidden') // hidden | preparing | flyingIn | visible | flyingOut
-  const [overlayData, setOverlayData] = useState(null) // { src, animIn, animOut, idleTime, isLast, token }
+  const [overlayState, setOverlayState] = useState('hidden')
+  const [overlayData, setOverlayData] = useState(null)
   const [showNextBtn, setShowNextBtn] = useState(false)
 
-  // Submit modal state (for thank-you page)
+  // Submit modal
   const [showSubmitModal, setShowSubmitModal] = useState(false)
 
   const activeSoundsRef = useRef([])
@@ -225,13 +196,10 @@ export default function PlayerPage() {
         const g = res.data.game
         setGame(g)
         if (g.settings?.font_family) loadFont(g.settings.font_family)
-
-        // ── Crossword games skip the form and go straight to play ──
         if (g.category === 'crossword') {
           setPhase('crossword')
           return
         }
-
         const init = {}
         for (const f of (g.formFields || [])) init[f.field_label] = ''
         setFormData(init)
@@ -251,7 +219,6 @@ export default function PlayerPage() {
     return idOrUrl || null
   }, [])
 
-  // Stop all currently playing sounds (so correct/wrong don't overlap)
   const stopAllSounds = useCallback(() => {
     for (const a of activeSoundsRef.current) {
       try { a.pause(); a.currentTime = 0 } catch {}
@@ -317,13 +284,10 @@ export default function PlayerPage() {
       if (sess) {
         setScore(sess.score || 0)
         setTotalScoreable(sess.total_scoreable || 0)
-        // FIX: Play win or lose sound on completion — was never triggered before
         const soundMap = game?.soundMap || {}
         const settingsObj = game?.settings || {}
-        const totalQ = game?.questions?.length || 0
         const finalScore = sess.score || 0
         const finalTotal = sess.total_scoreable || 0
-        // Play win sound if scored > 50%, lose sound otherwise (only if sounds are set)
         if (finalTotal > 0) {
           const isWin = finalScore / finalTotal >= 0.5
           const soundId = isWin ? settingsObj.win_sound_id : settingsObj.lose_sound_id
@@ -335,7 +299,6 @@ export default function PlayerPage() {
             }
           }
         } else if (settingsObj.win_sound_id) {
-          // Survey (no scoring) — just play win sound
           const url = soundMap[parseInt(settingsObj.win_sound_id)]
           if (url) {
             stopAllSounds()
@@ -404,6 +367,8 @@ export default function PlayerPage() {
       })
     } catch {}
 
+    // ── Overlay or advance ──
+    // We wait 1200ms (audio plays) before doing anything, then show overlay or advance
     if (opt.option_overlay_image_url) {
       const animIn = question.overlay_animation_in || 'flyFromBottom'
       const animOut = question.overlay_animation_out || 'flyToTop'
@@ -425,7 +390,7 @@ export default function PlayerPage() {
             setShowNextBtn(true)
           }
         }, 620)
-      }, 1000)
+      }, 1200)
     } else {
       setTimeout(() => doAdvance(isLastQ, token), 1200)
     }
@@ -438,9 +403,36 @@ export default function PlayerPage() {
   const ff = `'${fontFamily}', sans-serif`
 
   const getPageBg = (qBgImg, gameBgImg, solidColor) => {
-    if (qBgImg) return { backgroundImage: `url(${qBgImg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
-    if (gameBgImg) return { backgroundImage: `url(${gameBgImg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
+    if (qBgImg) return { backgroundImage: `url(${qBgImg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }
+    if (gameBgImg) return { backgroundImage: `url(${gameBgImg})`, backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat', backgroundAttachment: 'fixed' }
     return { background: solidColor || '#f4f4ff' }
+  }
+
+  // ── Compute per-option style for right_wrong reveal ──
+  const getOptionStyle = (opt, question) => {
+    if (!answered) return { bg: opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: '2px solid transparent', shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
+
+    const isRightWrong = question.question_type === 'right_wrong'
+    const isSelected = selectedOpt?.id === opt.id
+
+    if (isRightWrong) {
+      if (opt.is_correct) {
+        // Always show correct option as green after answering
+        return { bg: '#22c55e', text: '#fff', border: '2px solid #16a34a', shadow: '0 4px 20px rgba(34,197,94,0.45)', opacity: 1, scale: 'scale(1)' }
+      } else if (isSelected) {
+        // Selected wrong option = red
+        return { bg: '#ef4444', text: '#fff', border: '2px solid #dc2626', shadow: '0 4px 20px rgba(239,68,68,0.45)', opacity: 1, scale: 'scale(0.97)' }
+      } else {
+        // Non-selected wrong options = red but dimmed
+        return { bg: '#ef4444', text: '#fff', border: '2px solid #dc2626', shadow: 'none', opacity: 0.55, scale: 'scale(0.97)' }
+      }
+    } else {
+      // Survey / neutral
+      if (isSelected) {
+        return { bg: primaryColor, text: '#fff', border: `2px solid ${primaryColor}`, shadow: `0 4px 16px ${primaryColor}55`, opacity: 1, scale: 'scale(0.97)' }
+      }
+      return { bg: opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: '2px solid transparent', shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 0.5, scale: 'scale(1)' }
+    }
   }
 
   useEffect(() => () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current) }, [])
@@ -452,7 +444,7 @@ export default function PlayerPage() {
     const hasBgImg = !!s.bg_image_url
     return (
       <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', fontFamily: ff }}>
-        <div style={{ background: hasBgImg ? 'rgba(255,255,255,0.92)' : 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', borderRadius: 24, padding: 'clamp(32px,8vw,48px) clamp(24px,6vw,40px)', maxWidth: 480, width: '100%', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.7)' }}>
+        <div style={{ background: 'rgba(255,255,255,0.92)', backdropFilter: 'blur(20px)', borderRadius: 24, padding: 'clamp(32px,8vw,48px) clamp(24px,6vw,40px)', maxWidth: 480, width: '100%', textAlign: 'center', boxShadow: '0 8px 32px rgba(0,0,0,0.15)', border: '1px solid rgba(255,255,255,0.7)' }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🚫</div>
           <h2 style={{ fontSize: 'clamp(20px,5vw,24px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 12 }}>Already Played!</h2>
           <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 24 }}>Our records show you have already completed this game.<br />Each participant can only play <strong>once</strong>.</p>
@@ -522,16 +514,14 @@ export default function PlayerPage() {
                     <textarea id={fieldId} name={fieldId} rows={3} value={val}
                       onChange={e => handleFieldChange(f.field_label, e.target.value, f.field_type, f.is_required)}
                       onBlur={e => handleFieldBlur(f.field_label, e.target.value, f.field_type, f.is_required)}
-                      style={{ ...inputStyle, resize: 'vertical' }}
-                      onFocus={e => { e.target.style.borderColor = hasErr ? '#ef4444' : primaryColor; e.target.style.boxShadow = `0 0 0 3px ${primaryColor}22` }} />
+                      style={{ ...inputStyle, resize: 'vertical' }} />
                   ) : (
                     <input id={fieldId} name={fieldId}
                       type={f.field_type === 'phone' ? 'tel' : f.field_type === 'email' ? 'email' : f.field_type === 'number' ? 'number' : 'text'}
                       value={val}
                       onChange={e => handleFieldChange(f.field_label, e.target.value, f.field_type, f.is_required)}
                       onBlur={e => handleFieldBlur(f.field_label, e.target.value, f.field_type, f.is_required)}
-                      style={inputStyle}
-                      onFocus={e => { e.target.style.borderColor = hasErr ? '#ef4444' : primaryColor; e.target.style.boxShadow = `0 0 0 3px ${primaryColor}22` }} />
+                      style={inputStyle} />
                   )}
                   <div style={{ height: 20, marginTop: 3 }}>
                     {hasErr && <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600 }}>⚠ {err}</span>}
@@ -542,7 +532,7 @@ export default function PlayerPage() {
 
             {s.terms_enabled && (s.terms_text || s.terms_url) && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16, marginTop: 4 }}>
-                <div onClick={() => setTermsAgreed(!termsAgreed)} style={{ width: 20, height: 20, flexShrink: 0, marginTop: 2, border: `2px solid ${termsAgreed ? primaryColor : '#ccc'}`, borderRadius: 5, background: termsAgreed ? primaryColor : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                <div onClick={() => setTermsAgreed(!termsAgreed)} style={{ width: 22, height: 22, flexShrink: 0, marginTop: 2, border: `2px solid ${termsAgreed ? primaryColor : '#ccc'}`, borderRadius: 5, background: termsAgreed ? primaryColor : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                   {termsAgreed && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
                 </div>
                 <span style={{ fontSize: 13, color: hasBgImg ? 'rgba(255,255,255,0.85)' : '#555', lineHeight: 1.5 }}>
@@ -552,7 +542,7 @@ export default function PlayerPage() {
               </div>
             )}
 
-            <button type="submit" disabled={submitting} style={{ width: '100%', background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 12, padding: '15px', fontSize: 16, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', marginTop: 8, opacity: submitting ? 0.6 : 1, fontFamily: ff, boxShadow: `0 6px 20px ${primaryColor}44`, transition: 'all 0.2s' }}>
+            <button type="submit" disabled={submitting} style={{ width: '100%', background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 12, padding: '15px', fontSize: 16, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', marginTop: 8, opacity: submitting ? 0.6 : 1, fontFamily: ff, boxShadow: `0 6px 20px ${primaryColor}44`, transition: 'all 0.2s', touchAction: 'manipulation' }}>
               {submitting ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                   <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />Starting…
@@ -576,116 +566,142 @@ export default function PlayerPage() {
     const hasBgImage = !!(qBg || gameBg)
     const isOverlayActive = overlayState !== 'hidden'
 
-    // Question image idle animation key
     const qImgAnimKey = question.question_image_animation || 'float'
 
     const getOverlayImgStyle = () => {
       if (!overlayData) return {}
-      if (overlayState === 'flyingIn') {
-        return { animation: `${overlayData.animIn} 0.6s cubic-bezier(0.34,1.3,0.64,1) forwards` }
-      }
-      if (overlayState === 'visible') {
-        return { transform: 'translateY(0) translateX(0) scale(1)', opacity: 1 }
-      }
-      if (overlayState === 'flyingOut') {
-        return { animation: `${overlayData.animOut} 0.5s cubic-bezier(0.55,0,0.85,0.36) forwards` }
-      }
+      if (overlayState === 'flyingIn') return { animation: `${overlayData.animIn} 0.6s cubic-bezier(0.34,1.3,0.64,1) forwards` }
+      if (overlayState === 'visible') return { transform: 'translateY(0) translateX(0) scale(1)', opacity: 1 }
+      if (overlayState === 'flyingOut') return { animation: `${overlayData.animOut} 0.5s cubic-bezier(0.55,0,0.85,0.36) forwards` }
       return { opacity: 0 }
     }
 
     return (
-      <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: ff, position: 'relative', overflowX: 'hidden' }}>
+      <div style={{
+        minHeight: '100vh',
+        ...bgStyle,
+        backgroundAttachment: 'fixed',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        fontFamily: ff,
+        position: 'relative',
+        overflowX: 'hidden',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+        paddingLeft: 'env(safe-area-inset-left)',
+        paddingRight: 'env(safe-area-inset-right)',
+      }}>
 
-        {/* Overlay — full-screen keynote-style */}
+        {/* ── OVERLAY ── full screen, image fills height */}
         {isOverlayActive && overlayData && (
           <div style={{
-            position: 'fixed', inset: 0, zIndex: 1000,
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(6px)',
-            padding: '20px 16px'
+            position: 'fixed',
+            inset: 0,
+            zIndex: 1000,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: 'rgba(0,0,0,0.82)',
+            backdropFilter: 'blur(6px)',
+            WebkitBackdropFilter: 'blur(6px)',
+            // Safe area
+            paddingBottom: 'env(safe-area-inset-bottom)',
           }}>
-            {/* Overlay image — supports GIF */}
             <img
               src={overlayData.src}
               alt=""
               style={{
-                maxWidth: 'min(88vw, 520px)',
-                maxHeight: '72vh',
-                width: 'auto', height: 'auto',
-                borderRadius: 18,
-                boxShadow: '0 24px 80px rgba(0,0,0,0.6)',
+                // Fill as much of the screen height as possible
+                width: '100vw',
+                height: '100dvh',
+                objectFit: 'contain',
                 display: 'block',
                 ...getOverlayImgStyle()
               }}
             />
-            {/* Next button — appears after idle time */}
             {showNextBtn && (
               <button
                 onClick={() => flyOutRef.current?.()}
                 style={{
                   position: 'absolute',
-                  bottom: '8vh',
+                  bottom: 'calc(env(safe-area-inset-bottom) + 32px)',
                   zIndex: 1001,
                   background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
                   color: '#fff',
                   border: 'none',
                   borderRadius: 50,
-                  padding: '14px 40px',
-                  fontSize: 17,
+                  padding: '16px 44px',
+                  fontSize: 18,
                   fontWeight: 700,
                   cursor: 'pointer',
                   fontFamily: ff,
-                  boxShadow: `0 12px 40px ${primaryColor}77`,
+                  boxShadow: `0 12px 40px ${primaryColor}88`,
                   animation: 'nextBtnIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards',
                   letterSpacing: '0.02em',
                   minWidth: 160,
-                  touchAction: 'manipulation'
+                  minHeight: 54,
+                  touchAction: 'manipulation',
                 }}>
                 Next →
               </button>
             )}
-            {/* ✅ REMOVED: "Please wait…" spinner text during idle time */}
           </div>
         )}
 
-        {/* Top area: progress + logo */}
-        <div style={{ width: '100%', maxWidth: 520, padding: 'clamp(16px,4vw,24px) clamp(14px,4vw,20px) 0', boxSizing: 'border-box' }}>
-          {/* {gameLogo && (
+        {/* Top area: progress — logo commented out */}
+        <div style={{
+          width: '100%',
+          maxWidth: 600,
+          padding: 'clamp(16px,4vw,24px) 50px 0',
+          boxSizing: 'border-box',
+        }}>
+          {/* LOGO — uncomment to show game logo above progress bar
+          {gameLogo && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, animation: 'questionEnter 0.4s ease' }}>
               <img src={gameLogo} alt="Logo" style={{ maxWidth: 120, maxHeight: 48, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 8 }} />
             </div>
-          )} */}
+          )}
+          */}
+
           {s.show_progress !== 0 && (
             <div style={{ marginBottom: 12 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 12, color: hasBgImage ? 'rgba(255,255,255,0.9)' : '#888', fontWeight: 600 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, fontSize: 13, color: hasBgImage ? 'rgba(255,255,255,0.9)' : '#888', fontWeight: 600 }}>
                 <span>Question {currentQ + 1} of {game.questions.length}</span>
                 <span>{Math.round(progress)}%</span>
               </div>
-              <div style={{ height: 5, background: hasBgImage ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius: 10, overflow: 'hidden' }}>
+              <div style={{ height: 6, background: hasBgImage ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius: 10, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${progress}%`, background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`, borderRadius: 10, transition: 'width 0.5s ease' }} />
               </div>
             </div>
           )}
         </div>
 
-        {/* Question card */}
-        <div style={{
-          width: 'calc(100% - clamp(24px,6vw,40px))',
-          maxWidth: 520,
-          margin: 'clamp(8px,2vw,14px) auto clamp(20px,5vw,40px)',
-          background: hasBgImage ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.96)',
-          backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)',
-          borderRadius: 22,
-          overflow: 'hidden',
-          border: hasBgImage ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
-          boxShadow: '0 8px 40px rgba(0,0,0,0.14)',
-          animation: 'questionEnter 0.4s cubic-bezier(0.34,1.3,0.64,1)',
-          boxSizing: 'border-box'
-        }} key={questionKey}>
+        {/* Question card — 50px margin each side */}
+        <div
+          key={questionKey}
+          style={{
+            width: 'calc(100% - 100px)', // 50px each side
+            maxWidth: 560,
+            margin: 'clamp(8px,2vw,14px) 50px clamp(20px,5vw,40px)',
+            background: hasBgImage ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.97)',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            borderRadius: 22,
+            overflow: 'hidden',
+            border: hasBgImage ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
+            boxShadow: hasBgImage ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
+            animation: 'questionEnter 0.4s cubic-bezier(0.34,1.3,0.64,1)',
+            boxSizing: 'border-box',
+            // Ensure card doesn't go too small on tiny screens
+            minWidth: 0,
+          }}>
 
-          {/* Question image with entrance + idle animation — supports GIF natively */}
+          {/* Question image */}
           {question.question_image_url && (() => {
-            // Build combined animation: entrance first (0.55s), then seamlessly into idle loop
             const idleAnimDef = qImgAnimKey !== 'none'
               ? (() => {
                   const map = {
@@ -698,25 +714,17 @@ export default function PlayerPage() {
                   return map[qImgAnimKey] || map.float
                 })()
               : null
-
             const combinedAnim = idleAnimDef
               ? `qImgEntrance 0.5s 0.05s both cubic-bezier(0.34,1.3,0.64,1), ${idleAnimDef}`
               : `qImgEntrance 0.5s 0.05s both cubic-bezier(0.34,1.3,0.64,1)`
-
             return (
-              <div style={{
-                width: '100%', overflow: 'hidden',
-                background: hasBgImage ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.04)',
-                display: 'flex', justifyContent: 'center', alignItems: 'center',
-                padding: 'clamp(12px,3vw,20px) clamp(12px,3vw,20px) 0',
-                boxSizing: 'border-box',
-              }}>
+              <div style={{ width: '100%', overflow: 'hidden', background: hasBgImage ? 'rgba(0,0,0,0.12)' : 'rgba(0,0,0,0.04)', display: 'flex', justifyContent: 'center', alignItems: 'center', padding: 'clamp(12px,3vw,20px) clamp(12px,3vw,20px) 0', boxSizing: 'border-box' }}>
                 <img
                   src={question.question_image_url}
                   alt=""
                   style={{
                     width: 'auto', maxWidth: '100%', height: 'auto',
-                    maxHeight: 'clamp(180px,40vw,280px)',
+                    maxHeight: 'clamp(160px,35vw,260px)',
                     objectFit: 'contain', display: 'block',
                     borderRadius: 12,
                     boxShadow: '0 4px 16px rgba(0,0,0,0.15)',
@@ -728,72 +736,64 @@ export default function PlayerPage() {
             )
           })()}
 
-          <div style={{ padding: 'clamp(18px,5vw,26px) clamp(14px,4vw,22px) clamp(16px,4vw,22px)', boxSizing: 'border-box' }}>
+          <div style={{ padding: 'clamp(16px,4vw,24px) clamp(14px,4vw,20px) clamp(14px,4vw,20px)', boxSizing: 'border-box' }}>
 
             {/* Question text */}
             <h2 style={{
               color: hasBgImage ? '#fff' : (question.question_color || '#1a1a2e'),
-              fontSize: 'clamp(16px,4.5vw,21px)',
+              fontSize: 'clamp(15px,4vw,20px)',
               lineHeight: 1.48,
               textAlign: 'center',
               fontFamily: ff,
-              marginBottom: 'clamp(16px,4vw,24px)',
+              marginBottom: 'clamp(14px,3.5vw,22px)',
               textShadow: hasBgImage ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
               fontWeight: 700,
               animation: 'questionEnter 0.45s 0.1s both ease',
-              paddingTop: question.question_image_url ? 0 : 'clamp(4px,1vw,8px)'
+              paddingTop: question.question_image_url ? 0 : 'clamp(4px,1vw,8px)',
+              margin: `0 0 clamp(14px,3.5vw,22px)`,
             }}>
               {question.question_text}
             </h2>
 
             {/* Options */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px,2vw,12px)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'clamp(8px,2vw,11px)' }}>
               {(question.options || []).map((opt, optIdx) => {
-                let bgColor = opt.option_color || '#1a1a2e'
-                let textColor = opt.option_text_color || '#ffffff'
-                let border = `2px solid transparent`
-                let shadow = '0 2px 8px rgba(0,0,0,0.1)'
-                let scale = 'scale(1)'
-                let opacity = 1
-
-                if (answered && selectedOpt?.id === opt.id) {
-                  if (question.question_type === 'right_wrong') {
-                    if (opt.is_correct) { bgColor = '#22c55e'; textColor = '#fff'; border = '2px solid #22c55e'; shadow = '0 4px 16px rgba(34,197,94,0.4)'; scale = 'scale(0.97)' }
-                    else { bgColor = '#ef4444'; textColor = '#fff'; border = '2px solid #ef4444'; shadow = '0 4px 16px rgba(239,68,68,0.4)'; scale = 'scale(0.97)' }
-                  } else {
-                    bgColor = primaryColor; textColor = '#fff'; border = `2px solid ${primaryColor}`; shadow = `0 4px 16px ${primaryColor}55`
-                  }
-                } else if (answered) {
-                  opacity = 0.6
-                }
-
+                const os = getOptionStyle(opt, question)
                 return (
                   <button
                     key={opt.id}
                     onClick={() => handleOptionSelect(opt, sessionToken)}
                     disabled={answered}
                     style={{
-                      background: bgColor, border, borderRadius: 14,
-                      padding: 'clamp(12px,3vw,16px) clamp(14px,3.5vw,18px)',
-                      color: textColor,
+                      background: os.bg,
+                      border: os.border,
+                      borderRadius: 14,
+                      // Bigger tap target for real mobile
+                      padding: 'clamp(14px,3.5vw,18px) clamp(14px,3.5vw,18px)',
+                      minHeight: 52,
+                      color: os.text,
                       fontSize: 'clamp(14px,3.8vw,16px)',
                       fontWeight: 600,
                       cursor: answered ? 'default' : 'pointer',
-                      textAlign: 'center', lineHeight: 1.35,
+                      textAlign: 'center',
+                      lineHeight: 1.35,
                       fontFamily: ff,
-                      transition: 'all 0.22s ease',
-                      boxShadow: shadow,
-                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-                      transform: scale,
+                      transition: 'all 0.25s ease',
+                      boxShadow: os.shadow,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: 10,
+                      transform: os.scale,
                       width: '100%',
-                      opacity,
+                      opacity: os.opacity,
                       touchAction: 'manipulation',
                       animation: `questionEnter 0.4s ${0.15 + optIdx * 0.06}s both ease`,
-                      WebkitTapHighlightColor: 'transparent'
-                    }}
-                    onMouseEnter={e => { if (!answered) e.currentTarget.style.transform = 'translateY(-2px) scale(1.01)' }}
-                    onMouseLeave={e => { if (!answered) e.currentTarget.style.transform = 'none' }}>
-                    {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ width: 'auto', height: 44, objectFit: 'contain', borderRadius: 8, flexShrink: 0 }} />}
+                      WebkitTapHighlightColor: 'transparent',
+                      userSelect: 'none',
+                      WebkitUserSelect: 'none',
+                    }}>
+                    {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ width: 'auto', height: 40, objectFit: 'contain', borderRadius: 8, flexShrink: 0 }} />}
                     <span style={{ flex: 1, textAlign: 'center' }}>{opt.option_text}</span>
                   </button>
                 )
@@ -825,7 +825,6 @@ export default function PlayerPage() {
 
     const handleSubmitExplore = () => {
       setShowSubmitModal(true)
-      // Auto redirect after 3.2s (matches the progress bar animation)
       setTimeout(() => {
         if (redirectUrl) window.location.href = redirectUrl
       }, 3200)
@@ -840,14 +839,8 @@ export default function PlayerPage() {
       <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box' }}>
         <Confetti />
 
-        {/* Submission confirmation modal */}
         {showSubmitModal && (
-          <SubmitModal
-            primaryColor={primaryColor}
-            ff={ff}
-            confirmGifUrl={confirmGifUrl}
-            onConfirm={handleModalConfirm}
-          />
+          <SubmitModal primaryColor={primaryColor} ff={ff} confirmGifUrl={confirmGifUrl} onConfirm={handleModalConfirm} />
         )}
 
         <div style={{
@@ -881,7 +874,6 @@ export default function PlayerPage() {
             </div>
           )}
 
-          {/* ✅ NEW: Submit & Explore button (replaces plain "Continue →" link) */}
           <button
             onClick={handleSubmitExplore}
             style={{
@@ -889,16 +881,14 @@ export default function PlayerPage() {
               width: '100%',
               background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
               color: '#fff', border: 'none',
-              padding: '10px 20px', borderRadius: 14,
+              padding: '14px 20px', borderRadius: 14,
               fontSize: 17, fontWeight: 700,
               cursor: 'pointer', fontFamily: ff,
               boxShadow: `0 6px 24px ${primaryColor}55`,
-              transition: 'transform 0.2s, box-shadow 0.2s',
               touchAction: 'manipulation',
-              letterSpacing: '0.02em'
-            }}
-            onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-2px)'; e.currentTarget.style.boxShadow = `0 10px 32px ${primaryColor}66` }}
-            onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = `0 6px 24px ${primaryColor}55` }}>
+              letterSpacing: '0.02em',
+              minHeight: 52,
+            }}>
             <span>🚀</span>
             <span>Submit &amp; Explore</span>
           </button>
@@ -916,9 +906,7 @@ export default function PlayerPage() {
         sessionToken={sessionToken}
         sessionId={null}
         onComplete={(data) => {
-          if (data?.redirect_url) {
-            window.location.href = data.redirect_url
-          }
+          if (data?.redirect_url) window.location.href = data.redirect_url
         }}
       />
     )

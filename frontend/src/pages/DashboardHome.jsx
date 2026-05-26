@@ -500,9 +500,9 @@ export default function DashboardHome() {
             <div style={{ fontSize: 10, fontWeight: 700, color: '#9CA3AF', textTransform: 'uppercase', letterSpacing: '.09em', marginBottom: 16 }}>Quick Actions</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {[
-                { label: 'Create a new game',   sub: 'Set up questions & rules',    icon: '🎮', to: '/dashboard/games',   accent: '#6366F1' },
-                { label: 'Add a client',        sub: 'Onboard a new organisation',  icon: '🏢', to: '/dashboard/clients', accent: '#8B5CF6' },
-                { label: 'View all players',    sub: 'PromoPoints & profiles',       icon: '👥', to: '/dashboard/players', accent: '#10B981' },
+                { label: 'Add a client',        sub: 'Onboard a new organisation',  icon: '', to: '/dashboard/clients', accent: '#8B5CF6' },                
+                { label: 'Create a new game',   sub: 'Set up questions & rules',    icon: '', to: '/dashboard/games',   accent: '#6366F1' },
+                { label: 'View all players',    sub: 'PromoPoints & profiles',       icon: '', to: '/dashboard/players', accent: '#10B981' },
               ].map(action => (
                 <button
                   key={action.label}

@@ -16,6 +16,50 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (!allRows[0].is_active) return res.status(403).json({ success: false, message: 'This game is currently inactive' });
 
     const game = allRows[0];
+    const toAbs = (url) => url || null;
+
+    // ── CROSSWORD branch ──────────────────────────────────────────────────────
+    if (game.category === 'crossword') {
+      const [cwSettings] = await db.query(
+        'SELECT * FROM crossword_settings WHERE game_id = ?', [game.id]
+      );
+      const [cwWords] = await db.query(
+        'SELECT * FROM crossword_words WHERE game_id = ? ORDER BY word_order', [game.id]
+      );
+      const [sounds] = await db.query(
+        'SELECT * FROM sounds WHERE game_id = ?', [game.id]
+      );
+
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+
+      const settings = cwSettings[0] ? { ...cwSettings[0] } : {};
+      // normalise image urls
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+
+      return res.json({
+        success: true,
+        game: {
+          id: game.id,
+          name: game.name,
+          category: game.category,
+          description: game.description,
+          redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo),
+          company_name: game.company_name,
+          settings,
+          words: cwWords,
+          soundMap,
+          // crossword has no form fields or quiz questions
+          formFields: [],
+          questions: [],
+        },
+      });
+    }
+
+    // ── QUIZ / SURVEY branch (unchanged) ─────────────────────────────────────
     const [settings]   = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [game.id]);
     const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
     const [questions]  = await db.query('SELECT * FROM questions WHERE game_id = ? ORDER BY question_order', [game.id]);
@@ -25,9 +69,6 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [options] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [q.id]);
       q.options = options;
     }
-
-    // backendBase not needed - Nginx proxies /uploads/ correctly
-    const toAbs = (url) => url || null;
 
     const soundMap = {};
     for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -64,13 +105,12 @@ router.get('/:gameName/:companyName', async (req, res) => {
 
 router.post('/session/start', async (req, res) => {
   const { game_id, player_data, source_type } = req.body;
-  // source_type: 'direct' = played from website play page, 'link' = shared direct link
   const src = ['direct', 'link'].includes(source_type) ? source_type : 'link';
   try {
     const token = uuidv4();
     const [result] = await db.query(
       'INSERT INTO player_sessions (game_id, session_token, player_data, source_type) VALUES (?, ?, ?, ?)',
-      [game_id, token, JSON.stringify(player_data), src]
+      [game_id, token, JSON.stringify(player_data || {}), src]
     );
     res.json({ success: true, session_token: token, session_id: result.insertId });
   } catch (err) {
@@ -79,6 +119,7 @@ router.post('/session/start', async (req, res) => {
   }
 });
 
+// ── Quiz / survey answer ──────────────────────────────────────────────────────
 router.post('/session/answer', async (req, res) => {
   const { session_token, question_id, option_id, is_correct, question_type } = req.body;
   try {
@@ -102,6 +143,36 @@ router.post('/session/answer', async (req, res) => {
   }
 });
 
+// ── Crossword word answer ─────────────────────────────────────────────────────
+router.post('/session/crossword-answer', async (req, res) => {
+  const { session_token, crossword_word_id, answer_text, is_correct } = req.body;
+  try {
+    const [sessions] = await db.query('SELECT * FROM player_sessions WHERE session_token = ?', [session_token]);
+    if (sessions.length === 0) return res.status(404).json({ success: false, message: 'Session not found' });
+    const session = sessions[0];
+
+    // Store using question_id slot (crossword_word_id maps to question_id column)
+    await db.query(
+      'INSERT INTO player_answers (session_id, question_id, option_id, is_correct) VALUES (?, ?, ?, ?)',
+      [session.id, crossword_word_id, null, is_correct ? 1 : 0]
+    );
+
+    // Always count as scoreable; correct ones get a point
+    await db.query(
+      'UPDATE player_sessions SET total_scoreable = total_scoreable + 1 WHERE id = ?',
+      [session.id]
+    );
+    if (is_correct) {
+      await db.query('UPDATE player_sessions SET score = score + 1 WHERE id = ?', [session.id]);
+    }
+
+    res.json({ success: true });
+  } catch (err) {
+    console.error('Crossword answer error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 router.post('/session/complete', async (req, res) => {
   const { session_token } = req.body;
   try {
@@ -116,7 +187,7 @@ router.post('/session/complete', async (req, res) => {
     const [settingsRows]   = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [session.game_id]);
     const gameSettings     = settingsRows[0] || {};
 
-    const playerData  = typeof session.player_data === 'string' ? JSON.parse(session.player_data) : session.player_data;
+    const playerData  = typeof session.player_data === 'string' ? JSON.parse(session.player_data) : (session.player_data || {});
 
     const normalize = (obj, keys) => {
       for (const k of keys) {
@@ -139,13 +210,11 @@ router.post('/session/complete', async (req, res) => {
       const template = emailTemplates[0];
       const scoreText = session.total_scoreable > 0
         ? `You scored <strong>${session.score} out of ${session.total_scoreable}</strong>.` : '';
-      // Strip markdown code fences if present
       const rawBody = (template.body_html || '').replace(/^```html[\s\S]*?\n/, '').replace(/^```[\s\S]*?\n/, '').replace(/```\s*$/, '').trim();
 
-      // Calculate performance message
       const pct = session.total_scoreable > 0 ? (session.score / session.total_scoreable) * 100 : 0;
-      const perfMsg = pct === 100 ? 'Perfect score! You nailed every single one. You truly know your desserts! 🏆'
-        : pct >= 70 ? 'Great job! You got most of them right. A true dessert enthusiast! 🎉'
+      const perfMsg = pct === 100 ? 'Perfect score! You nailed every single one. 🏆'
+        : pct >= 70 ? 'Great job! You got most of them right. 🎉'
         : pct >= 40 ? 'Good effort! Keep exploring and you will master them all. 🍰'
         : 'Thanks for playing! Every expert starts somewhere. Come back and try again! 😊';
 
@@ -193,7 +262,7 @@ router.post('/session/complete', async (req, res) => {
         await transporter.sendMail({
           from: `"${template.sender_name||'Quiz Platform'}" <${template.sender_email||process.env.SMTP_USER}>`,
           to: playerEmail,
-          subject: (template.subject||'You completed the quiz! 🎉').replace(/\{\{name\}\}/g, playerName),
+          subject: (template.subject||'You completed the game! 🎉').replace(/\{\{name\}\}/g, playerName),
           html: htmlEmail,
         });
         emailSent = true;
@@ -215,7 +284,7 @@ router.post('/session/complete', async (req, res) => {
   }
 });
 
-// GET /api/play/hero-games — public endpoint for website homepage ranked games
+// GET /api/play/hero-games
 router.get('/hero-games', async (req, res) => {
   try {
     const [games] = await db.query(`
@@ -236,7 +305,7 @@ router.get('/hero-games', async (req, res) => {
   }
 });
 
-// GET /api/play/play-page-games — public, games shown on website play section
+// GET /api/play/play-page-games
 router.get('/play-page-games', async (req, res) => {
   try {
     const [games] = await db.query(`

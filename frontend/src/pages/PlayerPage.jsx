@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
+import CrosswordPlayerPage from './CrosswordPlayerPage'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -224,6 +225,13 @@ export default function PlayerPage() {
         const g = res.data.game
         setGame(g)
         if (g.settings?.font_family) loadFont(g.settings.font_family)
+
+        // ── Crossword games skip the form and go straight to play ──
+        if (g.category === 'crossword') {
+          setPhase('crossword')
+          return
+        }
+
         const init = {}
         for (const f of (g.formFields || [])) init[f.field_label] = ''
         setFormData(init)
@@ -642,11 +650,11 @@ export default function PlayerPage() {
 
         {/* Top area: progress + logo */}
         <div style={{ width: '100%', maxWidth: 520, padding: 'clamp(16px,4vw,24px) clamp(14px,4vw,20px) 0', boxSizing: 'border-box' }}>
-          {gameLogo && (
+          {/* {gameLogo && (
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 12, animation: 'questionEnter 0.4s ease' }}>
               <img src={gameLogo} alt="Logo" style={{ maxWidth: 120, maxHeight: 48, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 8 }} />
             </div>
-          )}
+          )} */}
           {s.show_progress !== 0 && (
             <div style={{ marginBottom: 12 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 12, color: hasBgImage ? 'rgba(255,255,255,0.9)' : '#888', fontWeight: 600 }}>
@@ -897,6 +905,22 @@ export default function PlayerPage() {
         </div>
         <style>{OVERLAY_STYLES}</style>
       </div>
+    )
+  }
+
+  /* ── CROSSWORD ── */
+  if (phase === 'crossword') {
+    return (
+      <CrosswordPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        sessionId={null}
+        onComplete={(data) => {
+          if (data?.redirect_url) {
+            window.location.href = data.redirect_url
+          }
+        }}
+      />
     )
   }
 

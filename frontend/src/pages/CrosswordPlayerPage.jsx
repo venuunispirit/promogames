@@ -145,7 +145,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
     if (sessionToken && !submitted[w.id]) {
       setSubmitted(p => ({ ...p, [w.id]: true }))
       try {
-        await fetch(`${API_BASE}/play/session/answer`, {
+        await fetch(`${API_BASE}/play/session/crossword-answer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({

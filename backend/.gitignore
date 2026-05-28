@@ -5,3 +5,4 @@ uploads/sounds/*
 !uploads/images/.gitkeep
 !uploads/sounds/.gitkeep
 *.log
+server.js.backup

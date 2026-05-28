@@ -80,6 +80,36 @@ app.use((err, req, res, next) => {
   });
 });
 
+
+// ── OG meta tag injection for social sharing ─────────────────────────────────
+const db = require('./config/db');
+const FRONTEND_DIST = path.join(__dirname, '../frontend/dist/index.html');
+
+app.get('/play/:gameName/:companyName', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      'SELECT g.name, qs.game_logo_url, c.logo_url as client_logo FROM games g JOIN clients c ON g.client_id = c.id LEFT JOIN quiz_settings qs ON qs.game_id = g.id WHERE g.slug = ? AND c.slug = ? LIMIT 1',
+      [req.params.gameName, req.params.companyName]
+    );
+    const game = rows[0];
+    const BACKEND_URL = process.env.BACKEND_URL || 'https://promogames.in';
+    const toAbs = (u) => (u && u.indexOf('http') !== 0) ? BACKEND_URL + u : u;
+    const logo = toAbs(game && game.game_logo_url) || toAbs(game && game.client_logo) || 'https://promogames.in/favicon.png';
+    const title = (game && game.name) || 'Play Now on PromoGames';
+    const desc = 'Play this game and win exciting rewards!';
+    let html = fs.readFileSync(FRONTEND_DIST, 'utf8');
+    const metaTags = '<meta property="og:title" content="' + title + '" /><meta property="og:description" content="' + desc + '" /><meta property="og:image" content="' + logo + '" /><meta property="og:type" content="website" /><meta name="twitter:card" content="summary_large_image" /><meta name="twitter:image" content="' + logo + '" />';
+    html = html.replace('</head>', metaTags + '</head>');
+    res.send(html);
+  } catch (e) {
+    console.error('OG ROUTE ERROR:', e.message);
+    res.sendFile(FRONTEND_DIST);
+  }
+});
+
+app.use(express.static(FRONTEND_DIST));
+app.get('*', (req, res) => res.sendFile(path.join(FRONTEND_DIST, 'index.html')));
+
 app.listen(PORT, '0.0.0.0', () => {
   console.log(`🚀 Server running on port ${PORT}`);
   console.log(`🌐 FRONTEND_URL: ${process.env.FRONTEND_URL}`);

@@ -3,7 +3,11 @@ import { useState, useEffect, useRef, useCallback } from "react";
 /* ─── DATA ─────────────────────────────────────────── */
 const NAV = [
   { label: "Play",        href: "/arcade"      },
+<<<<<<< HEAD
   // { label: "Leaderboard", href: "/leaderboard"  },
+=======
+  { label: "Leaderboard", href: "/leaderboard"  },
+>>>>>>> feat: redesign landing page
 ];
 
 const GAME_DROPDOWN = [
@@ -57,7 +61,11 @@ const STATS = [
 
 const FOOTER_NAV = [
   ["Play Now", "/arcade"],
+<<<<<<< HEAD
   // ["Leaderboard", "/leaderboard"],
+=======
+  ["Leaderboard", "/leaderboard"],
+>>>>>>> feat: redesign landing page
   ["Log In", "/login"],
 ];
 

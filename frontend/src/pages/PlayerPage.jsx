@@ -878,7 +878,7 @@ export default function PlayerPage() {
       setShowSubmitModal(true)
       setTimeout(() => {
         if (redirectUrl) window.location.href = redirectUrl
-      }, 3200)
+      }, 5600)
     }
 
     const handleModalConfirm = () => {

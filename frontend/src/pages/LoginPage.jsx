@@ -1,13 +1,13 @@
-import React, { useState } from 'react'
+import React, { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
 
 // ── Step constants ────────────────────────────────────────────────────────────
 const STEP_EMAIL    = 'email'
-const STEP_PASSWORD = 'password'   // ← admin path
-const STEP_OTP      = 'otp'        // ← player path
-const STEP_REGISTER = 'register'   // ← new player path
+const STEP_PASSWORD = 'password'
+const STEP_OTP      = 'otp'
+const STEP_REGISTER = 'register'
 
 // ── Spinner ───────────────────────────────────────────────────────────────────
 function Spinner() {
@@ -23,23 +23,28 @@ function Spinner() {
   )
 }
 
-// ── OTP Input (single hidden input + 4 visual boxes) ─────────────────────────
+// ── OTP Input ─────────────────────────────────────────────────────────────────
+// Uses a single hidden input that retains focus naturally.
+// The key fix: value is kept as a real controlled string (not "") so React
+// never forcibly re-renders the input node, which would steal/drop focus.
 function OTPInput({ value, onChange }) {
-  const inputRef = React.useRef(null)
-  const [focused, setFocused] = React.useState(false)
+  const inputRef = useRef(null)
+  const [focused, setFocused] = useState(false)
 
   const digits = (value + '    ').slice(0, 4).split('')
 
+  const handleChange = (e) => {
+    const raw = e.target.value.replace(/\D/g, '').slice(0, 4)
+    onChange(raw)
+    // Keep cursor at end
+    requestAnimationFrame(() => {
+      const el = inputRef.current
+      if (el) el.setSelectionRange(raw.length, raw.length)
+    })
+  }
+
   const handleKeyDown = (e) => {
-    if (e.key >= '0' && e.key <= '9') {
-      e.preventDefault()
-      if (value.length < 4) {
-        onChange(value + e.key)
-      }
-    } else if (e.key === 'Backspace') {
-      e.preventDefault()
-      onChange(value.slice(0, -1))
-    }
+    if (e.key === 'Backspace' && value.length === 0) e.preventDefault()
   }
 
   const handlePaste = (e) => {
@@ -48,31 +53,23 @@ function OTPInput({ value, onChange }) {
     if (pasted) onChange(pasted)
   }
 
-  React.useEffect(() => {
-    inputRef.current?.focus()
-  }, [])
-
-  React.useEffect(() => {
-    if (value === '') inputRef.current?.focus()
-  }, [value])
-
   return (
     <div
       style={{ display: 'flex', gap: 12, justifyContent: 'center', margin: '24px 0', cursor: 'text' }}
       onClick={() => inputRef.current?.focus()}
     >
-      {/* Hidden real input that captures all keystrokes */}
+      {/* Real input — value mirrors actual digits so React never remounts it */}
       <input
         ref={inputRef}
         type="text"
         inputMode="numeric"
-        value=""
-        onChange={() => {}}
+        value={value}
+        onChange={handleChange}
         onKeyDown={handleKeyDown}
         onPaste={handlePaste}
         onFocus={() => setFocused(true)}
         onBlur={() => setFocused(false)}
-        autoFocus
+        maxLength={4}
         style={{
           position: 'absolute',
           opacity: 0,
@@ -84,8 +81,8 @@ function OTPInput({ value, onChange }) {
 
       {/* Visual boxes */}
       {digits.map((d, i) => {
-        const filled    = d.trim() !== ''
-        const isActive  = focused && i === value.length
+        const filled   = d.trim() !== ''
+        const isActive = focused && i === value.length
         return (
           <div
             key={i}
@@ -122,137 +119,12 @@ function OTPInput({ value, onChange }) {
   )
 }
 
-// ── Main component ────────────────────────────────────────────────────────────
-export default function LoginPage() {
-  const navigate  = useNavigate()
-  const { login } = useAuth()   // existing admin login from AuthContext
-
-  const [step,      setStep]      = useState(STEP_EMAIL)
-  const [email,     setEmail]     = useState('')
-  const [password,  setPassword]  = useState('')
-  const [otp,       setOtp]       = useState('')
-  const [tempToken, setTempToken] = useState('')
-  const [loading,   setLoading]   = useState(false)
-  const [error,     setError]     = useState('')
-  const [resendCD,  setResendCD]  = useState(0)
-
-  // Registration fields
-  const [form, setForm] = useState({
-    name: '', age: '', dob: '', whatsapp: '', city: '', pincode: '',
-  })
-
-  const setField  = (k, v) => setForm(f => ({ ...f, [k]: v }))
-  const clearErr  = () => setError('')
-
-  // ── Resend countdown ────────────────────────────────────────────────────────
-  const startCountdown = () => {
-    setResendCD(30)
-    const t = setInterval(() => {
-      setResendCD(s => { if (s <= 1) { clearInterval(t); return 0 } return s - 1 })
-    }, 1000)
-  }
-
-  // ── STEP 1: check email type ────────────────────────────────────────────────
-  const handleEmailSubmit = async () => {
-    if (!email) return setError('Please enter your email')
-    clearErr()
-    setLoading(true)
-    try {
-      const { data } = await api.post('/pauth/check-email', { email })
-      if (data.type === 'admin') {
-        setStep(STEP_PASSWORD)
-      } else {
-        await api.post('/pauth/send-otp', { email })
-        startCountdown()
-        setStep(STEP_OTP)
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Something went wrong. Try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── STEP 2a: admin password login ──────────────────────────────────────────
-  const handleAdminLogin = async () => {
-    if (!password) return setError('Please enter your password')
-    clearErr()
-    setLoading(true)
-    try {
-      await login(email, password)   // uses existing AuthContext → /api/auth/login
-      navigate('/dashboard')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Incorrect password. Try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── STEP 2b: verify OTP ────────────────────────────────────────────────────
-  const handleOTPSubmit = async () => {
-    if (otp.length < 4) return setError('Enter the 4-digit code')
-    clearErr()
-    setLoading(true)
-    try {
-      const { data } = await api.post('/pauth/verify-otp', { email, otp })
-      if (data.type === 'player') {
-        // ✅ CHANGED: Use sessionStorage instead of localStorage
-        sessionStorage.setItem('playerToken', data.token)
-        sessionStorage.setItem('playerUser',  JSON.stringify(data.player))
-        navigate('/player/dashboard')
-      } else {
-        setTempToken(data.tempToken)
-        setStep(STEP_REGISTER)
-      }
-    } catch (err) {
-      setError(err.response?.data?.message || 'Invalid or expired code. Try again.')
-      setOtp('')   // clears boxes via useEffect in OTPInput
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── STEP 3: register new player ────────────────────────────────────────────
-  const handleRegister = async () => {
-    if (!form.name.trim()) return setError('Name is required')
-    clearErr()
-    setLoading(true)
-    try {
-      const { data } = await api.post('/pauth/register', {
-        tempToken,
-        name:     form.name.trim(),
-        age:      form.age      || null,
-        dob:      form.dob      || null,
-        whatsapp: form.whatsapp || null,
-        city:     form.city     || null,
-        pincode:  form.pincode  || null,
-      })
-      // ✅ CHANGED: Use sessionStorage instead of localStorage
-      sessionStorage.setItem('playerToken', data.token)
-      sessionStorage.setItem('playerUser',  JSON.stringify(data.player))
-      navigate('/player/dashboard')
-    } catch (err) {
-      setError(err.response?.data?.message || 'Registration failed. Try again.')
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // ── Resend OTP ─────────────────────────────────────────────────────────────
-  const handleResend = async () => {
-    if (resendCD > 0) return
-    clearErr()
-    setOtp('')
-    try {
-      await api.post('/pauth/send-otp', { email })
-      startCountdown()
-    } catch {
-      setError('Failed to resend. Try again.')
-    }
-  }
-
-  // ── Shared card wrapper ────────────────────────────────────────────────────
-  const Card = ({ children }) => (
+// ── Card — defined OUTSIDE LoginPage so it never remounts on state change ─────
+// If Card were defined inside LoginPage, every setState call would recreate
+// a brand-new Card function reference, causing React to unmount+remount the
+// entire DOM subtree and drop focus from whatever input the user was typing in.
+function Card({ error, children }) {
+  return (
     <div style={{
       minHeight: '100vh',
       background: 'var(--bg)',
@@ -269,32 +141,19 @@ export default function LoginPage() {
             src="/favicon.png"
             alt="PromoGames Logo"
             style={{
-              width: 64,
-              height: 64,
+              width: 64, height: 64,
               objectFit: 'contain',
               marginBottom: 10,
               display: 'block',
-              marginLeft: 'auto',
-              marginRight: 'auto',
+              marginLeft: 'auto', marginRight: 'auto',
               background: 'transparent',
-              border: 'none',
-              boxShadow: 'none'
+              border: 'none', boxShadow: 'none',
             }}
           />
-
-          <h1
-            style={{
-              fontSize: 26,
-              marginBottom: 6,
-              fontFamily: 'var(--font-display)'
-            }}
-          >
+          <h1 style={{ fontSize: 26, marginBottom: 6, fontFamily: 'var(--font-display)' }}>
             PromoGames
           </h1>
-
-          <p style={{ color: 'var(--text2)', fontSize: 14 }}>
-            Play. Earn. Redeem.
-          </p>
+          <p style={{ color: 'var(--text2)', fontSize: 14 }}>Play. Earn. Redeem.</p>
         </div>
 
         <div className="card" style={{ padding: 32 }}>
@@ -316,10 +175,137 @@ export default function LoginPage() {
       </div>
     </div>
   )
+}
 
-  // ─── STEP: EMAIL ─────────────────────────────────────────────────────────────
+// ── Main component ────────────────────────────────────────────────────────────
+export default function LoginPage() {
+  const navigate  = useNavigate()
+  const { login } = useAuth()
+
+  const [step,      setStep]      = useState(STEP_EMAIL)
+  const [email,     setEmail]     = useState('')
+  const [password,  setPassword]  = useState('')
+  const [otp,       setOtp]       = useState('')
+  const [tempToken, setTempToken] = useState('')
+  const [loading,   setLoading]   = useState(false)
+  const [error,     setError]     = useState('')
+  const [resendCD,  setResendCD]  = useState(0)
+
+  const [form, setForm] = useState({
+    name: '', age: '', dob: '', whatsapp: '', city: '', pincode: '',
+  })
+
+  const setField = (k, v) => setForm(f => ({ ...f, [k]: v }))
+  const clearErr = () => setError('')
+
+  // ── Resend countdown ──────────────────────────────────────────────────────
+  const startCountdown = () => {
+    setResendCD(30)
+    const t = setInterval(() => {
+      setResendCD(s => { if (s <= 1) { clearInterval(t); return 0 } return s - 1 })
+    }, 1000)
+  }
+
+  // ── STEP 1: check email type ──────────────────────────────────────────────
+  const handleEmailSubmit = async () => {
+    if (!email) return setError('Please enter your email')
+    clearErr()
+    setLoading(true)
+    try {
+      const { data } = await api.post('/pauth/check-email', { email })
+      if (data.type === 'admin') {
+        setStep(STEP_PASSWORD)
+      } else {
+        await api.post('/pauth/send-otp', { email })
+        startCountdown()
+        setStep(STEP_OTP)
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Something went wrong. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── STEP 2a: admin password login ─────────────────────────────────────────
+  const handleAdminLogin = async () => {
+    if (!password) return setError('Please enter your password')
+    clearErr()
+    setLoading(true)
+    try {
+      await login(email, password)
+      navigate('/dashboard')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Incorrect password. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── STEP 2b: verify OTP ───────────────────────────────────────────────────
+  const handleOTPSubmit = async () => {
+    if (otp.length < 4) return setError('Enter the 4-digit code')
+    clearErr()
+    setLoading(true)
+    try {
+      const { data } = await api.post('/pauth/verify-otp', { email, otp })
+      if (data.type === 'player') {
+        sessionStorage.setItem('playerToken', data.token)
+        sessionStorage.setItem('playerUser',  JSON.stringify(data.player))
+        navigate('/player/dashboard')
+      } else {
+        setTempToken(data.tempToken)
+        setStep(STEP_REGISTER)
+      }
+    } catch (err) {
+      setError(err.response?.data?.message || 'Invalid or expired code. Try again.')
+      setOtp('')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── STEP 3: register new player ───────────────────────────────────────────
+  const handleRegister = async () => {
+    if (!form.name.trim()) return setError('Name is required')
+    clearErr()
+    setLoading(true)
+    try {
+      const { data } = await api.post('/pauth/register', {
+        tempToken,
+        name:     form.name.trim(),
+        age:      form.age      || null,
+        dob:      form.dob      || null,
+        whatsapp: form.whatsapp || null,
+        city:     form.city     || null,
+        pincode:  form.pincode  || null,
+      })
+      sessionStorage.setItem('playerToken', data.token)
+      sessionStorage.setItem('playerUser',  JSON.stringify(data.player))
+      navigate('/player/dashboard')
+    } catch (err) {
+      setError(err.response?.data?.message || 'Registration failed. Try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // ── Resend OTP ────────────────────────────────────────────────────────────
+  const handleResend = async () => {
+    if (resendCD > 0) return
+    clearErr()
+    setOtp('')
+    try {
+      await api.post('/pauth/send-otp', { email })
+      startCountdown()
+    } catch {
+      setError('Failed to resend. Try again.')
+    }
+  }
+
+  // ─── STEP: EMAIL ────────────────────────────────────────────────────────────
   if (step === STEP_EMAIL) return (
-    <Card>
+    <Card error={error}>
       <h2 style={{ marginBottom: 4, fontSize: 20 }}>Welcome!</h2>
       <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 24 }}>
         Enter your email to continue.
@@ -333,7 +319,6 @@ export default function LoginPage() {
           onChange={e => { setEmail(e.target.value); clearErr() }}
           onKeyDown={e => e.key === 'Enter' && handleEmailSubmit()}
           placeholder="you@example.com"
-          autoFocus
         />
       </div>
 
@@ -348,9 +333,9 @@ export default function LoginPage() {
     </Card>
   )
 
-  // ─── STEP: ADMIN PASSWORD ─────────────────────────────────────────────────────
+  // ─── STEP: ADMIN PASSWORD ───────────────────────────────────────────────────
   if (step === STEP_PASSWORD) return (
-    <Card>
+    <Card error={error}>
       <button
         onClick={() => { setStep(STEP_EMAIL); setPassword(''); clearErr() }}
         style={{ background: 'none', border: 'none', color: 'var(--text2)', fontSize: 13, padding: 0, marginBottom: 20, cursor: 'pointer' }}
@@ -379,7 +364,6 @@ export default function LoginPage() {
           onChange={e => { setPassword(e.target.value); clearErr() }}
           onKeyDown={e => e.key === 'Enter' && handleAdminLogin()}
           placeholder="••••••••"
-          autoFocus
         />
       </div>
 
@@ -394,9 +378,9 @@ export default function LoginPage() {
     </Card>
   )
 
-  // ─── STEP: OTP ───────────────────────────────────────────────────────────────
+  // ─── STEP: OTP ──────────────────────────────────────────────────────────────
   if (step === STEP_OTP) return (
-    <Card>
+    <Card error={error}>
       <button
         onClick={() => { setStep(STEP_EMAIL); setOtp(''); clearErr() }}
         style={{ background: 'none', border: 'none', color: 'var(--text2)', fontSize: 13, padding: 0, marginBottom: 16, cursor: 'pointer' }}
@@ -440,29 +424,28 @@ export default function LoginPage() {
     </Card>
   )
 
-  // ─── STEP: REGISTER ──────────────────────────────────────────────────────────
-if (step === STEP_REGISTER) return (
-  <Card>
-    <h2 style={{ marginBottom: 4, fontSize: 20 }}>Create your account</h2>
-    <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 24 }}>
-      Just a few details to set up your PromoGames wallet 🎁
-    </p>
+  // ─── STEP: REGISTER ─────────────────────────────────────────────────────────
+  if (step === STEP_REGISTER) return (
+    <Card error={error}>
+      <h2 style={{ marginBottom: 4, fontSize: 20 }}>Create your account</h2>
+      <p style={{ color: 'var(--text2)', fontSize: 14, marginBottom: 24 }}>
+        Just a few details to set up your PromoGames wallet 🎁
+      </p>
 
-    <div className="form-group">
-      <label className="form-label">Email Address</label>
-      <input type="email" value={email} disabled style={{ opacity: 0.6 }} />
-    </div>
+      <div className="form-group">
+        <label className="form-label">Email Address</label>
+        <input type="email" value={email} disabled style={{ opacity: 0.6 }} />
+      </div>
 
-    <div className="form-group">
-      <label className="form-label">Full Name <span style={{ color: 'var(--danger)' }}>*</span></label>
-      <input
-        type="text"
-        value={form.name}
-        onChange={e => { setField('name', e.target.value); clearErr() }}
-        placeholder="Your full name"
-        // ❌ REMOVED: autoFocus
-      />
-    </div>
+      <div className="form-group">
+        <label className="form-label">Full Name <span style={{ color: 'var(--danger)' }}>*</span></label>
+        <input
+          type="text"
+          value={form.name}
+          onChange={e => { setField('name', e.target.value); clearErr() }}
+          placeholder="Your full name"
+        />
+      </div>
 
       <div className="form-row">
         <div className="form-group">

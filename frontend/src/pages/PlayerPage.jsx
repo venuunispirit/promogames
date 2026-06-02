@@ -543,7 +543,7 @@ export default function PlayerPage() {
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                   <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />Starting…
                 </span>
-              ) : `Start ${game.category === 'quiz' ? 'Quiz' : 'Survey'} →`}
+              ) : `Start ${game.category === 'quiz' ? 'Quiz' : game.category === 'registration' ? 'Registration' : 'Survey'} →`}
             </button>
           </form>
         </div>
@@ -875,11 +875,11 @@ export default function PlayerPage() {
     const confirmGifUrl = s.submit_confirm_gif_url || null
 
     const handleSubmitExplore = () => {
-      setShowSubmitModal(true)
-      setTimeout(() => {
-        if (redirectUrl) window.location.href = redirectUrl
-      }, 3200)
+      if (redirectUrl) {
+        setShowSubmitModal(true)
+      }
     }
+
 
     const handleModalConfirm = () => {
       setShowSubmitModal(false)

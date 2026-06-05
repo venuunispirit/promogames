@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import CrosswordPlayerPage from './CrosswordPlayerPage'
+import SpinPlayerPage      from './SpinPlayerPage'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -108,7 +109,7 @@ function ScoreRing({ score, total, primaryColor }) {
   )
 }
 
-function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm }) {
+function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm, gameCategory, continueButtonText }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
@@ -132,14 +133,13 @@ function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm }) {
         ) : (
           <div style={{ fontSize: 68, marginBottom: 16, animation: 'bounce 0.6s ease both' }}>🎉</div>
         )}
-        <h2 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.25 }}>Quiz Submitted!</h2>
+        <h2 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.25 }}>{gameCategory === 'quiz' ? 'Quiz' : gameCategory === 'registration' ? 'Registration' : 'Survey'} Submitted!</h2>
         <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>Your responses have been recorded.<br />Redirecting you now…</p>
         <div style={{ height: 5, background: `${primaryColor}22`, borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
           <div style={{ height: '100%', background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`, borderRadius: 10, animation: 'redirectBar 3s linear forwards' }} />
         </div>
         <button onClick={onConfirm} style={{ background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 8px 28px ${primaryColor}55`, touchAction: 'manipulation' }}>
-          Continue Now →
-        </button>
+          {continueButtonText || 'Continue Now →'}</button>
         <style>{`@keyframes redirectBar { from { width: 0% } to { width: 100% } }`}</style>
       </div>
     </div>
@@ -164,6 +164,7 @@ export default function PlayerPage() {
   const [formErrors, setFormErrors] = useState({})
   const [formTouched, setFormTouched] = useState({})
   const [sessionToken, setSessionToken] = useState(null)
+  const [sessionId,    setSessionId]    = useState(null)
   const [currentQ, setCurrentQ] = useState(0)
   const [selectedOpt, setSelectedOpt] = useState(null)
   const [answered, setAnswered] = useState(false)
@@ -174,6 +175,8 @@ export default function PlayerPage() {
   const [completing, setCompleting] = useState(false)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [questionKey, setQuestionKey] = useState(0)
+  const [showContinueBtn, setShowContinueBtn] = useState(false)
+  const continueTimerRef = useRef(null)
 
   // Overlay state machine
   const [overlayState, setOverlayState] = useState('hidden')
@@ -196,6 +199,21 @@ export default function PlayerPage() {
         if (g.settings?.font_family) loadFont(g.settings.font_family)
         if (g.category === 'crossword') {
           setPhase('crossword')
+          return
+        }
+        if (g.category === 'spin') {
+          // SpinPlayerPage handles session creation on first spin click
+          // Skip form if player is logged in and no custom fields configured
+          const playerUser = JSON.parse(localStorage.getItem('playerUser') || '{}')
+          const hasForm = g.formFields && g.formFields.length > 0
+          if (!hasForm || playerUser.id) {
+            setPhase('spin')
+            return
+          }
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = ''
+          setFormData(init)
+          setPhase('form')
           return
         }
         const init = {}
@@ -320,6 +338,14 @@ export default function PlayerPage() {
   }, [completeSession])
 
   useEffect(() => { advanceRef.current = doAdvance }, [doAdvance])
+  const handleContinueClick = useCallback(() => {
+  if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
+  setShowContinueBtn(false)
+  
+  const isLastQ = currentQ + 1 >= game.questions.length
+  const token = sessionToken
+  doAdvance(isLastQ, token)
+}, [currentQ, game, sessionToken, doAdvance])
 
   const startOverlayFlyOut = useCallback(() => {
     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current)
@@ -337,62 +363,76 @@ export default function PlayerPage() {
   useEffect(() => { flyOutRef.current = startOverlayFlyOut }, [startOverlayFlyOut])
 
   const handleOptionSelect = async (opt, token) => {
-    if (answered) return
-    setSelectedOpt(opt)
-    setAnswered(true)
+  if (answered) return
+  setSelectedOpt(opt)
+  setAnswered(true)
 
-    const question = game.questions[currentQ]
-    const isCorrect = question.question_type === 'right_wrong' ? !!opt.is_correct : null
-    const isLastQ = currentQ + 1 >= game.questions.length
-    const soundMap = game.soundMap || {}
-    const settingsObj = game.settings || {}
+  const question = game.questions[currentQ]
+  const isCorrect = question.question_type === 'right_wrong' ? !!opt.is_correct : null
+  const isLastQ = currentQ + 1 >= game.questions.length
+  const soundMap = game.soundMap || {}
+  const settingsObj = game.settings || {}
 
-    if (question.question_type === 'right_wrong') {
-      if (isCorrect) {
-        playSound(resolveSound(settingsObj.sound_correct_id, soundMap))
-        setScore(s => s + 1)
-      } else {
-        playSound(resolveSound(settingsObj.sound_wrong_id, soundMap))
-      }
+  if (question.question_type === 'right_wrong') {
+    if (isCorrect) {
+      playSound(resolveSound(settingsObj.sound_correct_id, soundMap))
+      setScore(s => s + 1)
     } else {
-      playSound(resolveSound(question.sound_neutral_id, soundMap))
+      playSound(resolveSound(settingsObj.sound_wrong_id, soundMap))
     }
+  } else {
+    playSound(resolveSound(question.sound_neutral_id, soundMap))
+  }
 
-    try {
-      await api.post('/play/session/answer', {
-        session_token: token, question_id: question.id,
-        option_id: opt.id, is_correct: isCorrect, question_type: question.question_type
-      })
-    } catch {}
+  try {
+    await api.post('/play/session/answer', {
+      session_token: token, question_id: question.id,
+      option_id: opt.id, is_correct: isCorrect, question_type: question.question_type
+    })
+  } catch {}
 
-    // ── Overlay or advance ──
-    // We wait 1200ms (audio plays, correct answer revealed) before showing overlay or advancing
-    if (opt.option_overlay_image_url) {
-      const animIn = question.overlay_animation_in || 'flyFromBottom'
-      const animOut = question.overlay_animation_out || 'flyToTop'
-      const idleTime = (question.overlay_idle_time ?? 3) * 1000
+  // ── Overlay or advance ──
+  if (opt.option_overlay_image_url) {
+    const animIn = question.overlay_animation_in || 'flyFromBottom'
+    const animOut = question.overlay_animation_out || 'flyToTop'
+    const idleTime = (question.overlay_idle_time ?? 3) * 1000
 
-      setOverlayState('preparing')
+    setOverlayState('preparing')
+    overlayTimerRef.current = setTimeout(() => {
+      setOverlayData({ src: opt.option_overlay_image_url, animIn, animOut, idleTime, isLast: isLastQ, token })
+      setOverlayState('flyingIn')
+      setShowNextBtn(false)
+
       overlayTimerRef.current = setTimeout(() => {
-        setOverlayData({ src: opt.option_overlay_image_url, animIn, animOut, idleTime, isLast: isLastQ, token })
-        setOverlayState('flyingIn')
-        setShowNextBtn(false)
-
-        overlayTimerRef.current = setTimeout(() => {
-          setOverlayState('visible')
-          if (idleTime > 0) {
-            overlayTimerRef.current = setTimeout(() => {
-              setShowNextBtn(true)
-            }, idleTime)
-          } else {
+        setOverlayState('visible')
+        if (idleTime > 0) {
+          overlayTimerRef.current = setTimeout(() => {
             setShowNextBtn(true)
-          }
-        }, 620)
-      }, 1200)
+          }, idleTime)
+        } else {
+          setShowNextBtn(true)
+        }
+      }, 620)
+    }, 1200)
+  } else {
+    // ── NEW: Check if registration game and show Continue button ──
+    const isRegistrationGame = game.category === 'registration'
+    const idleTime = (question.overlay_idle_time ?? 3) * 1000
+    
+    if (isRegistrationGame) {
+      // Show Continue button after idle time
+      if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
+      setShowContinueBtn(false)
+      
+      continueTimerRef.current = setTimeout(() => {
+        setShowContinueBtn(true)
+      }, idleTime)
     } else {
+      // Non-registration games: advance immediately as before
       setTimeout(() => doAdvance(isLastQ, token), 1200)
     }
   }
+}
 
   const s = game?.settings || {}
   const primaryColor = s.primary_color || '#7c6ff7'
@@ -432,7 +472,10 @@ export default function PlayerPage() {
     }
   }
 
-  useEffect(() => () => { if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current) }, [])
+  useEffect(() => () => { 
+  if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current)
+  if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
+}, [])
 
   if (phase === 'loading') return <PageLoader primaryColor={primaryColor} />
 
@@ -543,7 +586,7 @@ export default function PlayerPage() {
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                   <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />Starting…
                 </span>
-              ) : `Start ${game.category === 'quiz' ? 'Quiz' : 'Survey'} →`}
+                ) : s.start_button_text || `Start ${game.category === 'quiz' ? 'Quiz' : game.category === 'registration' ? 'Registration' : 'Survey'} →`}
             </button>
           </form>
         </div>
@@ -646,7 +689,7 @@ export default function PlayerPage() {
                   minHeight: 54,
                   touchAction: 'manipulation',
                 }}>
-                Next →
+                {s.next_button_text || 'Next →'}
               </button>
             )}
           </div>
@@ -849,9 +892,39 @@ export default function PlayerPage() {
                   )
                 })}
               </div>
+
+              {/* ── NEW: Continue button for registration games (no overlay) ── */}
+              {showContinueBtn && (
+                <button
+                  onClick={handleContinueClick}
+                  style={{
+                    marginTop: 12,
+                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+                    color: '#fff',
+                    border: 'none',
+                    borderRadius: 50,
+                    padding: '16px 44px',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    fontFamily: ff,
+                    boxShadow: `0 12px 40px ${primaryColor}88`,
+                    animation: 'nextBtnIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards',
+                    letterSpacing: '0.02em',
+                    minWidth: 160,
+                    minHeight: 54,
+                    touchAction: 'manipulation',
+                    width: '100%',
+                    maxWidth: 160,
+                    alignSelf: 'center',
+                  }}>
+                  Continue →
+                </button>
+              )}
             </div>
           </div>
         </div>
+        
 
         {completing && (
           <div style={{ marginBottom: 12, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: '#555' }}>
@@ -874,24 +947,22 @@ export default function PlayerPage() {
     const hasBgImage = !!(tyBg || gameBg)
     const confirmGifUrl = s.submit_confirm_gif_url || null
 
-    const handleSubmitExplore = () => {
-      setShowSubmitModal(true)
-      setTimeout(() => {
-        if (redirectUrl) window.location.href = redirectUrl
-      }, 5600)
-    }
+const handleSubmitExplore = () => {
+  setShowSubmitModal(true)
+  // Removed auto-redirect - now only redirects on button click
+}
 
-    const handleModalConfirm = () => {
-      setShowSubmitModal(false)
-      if (redirectUrl) window.location.href = redirectUrl
-    }
+const handleModalConfirm = () => {
+  setShowSubmitModal(false)
+  if (redirectUrl) window.location.href = redirectUrl
+}
 
     return (
       <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box' }}>
         <Confetti />
 
         {showSubmitModal && (
-          <SubmitModal primaryColor={primaryColor} ff={ff} confirmGifUrl={confirmGifUrl} onConfirm={handleModalConfirm} />
+          <SubmitModal primaryColor={primaryColor} ff={ff} confirmGifUrl={confirmGifUrl} onConfirm={handleModalConfirm} gameCategory={game.category} continueButtonText={s.continue_button_text} />
         )}
 
         <div style={{
@@ -941,7 +1012,7 @@ export default function PlayerPage() {
               minHeight: 52,
             }}>
             <span>🚀</span>
-            <span>Submit &amp; Explore</span>
+            <span>{s.submit_button_text || 'Submit & Explore'}</span>
           </button>
         </div>
         <style>{OVERLAY_STYLES}</style>
@@ -949,7 +1020,24 @@ export default function PlayerPage() {
     )
   }
 
-  /* ── CROSSWORD ── */
+  if (phase === 'spin') {
+    return (
+      <SpinPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        sessionId={sessionId}
+        onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
+        onComplete={(data) => {
+          if (data?.session) {
+            setScore(data.session.score || 0)
+          }
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
   if (phase === 'crossword') {
     return (
       <CrosswordPlayerPage

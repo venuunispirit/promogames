@@ -13,6 +13,7 @@ import LandingPage       from './pages/LandingPage'
 import GameResponsesPage from './pages/GameResponsesPage'
 import ArcadePage        from './pages/ArcadePage'
 import CrosswordBuilderTab from './pages/CrosswordBuilderTab'
+import SpinBuilderTab     from './pages/SpinBuilderTab'
 import PlayerDashboard   from './pages/PlayerDashboard'
 import PlayersPage       from './pages/PlayersPage'
 import LeaderboardPage   from './pages/LeaderboardPage' // ← ADD THIS
@@ -61,6 +62,7 @@ function AppRoutes() {
         <Route path="games"                           element={<GamesPage />} />
         <Route path="games/:id/builder"               element={<GameBuilderPage />} />
         <Route path="games/:id/crossword-builder"     element={<CrosswordBuilderTab />} />
+        <Route path="games/:id/spin-builder"           element={<SpinBuilderTab />} />
         <Route path="games/:id/responses"             element={<GameResponsesPage />} />
         <Route path="players"                         element={<PlayersPage />} />
       </Route>

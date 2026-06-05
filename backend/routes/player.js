@@ -59,6 +59,52 @@ router.get('/:gameName/:companyName', async (req, res) => {
       });
     }
 
+    // ── SPIN branch ───────────────────────────────────────────────────────────
+    if (game.category === 'spin') {
+      const [spinSettings] = await db.query(
+        'SELECT * FROM spin_settings WHERE game_id = ?', [game.id]
+      );
+      const [spinSegments] = await db.query(
+        'SELECT * FROM spin_segments WHERE game_id = ? ORDER BY segment_order', [game.id]
+      );
+      const [formFields] = await db.query(
+        'SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]
+      );
+      const [sounds] = await db.query(
+        'SELECT * FROM sounds WHERE game_id = ?', [game.id]
+      );
+
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+
+      const settings = spinSettings[0] ? { ...spinSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      for (const seg of spinSegments) {
+        seg.coupon_image_url  = toAbs(seg.coupon_image_url);
+        seg.overlay_image_url = toAbs(seg.overlay_image_url);
+      }
+
+      return res.json({
+        success: true,
+        game: {
+          id: game.id,
+          name: game.name,
+          category: game.category,
+          description: game.description,
+          redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo),
+          company_name: game.company_name,
+          settings,
+          segments: spinSegments,
+          formFields,
+          soundMap,
+          questions: [],
+        },
+      });
+    }
+
     // ── QUIZ / SURVEY branch (unchanged) ─────────────────────────────────────
     const [settings]   = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [game.id]);
     const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);

@@ -82,7 +82,7 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   try {
-    const allowed = ['name','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page'];
+    const allowed = ['name','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description'];
     const booleans = ['is_active','show_in_play_page','show_in_hero_page'];
     const fields = []; const values = [];
     for (const key of allowed) {

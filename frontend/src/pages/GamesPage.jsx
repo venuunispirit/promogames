@@ -14,6 +14,12 @@ const CATEGORY_META = {
     fg:' #BE185D',
     dot:' #EC4899'
   },
+  spin: {
+    label:'Spin Wheel',
+    bg:' #FFFBEB',
+    fg:' #B45309',
+    dot:' #F59E0B'
+  },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:' #F3F4F6', fg:' #374151', dot:' #9CA3AF' }
 
@@ -159,6 +165,8 @@ const handleSubmit = async e => {
 
     if (game.category === 'crossword') {
       navigate(`/dashboard/games/${game.id}/crossword-builder`)
+    } else if (game.category === 'spin') {
+      navigate(`/dashboard/games/${game.id}/spin-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }
@@ -553,6 +561,8 @@ export default function GamesPage() {
                             onClick={() => {
   if (game.category === 'crossword') {
     navigate(`/dashboard/games/${game.id}/crossword-builder`)
+  } else if (game.category === 'spin') {
+    navigate(`/dashboard/games/${game.id}/spin-builder`)
   } else {
     navigate(`/dashboard/games/${game.id}/builder`)
   }

@@ -120,7 +120,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
 
   /* check a single word */
   const checkWord = useCallback(async (w, currentInputs) => {
-    if (correct[w.id] || submitted[w.id]) return
+    if (correct[w.id]) return
     let attempt = ''
     for (let i = 0; i < w.word_text.length; i++) {
       const r = w.direction === 'down'   ? w.start_row + i : w.start_row
@@ -142,8 +142,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
     }
 
     // send to server if session exists
-    if (sessionToken && !submitted[w.id]) {
-      setSubmitted(p => ({ ...p, [w.id]: true }))
+    if (sessionToken) {
       try {
         await fetch(`${API_BASE}/play/session/crossword-answer`, {
           method: 'POST',
@@ -157,7 +156,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
         })
       } catch {}
     }
-  }, [correct, submitted, soundMap, settings, sessionToken])
+  }, [correct, soundMap, settings, sessionToken])
 
   /* handle cell input */
   const handleInput = (r, c, val) => {
@@ -176,13 +175,17 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
       }
     }
 
-    // check word when last cell of selected word is filled
-    if (selectedWord) {
-      const lastIdx = selectedWord.word_text.length - 1
-      const lr = selectedWord.direction === 'down'   ? selectedWord.start_row + lastIdx : selectedWord.start_row
-      const lc = selectedWord.direction === 'across' ? selectedWord.start_col + lastIdx : selectedWord.start_col
-      if (r === lr && c === lc && ch) {
-        checkWord(selectedWord, newInputs)
+    // check every word that shares this cell (handles intersections)
+    if (ch) {
+      const cellWordIds = grid[r][c].wordIds
+      for (const w of words.filter(w => cellWordIds.includes(w.id))) {
+        let allFilled = true
+        for (let i = 0; i < w.word_text.length; i++) {
+          const wr = w.direction === 'down'   ? w.start_row + i : w.start_row
+          const wc = w.direction === 'across' ? w.start_col + i : w.start_col
+          if (!newInputs[`${wr},${wc}`]) { allFilled = false; break }
+        }
+        if (allFilled) checkWord(w, newInputs)
       }
     }
   }

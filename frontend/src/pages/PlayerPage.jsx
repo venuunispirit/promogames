@@ -178,6 +178,8 @@ export default function PlayerPage() {
   const [questionKey, setQuestionKey] = useState(0)
   const [showContinueBtn, setShowContinueBtn] = useState(false)
   const continueTimerRef = useRef(null)
+  const [pendingOpt, setPendingOpt] = useState(null)
+  const selectionTimerRef = useRef(null)
 
   // Overlay state machine
   const [overlayState, setOverlayState] = useState('hidden')
@@ -333,43 +335,21 @@ export default function PlayerPage() {
     else {
       setCurrentQ(q => q + 1)
       setSelectedOpt(null)
+      setPendingOpt(null)
       setAnswered(false)
       setQuestionKey(k => k + 1)
     }
   }, [completeSession])
 
   useEffect(() => { advanceRef.current = doAdvance }, [doAdvance])
-  const handleContinueClick = useCallback(() => {
+  const handleContinueClick = useCallback(async () => {
+  if (!pendingOpt || answered) return
   if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
   setShowContinueBtn(false)
-  
-  const isLastQ = currentQ + 1 >= game.questions.length
-  const token = sessionToken
-  doAdvance(isLastQ, token)
-}, [currentQ, game, sessionToken, doAdvance])
-
-  const startOverlayFlyOut = useCallback(() => {
-    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current)
-    setShowNextBtn(false)
-    setOverlayState('flyingOut')
-    overlayTimerRef.current = setTimeout(() => {
-      setOverlayState('hidden')
-      setOverlayData(null)
-      const d = overlayData
-      if (d) advanceRef.current?.(d.isLast, d.token)
-    }, 520)
-  }, [overlayData])
-
-  const flyOutRef = useRef(null)
-  useEffect(() => { flyOutRef.current = startOverlayFlyOut }, [startOverlayFlyOut])
-
-  const handleOptionSelect = async (opt, token) => {
-  if (answered) return
-  setSelectedOpt(opt)
   setAnswered(true)
 
   const question = game.questions[currentQ]
-  const isCorrect = question.question_type === 'right_wrong' ? !!opt.is_correct : null
+  const isCorrect = question.question_type === 'right_wrong' ? !!pendingOpt.is_correct : null
   const isLastQ = currentQ + 1 >= game.questions.length
   const soundMap = game.soundMap || {}
   const settingsObj = game.settings || {}
@@ -387,52 +367,48 @@ export default function PlayerPage() {
 
   try {
     await api.post('/play/session/answer', {
-      session_token: token, question_id: question.id,
-      option_id: opt.id, is_correct: isCorrect, question_type: question.question_type
+      session_token: sessionToken,
+      question_id: question.id,
+      option_id: pendingOpt.id,
+      is_correct: isCorrect,
+      question_type: question.question_type
     })
   } catch {}
 
-  // ── Overlay or advance ──
-  if (opt.option_overlay_image_url) {
-    const animIn = question.overlay_animation_in || 'flyFromBottom'
-    const animOut = question.overlay_animation_out || 'flyToTop'
-    const idleTime = (question.overlay_idle_time ?? 3) * 1000
+  doAdvance(isLastQ, sessionToken)
+}, [pendingOpt, answered, currentQ, game, sessionToken, doAdvance])
 
-    setOverlayState('preparing')
+  const startOverlayFlyOut = useCallback(() => {
+    if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current)
+    setShowNextBtn(false)
+    setOverlayState('flyingOut')
     overlayTimerRef.current = setTimeout(() => {
-      setOverlayData({ src: opt.option_overlay_image_url, animIn, animOut, idleTime, isLast: isLastQ, token })
-      setOverlayState('flyingIn')
-      setShowNextBtn(false)
+      setOverlayState('hidden')
+      setOverlayData(null)
+      const d = overlayData
+      if (d) advanceRef.current?.(d.isLast, d.token)
+    }, 520)
+  }, [overlayData])
 
-      overlayTimerRef.current = setTimeout(() => {
-        setOverlayState('visible')
-        if (idleTime > 0) {
-          overlayTimerRef.current = setTimeout(() => {
-            setShowNextBtn(true)
-          }, idleTime)
-        } else {
-          setShowNextBtn(true)
-        }
-      }, 620)
-    }, 1200)
-  } else {
-    // ── NEW: Check if registration game and show Continue button ──
-    const isRegistrationGame = game.category === 'registration'
-    const idleTime = (question.overlay_idle_time ?? 3) * 1000
-    
-    if (isRegistrationGame) {
-      // Show Continue button after idle time
-      if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
-      setShowContinueBtn(false)
-      
-      continueTimerRef.current = setTimeout(() => {
-        setShowContinueBtn(true)
-      }, idleTime)
-    } else {
-      // Non-registration games: advance immediately as before
-      setTimeout(() => doAdvance(isLastQ, token), 1200)
-    }
-  }
+  const flyOutRef = useRef(null)
+  useEffect(() => { flyOutRef.current = startOverlayFlyOut }, [startOverlayFlyOut])
+
+  const handleOptionSelect = (opt, token) => {
+  if (answered) return
+
+  // Cancel previous selection timer if user is changing their mind
+  if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current)
+  if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
+
+  // Highlight new selection (no lock, no API call yet)
+  setPendingOpt(opt)
+  setSelectedOpt(opt)
+  setShowContinueBtn(false)
+
+  // Start 3-second timer to show Continue button
+  continueTimerRef.current = setTimeout(() => {
+    setShowContinueBtn(true)
+  }, 500)
 }
 
   const s = game?.settings || {}
@@ -449,7 +425,7 @@ export default function PlayerPage() {
 
   // ── CHANGE: getOptionStyle now accepts selectedOpt as param for wrong-answer correct reveal ──
   const getOptionStyle = (opt, question, currentSelectedOpt) => {
-    if (!answered) return { bg: opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: '2px solid transparent', shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
+    if (!currentSelectedOpt) return { bg: opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: '2px solid transparent', shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
 
     const isRightWrong = question.question_type === 'right_wrong'
     const isSelected = currentSelectedOpt?.id === opt.id
@@ -476,6 +452,7 @@ export default function PlayerPage() {
   useEffect(() => () => { 
   if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current)
   if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
+  if (selectionTimerRef.current) clearTimeout(selectionTimerRef.current)
 }, [])
 
   if (phase === 'loading') return <PageLoader primaryColor={primaryColor} />
@@ -852,7 +829,7 @@ export default function PlayerPage() {
                     <button
                       key={opt.id}
                       onClick={() => handleOptionSelect(opt, sessionToken)}
-                      disabled={answered}
+                      disabled={false}
                       style={{
                         background: os.bg,
                         border: os.border,
@@ -866,7 +843,7 @@ export default function PlayerPage() {
                         color: os.text,
                         fontSize: 'clamp(13px,3.5vw,15px)',
                         fontWeight: 600,
-                        cursor: answered ? 'default' : 'pointer',
+                        cursor: 'pointer',
                         textAlign: 'center',
                         lineHeight: 1.3,
                         fontFamily: ff,
@@ -919,7 +896,7 @@ export default function PlayerPage() {
                     maxWidth: 160,
                     alignSelf: 'center',
                   }}>
-                  Continue →
+                  Continue
                 </button>
               )}
             </div>

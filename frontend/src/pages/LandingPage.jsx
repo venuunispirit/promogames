@@ -30,13 +30,13 @@ const HOW_STEPS = [
 ];
 
 const REWARD_TAGS = [
-  "Real-Time Rewards", "Weekly Winners", "Exclusive Gifts",
+  "Real-Time Rewards", "monthly Winners", "Exclusive Gifts",
   "Bonus Unlocks", "Daily Surprises",
 ];
 
 const REWARD_CARDS_DATA = [
   { icon: "⚡", title: "Real-Time Rewards", desc: "Earn points and redeem rewards instantly — no waiting, no delays." },
-  { icon: "🏆", title: "Weekly Winners",    desc: "Top scorers every week get exclusive prizes and surprises." },
+  { icon: "🏆", title: "monthly Winners",    desc: "Top scorers every week get exclusive prizes and surprises." },
   { icon: "🎁", title: "Exclusive Gifts",   desc: "Unlock curated gifts and offers only available to top players." },
   { icon: "🎰", title: "Daily Surprises",   desc: "Log in every day for bonus drops, mystery rewards, and more." },
 ];
@@ -90,7 +90,7 @@ const TESTIMONIALS = [
   },
   {
     quote: "I've tried every gaming app out there — nothing comes close to the reward system here. The surprises keep coming and I keep winning!",
-    name: "Divya R.", handle: "Weekly Winner", badge: "Weekly Winner", initials: "DR",
+    name: "Divya R.", handle: "monthly Winner", badge: "monthly Winner", initials: "DR",
     grad: "linear-gradient(135deg,#610497,#4F46E5)",
   },
 ];
@@ -506,7 +506,7 @@ function HeroGames() {
 
   return (
     <div className="hero-games">
-      <div className="hero-games-title">🔥 Top Games This Week</div>
+      <div className="hero-games-title">🔥 Top Games this month</div>
       {loading && (
         <div className="hg-loader">
           <div className="hg-spinner" />Loading top games…
@@ -898,7 +898,7 @@ export default function PromoGamesHome() {
               <div className="lb-header-dot" style={{ background:'#ef4444' }} />
               <div className="lb-header-dot" style={{ background:'#f5c842' }} />
               <div className="lb-header-dot" style={{ background:'#22c55e' }} />
-              <span className="lb-header-title">Top Scorers — This Week</span>
+              <span className="lb-header-title">Top Scorers — this month</span>
             </div>
             {LB_MOCK.map((p, i) => (
               <div key={p.name} className="lb-row">

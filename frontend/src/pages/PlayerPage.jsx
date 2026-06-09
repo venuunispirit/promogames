@@ -198,7 +198,11 @@ export default function PlayerPage() {
         setGame(g)
         if (g.settings?.font_family) loadFont(g.settings.font_family)
         if (g.category === 'crossword') {
-          setPhase('crossword')
+          // Show landing page first like spin/quiz
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = ''
+          setFormData(init)
+          setPhase('form')
           return
         }
         if (g.category === 'spin') {
@@ -280,7 +284,11 @@ export default function PlayerPage() {
     try {
       const res = await api.post('/play/session/start', { game_id: game.id, player_data: formData, source_type: searchParams.get('source') === 'direct' ? 'direct' : 'link' })
       setSessionToken(res.data.session_token)
-      setPhase('playing')
+      if (game.category === 'crossword') {
+        setPhase('crossword')
+      } else {
+        setPhase('playing')
+      }
     } catch (err) {
       const data = err.response?.data
       if (data?.already_played) { setPhase('already_played') }
@@ -1045,7 +1053,12 @@ const handleModalConfirm = () => {
         sessionToken={sessionToken}
         sessionId={null}
         onComplete={(data) => {
-          if (data?.redirect_url) window.location.href = data.redirect_url
+          if (data?.session) {
+            setScore(data.session.score || 0)
+            setTotalScoreable(data.session.total_scoreable || 0)
+          }
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
         }}
       />
     )

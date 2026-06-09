@@ -236,10 +236,10 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
       {/* header */}
       <div style={{ textAlign: 'center', marginBottom: 20 }}>
         {settings?.game_logo_url && <img src={settings.game_logo_url} alt="logo" style={{ height: 56, marginBottom: 10, objectFit: 'contain' }} />}
-        {settings?.heading_1 && <h1 style={{ margin: '0 0 4px', fontSize: 28, fontWeight: 800 }}>{settings.heading_1}</h1>}
-        {settings?.heading_2 && <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 600, opacity: 0.8 }}>{settings.heading_2}</h2>}
-        {settings?.heading_3 && <p  style={{ margin: '0 0 8px', fontSize: 14, opacity: 0.7 }}>{settings.heading_3}</p>}
-        {settings?.description_text && <p style={{ margin: '0 auto', maxWidth: 520, fontSize: 13, opacity: 0.65 }}>{settings.description_text}</p>}
+        {settings?.heading_1 && <h1 style={{ margin: '0 0 4px', fontSize: 28, fontWeight: 800, color: settings?.bg_image_url ? '#fff' : primaryColor }}>{settings.heading_1}</h1>}
+        {settings?.heading_2 && <h2 style={{ margin: '0 0 4px', fontSize: 18, fontWeight: 600, color: settings?.bg_image_url ? '#fff' : primaryColor }}>{settings.heading_2}</h2>}
+        {settings?.heading_3 && <p  style={{ margin: '0 0 8px', fontSize: 14, color: settings?.bg_image_url ? '#fff' : primaryColor }}>{settings.heading_3}</p>}
+        {settings?.description_text && <p style={{ margin: '0 auto', maxWidth: 520, fontSize: 13, color: settings?.bg_image_url ? '#fff' : primaryColor }}>{settings.description_text}</p>}
       </div>
 
       {/* score + timer */}

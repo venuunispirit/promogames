@@ -626,6 +626,10 @@ export default function GameBuilderPage() {
   const [formFields,    setFormFields]    = useState([])
   const [emailTemplate, setEmailTemplate] = useState({})
   const [settings,      setSettings]      = useState({})
+const [draggedIdx,    setDraggedIdx]    = useState(null)
+const [dragOverIdx,   setDragOverIdx]   = useState(null)
+const [editingName,   setEditingName]   = useState(false)
+const [nameInput,     setNameInput]     = useState('')
   const [sounds,        setSounds]        = useState([])
   const [saving,        setSaving]        = useState(false)
   const [soundUploading,setSoundUploading]= useState(false)
@@ -785,7 +789,7 @@ export default function GameBuilderPage() {
     try {
       const fd = new FormData()
       const fields = ['bg_color','primary_color','show_progress','allow_back','time_per_question',
-        'intro_text','outro_text','win_sound_id','lose_sound_id',
+        'heading_1','heading_2','intro_text','outro_text','win_sound_id','lose_sound_id',
         'terms_enabled','terms_text','terms_url','send_email','font_family',
         'start_button_text','next_button_text','submit_button_text','continue_button_text',
         'meta_description']
@@ -802,6 +806,17 @@ export default function GameBuilderPage() {
       showToast('Settings saved ✅')
     } catch (err) { showToast('Error: '+(err.response?.data?.message||err.message), 'error') }
     setSaving(false)
+  }
+
+  /* ─── Game Name ─── */
+  const saveGameName = async () => {
+    if (!nameInput.trim()) return
+    try {
+      await api.put(`/games/${id}`, { name: nameInput.trim() })
+      setGame(prev => ({ ...prev, name: nameInput.trim() }))
+      showToast('Game name saved ✅')
+    } catch { showToast('Error saving name', 'error') }
+    setEditingName(false)
   }
 
   /* ─── Redirect URL ─── */
@@ -883,7 +898,30 @@ export default function GameBuilderPage() {
         <div style={{ display:'flex', alignItems:'center', gap:12 }}>
           <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => navigate('/dashboard/games')}>← Back</button>
           <div>
-            <div style={{ fontWeight:800, fontSize:15, color:'var(--gb-text)' }}>{game?.name}</div>
+            {editingName
+              ? (
+                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+                  <input
+                    value={nameInput}
+                    onChange={e => setNameInput(e.target.value)}
+                    onKeyDown={e => { if (e.key==='Enter') saveGameName(); if (e.key==='Escape') setEditingName(false) }}
+                    onBlur={saveGameName}
+                    autoFocus
+                    style={{ width:220, fontSize:15, fontWeight:800, padding:'4px 8px' }}
+                  />
+                  <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => setEditingName(false)}>✕</button>
+                </div>
+              )
+              : (
+                <div
+                  style={{ fontWeight:800, fontSize:15, color:'var(--gb-text)', cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}
+                  onClick={() => { setNameInput(game?.name||''); setEditingName(true) }}
+                  title="Click to edit"
+                >
+                  {game?.name} <span style={{ fontSize:11, color:'var(--gb-text3)', fontWeight:400 }}>✎</span>
+                </div>
+              )
+            }
             <div style={{ fontSize:12, color:'var(--gb-text2)' }}>🏢 {game?.company_name}</div>
           </div>
         </div>
@@ -1136,7 +1174,15 @@ export default function GameBuilderPage() {
             <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
               <div className="gb-section-title">📝 Game Texts</div>
               <div className="gb-fg" style={{ marginBottom:12 }}>
-                <span className="gb-label">Intro Text (shown before quiz)</span>
+                <span className="gb-label">Heading 1 (title — text 1)</span>
+                <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main title" />
+              </div>
+              <div className="gb-fg" style={{ marginBottom:12 }}>
+                <span className="gb-label">Heading 2 (subtitle — text 2)</span>
+                <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" />
+              </div>
+              <div className="gb-fg" style={{ marginBottom:12 }}>
+                <span className="gb-label">Intro Text (body — text 3, shown before quiz)</span>
                 <textarea rows={2} value={settings.intro_text||''} onChange={e => setSettings({...settings,intro_text:e.target.value})} style={{ resize:'vertical' }} />
               </div>
               <div className="gb-fg">

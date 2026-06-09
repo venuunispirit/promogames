@@ -145,9 +145,69 @@ function FieldToggle({ gameId, field, value, label, onUpdated, onError }) {
   )
 }
 
+function AddClientModal({ onClose, onCreated, onError }) {
+  const [form, setForm] = useState({company_name:'',contact_name:'',contact_email:'',phone:'',address:''})
+  const [submitting, setSubmitting] = useState(false)
+  const set = k => e => setForm(f => ({...f,[k]:e.target.value}))
+
+  const handleSubmit = async e => {
+    e.preventDefault()
+    if (!form.company_name.trim()) return onError('Company name is required')
+    setSubmitting(true)
+    try {
+      const res = await api.post('/clients', form)
+      onCreated(res.data.client)
+      onClose()
+    } catch (err) {
+      onError(err.response?.data?.message || 'Error creating client')
+    }
+    setSubmitting(false)
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:700,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={onClose}>
+      <div style={{background:' #fff',borderRadius:20,width:'100%',maxWidth:460,maxHeight:'92vh',overflow:'auto',padding:'30px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:24}}>
+          <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:' #0D0D1A'}}>Add Client</h2>
+          <button className="gp-icon-btn" onClick={onClose}><Ico.close/></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="gp-field">
+            <label className="gp-label">Company Name <span style={{color:' #EF4444'}}>*</span></label>
+            <input className="gp-input" value={form.company_name} onChange={set('company_name')} placeholder="Acme Corp" required />
+          </div>
+          <div className="gp-field">
+            <label className="gp-label">Contact Name</label>
+            <input className="gp-input" value={form.contact_name} onChange={set('contact_name')} placeholder="John Doe" />
+          </div>
+          <div className="gp-field">
+            <label className="gp-label">Contact Email</label>
+            <input className="gp-input" type="email" value={form.contact_email} onChange={set('contact_email')} placeholder="john@acme.com" />
+          </div>
+          <div className="gp-field">
+            <label className="gp-label">Phone</label>
+            <input className="gp-input" value={form.phone} onChange={set('phone')} placeholder="+1 555-0000" />
+          </div>
+          <div className="gp-field" style={{marginBottom:24}}>
+            <label className="gp-label">Address</label>
+            <textarea className="gp-input" rows={2} value={form.address} onChange={set('address')} placeholder="123 Main St, City" style={{resize:'vertical'}} />
+          </div>
+          <div style={{display:'flex',gap:10}}>
+            <button type="button" className="gp-ghost-btn" onClick={onClose} style={{flex:1,justifyContent:'center',padding:'11px 0'}}>Cancel</button>
+            <button type="submit" className="gp-primary-btn" disabled={submitting} style={{flex:2,justifyContent:'center',padding:'12px 0',borderRadius:10,fontSize:14}}>
+              {submitting ? <><Ico.spin/> Creating…</> : 'Create Client & Continue →'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
 function CreateModal({ clients, onClose, onCreated, onError }) {
   const [form, setForm] = useState({client_id:'',name:'',category:'quiz',description:'',redirect_url:''})
   const [submitting, setSubmitting] = useState(false)
+  const [showClientForm, setShowClientForm] = useState(false)
   const navigate = useNavigate()
   const set = k => e => setForm(f => ({...f,[k]:e.target.value}))
 
@@ -178,47 +238,54 @@ const handleSubmit = async e => {
 }
 
   return (
+    <>
     <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
-      <div style={{background:' #fff',borderRadius:20,width:'100%',maxWidth:500,maxHeight:'92vh',overflow:'auto',padding:'34px 30px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{background:' #fff',borderRadius:20,width:'100%',maxWidth:560,maxHeight:'94vh',overflow:'auto',padding:'34px 32px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
           <div>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:22,color:' #0D0D1A',letterSpacing:'-0.02em'}}>New Game</h2>
-            <p style={{color:' #9CA3AF',fontSize:13,marginTop:5}}>Configure the game — you'll build questions next.</p>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:24,color:' #0D0D1A',letterSpacing:'-0.02em'}}>New Game</h2>
+            <p style={{color:' #9CA3AF',fontSize:13,marginTop:5}}>Choose a category and configure your game.</p>
           </div>
           <button className="gp-icon-btn" onClick={onClose}><Ico.close/></button>
         </div>
 
         <form onSubmit={handleSubmit}>
           <div className="gp-field">
-            <label className="gp-label">Client <span style={{color:' #EF4444'}}>*</span></label>
-            <div style={{position:'relative'}}>
-              <select className="gp-select" value={form.client_id} onChange={set('client_id')} required>
-                <option value="">Select a client…</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-              </select>
-              <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:' #9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            <label className="gp-label">Client <span style={{color:'#EF4444'}}>*</span></label>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <div style={{position:'relative',flex:1}}>
+                <select className="gp-select" value={form.client_id} onChange={set('client_id')} required style={{zIndex:1,position:'relative'}}>
+                  <option value="">Select a client…</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+                </select>
+                <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:' #9CA3AF',zIndex:2}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+              <button type="button" className="gp-ghost-btn" onClick={() => setShowClientForm(true)} style={{padding:'10px 14px',whiteSpace:'nowrap',flexShrink:0}}>+ Add Client</button>
             </div>
           </div>
 
           <div className="gp-field">
-            <label className="gp-label">Game Name <span style={{color:' #EF4444'}}>*</span></label>
+            <label className="gp-label">Game Name <span style={{color:'#EF4444'}}>*</span></label>
             <input className="gp-input" value={form.name} onChange={set('name')} placeholder="e.g. Product Knowledge Quiz" required />
           </div>
 
           <div className="gp-field">
-            <label className="gp-label">Category</label>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+            <label className="gp-label">Game Category</label>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(140px,1fr))',gap:10}}>
               {Object.entries(CATEGORY_META).map(([k,v]) => (
                 <button key={k} type="button"
                   onClick={() => setForm(f=>({...f,category:k}))}
                   style={{
-                    padding:'10px 8px',borderRadius:10,border:`2px solid ${form.category===k ? v.dot : ' #E5E7EB'}`,
+                    padding:'16px 12px',borderRadius:14,border:`2.5px solid ${form.category===k ? v.dot : ' #E5E7EB'}`,
                     background: form.category===k ? v.bg : ' #FAFAFA',
                     cursor:'pointer',transition:'all .14s',
-                    display:'flex',flexDirection:'column',alignItems:'center',gap:4,
+                    display:'flex',flexDirection:'column',alignItems:'center',gap:8,
+                    minHeight:90,
                   }}>
-                  <span style={{width:8,height:8,borderRadius:'50%',background:v.dot}} />
-                  <span style={{fontSize:13,fontWeight:600,color:form.category===k?v.fg:' #374151',fontFamily:"'DM Sans',sans-serif"}}>
+                  <span style={{width:36,height:36,borderRadius:10,background:v.fg+'22',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18}}>
+                    {k === 'quiz' ? '📝' : k === 'survey' ? '📋' : k === 'poll' ? '📊' : k === 'crossword' ? '🧩' : k === 'spin' ? '🎡' : '🎮'}
+                  </span>
+                  <span style={{fontSize:14,fontWeight:700,color:form.category===k?v.fg:' #374151',fontFamily:"'DM Sans',sans-serif",textAlign:'center'}}>
                     {v.label}
                   </span>
                 </button>
@@ -228,7 +295,7 @@ const handleSubmit = async e => {
 
           <div className="gp-field">
             <label className="gp-label">Description</label>
-            <textarea className="gp-input" rows={2} value={form.description} onChange={set('description')} style={{resize:'vertical'}} />
+            <textarea className="gp-input" rows={2} value={form.description} onChange={set('description')} style={{resize:'vertical'}} placeholder="Describe your game…" />
           </div>
 
           <div className="gp-field" style={{marginBottom:26}}>
@@ -245,6 +312,17 @@ const handleSubmit = async e => {
         </form>
       </div>
     </div>
+    {showClientForm && (
+      <AddClientModal
+        onClose={() => setShowClientForm(false)}
+        onCreated={(client) => {
+          onCreated()
+          setForm(f => ({...f, client_id: client.id}))
+        }}
+        onError={onError}
+      />
+    )}
+    </>
   )
 }
 
@@ -376,10 +454,16 @@ export default function GamesPage() {
               Games
             </h1>
             <p style={{fontSize:13,color:' #9CA3AF',marginTop:8}}>
-              {stats.total} game{stats.total!==1?'s':''} &middot; {stats.active} active &middot; {stats.plays.toLocaleString()} plays &middot; {stats.onPlayPage} on play page &middot; {stats.onHero} on hero
+              {stats.total} game{stats.total!==1?'s':''} &middot; {stats.active} active &middot; {stats.plays.toLocaleString()} total plays
             </p>
           </div>
-          <button className="gp-primary-btn" onClick={() => setShowForm(true)}><Ico.plus/> Create Game</button>
+          <div style={{display:'flex',alignItems:'center',gap:10}}>
+            <div style={{position:'relative'}}>
+              <span style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',color:' #9CA3AF',pointerEvents:'none'}}><Ico.search/></span>
+              <input className="gp-input" style={{paddingLeft:36,height:38,width:220,borderRadius:10,fontSize:13}} placeholder="Search games…" value={search} onChange={e=>setSearch(e.target.value)} />
+            </div>
+            <button className="gp-primary-btn" onClick={() => setShowForm(true)}><Ico.plus/> Create Game</button>
+          </div>
         </div>
 
         {/* Filters */}
@@ -411,21 +495,7 @@ export default function GamesPage() {
           </div>
         )}
 
-        {/* Column legend for new toggles */}
-        <div style={{display:'flex',gap:20,marginBottom:14,flexWrap:'wrap'}}>
-          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:' #6B7280'}}>
-            <span style={{display:'inline-flex',alignItems:'center',gap:4,background:' #EEF2FF',color:' #4338CA',padding:'3px 9px',borderRadius:100,fontWeight:600,fontSize:11}}>
-              <Ico.globe/> Play Page
-            </span>
-            Show game in the public website's games section
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:' #6B7280'}}>
-            <span style={{display:'inline-flex',alignItems:'center',gap:4,background:' #FFF7ED',color:' #C2410C',padding:'3px 9px',borderRadius:100,fontWeight:600,fontSize:11}}>
-              <Ico.star/> Hero / Home
-            </span>
-            Feature game in the homepage hero section
-          </div>
-        </div>
+
 
         {/* Table */}
         {loading ? (

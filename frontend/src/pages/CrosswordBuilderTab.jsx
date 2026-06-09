@@ -163,7 +163,7 @@ function CrosswordSettingsPanel({ gameId, settings, setSettings, sounds, showToa
     setSaving(true)
     try {
       const fd = new FormData()
-      const fields = ['grid_rows','grid_cols','cell_size','show_timer','time_limit_seconds','allow_hints',
+      const fields = [
         'heading_1','heading_2','heading_3','description_text','bg_color','primary_color','font_family',
         'sound_correct_id','sound_wrong_id']
       for (const f of fields) fd.append(f, settings[f] ?? '')
@@ -184,36 +184,6 @@ function CrosswordSettingsPanel({ gameId, settings, setSettings, sounds, showToa
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
       <h3 style={{ margin: 0, fontSize: 15 }}>⚙️ Crossword Settings</h3>
-
-      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-        <div className="form-group" style={{ flex: 1, minWidth: 80 }}>
-          <label className="form-label">Grid Rows</label>
-          <input type="number" min="3" max="30" value={settings.grid_rows || 10} onChange={e => set('grid_rows', +e.target.value)} />
-        </div>
-        <div className="form-group" style={{ flex: 1, minWidth: 80 }}>
-          <label className="form-label">Grid Cols</label>
-          <input type="number" min="3" max="30" value={settings.grid_cols || 10} onChange={e => set('grid_cols', +e.target.value)} />
-        </div>
-        <div className="form-group" style={{ flex: 1, minWidth: 80 }}>
-          <label className="form-label">Cell Size (px)</label>
-          <input type="number" min="20" max="80" value={settings.cell_size || 40} onChange={e => set('cell_size', +e.target.value)} />
-        </div>
-        <div className="form-group" style={{ flex: 1, minWidth: 120 }}>
-          <label className="form-label">Time Limit (s, 0=none)</label>
-          <input type="number" min="0" value={settings.time_limit_seconds || 0} onChange={e => set('time_limit_seconds', +e.target.value)} />
-        </div>
-      </div>
-
-      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
-          <input type="checkbox" checked={!!settings.show_timer} onChange={e => set('show_timer', e.target.checked ? 1 : 0)} />
-          Show Timer
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
-          <input type="checkbox" checked={!!settings.allow_hints} onChange={e => set('allow_hints', e.target.checked ? 1 : 0)} />
-          Allow Hints
-        </label>
-      </div>
 
       <div className="form-group">
         <label className="form-label">Heading 1</label>
@@ -286,6 +256,7 @@ export default function CrosswordBuilderTab() {
   const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(null) // word id being saved
   const [innerTab, setInnerTab] = useState('words') // 'words' | 'settings' | 'preview'
+  const [showGridSettings, setShowGridSettings] = useState(false)
 
   // Toast notification helper
   const showToast = (msg, type = 'success') => {
@@ -411,6 +382,50 @@ export default function CrosswordBuilderTab() {
               <button className="btn btn-ghost btn-sm" onClick={autoGenerateGrid}>🔲 Auto-size Grid</button>
               <button className="btn btn-primary" onClick={addWord}>+ Add Word</button>
             </div>
+          </div>
+
+          {/* Collapsible Grid Settings */}
+          <div style={{ marginBottom: 16, border: '1px solid var(--border)', borderRadius: 10, overflow: 'hidden' }}>
+            <div
+              onClick={() => setShowGridSettings(s => !s)}
+              style={{ padding: '10px 14px', background: 'var(--surface2)', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 14, fontWeight: 700 }}
+            >
+              <span>📐 Grid Settings</span>
+              <span style={{ fontSize: 12, color: 'var(--text2)' }}>Rows: {settings.grid_rows || 10} · Cols: {settings.grid_cols || 10} · Cell: {settings.cell_size || 40}px</span>
+              <span>{showGridSettings ? '▲' : '▼'}</span>
+            </div>
+            {showGridSettings && (
+              <div style={{ padding: 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+                  <div className="form-group" style={{ flex: 1, minWidth: 80 }}>
+                    <label className="form-label">Grid Rows</label>
+                    <input type="number" min="3" max="30" value={settings.grid_rows || 10} onChange={e => setSettings(s => ({ ...s, grid_rows: +e.target.value }))} />
+                  </div>
+                  <div className="form-group" style={{ flex: 1, minWidth: 80 }}>
+                    <label className="form-label">Grid Cols</label>
+                    <input type="number" min="3" max="30" value={settings.grid_cols || 10} onChange={e => setSettings(s => ({ ...s, grid_cols: +e.target.value }))} />
+                  </div>
+                  <div className="form-group" style={{ flex: 1, minWidth: 80 }}>
+                    <label className="form-label">Cell Size (px)</label>
+                    <input type="number" min="20" max="80" value={settings.cell_size || 40} onChange={e => setSettings(s => ({ ...s, cell_size: +e.target.value }))} />
+                  </div>
+                  <div className="form-group" style={{ flex: 1, minWidth: 120 }}>
+                    <label className="form-label">Time Limit (s, 0=none)</label>
+                    <input type="number" min="0" value={settings.time_limit_seconds || 0} onChange={e => setSettings(s => ({ ...s, time_limit_seconds: +e.target.value }))} />
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                    <input type="checkbox" checked={!!settings.show_timer} onChange={e => setSettings(s => ({ ...s, show_timer: e.target.checked ? 1 : 0 }))} />
+                    Show Timer
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer', fontSize: 14 }}>
+                    <input type="checkbox" checked={!!settings.allow_hints} onChange={e => setSettings(s => ({ ...s, allow_hints: e.target.checked ? 1 : 0 }))} />
+                    Allow Hints
+                  </label>
+                </div>
+              </div>
+            )}
           </div>
 
           {words.length === 0 ? (

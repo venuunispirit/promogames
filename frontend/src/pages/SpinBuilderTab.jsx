@@ -1,6 +1,18 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+
+const SB_LIGHT = `
+.sb-wrap {
+  --sb-primary: #7c6ff7;
+  --sb-surface: #ffffff;
+  --sb-surface2: #f8f7ff;
+  --sb-border: #e8e6f0;
+  --sb-text: #1a1a2e;
+  --sb-text2: #6b6580;
+  --sb-text3: #9e97b0;
+}
+`
 
 /* ─── helpers ─────────────────────────────────────────────────────────── */
 function ImageField({ label, currentUrl, onFileChange, onClear }) {
@@ -250,6 +262,7 @@ function SegmentModal({ seg, sounds, onSave, onClose }) {
 /* ─── Main Builder ─────────────────────────────────────────────────────── */
 export default function SpinBuilderTab() {
   const { id: gameId } = useParams()
+  const navigate = useNavigate()
   const [tab,      setTab]      = useState('segments')
   const [settings, setSettings] = useState(null)
   const [segments, setSegments] = useState([])
@@ -364,208 +377,252 @@ export default function SpinBuilderTab() {
     </div>
   )
 
-  const tabStyle = (t) => ({
-    padding: '8px 20px', borderRadius: 8, border: 'none', cursor: 'pointer', fontWeight: 700, fontSize: 14,
-    fontFamily: "'DM Sans', sans-serif",
-    background: tab === t ? 'var(--primary)' : 'transparent',
-    color: tab === t ? '#fff' : 'var(--text-secondary)',
-    transition: 'all .15s',
-  })
-
   return (
-    <div style={{ padding: '24px 28px', maxWidth: 1100, margin: '0 auto', fontFamily: "'DM Sans',sans-serif" }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h2 style={{ margin: 0, fontSize: 24, fontWeight: 800 }}>🎡 Spin Wheel Builder</h2>
-          <div style={{ color: 'var(--text-secondary)', fontSize: 14, marginTop: 3 }}>Configure your wheel segments and settings</div>
+    <div className="sb-wrap" style={{ fontFamily: "'DM Sans',sans-serif" }}>
+      <style>{SB_LIGHT}</style>
+
+      {/* Sticky header */}
+      <div style={{
+        background: 'var(--sb-surface)', borderBottom: '1.5px solid var(--sb-border)',
+        padding: '12px 28px', display: 'flex', justifyContent: 'space-between',
+        alignItems: 'center', flexWrap: 'wrap', gap: 12,
+        position: 'sticky', top: 0, zIndex: 50, boxShadow: '0 1px 8px rgba(0,0,0,.06)'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => navigate(-1)} style={{ fontSize: 18, padding: '4px 8px' }}>←</button>
+          <div>
+            <h2 style={{ margin: 0, fontSize: 18, fontWeight: 800, color: 'var(--sb-text)' }}>🎡 Spin Wheel Builder</h2>
+            <div style={{ color: 'var(--sb-text2)', fontSize: 12 }}>Configure your wheel segments and settings</div>
+          </div>
         </div>
-        <div style={{ display: 'flex', gap: 6, background: 'var(--surface)', padding: 4, borderRadius: 10, border: '1px solid var(--border)' }}>
-          <button style={tabStyle('segments')} onClick={() => setTab('segments')}>🎨 Segments</button>
-          <button style={tabStyle('settings')}  onClick={() => setTab('settings')}>⚙️ Settings</button>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => {
+            if (gameId) window.open('/play/...', '_blank')
+          }}>👁 Preview</button>
         </div>
       </div>
 
-      {/* ── SEGMENTS TAB ─────────────────────────────────────────── */}
-      {tab === 'segments' && (
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 24, alignItems: 'start' }}>
-          <div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-              <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800 }}>Wheel Segments ({segments.length})</h3>
-              <button className="btn btn-primary btn-sm" onClick={() => setModal('add')}>+ Add Segment</button>
-            </div>
-
-            {segments.length === 0 ? (
-              <div style={{
-                textAlign: 'center', padding: '48px 24px', background: 'var(--surface)',
-                border: '2px dashed var(--border)', borderRadius: 12, color: 'var(--text-secondary)'
-              }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>🎡</div>
-                <div style={{ fontWeight: 700, marginBottom: 6 }}>No segments yet</div>
-                <div style={{ fontSize: 13, marginBottom: 16 }}>Add at least 2 segments to build your wheel</div>
-                <button className="btn btn-primary" onClick={() => setModal('add')}>+ Add First Segment</button>
-              </div>
-            ) : (
-              segments.map((seg, i) => (
-                <SegmentCard
-                  key={seg.id} seg={seg} index={i}
-                  onEdit={setModal}
-                  onDelete={deleteSegment}
-                  onMoveUp={(idx) => moveSegment(idx, 'up')}
-                  onMoveDown={(idx) => moveSegment(idx, 'down')}
-                  isFirst={i === 0} isLast={i === segments.length - 1}
-                />
-              ))
-            )}
-
-            {segments.length > 0 && (
-              <div style={{ marginTop: 12, padding: 14, background: 'var(--surface)', borderRadius: 10, border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-secondary)' }}>
-                💡 <strong>Weight controls probability.</strong> A segment with weight 200 is twice as likely to win as one with weight 100. Use lower weights for rare/valuable prizes.
-              </div>
-            )}
-          </div>
-
-          {/* Live preview */}
-          <div style={{
-            background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14,
-            padding: 20, position: 'sticky', top: 24
-          }}>
-            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14, textAlign: 'center' }}>Live Preview</div>
-            <WheelPreview segments={segments} settings={{ ...sForm, center_color: sForm.center_color, pointer_color: sForm.pointer_color, center_label: sForm.center_label }} size={220} />
-            <div style={{ marginTop: 16, fontSize: 12, color: 'var(--text-secondary)', textAlign: 'center' }}>
-              {segments.length} segment{segments.length !== 1 ? 's' : ''} · Updates live as you edit
-            </div>
-          </div>
+      {/* Content area */}
+      <div style={{ maxWidth: 1100, margin: '0 auto', padding: '24px 28px' }}>
+        {/* Sub-tabs */}
+        <div style={{ display: 'flex', gap: 6, marginBottom: 24 }}>
+          <button onClick={() => setTab('segments')}
+            style={{
+              padding: '8px 20px', borderRadius: 8, cursor: 'pointer',
+              fontWeight: 700, fontSize: 14,
+              background: tab === 'segments' ? 'var(--sb-primary)' : 'var(--sb-surface)',
+              color: tab === 'segments' ? '#fff' : 'var(--sb-text2)',
+              border: tab === 'segments' ? 'none' : '1.5px solid var(--sb-border)',
+              transition: 'all .15s',
+            }}
+          >🎨 Segments</button>
+          <button onClick={() => setTab('settings')}
+            style={{
+              padding: '8px 20px', borderRadius: 8, cursor: 'pointer',
+              fontWeight: 700, fontSize: 14,
+              background: tab === 'settings' ? 'var(--sb-primary)' : 'var(--sb-surface)',
+              color: tab === 'settings' ? '#fff' : 'var(--sb-text2)',
+              border: tab === 'settings' ? 'none' : '1.5px solid var(--sb-border)',
+              transition: 'all .15s',
+            }}
+          >⚙️ Settings</button>
         </div>
-      )}
 
-      {/* ── SETTINGS TAB ─────────────────────────────────────────── */}
-      {tab === 'settings' && (
+        {/* ── Two-column layout ── */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 260px', gap: 24, alignItems: 'start' }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+          {/* ── LEFT COLUMN ── */}
+          {tab === 'segments' && (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                <h3 style={{ margin: 0, fontSize: 17, fontWeight: 800 }}>Wheel Segments ({segments.length})</h3>
+                <button className="btn btn-primary btn-sm" onClick={() => setModal('add')}>+ Add Segment</button>
+              </div>
 
-            {/* Text & Mode */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <h4 style={{ margin: '0 0 16px', fontWeight: 800, fontSize: 15 }}>🎯 Game Text & Mode</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-                <div>
-                  <label className="form-label">Heading 1</label>
-                  <input className="form-input" value={sForm.heading_1} onChange={e => setS('heading_1', e.target.value)} placeholder="Spin & Win!" />
+              {segments.length === 0 ? (
+                <div style={{
+                  textAlign: 'center', padding: '48px 24px', background: 'var(--sb-surface)',
+                  border: '2px dashed var(--sb-border)', borderRadius: 12, color: 'var(--sb-text2)'
+                }}>
+                  <div style={{ fontSize: 40, marginBottom: 12 }}>🎡</div>
+                  <div style={{ fontWeight: 700, marginBottom: 6 }}>No segments yet</div>
+                  <div style={{ fontSize: 13, marginBottom: 16 }}>Add at least 2 segments to build your wheel</div>
+                  <button className="btn btn-primary" onClick={() => setModal('add')}>+ Add First Segment</button>
                 </div>
-                <div>
-                  <label className="form-label">Heading 2</label>
-                  <input className="form-input" value={sForm.heading_2} onChange={e => setS('heading_2', e.target.value)} placeholder="Try your luck" />
+              ) : (
+                segments.map((seg, i) => (
+                  <SegmentCard
+                    key={seg.id} seg={seg} index={i}
+                    onEdit={setModal}
+                    onDelete={deleteSegment}
+                    onMoveUp={(idx) => moveSegment(idx, 'up')}
+                    onMoveDown={(idx) => moveSegment(idx, 'down')}
+                    isFirst={i === 0} isLast={i === segments.length - 1}
+                  />
+                ))
+              )}
+
+              {segments.length > 0 && (
+                <div style={{ marginTop: 12, padding: 14, background: 'var(--sb-surface)', borderRadius: 10, border: '1px solid var(--sb-border)', fontSize: 13, color: 'var(--sb-text2)' }}>
+                  💡 <strong>Weight controls probability.</strong> A segment with weight 200 is twice as likely to win as one with weight 100. Use lower weights for rare/valuable prizes.
                 </div>
-              </div>
-              <div style={{ marginTop: 14 }}>
-                <label className="form-label">Description</label>
-                <textarea className="form-input" rows={2} value={sForm.description_text} onChange={e => setS('description_text', e.target.value)} placeholder="Spin the wheel and win exciting prizes…" />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
-                <div>
-                  <label className="form-label">Win Message</label>
-                  <textarea className="form-input" rows={2} value={sForm.win_message} onChange={e => setS('win_message', e.target.value)} placeholder="🎉 Congratulations! You won…" />
-                </div>
-                <div>
-                  <label className="form-label">Lose / Try Again Message</label>
-                  <textarea className="form-input" rows={2} value={sForm.lose_message} onChange={e => setS('lose_message', e.target.value)} placeholder="Better luck next time!" />
-                </div>
-              </div>
-              <div style={{ marginTop: 14 }}>
-                <label className="form-label">Spin Mode</label>
-                <select className="form-input" value={sForm.spin_mode} onChange={e => setS('spin_mode', e.target.value)}>
-                  <option value="once">One spin per player (per game)</option>
-                  <option value="unlimited">Unlimited spins</option>
-                </select>
-              </div>
+              )}
             </div>
+          )}
 
-            {/* Wheel Colors */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <h4 style={{ margin: '0 0 16px', fontWeight: 800, fontSize: 15 }}>🎨 Wheel Colors</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
-                {[
-                  ['Wheel Background', 'wheel_bg_color'],
-                  ['Pointer Color', 'pointer_color'],
-                  ['Center Button Color', 'center_color'],
-                  ['Page Background', 'bg_color'],
-                  ['Primary Accent', 'primary_color'],
-                ].map(([label, key]) => (
-                  <div key={key}>
-                    <label className="form-label">{label}</label>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <input type="color" value={sForm[key] || '#7C6FF7'} onChange={e => setS(key, e.target.value)}
-                        style={{ width: 36, height: 32, border: 'none', cursor: 'pointer', borderRadius: 6 }} />
-                      <input className="form-input" value={sForm[key] || ''} onChange={e => setS(key, e.target.value)}
-                        style={{ flex: 1, fontFamily: 'monospace', fontSize: 13 }} />
-                    </div>
+          {tab === 'settings' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+
+              {/* Text & Mode */}
+              <div style={{ background: 'var(--sb-surface)', border: '1px solid var(--sb-border)', borderRadius: 14, padding: 20 }}>
+                <h4 style={{ margin: '0 0 16px', fontWeight: 800, fontSize: 15 }}>🎯 Game Text & Mode</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+                  <div>
+                    <label className="form-label">Heading 1</label>
+                    <input className="form-input" value={sForm.heading_1} onChange={e => setS('heading_1', e.target.value)} placeholder="Spin & Win!" />
                   </div>
-                ))}
-                <div>
-                  <label className="form-label">Center Button Label</label>
-                  <input className="form-input" value={sForm.center_label} onChange={e => setS('center_label', e.target.value)} maxLength={8} />
+                  <div>
+                    <label className="form-label">Heading 2</label>
+                    <input className="form-input" value={sForm.heading_2} onChange={e => setS('heading_2', e.target.value)} placeholder="Try your luck" />
+                  </div>
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <label className="form-label">Description</label>
+                  <textarea className="form-input" rows={2} value={sForm.description_text} onChange={e => setS('description_text', e.target.value)} placeholder="Spin the wheel and win exciting prizes…" />
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginTop: 14 }}>
+                  <div>
+                    <label className="form-label">Win Message</label>
+                    <textarea className="form-input" rows={2} value={sForm.win_message} onChange={e => setS('win_message', e.target.value)} placeholder="🎉 Congratulations! You won…" />
+                  </div>
+                  <div>
+                    <label className="form-label">Lose / Try Again Message</label>
+                    <textarea className="form-input" rows={2} value={sForm.lose_message} onChange={e => setS('lose_message', e.target.value)} placeholder="Better luck next time!" />
+                  </div>
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <label className="form-label">Spin Mode</label>
+                  <select className="form-input" value={sForm.spin_mode} onChange={e => setS('spin_mode', e.target.value)}>
+                    <option value="once">One spin per player (per game)</option>
+                    <option value="unlimited">Unlimited spins</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Wheel Colors */}
+              <div style={{ background: 'var(--sb-surface)', border: '1px solid var(--sb-border)', borderRadius: 14, padding: 20 }}>
+                <h4 style={{ margin: '0 0 16px', fontWeight: 800, fontSize: 15 }}>🎨 Wheel Colors</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 14 }}>
+                  {[
+                    ['Wheel Background', 'wheel_bg_color'],
+                    ['Pointer Color', 'pointer_color'],
+                    ['Center Button Color', 'center_color'],
+                    ['Page Background', 'bg_color'],
+                    ['Primary Accent', 'primary_color'],
+                  ].map(([label, key]) => (
+                    <div key={key}>
+                      <label className="form-label">{label}</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <input type="color" value={sForm[key] || '#7C6FF7'} onChange={e => setS(key, e.target.value)}
+                          style={{ width: 36, height: 32, border: 'none', cursor: 'pointer', borderRadius: 6 }} />
+                        <input className="form-input" value={sForm[key] || ''} onChange={e => setS(key, e.target.value)}
+                          style={{ flex: 1, fontFamily: 'monospace', fontSize: 13 }} />
+                      </div>
+                    </div>
+                  ))}
+                  <div>
+                    <label className="form-label">Center Button Label</label>
+                    <input className="form-input" value={sForm.center_label} onChange={e => setS('center_label', e.target.value)} maxLength={8} />
+                  </div>
+                </div>
+              </div>
+
+              {/* Fonts & Images */}
+              <div style={{ background: 'var(--sb-surface)', border: '1px solid var(--sb-border)', borderRadius: 14, padding: 20 }}>
+                <h4 style={{ margin: '0 0 16px', fontWeight: 800, fontSize: 15 }}>🖼️ Images & Font</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
+                  <ImageField label="Game Logo" currentUrl={logoFile ? URL.createObjectURL(logoFile) : sUrls.logo}
+                    onFileChange={e => setLogoFile(e.target.files[0])} onClear={() => { setLogoFile(null); setSUrls(u => ({ ...u, logo: null })) }} />
+                  <ImageField label="Background Image" currentUrl={bgFile ? URL.createObjectURL(bgFile) : sUrls.bg}
+                    onFileChange={e => setBgFile(e.target.files[0])} onClear={() => { setBgFile(null); setSUrls(u => ({ ...u, bg: null })) }} />
+                  <ImageField label="Thank You BG" currentUrl={tyFile ? URL.createObjectURL(tyFile) : sUrls.ty}
+                    onFileChange={e => setTyFile(e.target.files[0])} onClear={() => { setTyFile(null); setSUrls(u => ({ ...u, ty: null })) }} />
+                </div>
+                <div style={{ marginTop: 16 }}>
+                  <label className="form-label">Font Family</label>
+                  <select className="form-input" value={sForm.font_family} onChange={e => setS('font_family', e.target.value)}>
+                    {['DM Sans','Inter','Poppins','Montserrat','Nunito','Raleway','Roboto','Lato','Open Sans','Playfair Display'].map(f =>
+                      <option key={f} value={f}>{f}</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+
+              {/* Sounds */}
+              <div style={{ background: 'var(--sb-surface)', border: '1px solid var(--sb-border)', borderRadius: 14, padding: 20 }}>
+                <h4 style={{ margin: '0 0 16px', fontWeight: 800, fontSize: 15 }}>🔊 Sounds</h4>
+                <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
+                  <SoundSelect label="Spin Sound" value={sForm.sound_spin_id} onChange={v => setS('sound_spin_id', v)} sounds={sounds} />
+                  <SoundSelect label="Win Sound" value={sForm.sound_win_id} onChange={v => setS('sound_win_id', v)} sounds={sounds} />
+                  <SoundSelect label="Lose/Try Again Sound" value={sForm.sound_lose_id} onChange={v => setS('sound_lose_id', v)} sounds={sounds} />
+                </div>
+                {sounds.length === 0 && <div style={{ fontSize: 12, color: 'var(--sb-text2)', marginTop: 8 }}>No sounds uploaded yet. Add sounds from the Sounds tab in the main game editor.</div>}
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <button className="btn btn-primary" onClick={saveSettings} disabled={saving} style={{ minWidth: 140 }}>
+                  {saving ? 'Saving…' : '💾 Save Settings'}
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* ── RIGHT COLUMN: Phone Mockup with Wheel Preview ── */}
+          <div style={{
+            background: 'var(--sb-surface)', border: '1.5px solid var(--sb-border)', borderRadius: 18,
+            overflow: 'hidden', position: 'sticky', top: 80,
+          }}>
+            {/* Phone frame */}
+            <div style={{
+              background: '#1a1a2e', padding: '10px 10px 0',
+              display: 'flex', flexDirection: 'column', alignItems: 'center',
+            }}>
+              <div style={{
+                width: '100%', aspectRatio: '9 / 16', maxHeight: 460,
+                background: sForm.bg_color || '#F8F8FF', borderRadius: '0 0 14px 14px',
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                justifyContent: 'center', padding: '10px',
+                position: 'relative', overflow: 'hidden',
+              }}>
+                {/* Game logo */}
+                {(logoFile || sUrls.logo) && (
+                  <img src={logoFile ? URL.createObjectURL(logoFile) : sUrls.logo} alt="logo"
+                    style={{ height: 36, objectFit: 'contain', marginBottom: 8 }} />
+                )}
+                {/* Wheel */}
+                <WheelPreview segments={segments} settings={sForm} size={180} />
+                {/* Heading */}
+                <div style={{ marginTop: 8, textAlign: 'center' }}>
+                  <div style={{ fontSize: 13, fontWeight: 800, color: sForm.primary_color || '#7c6ff7' }}>{sForm.heading_1 || 'Spin & Win!'}</div>
+                  <div style={{ fontSize: 11, color: '#888', marginTop: 2 }}>{sForm.heading_2 || ''}</div>
                 </div>
               </div>
             </div>
-
-            {/* Fonts & Images */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <h4 style={{ margin: '0 0 16px', fontWeight: 800, fontSize: 15 }}>🖼️ Images & Font</h4>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-                <ImageField label="Game Logo" currentUrl={logoFile ? URL.createObjectURL(logoFile) : sUrls.logo}
-                  onFileChange={e => setLogoFile(e.target.files[0])} onClear={() => { setLogoFile(null); setSUrls(u => ({ ...u, logo: null })) }} />
-                <ImageField label="Background Image" currentUrl={bgFile ? URL.createObjectURL(bgFile) : sUrls.bg}
-                  onFileChange={e => setBgFile(e.target.files[0])} onClear={() => { setBgFile(null); setSUrls(u => ({ ...u, bg: null })) }} />
-                <ImageField label="Thank You BG" currentUrl={tyFile ? URL.createObjectURL(tyFile) : sUrls.ty}
-                  onFileChange={e => setTyFile(e.target.files[0])} onClear={() => { setTyFile(null); setSUrls(u => ({ ...u, ty: null })) }} />
-              </div>
-              <div style={{ marginTop: 16 }}>
-                <label className="form-label">Font Family</label>
-                <select className="form-input" value={sForm.font_family} onChange={e => setS('font_family', e.target.value)}>
-                  {['DM Sans','Inter','Poppins','Montserrat','Nunito','Raleway','Roboto','Lato','Open Sans','Playfair Display'].map(f =>
-                    <option key={f} value={f}>{f}</option>
-                  )}
-                </select>
-              </div>
+            <div style={{ padding: '10px 14px 14px', fontSize: 11, color: 'var(--sb-text3)', textAlign: 'center' }}>
+              Live preview — {segments.length} segment{segments.length !== 1 ? 's' : ''}
             </div>
-
-            {/* Sounds */}
-            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14, padding: 20 }}>
-              <h4 style={{ margin: '0 0 16px', fontWeight: 800, fontSize: 15 }}>🔊 Sounds</h4>
-              <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-                <SoundSelect label="Spin Sound" value={sForm.sound_spin_id} onChange={v => setS('sound_spin_id', v)} sounds={sounds} />
-                <SoundSelect label="Win Sound" value={sForm.sound_win_id} onChange={v => setS('sound_win_id', v)} sounds={sounds} />
-                <SoundSelect label="Lose/Try Again Sound" value={sForm.sound_lose_id} onChange={v => setS('sound_lose_id', v)} sounds={sounds} />
-              </div>
-              {sounds.length === 0 && <div style={{ fontSize: 12, color: 'var(--text-secondary)', marginTop: 8 }}>No sounds uploaded yet. Add sounds from the Sounds tab in the main game editor.</div>}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-              <button className="btn btn-primary" onClick={saveSettings} disabled={saving} style={{ minWidth: 140 }}>
-                {saving ? 'Saving…' : '💾 Save Settings'}
-              </button>
-            </div>
-          </div>
-
-          {/* Live preview */}
-          <div style={{
-            background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: 14,
-            padding: 20, position: 'sticky', top: 24
-          }}>
-            <div style={{ fontWeight: 800, fontSize: 15, marginBottom: 14, textAlign: 'center' }}>Wheel Preview</div>
-            <WheelPreview segments={segments} settings={sForm} size={220} />
           </div>
         </div>
-      )}
 
-      {/* Segment modal */}
-      {modal && (
-        <SegmentModal
-          seg={modal === 'add' ? null : modal}
-          sounds={sounds}
-          onSave={handleSegmentSave}
-          onClose={() => setModal(null)}
-        />
-      )}
+        {/* Segment modal */}
+        {modal && (
+          <SegmentModal
+            seg={modal === 'add' ? null : modal}
+            sounds={sounds}
+            onSave={handleSegmentSave}
+            onClose={() => setModal(null)}
+          />
+        )}
+      </div>
     </div>
   )
 }

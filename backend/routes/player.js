@@ -26,6 +26,9 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [cwWords] = await db.query(
         'SELECT * FROM crossword_words WHERE game_id = ? ORDER BY word_order', [game.id]
       );
+      const [cwFormFields] = await db.query(
+        'SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]
+      );
       const [sounds] = await db.query(
         'SELECT * FROM sounds WHERE game_id = ?', [game.id]
       );
@@ -52,8 +55,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
           settings,
           words: cwWords,
           soundMap,
-          // crossword has no form fields or quiz questions
-          formFields: [],
+          // crossword form fields
+          formFields: cwFormFields,
           questions: [],
         },
       });
@@ -150,13 +153,23 @@ router.get('/:gameName/:companyName', async (req, res) => {
 });
 
 router.post('/session/start', async (req, res) => {
-  const { game_id, player_data, source_type } = req.body;
+  const { game_id, player_data, source_type, promo_player_id } = req.body;
   const src = ['direct', 'link'].includes(source_type) ? source_type : 'link';
   try {
+    // Check if already played (spin once mode)
+    if (promo_player_id) {
+      const [existing] = await db.query(
+        'SELECT * FROM player_sessions WHERE game_id = ? AND promo_player_id = ? AND completed = 1',
+        [game_id, promo_player_id]
+      );
+      if (existing.length > 0) {
+        return res.status(400).json({ success: false, already_played: true, message: 'You have already played this game' });
+      }
+    }
     const token = uuidv4();
     const [result] = await db.query(
-      'INSERT INTO player_sessions (game_id, session_token, player_data, source_type) VALUES (?, ?, ?, ?)',
-      [game_id, token, JSON.stringify(player_data || {}), src]
+      'INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id) VALUES (?, ?, ?, ?, ?)',
+      [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null]
     );
     res.json({ success: true, session_token: token, session_id: result.insertId });
   } catch (err) {
@@ -220,20 +233,28 @@ router.post('/session/crossword-answer', async (req, res) => {
 });
 
 router.post('/session/complete', async (req, res) => {
-  const { session_token } = req.body;
+  const { session_token, score, player_data } = req.body;
   try {
     const [sessions] = await db.query('SELECT * FROM player_sessions WHERE session_token = ?', [session_token]);
     if (sessions.length === 0) return res.status(404).json({ success: false, message: 'Session not found' });
 
     const session = sessions[0];
-    await db.query('UPDATE player_sessions SET completed = 1, completed_at = NOW() WHERE id = ?', [session.id]);
+
+    // Merge player_data
+    let existingData = typeof session.player_data === 'string' ? JSON.parse(session.player_data) : (session.player_data || {});
+    const mergedData = { ...existingData, ...(player_data || {}) };
+
+    await db.query(
+      'UPDATE player_sessions SET completed = 1, completed_at = NOW(), score = ?, player_data = ? WHERE id = ?',
+      [score !== undefined ? score : session.score, JSON.stringify(mergedData), session.id]
+    );
 
     const [games]          = await db.query('SELECT * FROM games WHERE id = ?', [session.game_id]);
     const [emailTemplates] = await db.query('SELECT * FROM email_templates WHERE game_id = ?', [session.game_id]);
     const [settingsRows]   = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [session.game_id]);
     const gameSettings     = settingsRows[0] || {};
 
-    const playerData  = typeof session.player_data === 'string' ? JSON.parse(session.player_data) : (session.player_data || {});
+    const playerData  = mergedData;
 
     const normalize = (obj, keys) => {
       for (const k of keys) {

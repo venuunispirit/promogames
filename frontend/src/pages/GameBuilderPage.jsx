@@ -894,55 +894,59 @@ const [nameInput,     setNameInput]     = useState('')
     <div className="gb-wrap">
       <style>{LIGHT}</style>
 
-      {/* ─── Header ─── */}
-      <div style={{ background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)', padding:'14px 28px', display:'flex', justifyContent:'space-between', alignItems:'center', flexWrap:'wrap', gap:12, position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
-        <div style={{ display:'flex', alignItems:'center', gap:12 }}>
-          <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => navigate('/dashboard/games')}>← Back</button>
+      {/* ─── Header (3‑col grid) ─── */}
+      <div style={{
+        display:'grid', gridTemplateColumns:'auto 1fr auto',
+        background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)',
+        padding:'10px 28px', gap:'4px 20px', alignItems:'center',
+        position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
+      }}>
+        {/* Col 1: Back icon + Name + Builder badge */}
+        <div style={{ display:'flex', gap:6, alignItems:'flex-start' }}>
+          <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => navigate('/dashboard/games')}
+            style={{ padding:'6px 8px', fontSize:16, lineHeight:1, marginTop:1 }} title="Back to games">←</button>
           <div>
-            {editingName
-              ? (
-                <div style={{ display:'flex', gap:6, alignItems:'center' }}>
-                  <input
-                    value={nameInput}
-                    onChange={e => setNameInput(e.target.value)}
-                    onKeyDown={e => { if (e.key==='Enter') saveGameName(); if (e.key==='Escape') setEditingName(false) }}
-                    onBlur={saveGameName}
-                    autoFocus
-                    style={{ width:220, fontSize:15, fontWeight:800, padding:'4px 8px' }}
-                  />
-                  <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => setEditingName(false)}>✕</button>
-                </div>
-              )
-              : (
-                <div
-                  style={{ fontWeight:800, fontSize:15, color:'var(--gb-text)', cursor:'pointer', display:'flex', alignItems:'center', gap:6 }}
-                  onClick={() => { setNameInput(game?.name||''); setEditingName(true) }}
-                  title="Click to edit"
-                >
-                  {game?.name} <span style={{ fontSize:11, color:'var(--gb-text3)', fontWeight:400 }}>✎</span>
-                </div>
-              )
-            }
-            <div style={{ fontSize:12, color:'var(--gb-text2)' }}>🏢 {game?.company_name}</div>
+            {editingName ? (
+              <div style={{ display:'flex', gap:4, alignItems:'center' }}>
+                <input value={nameInput} onChange={e => setNameInput(e.target.value)}
+                  onKeyDown={e => { if (e.key==='Enter') saveGameName(); if (e.key==='Escape') setEditingName(false) }}
+                  onBlur={saveGameName} autoFocus
+                  style={{ width:180, fontSize:14, fontWeight:700, padding:'3px 6px' }} />
+                <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => setEditingName(false)} style={{ padding:'2px 6px' }}>✕</button>
+              </div>
+            ) : (
+              <div style={{ fontWeight:700, fontSize:14, color:'var(--gb-text)', cursor:'pointer', lineHeight:1.3 }}
+                onClick={() => { setNameInput(game?.name||''); setEditingName(true) }} title="Click to edit">
+                {game?.name} <span style={{ fontSize:10, color:'var(--gb-text3)', fontWeight:400 }}>✎</span>
+              </div>
+            )}
+            <div style={{ fontSize:9.5, fontWeight:600, color:'var(--gb-text3)', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Builder</div>
           </div>
         </div>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-          <span style={{ fontSize:11, color:'var(--gb-text3)', maxWidth:240, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{gameLink}</span>
-          <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }}>🔗 Copy</button>
-          <a href={gameLink} target="_blank" rel="noreferrer" className="gb-btn gb-btn-ghost gb-btn-sm">👁 Preview</a>
+
+        {/* Col 2: Tabs */}
+        <div className="gb-tabs" style={{ marginBottom:0, borderBottom:'none', justifySelf:'center' }}>
+          {TABS.map(t => (
+            <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
+              style={{ padding:'6px 14px', fontSize:12.5 }}>
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Col 3: Copy + Preview (2D icons) */}
+        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+          <button className="gb-btn gb-btn-ghost gb-btn-sm" style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }}
+            onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }}
+            title="Copy game link">🔗</button>
+          <a href={gameLink} target="_blank" rel="noreferrer" className="gb-btn gb-btn-ghost gb-btn-sm"
+            style={{ padding:'6px 8px', fontSize:16, lineHeight:1, textDecoration:'none' }}
+            title="Preview game">👁</a>
         </div>
       </div>
 
       {/* ─── Content ─── */}
       <div style={{ maxWidth:960, margin:'0 auto', padding:'24px 20px' }}>
-        {/* Tabs */}
-        <div className="gb-tabs">
-          {TABS.map(t => (
-            <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>
-              {t.label}
-            </button>
-          ))}
-        </div>
 
         {/* ════ QUESTIONS TAB ════ */}
         {tab === 'questions' && (

@@ -116,7 +116,7 @@ const LIGHT = `
   margin-bottom: -2px; transition: color .15s; white-space: nowrap;
   font-family: inherit;
 }
-.gb-tab.active { color: var(--gb-primary); border-bottom-color: var(--gb-primary); }
+.gb-tab.active { color: #9210f6; border-bottom-color: #9210f6; }
 .gb-tab:hover:not(.active) { color: var(--gb-text); }
 
 /* toast */
@@ -857,11 +857,12 @@ const [nameInput,     setNameInput]     = useState('')
 
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
   const TABS = [
-    { id:'questions', label:'❓ Questions' },
-    { id:'form',      label:'📋 Player Form' },
-    { id:'email',     label:'📧 Email' },
-    { id:'settings',  label:'⚙️ Settings' },
-    { id:'sounds',    label:'🔊 Sounds' },
+    { id:'form',      label:'Player Form' },
+    { id:'questions', label:'Questions' },
+    { id:'thankyou',  label:'Thankyou Page' },
+    { id:'email',     label:'Email' },
+    { id:'sounds',    label:'Audio' },
+    { id:'settings',  label:'Settings' },
   ]
 
   if (loading) return (
@@ -896,13 +897,13 @@ const [nameInput,     setNameInput]     = useState('')
 
       {/* ─── Header (3‑col grid) ─── */}
       <div style={{
-        display:'grid', gridTemplateColumns:'auto 1fr auto',
+        display:'grid', gridTemplateColumns:'1fr auto 1fr',
         background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)',
         padding:'10px 28px', gap:'4px 20px', alignItems:'center',
         position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
       }}>
         {/* Col 1: Back icon + Name + Builder badge */}
-        <div style={{ display:'flex', gap:6, alignItems:'flex-start' }}>
+        <div style={{ display:'flex', gap:6, alignItems:'flex-start', justifySelf:'start' }}>
           <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => navigate('/dashboard/games')}
             style={{ padding:'6px 8px', fontSize:16, lineHeight:1, marginTop:1 }} title="Back to games">←</button>
           <div>
@@ -935,7 +936,7 @@ const [nameInput,     setNameInput]     = useState('')
         </div>
 
         {/* Col 3: Copy + Preview (2D icons) */}
-        <div style={{ display:'flex', gap:6, alignItems:'center' }}>
+        <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'end' }}>
           <button className="gb-btn gb-btn-ghost gb-btn-sm" style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }}
             onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }}
             title="Copy game link">🔗</button>
@@ -946,223 +947,130 @@ const [nameInput,     setNameInput]     = useState('')
       </div>
 
       {/* ─── Content ─── */}
-      <div style={{ maxWidth:960, margin:'0 auto', padding:'24px 20px' }}>
+      <div style={{ maxWidth:1200, margin:'0 auto', padding:'24px 0 24px 20px', display:'grid', gridTemplateColumns:'1fr 320px', gap:24, alignItems:'start' }}>
 
-        {/* ════ QUESTIONS TAB ════ */}
-        {tab === 'questions' && (
-          <div>
-            {/* sticky add bar */}
-            <div className="gb-sticky-bar">
-              <span style={{ fontSize:13, color:'var(--gb-text2)', fontWeight:600 }}>
-                {questions.length} question{questions.length!==1?'s':''}
-              </span>
-              <button className="gb-btn gb-btn-primary" onClick={addQuestion} disabled={addingQ}>
-                {addingQ ? '⏳ Adding…' : '+ Add Question'}
-              </button>
-            </div>
-
-            {questions.length === 0
-              ? (
-                <div className="gb-empty">
-                  <div className="gb-empty-icon">❓</div>
-                  <h3 style={{ color:'var(--gb-text)', marginBottom:8 }}>No questions yet</h3>
-                  <p>Add your first question to get started</p>
-                  <button className="gb-btn gb-btn-primary" style={{ marginTop:16 }} onClick={addQuestion}>+ Add First Question</button>
-                </div>
-              )
-              : questions.map((q,i) => (
-                <QuestionCard
-                  key={q.id}
-                  question={q}
-                  index={i}
-                  total={questions.length}
-                  onSave={saveQuestion}
-                  onDelete={deleteQuestion}
-                  onMoveUp={idx  => moveQuestion(idx, idx-1)}
-                  onMoveDown={idx => moveQuestion(idx, idx+1)}
-                />
-              ))
-            }
-
-            {questions.length > 0 && (
-              <div style={{ textAlign:'center', paddingTop:8 }}>
+        {/* ─── LEFT COL ─── */}
+        <div>
+          {/* ════ QUESTIONS TAB ════ */}
+          {tab === 'questions' && (
+            <div>
+              <div className="gb-sticky-bar">
+                <span style={{ fontSize:13, color:'var(--gb-text2)', fontWeight:600 }}>
+                  {questions.length} question{questions.length!==1?'s':''}
+                </span>
                 <button className="gb-btn gb-btn-primary" onClick={addQuestion} disabled={addingQ}>
-                  {addingQ ? '⏳ Adding…' : '+ Add Another Question'}
+                  {addingQ ? '⏳ Adding…' : '+ Add Question'}
                 </button>
               </div>
-            )}
-          </div>
-        )}
 
-        {/* ════ FORM TAB ════ */}
-        {tab === 'form' && (
-          <div>
-            {/* Visual preview: how the form looks in-game */}
-            <div className="gb-card" style={{ marginBottom:24, padding:0, overflow:'hidden' }}>
-              <div style={{ background: settings.bg_image_url
-                ? `url(${settings.bg_image_url}) center/cover`
-                : (settings.bg_color||'#6366f1'),
-                minHeight:160, position:'relative', display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
-                <div style={{ background:'rgba(255,255,255,.92)', borderRadius:16, padding:'20px 24px', maxWidth:320, width:'100%', boxShadow:'0 8px 32px rgba(0,0,0,.15)' }}>
-                  {settings.game_logo_url && (
-                    <div style={{ textAlign:'center', marginBottom:12 }}>
-                      <img src={settings.game_logo_url} alt="" style={{ maxHeight:56, maxWidth:'80%', objectFit:'contain' }} />
+              {questions.length === 0
+                ? (
+                  <div className="gb-empty">
+                    <div className="gb-empty-icon">❓</div>
+                    <h3 style={{ color:'var(--gb-text)', marginBottom:8 }}>No questions yet</h3>
+                    <p>Add your first question to get started</p>
+                    <button className="gb-btn gb-btn-primary" style={{ marginTop:16 }} onClick={addQuestion}>+ Add First Question</button>
+                  </div>
+                )
+                : questions.map((q,i) => (
+                  <QuestionCard
+                    key={q.id}
+                    question={q}
+                    index={i}
+                    total={questions.length}
+                    onSave={saveQuestion}
+                    onDelete={deleteQuestion}
+                    onMoveUp={idx  => moveQuestion(idx, idx-1)}
+                    onMoveDown={idx => moveQuestion(idx, idx+1)}
+                  />
+                ))
+              }
+
+              {questions.length > 0 && (
+                <div style={{ textAlign:'center', paddingTop:8 }}>
+                  <button className="gb-btn gb-btn-primary" onClick={addQuestion} disabled={addingQ}>
+                    {addingQ ? '⏳ Adding…' : '+ Add Another Question'}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ════ FORM TAB ════ */}
+          {tab === 'form' && (
+            <div>
+              <p style={{ color:'var(--gb-text2)', marginBottom:16, fontSize:13 }}>These fields appear on the player registration screen before the quiz starts.</p>
+              {formFields.map((f,i) => (
+                <div key={i} className="gb-card" style={{ marginBottom:10, padding:'12px 16px' }}>
+                  <div style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end' }}>
+                    <div className="gb-fg" style={{ flex:2, minWidth:130 }}>
+                      <span className="gb-label">Label</span>
+                      <input value={f.field_label} onChange={e => updateFormField(i,'field_label',e.target.value)} />
                     </div>
-                  )}
-                  <p style={{ fontSize:13, fontWeight:700, color:'#1e1e2e', textAlign:'center', marginBottom:12 }}>
-                    {settings.intro_text || 'Fill in your details to start!'}
-                  </p>
-                  {formFields.slice(0,3).map((f,i) => (
-                    <div key={i} style={{ marginBottom:8 }}>
-                      <div style={{ fontSize:11, fontWeight:600, color:'#64657a', marginBottom:3 }}>
-                        {f.field_label}{f.is_required ? ' *' : ''}
-                      </div>
-                      <div style={{ height:32, background:'#f4f6fb', borderRadius:6, border:'1px solid #e2e6f0' }} />
+                    <div className="gb-fg" style={{ flex:1, minWidth:110 }}>
+                      <span className="gb-label">Type</span>
+                      <select value={f.field_type} onChange={e => updateFormField(i,'field_type',e.target.value)}>
+                        <option value="text">Text</option>
+                        <option value="email">Email</option>
+                        <option value="phone">Phone</option>
+                        <option value="number">Number</option>
+                        <option value="textarea">Textarea</option>
+                        <option value="select">Dropdown</option>
+                      </select>
                     </div>
-                  ))}
-                  {formFields.length > 3 && (
-                    <p style={{ fontSize:11, color:'#9899ae', textAlign:'center' }}>+{formFields.length-3} more fields…</p>
-                  )}
-                  <div style={{ marginTop:12, textAlign:'center' }}>
-                    <div style={{ display:'inline-block', background: settings.primary_color||'#6366f1', color:'#fff', borderRadius:8, padding:'8px 24px', fontSize:13, fontWeight:700 }}>
-                      {settings.start_button_text || 'Start Quiz →'}
-                    </div>
+                    <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer', paddingBottom:2, whiteSpace:'nowrap' }}>
+                      <input type="checkbox" checked={!!f.is_required} onChange={e => updateFormField(i,'is_required',e.target.checked?1:0)}
+                        style={{ width:16,height:16 }} />
+                      Required
+                    </label>
+                    <button className="gb-btn gb-btn-danger gb-btn-sm" onClick={() => removeFormField(i)}>✕</button>
                   </div>
                 </div>
-              </div>
-              <div style={{ padding:'10px 16px', background:'#f8f9ff', borderTop:'1px solid var(--gb-border)', fontSize:12, color:'var(--gb-text2)' }}>
-                📱 This is how the player registration screen looks. Edit fields below.
-              </div>
-            </div>
-
-            <p style={{ color:'var(--gb-text2)', marginBottom:16, fontSize:13 }}>These fields appear on the player registration screen before the quiz starts.</p>
-            {formFields.map((f,i) => (
-              <div key={i} className="gb-card" style={{ marginBottom:10, padding:'12px 16px' }}>
-                <div style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end' }}>
-                  <div className="gb-fg" style={{ flex:2, minWidth:130 }}>
-                    <span className="gb-label">Label</span>
-                    <input value={f.field_label} onChange={e => updateFormField(i,'field_label',e.target.value)} />
-                  </div>
-                  <div className="gb-fg" style={{ flex:1, minWidth:110 }}>
-                    <span className="gb-label">Type</span>
-                    <select value={f.field_type} onChange={e => updateFormField(i,'field_type',e.target.value)}>
-                      <option value="text">Text</option>
-                      <option value="email">Email</option>
-                      <option value="phone">Phone</option>
-                      <option value="number">Number</option>
-                      <option value="textarea">Textarea</option>
-                      <option value="select">Dropdown</option>
-                    </select>
-                  </div>
-                  <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer', paddingBottom:2, whiteSpace:'nowrap' }}>
-                    <input type="checkbox" checked={!!f.is_required} onChange={e => updateFormField(i,'is_required',e.target.checked?1:0)}
-                      style={{ width:16,height:16 }} />
-                    Required
-                  </label>
-                  <button className="gb-btn gb-btn-danger gb-btn-sm" onClick={() => removeFormField(i)}>✕</button>
-                </div>
-              </div>
-            ))}
-            <div style={{ display:'flex', gap:10, marginTop:16 }}>
-              <button className="gb-btn gb-btn-ghost" onClick={addFormField}>+ Add Field</button>
-              <button className="gb-btn gb-btn-primary" onClick={saveFormFields} disabled={saving}>{saving ? 'Saving…' : '💾 Save Form'}</button>
-            </div>
-          </div>
-        )}
-
-        {/* ════ EMAIL TAB ════ */}
-        {tab === 'email' && (
-          <div>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-              <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Configure the congratulations email sent to players.</p>
-              <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer' }}>
-                <input type="checkbox" checked={!!emailTemplate.is_enabled}
-                  onChange={e => setEmailTemplate({ ...emailTemplate, is_enabled:e.target.checked?1:0 })}
-                  style={{ width:16,height:16 }} />
-                Enable email
-              </label>
-            </div>
-            <div className="gb-section" style={{ marginBottom:16, background:'#fffbeb', borderColor:'#fde68a' }}>
-              💡 SMTP credentials are configured in the server <code>.env</code> file. Use <code>{'{{name}}'}</code>, <code>{'{{score}}'}</code>, <code>{'{{total}}'}</code>, <code>{'{{game_name}}'}</code> as placeholders.
-            </div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-              <div className="gb-fg"><span className="gb-label">Sender Name</span><input value={emailTemplate.sender_name||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_name:e.target.value })} placeholder="Quiz Platform" /></div>
-              <div className="gb-fg"><span className="gb-label">Sender Email</span><input value={emailTemplate.sender_email||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_email:e.target.value })} placeholder="noreply@yourdomain.com" /></div>
-            </div>
-            <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Subject</span><input value={emailTemplate.subject||''} onChange={e => setEmailTemplate({ ...emailTemplate, subject:e.target.value })} placeholder="Congratulations {{name}}! 🎉" /></div>
-            <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:16, alignItems:'flex-end', marginBottom:14 }}>
-              <div className="gb-fg"><span className="gb-label">Header Text</span><input value={emailTemplate.header_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, header_text:e.target.value })} placeholder="🎉 Congratulations!" /></div>
-              <ColorPicker value={emailTemplate.header_color||'#6366f1'} onChange={v => setEmailTemplate({ ...emailTemplate, header_color:v })} label="Header Color" />
-            </div>
-            <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Email Body (HTML)</span><textarea rows={5} value={emailTemplate.body_html||''} onChange={e => setEmailTemplate({ ...emailTemplate, body_html:e.target.value })} placeholder="<p>Thank you, {{name}}!</p>" style={{ resize:'vertical', fontFamily:'monospace', fontSize:13 }} /></div>
-            <div className="gb-fg" style={{ marginBottom:20 }}><span className="gb-label">Footer Text</span><input value={emailTemplate.footer_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, footer_text:e.target.value })} placeholder="© 2024 Your Company" /></div>
-            <button className="gb-btn gb-btn-primary" onClick={saveEmailTemplate} disabled={saving}>{saving ? 'Saving…' : '💾 Save Email Template'}</button>
-          </div>
-        )}
-
-        {/* ════ SETTINGS TAB ════ */}
-        {tab === 'settings' && (
-          <div>
-            {/* Game Logo */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">🖼️ Game Logo</div>
-              <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
-                style={{ display:'none' }} />
-              <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()}>📷 Upload Logo</button>
-                {settings.game_logo_url && <>
-                  <img src={settings.game_logo_url} alt="" style={{ maxWidth:120, maxHeight:56, width:'auto', height:'auto', borderRadius:6, border:'1px solid var(--gb-border)', background:'#fff', objectFit:'contain' }} />
-                  <button className="gb-btn gb-btn-danger gb-btn-sm" type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})}>✕ Remove</button>
-                </>}
-              </div>
-              <p style={{ fontSize:12, color:'var(--gb-text3)', marginTop:6 }}>Supports portrait and landscape images — displayed full (not cropped).</p>
-            </div>
-
-            {/* Font */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">🔤 Font Family</div>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(175px,1fr))', gap:8, maxHeight:260, overflowY:'auto', border:'1px solid var(--gb-border)', borderRadius:8, padding:10, background:'var(--gb-surface2)' }}>
-                {FONTS.map(font => (
-                  <div key={font} onClick={() => setSettings({...settings,font_family:font})}
-                    style={{ padding:'8px 10px', borderRadius:7, cursor:'pointer',
-                      border:`2px solid ${settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? 'var(--gb-primary)' : 'transparent'}`,
-                      background: settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? '#eef0ff' : '#fff',
-                      transition:'all .12s' }}>
-                    <div style={{ fontSize:13, fontFamily:`'${font}',sans-serif`, color:'#1e1e2e', fontWeight:700 }}>{font}</div>
-                    <div style={{ fontSize:11, fontFamily:`'${font}',sans-serif`, color:'#64657a' }}>The quick brown fox</div>
-                    <style>{`@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@400;600;700&display=swap');`}</style>
-                  </div>
-                ))}
+              ))}
+              <div style={{ display:'flex', gap:10, marginTop:16 }}>
+                <button className="gb-btn gb-btn-ghost" onClick={addFormField}>+ Add Field</button>
+                <button className="gb-btn gb-btn-primary" onClick={saveFormFields} disabled={saving}>{saving ? 'Saving…' : '💾 Save Form'}</button>
               </div>
             </div>
+          )}
 
-            {/* Colors */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">🎨 Colors</div>
-              <div style={{ display:'flex', gap:20, flexWrap:'wrap' }}>
-                <ColorPicker value={settings.bg_color||'#ffffff'} onChange={v => setSettings({...settings,bg_color:v})} label="Background Color" />
-                <ColorPicker value={settings.primary_color||'#6366f1'} onChange={v => setSettings({...settings,primary_color:v})} label="Primary / Accent Color" />
+          {/* ════ EMAIL TAB ════ */}
+          {tab === 'email' && (
+            <div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Configure the congratulations email sent to players.</p>
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer' }}>
+                  <input type="checkbox" checked={!!emailTemplate.is_enabled}
+                    onChange={e => setEmailTemplate({ ...emailTemplate, is_enabled:e.target.checked?1:0 })}
+                    style={{ width:16,height:16 }} />
+                  Enable email
+                </label>
               </div>
+              <div className="gb-section" style={{ marginBottom:16, background:'#fffbeb', borderColor:'#fde68a' }}>
+                💡 SMTP credentials are configured in the server <code>.env</code> file. Use <code>{'{{name}}'}</code>, <code>{'{{score}}'}</code>, <code>{'{{total}}'}</code>, <code>{'{{game_name}}'}</code> as placeholders.
+              </div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+                <div className="gb-fg"><span className="gb-label">Sender Name</span><input value={emailTemplate.sender_name||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_name:e.target.value })} placeholder="Quiz Platform" /></div>
+                <div className="gb-fg"><span className="gb-label">Sender Email</span><input value={emailTemplate.sender_email||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_email:e.target.value })} placeholder="noreply@yourdomain.com" /></div>
+              </div>
+              <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Subject</span><input value={emailTemplate.subject||''} onChange={e => setEmailTemplate({ ...emailTemplate, subject:e.target.value })} placeholder="Congratulations {{name}}! 🎉" /></div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:16, alignItems:'flex-end', marginBottom:14 }}>
+                <div className="gb-fg"><span className="gb-label">Header Text</span><input value={emailTemplate.header_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, header_text:e.target.value })} placeholder="🎉 Congratulations!" /></div>
+                <ColorPicker value={emailTemplate.header_color||'#6366f1'} onChange={v => setEmailTemplate({ ...emailTemplate, header_color:v })} label="Header Color" />
+              </div>
+              <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Email Body (HTML)</span><textarea rows={5} value={emailTemplate.body_html||''} onChange={e => setEmailTemplate({ ...emailTemplate, body_html:e.target.value })} placeholder="<p>Thank you, {{name}}!</p>" style={{ resize:'vertical', fontFamily:'monospace', fontSize:13 }} /></div>
+              <div className="gb-fg" style={{ marginBottom:20 }}><span className="gb-label">Footer Text</span><input value={emailTemplate.footer_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, footer_text:e.target.value })} placeholder="© 2024 Your Company" /></div>
+              <button className="gb-btn gb-btn-primary" onClick={saveEmailTemplate} disabled={saving}>{saving ? 'Saving…' : '💾 Save Email Template'}</button>
             </div>
+          )}
 
-            {/* Background Images */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">🌅 Background Images</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+          {/* ════ THANKYOU TAB ════ */}
+          {tab === 'thankyou' && (
+            <div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🎊 Thankyou Page Background</div>
                 <div>
-                  <span className="gb-label" style={{ marginBottom:6, display:'block' }}>Game Background Image</span>
-                  <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
-                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
-                    style={{ display:'none' }} />
-                  <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()}>📷 Upload</button>
-                    {settings.bg_image_url && <img src={settings.bg_image_url} className="gb-thumb" alt="" />}
-                    {settings.bg_image_url && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})}>✕</button>}
-                  </div>
-                </div>
-                <div>
-                  <span className="gb-label" style={{ marginBottom:6, display:'block' }}>Thank You Page BG</span>
+                  <span className="gb-label" style={{ marginBottom:6, display:'block' }}>Background Image</span>
                   <input type="file" ref={tyBgImgRef} accept="image/png,image/jpeg,image/jpg"
                     onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f)} }}
                     style={{ display:'none' }} />
@@ -1173,206 +1081,505 @@ const [nameInput,     setNameInput]     = useState('')
                   </div>
                 </div>
               </div>
-            </div>
-
-            {/* Texts */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">📝 Game Texts</div>
-              <div className="gb-fg" style={{ marginBottom:12 }}>
-                <span className="gb-label">Heading 1 (title — text 1)</span>
-                <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main title" />
-              </div>
-              <div className="gb-fg" style={{ marginBottom:12 }}>
-                <span className="gb-label">Heading 2 (subtitle — text 2)</span>
-                <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" />
-              </div>
-              <div className="gb-fg" style={{ marginBottom:12 }}>
-                <span className="gb-label">Intro Text (body — text 3, shown before quiz)</span>
-                <textarea rows={2} value={settings.intro_text||''} onChange={e => setSettings({...settings,intro_text:e.target.value})} style={{ resize:'vertical' }} />
-              </div>
-              <div className="gb-fg">
-                <span className="gb-label">Outro / Thank You Text</span>
-                <textarea rows={2} value={settings.outro_text||''} onChange={e => setSettings({...settings,outro_text:e.target.value})} style={{ resize:'vertical' }} />
-              </div>
-            </div>
-
-            {/* Redirect URL */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">🔗 Post-Game Redirect URL</div>
-              <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>
-                Where should players be sent after completing the quiz? Leave blank to show the default thank-you screen.
-              </p>
-              <div style={{ display:'flex', gap:10, alignItems:'flex-end', flexWrap:'wrap' }}>
-                <div className="gb-fg" style={{ flex:1, minWidth:240 }}>
-                  <span className="gb-label">Redirect URL</span>
-                  <input
-                    value={redirectUrl}
-                    onChange={e => setRedirectUrl(e.target.value)}
-                    placeholder="https://yourwebsite.com/thankyou"
-                    type="url"
-                  />
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">📝 Thankyou Message</div>
+                <div className="gb-fg">
+                  <span className="gb-label">Outro / Thank You Text</span>
+                  <textarea rows={2} value={settings.outro_text||''} onChange={e => setSettings({...settings,outro_text:e.target.value})} style={{ resize:'vertical' }} />
                 </div>
-                <button
-                  className="gb-btn gb-btn-primary"
-                  onClick={saveRedirectUrl}
-                  disabled={savingRedirect}
-                  style={{ flexShrink:0 }}
-                >
-                  {savingRedirect ? '⏳ Saving…' : '💾 Save URL'}
-                </button>
               </div>
-              {redirectUrl && (
-                <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:8, background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'8px 12px' }}>
-                  <span style={{ fontSize:13 }}>🚀</span>
-                  <span style={{ fontSize:12, color:'#15803d' }}>Players will be redirected to: </span>
-                  <a href={redirectUrl} target="_blank" rel="noreferrer"
-                    style={{ fontSize:12, color:'#15803d', fontWeight:700, wordBreak:'break-all' }}>{redirectUrl}</a>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🏷️ Button</div>
+                <div className="gb-fg">
+                  <span className="gb-label">Submit Button Text</span>
+                  <input value={settings.submit_button_text||''} onChange={e => setSettings({...settings,submit_button_text:e.target.value})} placeholder="Submit & Explore" />
                 </div>
-              )}
-            </div>
-
-            {/* Button Labels */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">🏷️ Button Labels</div>
-              <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>Leave blank to use defaults.</p>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:12 }}>
-                <div className="gb-fg"><span className="gb-label">Start Button</span><input value={settings.start_button_text||''} onChange={e => setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Quiz →" /></div>
-                <div className="gb-fg"><span className="gb-label">Next Button</span><input value={settings.next_button_text||''} onChange={e => setSettings({...settings,next_button_text:e.target.value})} placeholder="Next →" /></div>
-                <div className="gb-fg"><span className="gb-label">Submit Button</span><input value={settings.submit_button_text||''} onChange={e => setSettings({...settings,submit_button_text:e.target.value})} placeholder="Submit & Explore" /></div>
-                <div className="gb-fg"><span className="gb-label">Continue Button</span><input value={settings.continue_button_text||''} onChange={e => setSettings({...settings,continue_button_text:e.target.value})} placeholder="Continue Now →" /></div>
               </div>
-            </div>
-
-            {/* Submit GIF */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">🎊 Submit Confirmation GIF</div>
-              <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>Shown in the popup modal when the player presses "Submit & Explore".</p>
-              <input type="file" id="submitGifInput" accept="image/gif,image/png,image/jpeg,image/webp"
-                onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f)} }}
-                style={{ display:'none' }} />
-              <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
-                <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()}>🎬 Upload GIF / Image</button>
-                {settings.submit_confirm_gif_url && <img src={settings.submit_confirm_gif_url} className="gb-thumb" alt="" style={{ height:56 }} />}
-                {settings.submit_confirm_gif_url && <button className="gb-btn gb-btn-danger gb-btn-sm" type="button" onClick={() => setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})}>✕ Remove</button>}
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🎊 Submit Confirmation GIF</div>
+                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>Shown in the popup modal when the player presses "Submit & Explore".</p>
+                <input type="file" id="submitGifInput" accept="image/gif,image/png,image/jpeg,image/webp"
+                  onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f)} }}
+                  style={{ display:'none' }} />
+                <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap' }}>
+                  <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()}>🎬 Upload GIF / Image</button>
+                  {settings.submit_confirm_gif_url && <img src={settings.submit_confirm_gif_url} className="gb-thumb" alt="" style={{ height:56 }} />}
+                  {settings.submit_confirm_gif_url && <button className="gb-btn gb-btn-danger gb-btn-sm" type="button" onClick={() => setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})}>✕ Remove</button>}
+                </div>
               </div>
-            </div>
-
-            {/* Social Share */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">📲 Social Share Text</div>
-              <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:10 }}>Text shown when the game link is shared on WhatsApp, Facebook etc.</p>
-              <div className="gb-fg">
-                <span className="gb-label">Share Description</span>
-                <input value={settings.meta_description||''} onChange={e => setSettings({...settings,meta_description:e.target.value})} placeholder="Play this game and win exciting rewards!" maxLength={200} />
-                <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>{(settings.meta_description||'').length}/200</span>
-              </div>
-            </div>
-
-            {/* Toggles */}
-            <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-              <div className="gb-section-title">⚙️ Options</div>
-              <div style={{ display:'flex', gap:20, flexWrap:'wrap', marginBottom:14 }}>
-                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
-                  <input type="checkbox" checked={!!settings.show_progress} onChange={e => setSettings({...settings,show_progress:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                  Show progress bar
-                </label>
-                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
-                  <input type="checkbox" checked={settings.send_email!==0&&settings.send_email!=='0'} onChange={e => setSettings({...settings,send_email:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                  Send completion email
-                </label>
-              </div>
-              <div className="gb-fg" style={{ maxWidth:220 }}>
-                <span className="gb-label">Time Per Question (sec, 0 = no limit)</span>
-                <input type="number" min={0} value={settings.time_per_question||0} onChange={e => setSettings({...settings,time_per_question:e.target.value})} />
-              </div>
-            </div>
-
-            {/* Terms */}
-            <div className="gb-card" style={{ marginBottom:20, padding:16 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <input type="checkbox" id="termsEnabled" checked={!!settings.terms_enabled}
-                  onChange={e => setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                <label htmlFor="termsEnabled" style={{ fontWeight:700, cursor:'pointer', fontSize:14 }}>Enable Terms & Conditions Checkbox</label>
-              </div>
-              {settings.terms_enabled
-                ? (
-                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                    <div className="gb-fg"><span className="gb-label">Terms Label</span><input value={settings.terms_text||''} onChange={e => setSettings({...settings,terms_text:e.target.value})} placeholder="Terms & Conditions" /></div>
-                    <div className="gb-fg"><span className="gb-label">Terms URL (optional)</span><input value={settings.terms_url||''} onChange={e => setSettings({...settings,terms_url:e.target.value})} placeholder="https://yoursite.com/terms" /></div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🔗 Post-Game Redirect URL</div>
+                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>
+                  Where should players be sent after completing the quiz? Leave blank to show the default thank-you screen.
+                </p>
+                <div style={{ display:'flex', gap:10, alignItems:'flex-end', flexWrap:'wrap' }}>
+                  <div className="gb-fg" style={{ flex:1, minWidth:240 }}>
+                    <span className="gb-label">Redirect URL</span>
+                    <input
+                      value={redirectUrl}
+                      onChange={e => setRedirectUrl(e.target.value)}
+                      placeholder="https://yourwebsite.com/thankyou"
+                      type="url"
+                    />
                   </div>
-                )
-                : <p style={{ color:'var(--gb-text3)', fontSize:13 }}>Enable to require players to accept T&C before starting.</p>
-              }
-            </div>
-
-            <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
-              {saving ? '⏳ Saving…' : '💾 Save All Settings'}
-            </button>
-          </div>
-        )}
-
-        {/* ════ SOUNDS TAB ════ */}
-        {tab === 'sounds' && (
-          <div>
-            {/* Upload */}
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20, flexWrap:'wrap', gap:12 }}>
-              <div>
-                <h3 style={{ color:'var(--gb-text)', fontFamily:'inherit', marginBottom:4 }}>Sound Library</h3>
-                <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Upload MP3, WAV or OGG files, then assign them below.</p>
+                  <button
+                    className="gb-btn gb-btn-primary"
+                    onClick={saveRedirectUrl}
+                    disabled={savingRedirect}
+                    style={{ flexShrink:0 }}
+                  >
+                    {savingRedirect ? '⏳ Saving…' : '💾 Save URL'}
+                  </button>
+                </div>
+                {redirectUrl && (
+                  <div style={{ marginTop:10, display:'flex', alignItems:'center', gap:8, background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'8px 12px' }}>
+                    <span style={{ fontSize:13 }}>🚀</span>
+                    <span style={{ fontSize:12, color:'#15803d' }}>Players will be redirected to: </span>
+                    <a href={redirectUrl} target="_blank" rel="noreferrer"
+                      style={{ fontSize:12, color:'#15803d', fontWeight:700, wordBreak:'break-all' }}>{redirectUrl}</a>
+                  </div>
+                )}
               </div>
-              <div>
-                <input type="file" ref={soundUploadRef} accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/x-wav,audio/wave" onChange={uploadSound} style={{ display:'none' }} />
-                <button className="gb-btn gb-btn-primary" onClick={() => soundUploadRef.current.click()} disabled={soundUploading}>
-                  {soundUploading ? '⏳ Uploading…' : '+ Upload Sound'}
-                </button>
-              </div>
-            </div>
-
-            {/* Assign sounds — moved here FROM settings tab */}
-            <div className="gb-card" style={{ marginBottom:20, padding:16 }}>
-              <div className="gb-section-title">🎮 Assign Sounds to Quiz</div>
-              <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:14 }}>
-                These play globally across the entire quiz. Upload sounds above first, then select them here.
-              </p>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:12, marginBottom:16 }}>
-                <SoundSelector label="✅ Correct Answer" value={settings.sound_correct_id} onChange={v => setSettings({...settings,sound_correct_id:v})} sounds={sounds} />
-                <SoundSelector label="❌ Wrong Answer" value={settings.sound_wrong_id} onChange={v => setSettings({...settings,sound_wrong_id:v})} sounds={sounds} />
-                <SoundSelector label="🏆 Win / Completion" value={settings.win_sound_id} onChange={v => setSettings({...settings,win_sound_id:v})} sounds={sounds} />
-                <SoundSelector label="💀 Lose Sound" value={settings.lose_sound_id} onChange={v => setSettings({...settings,lose_sound_id:v})} sounds={sounds} />
-              </div>
-              <button className="gb-btn gb-btn-primary gb-btn-sm" onClick={saveSettings} disabled={saving}>
-                {saving ? 'Saving…' : '💾 Save Sound Assignments'}
+              <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                {saving ? '⏳ Saving…' : '💾 Save Thankyou Settings'}
               </button>
             </div>
+          )}
 
-            {/* Sound list */}
-            {sounds.length === 0
-              ? (
-                <div className="gb-empty">
-                  <div className="gb-empty-icon">🔊</div>
-                  <h3 style={{ color:'var(--gb-text)', marginBottom:8 }}>No sounds yet</h3>
-                  <p>Upload MP3, WAV, or OGG files</p>
-                  <button className="gb-btn gb-btn-primary" style={{ marginTop:16 }} onClick={() => soundUploadRef.current.click()}>+ Upload Sound</button>
+          {/* ════ SETTINGS TAB ════ */}
+          {tab === 'settings' && (
+            <div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🖼️ Game Logo</div>
+                <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                  onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
+                  style={{ display:'none' }} />
+                <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
+                  <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()}>📷 Upload Logo</button>
+                  {settings.game_logo_url && <>
+                    <img src={settings.game_logo_url} alt="" style={{ maxWidth:120, maxHeight:56, width:'auto', height:'auto', borderRadius:6, border:'1px solid var(--gb-border)', background:'#fff', objectFit:'contain' }} />
+                    <button className="gb-btn gb-btn-danger gb-btn-sm" type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})}>✕ Remove</button>
+                  </>}
                 </div>
-              )
-              : (
-                <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                  {sounds.map(s => (
-                    <div key={s.id} className="gb-card" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px' }}>
-                      <span style={{ fontSize:20 }}>🎵</span>
-                      <div style={{ flex:1 }}>
-                        <div style={{ fontWeight:700, fontSize:14, color:'var(--gb-text)' }}>{s.name}</div>
-                        <div style={{ color:'var(--gb-text3)', fontSize:11, marginTop:2 }}>ID: {s.id} · {s.sound_type}</div>
-                      </div>
-                      <audio controls src={s.url} style={{ height:32 }} />
-                      <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" onClick={() => deleteSound(s)}>🗑</button>
+                <p style={{ fontSize:12, color:'var(--gb-text3)', marginTop:6 }}>Supports portrait and landscape images — displayed full (not cropped).</p>
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🔤 Font Family</div>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(175px,1fr))', gap:8, maxHeight:260, overflowY:'auto', border:'1px solid var(--gb-border)', borderRadius:8, padding:10, background:'var(--gb-surface2)' }}>
+                  {FONTS.map(font => (
+                    <div key={font} onClick={() => setSettings({...settings,font_family:font})}
+                      style={{ padding:'8px 10px', borderRadius:7, cursor:'pointer',
+                        border:`2px solid ${settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? 'var(--gb-primary)' : 'transparent'}`,
+                        background: settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? '#eef0ff' : '#fff',
+                        transition:'all .12s' }}>
+                      <div style={{ fontSize:13, fontFamily:`'${font}',sans-serif`, color:'#1e1e2e', fontWeight:700 }}>{font}</div>
+                      <div style={{ fontSize:11, fontFamily:`'${font}',sans-serif`, color:'#64657a' }}>The quick brown fox</div>
+                      <style>{`@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@400;600;700&display=swap');`}</style>
                     </div>
                   ))}
                 </div>
-              )
-            }
-          </div>
-        )}
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🎨 Colors</div>
+                <div style={{ display:'flex', gap:20, flexWrap:'wrap' }}>
+                  <ColorPicker value={settings.bg_color||'#ffffff'} onChange={v => setSettings({...settings,bg_color:v})} label="Background Color" />
+                  <ColorPicker value={settings.primary_color||'#6366f1'} onChange={v => setSettings({...settings,primary_color:v})} label="Primary / Accent Color" />
+                </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🌅 Background Images</div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                  <div>
+                    <span className="gb-label" style={{ marginBottom:6, display:'block' }}>Game Background Image</span>
+                    <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
+                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
+                      style={{ display:'none' }} />
+                    <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+                      <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()}>📷 Upload</button>
+                      {settings.bg_image_url && <img src={settings.bg_image_url} className="gb-thumb" alt="" />}
+                      {settings.bg_image_url && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})}>✕</button>}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">📝 Game Texts</div>
+                <div className="gb-fg" style={{ marginBottom:12 }}>
+                  <span className="gb-label">Heading 1 (title — text 1)</span>
+                  <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main title" />
+                </div>
+                <div className="gb-fg" style={{ marginBottom:12 }}>
+                  <span className="gb-label">Heading 2 (subtitle — text 2)</span>
+                  <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" />
+                </div>
+                <div className="gb-fg" style={{ marginBottom:12 }}>
+                  <span className="gb-label">Intro Text (body — text 3, shown before quiz)</span>
+                  <textarea rows={2} value={settings.intro_text||''} onChange={e => setSettings({...settings,intro_text:e.target.value})} style={{ resize:'vertical' }} />
+                </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🏷️ Button Labels</div>
+                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>Leave blank to use defaults.</p>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(190px,1fr))', gap:12 }}>
+                  <div className="gb-fg"><span className="gb-label">Start Button</span><input value={settings.start_button_text||''} onChange={e => setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Quiz →" /></div>
+                  <div className="gb-fg"><span className="gb-label">Next Button</span><input value={settings.next_button_text||''} onChange={e => setSettings({...settings,next_button_text:e.target.value})} placeholder="Next →" /></div>
+                  <div className="gb-fg"><span className="gb-label">Continue Button</span><input value={settings.continue_button_text||''} onChange={e => setSettings({...settings,continue_button_text:e.target.value})} placeholder="Continue Now →" /></div>
+                </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">📲 Social Share Text</div>
+                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:10 }}>Text shown when the game link is shared on WhatsApp, Facebook etc.</p>
+                <div className="gb-fg">
+                  <span className="gb-label">Share Description</span>
+                  <input value={settings.meta_description||''} onChange={e => setSettings({...settings,meta_description:e.target.value})} placeholder="Play this game and win exciting rewards!" maxLength={200} />
+                  <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>{(settings.meta_description||'').length}/200</span>
+                </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">⚙️ Options</div>
+                <div style={{ display:'flex', gap:20, flexWrap:'wrap', marginBottom:14 }}>
+                  <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
+                    <input type="checkbox" checked={!!settings.show_progress} onChange={e => setSettings({...settings,show_progress:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                    Show progress bar
+                  </label>
+                  <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
+                    <input type="checkbox" checked={settings.send_email!==0&&settings.send_email!=='0'} onChange={e => setSettings({...settings,send_email:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                    Send completion email
+                  </label>
+                </div>
+                <div className="gb-fg" style={{ maxWidth:220 }}>
+                  <span className="gb-label">Time Per Question (sec, 0 = no limit)</span>
+                  <input type="number" min={0} value={settings.time_per_question||0} onChange={e => setSettings({...settings,time_per_question:e.target.value})} />
+                </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:20, padding:16 }}>
+                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                  <input type="checkbox" id="termsEnabled" checked={!!settings.terms_enabled}
+                    onChange={e => setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                  <label htmlFor="termsEnabled" style={{ fontWeight:700, cursor:'pointer', fontSize:14 }}>Enable Terms & Conditions Checkbox</label>
+                </div>
+                {settings.terms_enabled
+                  ? (
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                      <div className="gb-fg"><span className="gb-label">Terms Label</span><input value={settings.terms_text||''} onChange={e => setSettings({...settings,terms_text:e.target.value})} placeholder="Terms & Conditions" /></div>
+                      <div className="gb-fg"><span className="gb-label">Terms URL (optional)</span><input value={settings.terms_url||''} onChange={e => setSettings({...settings,terms_url:e.target.value})} placeholder="https://yoursite.com/terms" /></div>
+                    </div>
+                  )
+                  : <p style={{ color:'var(--gb-text3)', fontSize:13 }}>Enable to require players to accept T&C before starting.</p>
+                }
+              </div>
+              <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                {saving ? '⏳ Saving…' : '💾 Save All Settings'}
+              </button>
+            </div>
+          )}
+
+          {/* ════ SOUNDS TAB ════ */}
+          {tab === 'sounds' && (
+            <div>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20, flexWrap:'wrap', gap:12 }}>
+                <div>
+                  <h3 style={{ color:'var(--gb-text)', fontFamily:'inherit', marginBottom:4 }}>Sound Library</h3>
+                  <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Upload MP3, WAV or OGG files, then assign them below.</p>
+                </div>
+                <div>
+                  <input type="file" ref={soundUploadRef} accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/x-wav,audio/wave" onChange={uploadSound} style={{ display:'none' }} />
+                  <button className="gb-btn gb-btn-primary" onClick={() => soundUploadRef.current.click()} disabled={soundUploading}>
+                    {soundUploading ? '⏳ Uploading…' : '+ Upload Sound'}
+                  </button>
+                </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:20, padding:16 }}>
+                <div className="gb-section-title">🎮 Assign Sounds to Quiz</div>
+                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:14 }}>
+                  These play globally across the entire quiz. Upload sounds above first, then select them here.
+                </p>
+                <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:12, marginBottom:16 }}>
+                  <SoundSelector label="✅ Correct Answer" value={settings.sound_correct_id} onChange={v => setSettings({...settings,sound_correct_id:v})} sounds={sounds} />
+                  <SoundSelector label="❌ Wrong Answer" value={settings.sound_wrong_id} onChange={v => setSettings({...settings,sound_wrong_id:v})} sounds={sounds} />
+                  <SoundSelector label="🏆 Win / Completion" value={settings.win_sound_id} onChange={v => setSettings({...settings,win_sound_id:v})} sounds={sounds} />
+                  <SoundSelector label="💀 Lose Sound" value={settings.lose_sound_id} onChange={v => setSettings({...settings,lose_sound_id:v})} sounds={sounds} />
+                </div>
+                <button className="gb-btn gb-btn-primary gb-btn-sm" onClick={saveSettings} disabled={saving}>
+                  {saving ? 'Saving…' : '💾 Save Sound Assignments'}
+                </button>
+              </div>
+              {sounds.length === 0
+                ? (
+                  <div className="gb-empty">
+                    <div className="gb-empty-icon">🔊</div>
+                    <h3 style={{ color:'var(--gb-text)', marginBottom:8 }}>No sounds yet</h3>
+                    <p>Upload MP3, WAV, or OGG files</p>
+                    <button className="gb-btn gb-btn-primary" style={{ marginTop:16 }} onClick={() => soundUploadRef.current.click()}>+ Upload Sound</button>
+                  </div>
+                )
+                : (
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    {sounds.map(s => (
+                      <div key={s.id} className="gb-card" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px' }}>
+                        <span style={{ fontSize:20 }}>🎵</span>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontWeight:700, fontSize:14, color:'var(--gb-text)' }}>{s.name}</div>
+                          <div style={{ color:'var(--gb-text3)', fontSize:11, marginTop:2 }}>ID: {s.id} · {s.sound_type}</div>
+                        </div>
+                        <audio controls src={s.url} style={{ height:32 }} />
+                        <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" onClick={() => deleteSound(s)}>🗑</button>
+                      </div>
+                    ))}
+                  </div>
+                )
+              }
+            </div>
+          )}
+
+        </div>{/* ─ end left col ─ */}
+
+        {/* ─── RIGHT COL — Phone Mockup ─── */}
+        <div style={{
+          position:'sticky', top:80,
+          width:320, height:640, borderRadius:36,
+          border:'4px solid #1a1a2e', background:'#f4f4ff',
+          overflow:'hidden', boxShadow:'0 12px 48px rgba(0,0,0,.18)',
+          fontFamily: "'DM Sans', sans-serif", flexShrink:0,
+          display:'flex', flexDirection:'column',
+          marginRight:20,
+        }}>
+          <div style={{ width:100, height:24, background:'#1a1a2e', borderRadius:'0 0 16px 16px', margin:'0 auto', flexShrink:0 }} />
+
+          {/* ── Form preview ── */}
+          {tab === 'form' && (() => {
+            const hasBg = settings.bg_image_url
+            return (
+            <div style={{
+              flex:1, display:'flex', flexDirection:'column',
+              background: hasBg ? `url(${settings.bg_image_url}) center/cover` : (settings.bg_color||'#f4f4ff'),
+              padding:'clamp(16px,4vw,20px) 12px',
+              overflow:'auto',
+              fontFamily: settings.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif",
+            }}>
+              <div style={{
+                width:'100%', maxWidth:280, margin:'auto',
+                background: hasBg ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.93)',
+                backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)',
+                borderRadius:22, padding:'20px 16px', boxSizing:'border-box',
+                boxShadow: hasBg ? '0 8px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.4)' : '0 8px 40px rgba(0,0,0,0.12)',
+                border: hasBg ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.85)',
+              }}>
+                {settings.game_logo_url && (
+                  <div style={{ textAlign:'center', marginBottom:14 }}>
+                    <img src={settings.game_logo_url} alt="" style={{ maxWidth:'100%', maxHeight:80, objectFit:'contain', borderRadius:8 }} />
+                  </div>
+                )}
+                <h1 style={{ fontSize:16, fontWeight:800, textAlign:'center', marginBottom:4, color: hasBg ? '#fff' : '#1a1a2e', lineHeight:1.2, textShadow: hasBg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none' }}>{game?.name}</h1>
+                {settings.intro_text && (
+                  <div style={{
+                    background: hasBg ? 'rgba(255,255,255,0.15)' : '#f0f0ff',
+                    border:`1.5px solid ${hasBg ? 'rgba(255,255,255,0.3)' : '#6366f130'}`,
+                    borderRadius:10, padding:'8px 12px', margin:'10px 0 14px',
+                    color: hasBg ? '#fff' : '#444', fontSize:12, textAlign:'center', lineHeight:1.5,
+                  }}>{settings.intro_text}</div>
+                )}
+                {formFields.map((f,i) => (
+                  <div key={i} style={{ marginBottom:10 }}>
+                    <div style={{ fontSize:11, fontWeight:700, color: hasBg ? 'rgba(255,255,255,0.9)' : '#555', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>
+                      {f.field_label}{f.is_required ? <span style={{color:'#ef4444'}}>*</span> : ''}
+                    </div>
+                    {f.field_type === 'textarea' ? (
+                      <textarea rows={2} placeholder={f.field_label}
+                        style={{ width:'100%', background:'rgba(255,255,255,0.88)', border:`1.5px solid ${hasBg ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius:8, padding:'9px 12px', fontSize:13, color:'#1a1a2e', outline:'none', boxSizing:'border-box', resize:'none', fontFamily:'inherit' }} />
+                    ) : (
+                      <input type={f.field_type==='email'?'email':f.field_type==='phone'?'tel':f.field_type==='number'?'number':'text'}
+                        placeholder={f.field_label}
+                        style={{ width:'100%', background:'rgba(255,255,255,0.88)', border:`1.5px solid ${hasBg ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius:8, padding:'9px 12px', fontSize:13, color:'#1a1a2e', outline:'none', boxSizing:'border-box', fontFamily:'inherit' }} />
+                    )}
+                  </div>
+                ))}
+                <div style={{ marginTop:8 }}>
+                  <div style={{
+                    width:'100%', textAlign:'center',
+                    background: `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,
+                    color:'#fff', border:'none', borderRadius:10, padding:'12px', fontSize:14, fontWeight:700,
+                    boxShadow: `0 6px 20px ${(settings.primary_color||'#6366f1')}44`,
+                    cursor:'pointer',
+                  }}>
+                    {settings.start_button_text || 'Start Quiz →'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )})()}
+
+          {/* ── Questions preview ── */}
+          {tab === 'questions' && questions.length > 0 && (
+            <div style={{
+              flex:1, display:'flex', flexDirection:'column',
+              background: questions[0].question_bg_image_url
+                ? `url(${questions[0].question_bg_image_url}) center/cover`
+                : settings.bg_image_url
+                  ? `url(${settings.bg_image_url}) center/cover`
+                  : (settings.bg_color||'#f4f4ff'),
+              fontFamily: settings.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif",
+              position:'relative',
+            }}>
+              {/* Progress bar */}
+              {(settings.show_progress !== 0) && (
+                <div style={{ padding:'10px 14px 0', flexShrink:0 }}>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color: (questions[0].question_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.9)' : '#888', fontWeight:600, marginBottom:4 }}>
+                    <span>Question 1 of {questions.length}</span>
+                    <span>{Math.round((1/questions.length)*100)}%</span>
+                  </div>
+                  <div style={{ height:4, background: (questions[0].question_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius:10, overflow:'hidden' }}>
+                    <div style={{ height:'100%', width:`${(1/questions.length)*100}%`, background:`linear-gradient(90deg, ${settings.primary_color||'#7c6ff7'}, ${(settings.primary_color||'#7c6ff7')}bb)`, borderRadius:10, transition:'width 0.5s ease' }} />
+                  </div>
+                </div>
+              )}
+              {/* Question card */}
+              <div style={{
+                flex:1, display:'flex', flexDirection:'column',
+                padding:'8px 12px 12px', overflow:'auto',
+              }}>
+                <div style={{
+                  flex:1, display:'flex', flexDirection:'column',
+                  background: (questions[0].question_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.97)',
+                  backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
+                  borderRadius:18,
+                  border: (questions[0].question_bg_image_url||settings.bg_image_url) ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
+                  boxShadow: (questions[0].question_bg_image_url||settings.bg_image_url) ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
+                  overflow:'hidden',
+                }}>
+                  {/* Question image */}
+                  {questions[0].question_image_url && (
+                    <div style={{
+                      flex:1, minHeight:0, display:'flex', alignItems:'center', justifyContent:'center',
+                      padding:'10px 10px 0', background: (questions[0].question_bg_image_url||settings.bg_image_url) ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.03)', overflow:'hidden',
+                    }}>
+                      <img src={questions[0].question_image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8 }} />
+                    </div>
+                  )}
+                  {/* Bottom: question text + options */}
+                  <div style={{ flexShrink:0, display:'flex', flexDirection:'column', padding:'10px 12px 12px', gap:8 }}>
+                    <h2 style={{
+                      color: (questions[0].question_bg_image_url||settings.bg_image_url) ? '#fff' : (questions[0].question_color||'#1a1a2e'),
+                      fontSize:13, textAlign:'center', fontWeight:700, margin:0, lineHeight:1.4,
+                      textShadow: (questions[0].question_bg_image_url||settings.bg_image_url) ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
+                    }}>
+                      {questions[0].question_text || 'Untitled question'}
+                    </h2>
+                    <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+                      {(questions[0].options||[]).slice(0,4).map((opt,i) => (
+                        <div key={opt.id||i} style={{
+                          background: opt.option_color || '#1a1a2e',
+                          color: opt.option_text_color || '#ffffff',
+                          borderRadius:12, padding:'8px 12px', fontSize:12, fontWeight:600,
+                          textAlign:'center', border:'2px solid transparent',
+                          boxShadow:'0 2px 8px rgba(0,0,0,0.1)',
+                        }}>
+                          {opt.option_text || `Option ${i+1}`}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Thankyou preview ── */}
+          {tab === 'thankyou' && (
+            <div style={{
+              flex:1, display:'flex', flexDirection:'column',
+              background: settings.thankyou_bg_image_url
+                ? `url(${settings.thankyou_bg_image_url}) center/cover`
+                : settings.bg_image_url
+                  ? `url(${settings.bg_image_url}) center/cover`
+                  : (settings.bg_color||'#f4f4ff'),
+              padding:'clamp(16px,4vw,20px) 12px',
+              overflow:'auto',
+              fontFamily: settings.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif",
+            }}>
+              <div style={{
+                width:'100%', maxWidth:280, margin:'auto', textAlign:'center',
+                background: (settings.thankyou_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.95)',
+                backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
+                borderRadius:22, padding:'24px 16px', boxSizing:'border-box',
+                boxShadow: (settings.thankyou_bg_image_url||settings.bg_image_url) ? '0 16px 60px rgba(0,0,0,0.28)' : '0 16px 60px rgba(0,0,0,0.12)',
+                border: (settings.thankyou_bg_image_url||settings.bg_image_url) ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(0,0,0,0.06)',
+              }}>
+                <div style={{ fontSize:44, marginBottom:8 }}>🎉</div>
+                <h2 style={{ fontSize:18, fontWeight:800, color: (settings.thankyou_bg_image_url||settings.bg_image_url) ? '#fff' : '#1a1a2e', marginBottom:14, lineHeight:1.25 }}>
+                  {settings.outro_text || 'Yay! You completed the game!'}
+                </h2>
+                <div style={{
+                  background: (settings.thankyou_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.15)' : '#f0f0ff',
+                  border:`1.5px solid ${(settings.thankyou_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.3)' : '#6366f130'}`,
+                  borderRadius:12, padding:'10px 14px', marginBottom:16,
+                  color: (settings.thankyou_bg_image_url||settings.bg_image_url) ? '#fff' : '#444', fontSize:12,
+                }}>
+                  ✅ Thank you for completing!
+                </div>
+                <div style={{
+                  width:'100%',
+                  background: `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,
+                  color:'#fff', borderRadius:12, padding:'12px', fontSize:14, fontWeight:700,
+                  boxShadow: `0 6px 24px ${(settings.primary_color||'#6366f1')}55`,
+                  cursor:'pointer',
+                }}>
+                  🚀 {settings.submit_button_text || 'Submit & Explore'}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Settings / Sounds / Email preview (form screen) ── */}
+          {(tab === 'settings' || tab === 'sounds' || tab === 'email') && (() => {
+            const hasBg = settings.bg_image_url
+            return (
+            <div style={{
+              flex:1, display:'flex', flexDirection:'column',
+              background: hasBg ? `url(${settings.bg_image_url}) center/cover` : (settings.bg_color||'#f4f4ff'),
+              padding:'clamp(16px,4vw,20px) 12px',
+              overflow:'auto',
+              fontFamily: settings.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif",
+            }}>
+              <div style={{
+                width:'100%', maxWidth:280, margin:'auto',
+                background: hasBg ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.93)',
+                backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)',
+                borderRadius:22, padding:'20px 16px', boxSizing:'border-box',
+                boxShadow: hasBg ? '0 8px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.4)' : '0 8px 40px rgba(0,0,0,0.12)',
+                border: hasBg ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.85)',
+              }}>
+                {settings.game_logo_url && (
+                  <div style={{ textAlign:'center', marginBottom:14 }}>
+                    <img src={settings.game_logo_url} alt="" style={{ maxWidth:'100%', maxHeight:80, objectFit:'contain', borderRadius:8 }} />
+                  </div>
+                )}
+                <h1 style={{ fontSize:16, fontWeight:800, textAlign:'center', marginBottom:4, color: hasBg ? '#fff' : '#1a1a2e', lineHeight:1.2, textShadow: hasBg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none' }}>{game?.name}</h1>
+                {settings.intro_text && (
+                  <div style={{
+                    background: hasBg ? 'rgba(255,255,255,0.15)' : '#f0f0ff',
+                    border:`1.5px solid ${hasBg ? 'rgba(255,255,255,0.3)' : '#6366f130'}`,
+                    borderRadius:10, padding:'8px 12px', margin:'10px 0 14px',
+                    color: hasBg ? '#fff' : '#444', fontSize:12, textAlign:'center', lineHeight:1.5,
+                  }}>{settings.intro_text}</div>
+                )}
+                <div style={{ marginTop:8 }}>
+                  <div style={{
+                    width:'100%', textAlign:'center',
+                    background: `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,
+                    color:'#fff', border:'none', borderRadius:10, padding:'12px', fontSize:14, fontWeight:700,
+                    boxShadow: `0 6px 20px ${(settings.primary_color||'#6366f1')}44`,
+                    cursor:'pointer',
+                  }}>
+                    {settings.start_button_text || 'Start Quiz →'}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )})()}
+        </div>{/* ─ end right col ─ */}
+
+
       </div>
 
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}

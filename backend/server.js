@@ -1,48 +1,47 @@
 const express = require("express");
 const cors = require("cors");
-const bcrypt = require("bcryptjs");
-const jwt = require("jsonwebtoken");
+const path = require("path");
+require("dotenv").config();
 
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
-// 🔐 SECRET KEY (later move to .env)
-const JWT_SECRET = "empwell_secret_key";
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
-// 🧠 TEMP USER (for testing)
-const user = {
-  email: "admin@empwell.com",
-  password: bcrypt.hashSync("123456", 10),
-};
+const authRoutes = require("./routes/auth");
+const pauthRoutes = require("./routes/Pauth");
+const gamesRoutes = require("./routes/games");
+const soundsRoutes = require("./routes/sounds");
+const uploadRoutes = require("./routes/upload");
+const quizRoutes = require("./routes/quiz");
+const playerRoutes = require("./routes/player");
+const clientsRoutes = require("./routes/clients");
+const spinRoutes = require("./routes/spin");
+const crosswordRoutes = require("./routes/crossword");
+const leaderboardRoutes = require("./routes/leaderboard");
+const playersAdminRoutes = require("./routes/players-admin");
 
-// ✅ LOGIN API
-app.post("/login", async (req, res) => {
-  const { email, password } = req.body;
-
-  if (email !== user.email) {
-    return res.status(400).json({ message: "User not found" });
-  }
-
-  const isMatch = await bcrypt.compare(password, user.password);
-
-  if (!isMatch) {
-    return res.status(400).json({ message: "Invalid password" });
-  }
-
-  const token = jwt.sign({ email }, JWT_SECRET, { expiresIn: "1h" });
-
-  res.json({
-    message: "Login successful",
-    token,
-  });
-});
+app.use("/api/auth", authRoutes);
+app.use("/api/pauth", pauthRoutes);
+app.use("/api/games", gamesRoutes);
+app.use("/api/sounds", soundsRoutes);
+app.use("/api/upload", uploadRoutes);
+app.use("/api/quiz", quizRoutes);
+app.use("/api/play", playerRoutes);
+app.use("/api/clients", clientsRoutes);
+app.use("/api/spin", spinRoutes);
+app.use("/api/crossword", crosswordRoutes);
+app.use("/api/leaderboard", leaderboardRoutes);
+app.use("/api/players-admin", playersAdminRoutes);
 
 app.get("/", (req, res) => {
-  res.send("Backend Running 🚀");
+  res.send("Backend Running");
 });
 
-app.listen(5050, () => {
-  console.log("Server running on port 5050");
+const PORT = process.env.PORT || 5050;
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
 });

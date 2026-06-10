@@ -288,7 +288,7 @@ export default function SpinBuilderTab() {
     Promise.all([
       api.get(`/spin/${gameId}/settings`),
       api.get(`/spin/games/${gameId}/segments`),
-      api.get(`/sounds/${gameId}`),
+      api.get(`/sounds/games/${gameId}/sounds`),
     ]).then(([sRes, segRes, sndRes]) => {
       const s = sRes.data.settings
       if (s) {

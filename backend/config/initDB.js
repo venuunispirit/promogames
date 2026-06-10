@@ -302,6 +302,11 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'submit_confirm_gif_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'allow_back', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'quiz_settings', 'time_per_question', 'INT DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'heading_1', 'VARCHAR(500)');
+  await addColumn(connection, 'quiz_settings', 'heading_2', 'VARCHAR(500)');
+  await addColumn(connection, 'quiz_settings', 'heading_1_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
+  await addColumn(connection, 'quiz_settings', 'heading_2_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
+  await addColumn(connection, 'quiz_settings', 'intro_text_color', "VARCHAR(20) DEFAULT '#444444'");
 
   /* GAMES */
   await addColumn(connection, 'games', 'client_id', 'INT');

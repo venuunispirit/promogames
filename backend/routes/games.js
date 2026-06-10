@@ -136,9 +136,9 @@ router.post('/:id/duplicate', auth, async (req, res) => {
     if (settings[0]) {
       const s = settings[0];
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email]
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email, heading_1_color, heading_2_color, intro_text_color)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.heading_1, s.heading_2, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email, s.heading_1_color, s.heading_2_color, s.intro_text_color]
       );
     } else {
       await db.query('INSERT INTO quiz_settings (game_id) VALUES (?)', [newId]);
@@ -277,10 +277,12 @@ router.put('/:id/settings', auth, upload.fields([
   { name: 'game_logo', maxCount: 1 },
   { name: 'submit_confirm_gif', maxCount: 1 }
 ]), async (req, res) => {
-  const { bg_color, primary_color, show_progress, allow_back, time_per_question, intro_text, outro_text,
+  const { bg_color, primary_color, show_progress, allow_back, time_per_question,
+    heading_1, heading_2, intro_text, outro_text,
     win_sound_url, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id,
     terms_enabled, terms_text, terms_url, send_email,
-    bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url } = req.body;
+    bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url,
+    heading_1_color, heading_2_color, intro_text_color } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [req.params.id]);
     const bgImg   = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           || (existing[0]?.bg_image_url           || null));
@@ -289,22 +291,28 @@ router.put('/:id/settings', auth, upload.fields([
     const gifImg  = req.files?.submit_confirm_gif ? `/uploads/images/${req.files.submit_confirm_gif[0].filename}` : (submit_confirm_gif_url || (existing[0]?.submit_confirm_gif_url  || null));
 
     await db.query(
-      `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE bg_color=VALUES(bg_color), primary_color=VALUES(primary_color),
        show_progress=VALUES(show_progress), allow_back=VALUES(allow_back),
-       time_per_question=VALUES(time_per_question), intro_text=VALUES(intro_text),
+       time_per_question=VALUES(time_per_question),
+       heading_1=VALUES(heading_1), heading_2=VALUES(heading_2),
+       intro_text=VALUES(intro_text),
        outro_text=VALUES(outro_text), win_sound_url=VALUES(win_sound_url),
        bg_image_url=VALUES(bg_image_url), thankyou_bg_image_url=VALUES(thankyou_bg_image_url),
        terms_enabled=VALUES(terms_enabled), terms_text=VALUES(terms_text), terms_url=VALUES(terms_url),
        send_email=VALUES(send_email), win_sound_id=VALUES(win_sound_id), lose_sound_id=VALUES(lose_sound_id),
        sound_correct_id=VALUES(sound_correct_id), sound_wrong_id=VALUES(sound_wrong_id),
        game_logo_url=VALUES(game_logo_url), font_family=VALUES(font_family),
-       submit_confirm_gif_url=VALUES(submit_confirm_gif_url)`,
-      [req.params.id, bg_color, primary_color, show_progress, allow_back, time_per_question, intro_text, outro_text,
+       submit_confirm_gif_url=VALUES(submit_confirm_gif_url),
+       heading_1_color=VALUES(heading_1_color), heading_2_color=VALUES(heading_2_color),
+       intro_text_color=VALUES(intro_text_color)`,
+      [req.params.id, bg_color, primary_color, show_progress, allow_back, time_per_question,
+       heading_1 || null, heading_2 || null, intro_text, outro_text,
        win_sound_url, bgImg, tyImg, terms_enabled ? 1 : 0, terms_text, terms_url, send_email !== '0' ? 1 : 0,
        win_sound_id || null, lose_sound_id || null, sound_correct_id || null, sound_wrong_id || null,
-       logoImg || null, font_family || 'DM Sans', gifImg || null]
+       logoImg || null, font_family || 'DM Sans', gifImg || null,
+       heading_1_color || null, heading_2_color || null, intro_text_color || null]
     );
     res.json({ success: true, message: 'Settings saved' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }

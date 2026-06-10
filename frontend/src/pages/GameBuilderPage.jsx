@@ -253,7 +253,7 @@ function Toast({ msg, type, onClose }) {
 }
 
 /* ─────────── ColorPicker ─────────── */
-function ColorPicker({ value, onChange, label }) {
+function ColorPicker({ value, onChange, label, noPresets }) {
   const [show, setShow] = useState(false)
   const ref = useRef()
   useEffect(() => {
@@ -270,15 +270,15 @@ function ColorPicker({ value, onChange, label }) {
           style={{ width:90, fontSize:12, padding:'5px 8px' }} />
       </div>
       {show && (
-        <div className="gb-cpop">
-          {COLOR_PRESETS.map(c => (
+        <div className="gb-cpop" style={noPresets ? { display:'flex', flexDirection:'column', gap:6, padding:10 } : {}}>
+          {!noPresets && COLOR_PRESETS.map(c => (
             <div key={c} onClick={() => { onChange(c); setShow(false) }}
               style={{ width:22, height:22, background:c, borderRadius:4, cursor:'pointer',
                 border: value===c ? '2px solid #6366f1' : '1px solid #e2e6f0' }} />
           ))}
           <input type="color" value={value||'#000000'} onChange={e => onChange(e.target.value)}
             style={{ gridColumn:'span 7', width:'100%', height:28, padding:0, border:'none', background:'none', cursor:'pointer' }} />
-          <button className="gb-btn gb-btn-ghost gb-btn-sm" style={{ gridColumn:'span 7', width:'100%' }} onClick={() => setShow(false)}>Close</button>
+          <button className="gb-btn gb-btn-ghost gb-btn-sm" style={{ width:'100%' }} onClick={() => setShow(false)}>Close</button>
         </div>
       )}
     </div>
@@ -626,6 +626,7 @@ export default function GameBuilderPage() {
   const [formFields,    setFormFields]    = useState([])
   const [emailTemplate, setEmailTemplate] = useState({})
   const [settings,      setSettings]      = useState({})
+  const [slugInput,     setSlugInput]     = useState('')
 const [draggedIdx,    setDraggedIdx]    = useState(null)
 const [dragOverIdx,   setDragOverIdx]   = useState(null)
 const [editingName,   setEditingName]   = useState(false)
@@ -654,6 +655,7 @@ const [nameInput,     setNameInput]     = useState('')
       setEmailTemplate(g.emailTemplate||{})
       setSettings(g.settings||{})
       setSounds(g.sounds||[])
+      setSlugInput(g.slug||'')
       setRedirectUrl(g.redirect_url||'')
     }).catch(err => {
       setFetchError(err.response?.data?.message || err.message || 'Failed to load game')
@@ -793,7 +795,8 @@ const [nameInput,     setNameInput]     = useState('')
         'sound_correct_id','sound_wrong_id',
         'terms_enabled','terms_text','terms_url','send_email','font_family',
         'start_button_text','next_button_text','submit_button_text','continue_button_text',
-        'meta_description']
+        'meta_description',
+        'heading_1_color','heading_2_color','intro_text_color']
       for (const f of fields) fd.append(f, settings[f]??'')
       if (settings._bgImageFile)    fd.append('bg_image',           settings._bgImageFile)
       else if (settings.bg_image_url) fd.append('bg_image_url',     settings.bg_image_url)
@@ -999,6 +1002,59 @@ const [nameInput,     setNameInput]     = useState('')
           {/* ════ FORM TAB ════ */}
           {tab === 'form' && (
             <div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🎨 Visuals</div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                    <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Background Image</span>
+                    <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
+                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
+                      style={{ display:'none' }} />
+                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
+                    {settings.bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
+                      <img src={settings.bg_image_url} alt="" style={{ height:72, width:'auto', borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
+                      <button
+                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
+                        type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})}>✕</button>
+                    </div>}
+                  </div>
+                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                    <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Logo</span>
+                    <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
+                      style={{ display:'none' }} />
+                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
+                    {settings.game_logo_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
+                      <img src={settings.game_logo_url} alt="" style={{ maxWidth:180, maxHeight:72, width:'auto', height:'auto', borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#fff' }} />
+                      <button
+                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
+                        type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})}>✕</button>
+                    </div>}
+                  </div>
+                </div>
+              </div>
+
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">📝 Game Texts</div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:'8px 16px', alignItems:'end' }}>
+                  <div className="gb-fg" style={{ marginBottom:0 }}>
+                    <span className="gb-label">Heading 1 (title — text 1)</span>
+                    <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main title" />
+                  </div>
+                  <ColorPicker value={settings.heading_1_color||'#1a1a2e'} onChange={v => setSettings({...settings,heading_1_color:v})} noPresets />
+                  <div className="gb-fg" style={{ marginBottom:0 }}>
+                    <span className="gb-label">Heading 2 (subtitle — text 2)</span>
+                    <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" />
+                  </div>
+                  <ColorPicker value={settings.heading_2_color||'#1a1a2e'} onChange={v => setSettings({...settings,heading_2_color:v})} noPresets />
+                  <div className="gb-fg" style={{ marginBottom:0 }}>
+                    <span className="gb-label">Intro Text (body — text 3, shown before quiz)</span>
+                    <textarea rows={2} value={settings.intro_text||''} onChange={e => setSettings({...settings,intro_text:e.target.value})} style={{ resize:'vertical' }} />
+                  </div>
+                  <ColorPicker value={settings.intro_text_color||'#444444'} onChange={v => setSettings({...settings,intro_text_color:v})} noPresets />
+                </div>
+              </div>
+
               <p style={{ color:'var(--gb-text2)', marginBottom:16, fontSize:13 }}>These fields appear on the player registration screen before the quiz starts.</p>
               {formFields.map((f,i) => (
                 <div key={i} className="gb-card" style={{ marginBottom:10, padding:'12px 16px' }}>
@@ -1031,6 +1087,10 @@ const [nameInput,     setNameInput]     = useState('')
                 <button className="gb-btn gb-btn-ghost" onClick={addFormField}>+ Add Field</button>
                 <button className="gb-btn gb-btn-primary" onClick={saveFormFields} disabled={saving}>{saving ? 'Saving…' : '💾 Save Form'}</button>
               </div>
+
+              <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px', marginTop:16 }}>
+                {saving ? '⏳ Saving…' : '💾 Save Settings'}
+              </button>
             </div>
           )}
 
@@ -1150,20 +1210,6 @@ const [nameInput,     setNameInput]     = useState('')
           {tab === 'settings' && (
             <div>
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">🖼️ Game Logo</div>
-                <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                  onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
-                  style={{ display:'none' }} />
-                <div style={{ display:'flex', gap:10, alignItems:'center', flexWrap:'wrap' }}>
-                  <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()}>📷 Upload Logo</button>
-                  {settings.game_logo_url && <>
-                    <img src={settings.game_logo_url} alt="" style={{ maxWidth:120, maxHeight:56, width:'auto', height:'auto', borderRadius:6, border:'1px solid var(--gb-border)', background:'#fff', objectFit:'contain' }} />
-                    <button className="gb-btn gb-btn-danger gb-btn-sm" type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})}>✕ Remove</button>
-                  </>}
-                </div>
-                <p style={{ fontSize:12, color:'var(--gb-text3)', marginTop:6 }}>Supports portrait and landscape images — displayed full (not cropped).</p>
-              </div>
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">🔤 Font Family</div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(175px,1fr))', gap:8, maxHeight:260, overflowY:'auto', border:'1px solid var(--gb-border)', borderRadius:8, padding:10, background:'var(--gb-surface2)' }}>
                   {FONTS.map(font => (
@@ -1186,37 +1232,7 @@ const [nameInput,     setNameInput]     = useState('')
                   <ColorPicker value={settings.primary_color||'#6366f1'} onChange={v => setSettings({...settings,primary_color:v})} label="Primary / Accent Color" />
                 </div>
               </div>
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">🌅 Background Images</div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                  <div>
-                    <span className="gb-label" style={{ marginBottom:6, display:'block' }}>Game Background Image</span>
-                    <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
-                      style={{ display:'none' }} />
-                    <div style={{ display:'flex', gap:8, alignItems:'center' }}>
-                      <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()}>📷 Upload</button>
-                      {settings.bg_image_url && <img src={settings.bg_image_url} className="gb-thumb" alt="" />}
-                      {settings.bg_image_url && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})}>✕</button>}
-                    </div>
-                  </div>
-                </div>
-              </div>
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">📝 Game Texts</div>
-                <div className="gb-fg" style={{ marginBottom:12 }}>
-                  <span className="gb-label">Heading 1 (title — text 1)</span>
-                  <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main title" />
-                </div>
-                <div className="gb-fg" style={{ marginBottom:12 }}>
-                  <span className="gb-label">Heading 2 (subtitle — text 2)</span>
-                  <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" />
-                </div>
-                <div className="gb-fg" style={{ marginBottom:12 }}>
-                  <span className="gb-label">Intro Text (body — text 3, shown before quiz)</span>
-                  <textarea rows={2} value={settings.intro_text||''} onChange={e => setSettings({...settings,intro_text:e.target.value})} style={{ resize:'vertical' }} />
-                </div>
-              </div>
+
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">🏷️ Button Labels</div>
                 <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>Leave blank to use defaults.</p>
@@ -1370,13 +1386,14 @@ const [nameInput,     setNameInput]     = useState('')
                     <img src={settings.game_logo_url} alt="" style={{ maxWidth:'100%', maxHeight:80, objectFit:'contain', borderRadius:8 }} />
                   </div>
                 )}
-                <h1 style={{ fontSize:16, fontWeight:800, textAlign:'center', marginBottom:4, color: hasBg ? '#fff' : '#1a1a2e', lineHeight:1.2, textShadow: hasBg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none' }}>{game?.name}</h1>
+                <h1 style={{ fontSize:16, fontWeight:800, textAlign:'center', marginBottom:2, color: hasBg ? '#fff' : (settings.heading_1_color||'#1a1a2e'), lineHeight:1.2, textShadow: hasBg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none' }}>{settings.heading_1 || 'Untitled'}</h1>
+                {settings.heading_2 && <div style={{ fontSize:13, fontWeight:600, textAlign:'center', marginBottom:4, color: hasBg ? 'rgba(255,255,255,0.9)' : (settings.heading_2_color||'#1a1a2e'), lineHeight:1.3 }}>{settings.heading_2}</div>}
                 {settings.intro_text && (
                   <div style={{
                     background: hasBg ? 'rgba(255,255,255,0.15)' : '#f0f0ff',
                     border:`1.5px solid ${hasBg ? 'rgba(255,255,255,0.3)' : '#6366f130'}`,
                     borderRadius:10, padding:'8px 12px', margin:'10px 0 14px',
-                    color: hasBg ? '#fff' : '#444', fontSize:12, textAlign:'center', lineHeight:1.5,
+                    color: hasBg ? '#fff' : (settings.intro_text_color||'#444'), fontSize:12, textAlign:'center', lineHeight:1.5,
                   }}>{settings.intro_text}</div>
                 )}
                 {formFields.map((f,i) => (
@@ -1554,13 +1571,14 @@ const [nameInput,     setNameInput]     = useState('')
                     <img src={settings.game_logo_url} alt="" style={{ maxWidth:'100%', maxHeight:80, objectFit:'contain', borderRadius:8 }} />
                   </div>
                 )}
-                <h1 style={{ fontSize:16, fontWeight:800, textAlign:'center', marginBottom:4, color: hasBg ? '#fff' : '#1a1a2e', lineHeight:1.2, textShadow: hasBg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none' }}>{game?.name}</h1>
+                <h1 style={{ fontSize:16, fontWeight:800, textAlign:'center', marginBottom:2, color: hasBg ? '#fff' : (settings.heading_1_color||'#1a1a2e'), lineHeight:1.2, textShadow: hasBg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none' }}>{settings.heading_1 || 'Untitled'}</h1>
+                {settings.heading_2 && <div style={{ fontSize:13, fontWeight:600, textAlign:'center', marginBottom:4, color: hasBg ? 'rgba(255,255,255,0.9)' : (settings.heading_2_color||'#1a1a2e'), lineHeight:1.3 }}>{settings.heading_2}</div>}
                 {settings.intro_text && (
                   <div style={{
                     background: hasBg ? 'rgba(255,255,255,0.15)' : '#f0f0ff',
                     border:`1.5px solid ${hasBg ? 'rgba(255,255,255,0.3)' : '#6366f130'}`,
                     borderRadius:10, padding:'8px 12px', margin:'10px 0 14px',
-                    color: hasBg ? '#fff' : '#444', fontSize:12, textAlign:'center', lineHeight:1.5,
+                    color: hasBg ? '#fff' : (settings.intro_text_color||'#444'), fontSize:12, textAlign:'center', lineHeight:1.5,
                   }}>{settings.intro_text}</div>
                 )}
                 <div style={{ marginTop:8 }}>

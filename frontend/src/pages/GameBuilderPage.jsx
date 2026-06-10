@@ -790,6 +790,7 @@ const [nameInput,     setNameInput]     = useState('')
       const fd = new FormData()
       const fields = ['bg_color','primary_color','show_progress','allow_back','time_per_question',
         'heading_1','heading_2','intro_text','outro_text','win_sound_id','lose_sound_id',
+        'sound_correct_id','sound_wrong_id',
         'terms_enabled','terms_text','terms_url','send_email','font_family',
         'start_button_text','next_button_text','submit_button_text','continue_button_text',
         'meta_description']

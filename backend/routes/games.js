@@ -31,9 +31,12 @@ router.get('/', auth, async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT g.*, c.company_name, c.slug as client_slug,
+      u.name as updated_by_name,
       (SELECT COUNT(*) FROM questions q WHERE q.game_id = g.id) as question_count,
       (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
-      FROM games g LEFT JOIN clients c ON g.client_id = c.id ORDER BY g.created_at DESC
+      FROM games g LEFT JOIN clients c ON g.client_id = c.id
+      LEFT JOIN users u ON g.updated_by = u.id
+      ORDER BY g.created_at DESC
     `);
     res.json({ success: true, games: rows });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
@@ -82,7 +85,7 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   try {
-    const allowed = ['name','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description'];
+    const allowed = ['name','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type'];
     const booleans = ['is_active','show_in_play_page','show_in_hero_page'];
     const fields = []; const values = [];
     for (const key of allowed) {
@@ -91,11 +94,141 @@ router.put('/:id', auth, async (req, res) => {
         values.push(booleans.includes(key) ? (req.body[key] ? 1 : 0) : req.body[key]);
       }
     }
-    if (fields.length === 0) return res.status(400).json({ success: false, message: 'No fields to update' });
+    fields.push('updated_by=?');
+    values.push(req.user.id);
+    if (fields.length <= 1) return res.status(400).json({ success: false, message: 'No fields to update' });
     values.push(req.params.id);
     await db.query(`UPDATE games SET ${fields.join(', ')} WHERE id=?`, values);
     res.json({ success: true, message: 'Game updated' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+// POST /api/games/:id/duplicate — clone a game with all settings, questions, options, form fields
+router.post('/:id/duplicate', auth, async (req, res) => {
+  try {
+    const gameId = req.params.id;
+    const [games] = await db.query('SELECT * FROM games WHERE id = ?', [gameId]);
+    if (games.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+    const src = games[0];
+
+    let newName = src.name;
+    const copyMatch = src.name.match(/\(Copy(?: (\d+))?\)$/);
+    if (copyMatch) {
+      const n = parseInt(copyMatch[1] || '1');
+      newName = src.name.replace(/\(Copy(?:\s?\d+)?\)$/, `(Copy ${n + 1})`);
+    } else {
+      newName = `${src.name} (Copy)`;
+    }
+
+    let slug = slugify(newName);
+    const [existing] = await db.query('SELECT id FROM games WHERE slug = ? AND client_id = ?', [slug, src.client_id]);
+    if (existing.length > 0) slug = `${slug}-${Date.now()}`;
+
+    const [result] = await db.query(
+      `INSERT INTO games (client_id, name, slug, category, description, redirect_url, is_active, show_in_play_page, show_in_hero_page, meta_description, game_type, created_by, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?)`,
+      [src.client_id, newName, slug, src.category, src.description, src.redirect_url, src.meta_description, src.game_type || 'promogames', req.user.id, req.user.id]
+    );
+    const newId = result.insertId;
+
+    // Clone quiz_settings
+    const [settings] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [gameId]);
+    if (settings[0]) {
+      const s = settings[0];
+      await db.query(
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email]
+      );
+    } else {
+      await db.query('INSERT INTO quiz_settings (game_id) VALUES (?)', [newId]);
+    }
+
+    // Clone email_template
+    const [emailTemplates] = await db.query('SELECT * FROM email_templates WHERE game_id = ?', [gameId]);
+    if (emailTemplates[0]) {
+      const t = emailTemplates[0];
+      await db.query(
+        `INSERT INTO email_templates (game_id, sender_name, sender_email, subject, header_color, header_text, body_html, footer_text, is_enabled)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, t.sender_name, t.sender_email, t.subject, t.header_color, t.header_text, t.body_html, t.footer_text, t.is_enabled]
+      );
+    }
+
+    // Clone form_fields
+    const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [gameId]);
+    for (const f of formFields) {
+      await db.query(
+        'INSERT INTO form_fields (game_id, field_label, field_type, field_options, is_required, field_order) VALUES (?, ?, ?, ?, ?, ?)',
+        [newId, f.field_label, f.field_type, f.field_options, f.is_required, f.field_order]
+      );
+    }
+
+    // Clone questions + options
+    const [questions] = await db.query('SELECT * FROM questions WHERE game_id = ? ORDER BY question_order', [gameId]);
+    for (const q of questions) {
+      const [qr] = await db.query(
+        `INSERT INTO questions (game_id, question_text, question_image_url, question_bg_image_url, question_type, question_color, question_order, num_options, sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id, overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out, question_image_animation)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, q.question_text, q.question_image_url, q.question_bg_image_url, q.question_type, q.question_color, q.question_order, q.num_options, q.sound_correct, q.sound_wrong, q.sound_neutral, q.sound_correct_id, q.sound_wrong_id, q.sound_neutral_id, q.overlay_duration, q.overlay_idle_time, q.overlay_animation_in, q.overlay_animation_out, q.question_image_animation]
+      );
+      const newQId = qr.insertId;
+
+      const [options] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [q.id]);
+      for (const o of options) {
+        await db.query(
+          'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+          [newQId, o.option_text, o.option_image_url, o.option_overlay_image_url, o.option_color, o.option_text_color, o.is_correct, o.option_order]
+        );
+      }
+    }
+
+    // Clone crossword_settings
+    const [cwSettings] = await db.query('SELECT * FROM crossword_settings WHERE game_id = ?', [gameId]);
+    if (cwSettings[0]) {
+      const c = cwSettings[0];
+      await db.query(
+        `INSERT INTO crossword_settings (game_id, grid_rows, grid_cols, cell_size, show_timer, time_limit_seconds, allow_hints, heading_1, heading_2, heading_3, description_text, bg_color, primary_color, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, sound_correct_id, sound_wrong_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, c.grid_rows, c.grid_cols, c.cell_size, c.show_timer, c.time_limit_seconds, c.allow_hints, c.heading_1, c.heading_2, c.heading_3, c.description_text, c.bg_color, c.primary_color, c.bg_image_url, c.thankyou_bg_image_url, c.game_logo_url, c.font_family, c.sound_correct_id, c.sound_wrong_id]
+      );
+    }
+
+    // Clone crossword_words
+    const [cwWords] = await db.query('SELECT * FROM crossword_words WHERE game_id = ? ORDER BY word_order', [gameId]);
+    for (const w of cwWords) {
+      await db.query(
+        'INSERT INTO crossword_words (game_id, word_text, clue_text, start_row, start_col, direction, word_order, sound_correct_id, sound_wrong_id, overlay_image_url, word_color) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [newId, w.word_text, w.clue_text, w.start_row, w.start_col, w.direction, w.word_order, w.sound_correct_id, w.sound_wrong_id, w.overlay_image_url, w.word_color]
+      );
+    }
+
+    // Clone spin_settings
+    const [spinSettings] = await db.query('SELECT * FROM spin_settings WHERE game_id = ?', [gameId]);
+    if (spinSettings[0]) {
+      const sp = spinSettings[0];
+      await db.query(
+        `INSERT INTO spin_settings (game_id, heading_1, heading_2, description_text, spin_mode, win_message, lose_message, wheel_bg_color, pointer_color, center_color, center_label, bg_color, primary_color, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, sound_spin_id, sound_win_id, sound_lose_id)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, sp.heading_1, sp.heading_2, sp.description_text, sp.spin_mode, sp.win_message, sp.lose_message, sp.wheel_bg_color, sp.pointer_color, sp.center_color, sp.center_label, sp.bg_color, sp.primary_color, sp.bg_image_url, sp.thankyou_bg_image_url, sp.game_logo_url, sp.font_family, sp.sound_spin_id, sp.sound_win_id, sp.sound_lose_id]
+      );
+    }
+
+    // Clone spin_segments
+    const [spinSegments] = await db.query('SELECT * FROM spin_segments WHERE game_id = ? ORDER BY segment_order', [gameId]);
+    for (const seg of spinSegments) {
+      await db.query(
+        'INSERT INTO spin_segments (game_id, label, bg_color, text_color, weight, segment_type, prize_description, coupon_code, coupon_image_url, overlay_image_url, sound_id, segment_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [newId, seg.label, seg.bg_color, seg.text_color, seg.weight, seg.segment_type, seg.prize_description, seg.coupon_code, seg.coupon_image_url, seg.overlay_image_url, seg.sound_id, seg.segment_order]
+      );
+    }
+
+    const [newGame] = await db.query('SELECT g.*, c.company_name, c.slug as client_slug FROM games g LEFT JOIN clients c ON g.client_id = c.id WHERE g.id = ?', [newId]);
+    res.status(201).json({ success: true, game: newGame[0] });
+  } catch (err) {
+    console.error('Duplicate error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 router.delete('/:id', auth, async (req, res) => {

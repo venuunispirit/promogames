@@ -233,96 +233,80 @@ export default function GameResponsesPage() {
       <style>{CSS}</style>
       <div style={{padding:'36px 40px',maxWidth:1400,margin:'0 auto'}}>
 
-        {/* Header */}
-        <div style={{marginBottom:32}}>
-          <button className="gp-ghost-btn" onClick={() => navigate('/dashboard/games')} style={{marginBottom:16}}>
-            <Ico.back/> Back to Games
-          </button>
-          
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',flexWrap:'wrap',gap:16}}>
-            <div>
-              <p style={{fontSize:11,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>
-                Game Responses
-              </p>
-              <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:32,color:'#0D0D1A',letterSpacing:'-0.03em',lineHeight:1.2,marginBottom:8}}>
-                {game?.name}
-              </h1>
-              <p style={{fontSize:13.5,color:'#9CA3AF'}}>
-                {game?.company_name} · {completedCount} completed responses
-              </p>
-            </div>
-            <button
-              className="gp-primary-btn"
-              onClick={downloadExcel}
-              disabled={sorted.length === 0}
-            >
-              <Ico.download/> Download Excel
-            </button>
-          </div>
-        </div>
-
-        {/* Stats Grid */}
-        <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fit,minmax(200px,1fr))',gap:16,marginBottom:28}}>
-          {[
-            { label: 'Total Responses', value: sessions.length, icon: Ico.users, color: '#6366F1' },
-            { label: 'Completed', value: completedCount, icon: Ico.check, color: '#22C55E' },
-            { label: 'Avg Score', value: avgScore, icon: Ico.target, color: '#F59E0B' },
-            { label: 'Questions', value: questions.length, icon: Ico.help, color: '#8B5CF6' },
-          ].map((stat, i) => (
-            <div key={stat.label} className="gp-stat-card" style={{animationDelay:`${i*50}ms`}}>
-              <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:10}}>
-                <div style={{width:40,height:40,borderRadius:10,background:`${stat.color}15`,display:'flex',alignItems:'center',justifyContent:'center',color:stat.color}}>
-                  <stat.icon/>
-                </div>
-                <div style={{fontSize:10.5,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>
-                  {stat.label}
-                </div>
-              </div>
-              <div style={{fontSize:28,fontWeight:700,color:'#0D0D1A',fontFamily:"'Fraunces',serif",letterSpacing:'-0.02em'}}>
-                {stat.value}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Search Pill */}
+        {/* Header — 4-col layout */}
         <div style={{
-          background:'#fff',
-          borderRadius:16,
-          border:'1.5px solid #EAECF0',
-          padding:'20px 24px',
-          marginBottom:24,
-          boxShadow:'0 2px 8px rgba(0,0,0,0.04)'
+          display:'grid',
+          gridTemplateColumns:'auto 1fr 1.5fr auto',
+          gap:20,
+          alignItems:'center',
+          marginBottom:28
         }}>
+          {/* Col 1: Back icon + Game name + Responses tag */}
+          <div style={{display:'flex',alignItems:'center',gap:14}}>
+            <button
+              style={{
+                width:36,height:36,borderRadius:8,border:'1.5px solid #E5E7EB',
+                background:'#F9FAFB',display:'flex',alignItems:'center',
+                justifyContent:'center',cursor:'pointer',color:'#374151',flexShrink:0
+              }}
+              onClick={() => navigate('/dashboard/games')}
+              title="Back to Games"
+            >
+              <Ico.back/>
+            </button>
+            <div>
+              <div style={{fontSize:16,fontWeight:700,color:'#0D0D1A',fontFamily:"'Fraunces',serif",lineHeight:1.2}}>
+                {game?.name}
+              </div>
+              <div style={{fontSize:10,fontWeight:700,color:'#6366F1',textTransform:'uppercase',letterSpacing:'.08em',marginTop:2}}>
+                Responses
+              </div>
+            </div>
+          </div>
+
+          {/* Col 2: Stats cards — single row */}
+          <div style={{display:'flex',gap:10}}>
+            {[
+              { label:'Total', value: sessions.length, color:'#6366F1' },
+              { label:'Completed', value: completedCount, color:'#22C55E' },
+              { label:'Avg Score', value: avgScore, color:'#F59E0B' },
+            ].map(s => (
+              <div key={s.label} style={{
+                flex:1,background:'#fff',borderRadius:10,border:'1.5px solid #EAECF0',
+                padding:'6px 14px',display:'flex',alignItems:'center',gap:8,height:38
+              }}>
+                <div style={{fontSize:17,fontWeight:700,color:s.color,fontFamily:"'Fraunces',serif",lineHeight:1,flex:1}}>{s.value}</div>
+                <div style={{fontSize:8.5,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.05em',whiteSpace:'nowrap',flexShrink:0}}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Col 3: Search */}
           <div style={{position:'relative'}}>
-            <span style={{position:'absolute',left:16,top:'50%',transform:'translateY(-50%)',color:'#9CA3AF',zIndex:1}}>
+            <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:'#9CA3AF',zIndex:1}}>
               <Ico.search/>
             </span>
             <input
               className="gp-input"
               value={search}
               onChange={e => setSearch(e.target.value)}
-              placeholder="Search by name, email, phone, city, score, date, or any field..."
-              style={{
-                paddingLeft:48,
-                fontSize:15,
-                height:48,
-                border:'none',
-                background:'transparent'
-              }}
+              placeholder="Search by name, email, phone, ID, source..."
+              style={{paddingLeft:38,fontSize:13.5,height:38,width:'100%'}}
             />
+            {search && (
+              <span style={{
+                position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',
+                fontSize:10.5,fontWeight:600,color:'#4F46E5',whiteSpace:'nowrap',pointerEvents:'none'
+              }}>
+                {filtered.length} result{filtered.length !== 1 ? 's' : ''}
+              </span>
+            )}
           </div>
-          {search && (
-            <div style={{marginTop:12,fontSize:12.5,color:'#6B7280',display:'flex',alignItems:'center',gap:8}}>
-              <span style={{fontWeight:600,color:'#4F46E5'}}>{filtered.length}</span> 
-              result{filtered.length !== 1 ? 's' : ''} found
-              {filtered.length !== sessions.length && (
-                <span style={{color:'#9CA3AF'}}>
-                  · {sessions.length - filtered.length} hidden
-                </span>
-              )}
-            </div>
-          )}
+
+          {/* Col 4: Download Excel */}
+          <button className="gp-primary-btn" onClick={downloadExcel} disabled={sorted.length === 0} style={{padding:'8px 18px',fontSize:12.5}}>
+            <Ico.download/> Download Excel
+          </button>
         </div>
 
         {/* Table */}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
+import QRCode from 'qrcode'
 import api from '../api'
 
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
@@ -65,14 +66,12 @@ const CSS = `
 .gp-table-wrap{background: #fff;border-radius:16px;border:1.5px solid  #EAECF0;overflow:hidden;animation:gpFadeUp .3s ease both}
 .gp-table{width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif}
 .gp-table thead tr{background: #F9FAFB;border-bottom:1.5px solid  #EAECF0}
-.gp-table thead th{padding:11px 14px;text-align:left;font-size:11px;font-weight:700;color: #6B7280;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;user-select:none}
-.gp-table thead th.center{text-align:center}
+.gp-table thead th{padding:11px 14px;text-align:center;font-size:11px;font-weight:700;color: #6B7280;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;user-select:none}
 .gp-table tbody tr{border-bottom:1px solid  #F3F4F6;transition:background .13s;animation:gpRowIn .25s ease both}
 .gp-table tbody tr:last-child{border-bottom:none}
 .gp-table tbody tr:hover{background: #FAFBFF}
 .gp-table tbody tr.inactive-row{opacity:.7}
-.gp-table tbody td{padding:13px 14px;font-size:13px;color: #374151;vertical-align:middle}
-.gp-table tbody td.center{text-align:center}
+.gp-table tbody td{padding:13px 14px;font-size:13px;color: #374151;vertical-align:middle;text-align:center}
 
 /* Sort caret */
 .gp-th-btn{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color: #6B7280;text-transform:uppercase;letter-spacing:.08em;padding:0;font-family:'DM Sans',sans-serif}
@@ -98,6 +97,9 @@ const Ico = {
   star:     () => <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>,
   caretUp:  () => <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="m18 15-6-6-6 6"/></svg>,
   caretDn:  () => <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>,
+  copy:     () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>,
+  qr:       () => <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="1.8" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="4" height="4"/><line x1="3" y1="18" x2="3" y2="21"/><line x1="7" y1="21" x2="7" y2="21"/><line x1="18" y1="14" x2="21" y2="14"/><line x1="21" y1="14" x2="21" y2="21"/><line x1="14" y1="21" x2="18" y2="21"/><line x1="14" y1="21" x2="14" y2="21"/></svg>,
+  download: () => <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>,
 }
 
 function Toast({ msg, type, onClose }) {
@@ -145,7 +147,122 @@ function FieldToggle({ gameId, field, value, label, onUpdated, onError }) {
   )
 }
 
-function CreateModal({ clients, onClose, onCreated, onError }) {
+function QRCodeModal({ game, onClose, onError }) {
+  const [qrDataUrl, setQrDataUrl] = useState('')
+  const host = typeof window !== 'undefined' ? window.location.origin : ''
+  const link = `${host}/play/${game.slug}/${game.client_slug}`
+
+  useEffect(() => {
+    QRCode.toDataURL(link, {
+      width: 260,
+      margin: 2,
+      color: { dark:'#0D0D1A', light:'#FFFFFF' }
+    }).then(setQrDataUrl).catch(() => onError('Failed to generate QR'))
+  }, [])
+
+  const handleCopyQr = async () => {
+    try {
+      const res = await fetch(qrDataUrl)
+      const blob = await res.blob()
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
+    } catch { onError('Failed to copy QR image') }
+  }
+
+  const handleCopyLink = () => {
+    navigator.clipboard.writeText(link)
+  }
+
+  const handleDownload = () => {
+    const a = document.createElement('a')
+    a.href = qrDataUrl
+    a.download = game.name.replace(/ /g, '-') + '-qr.png'
+    a.click()
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:800,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
+      <div style={{position:'relative',background:' #fff',borderRadius:24,width:'100%',maxWidth:400,padding:'34px 28px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif",textAlign:'center'}}>
+        <button className="gp-icon-btn" onClick={onClose} style={{position:'absolute',top:14,right:14}}><Ico.close/></button>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:22}}>
+          <img src="/favicon3.png" alt="" style={{width:30,height:30,borderRadius:8,objectFit:'cover'}} onError={e=>{e.target.style.display='none'}} />
+          <span style={{fontSize:15,fontWeight:700,color:' #0D0D1A',letterSpacing:'-0.01em'}}>{game.company_name}</span>
+        </div>
+        {qrDataUrl ? (
+          <img src={qrDataUrl} alt="QR Code" style={{width:200,height:200,borderRadius:16,margin:'0 auto 20px',display:'block',padding:12,background:' #FAFAFA',border:'1px solid  #EAECF0'}} />
+        ) : (
+          <div style={{width:200,height:200,borderRadius:16,margin:'0 auto 20px',background:' #F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',color:' #9CA3AF'}}><Ico.spin/></div>
+        )}
+        <p style={{fontSize:13.5,fontWeight:600,color:' #0D0D1A',marginBottom:4}}>{game.name}</p>
+        <p style={{fontSize:12,color:' #9CA3AF',marginBottom:24,wordBreak:'break-all'}}>{link}</p>
+        <div style={{display:'flex',flexDirection:'column',gap:8}}>
+          <button className="gp-primary-btn" onClick={handleCopyQr} disabled={!qrDataUrl} style={{justifyContent:'center',padding:'11px 0',borderRadius:10,fontSize:13.5}}><Ico.copy/> Copy QR Image</button>
+          <button className="gp-ghost-btn" onClick={handleCopyLink} style={{justifyContent:'center',padding:'10px 0',borderRadius:10,fontSize:13}}><Ico.link/> Copy Game Link</button>
+          <button className="gp-ghost-btn" onClick={handleDownload} disabled={!qrDataUrl} style={{justifyContent:'center',padding:'10px 0',borderRadius:10,fontSize:13}}><Ico.download/> Download QR</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function QuickAddClientModal({ onClose, onCreated, onError }) {
+  const [form, setForm] = useState({company_name:'',contact_name:'',email:'',phone:''})
+  const [submitting, setSubmitting] = useState(false)
+  const set = k => e => setForm(f => ({...f,[k]:e.target.value}))
+
+  const handleSubmit = async e => {
+    e.preventDefault()
+    if (!form.company_name) return
+    setSubmitting(true)
+    try {
+      const res = await api.post('/clients', form)
+      onCreated(res.data.client)
+      onClose()
+    } catch (err) {
+      onError(err.response?.data?.message || 'Failed to create client')
+      setSubmitting(false)
+    }
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:700,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
+      <div style={{background:' #fff',borderRadius:20,width:'100%',maxWidth:480,padding:'34px 30px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:24}}>
+          <div>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:' #0D0D1A',letterSpacing:'-0.02em'}}>Add Client</h2>
+            <p style={{color:' #9CA3AF',fontSize:13,marginTop:4}}>Create a client to associate this game with.</p>
+          </div>
+          <button className="gp-icon-btn" onClick={onClose}><Ico.close/></button>
+        </div>
+        <form onSubmit={handleSubmit}>
+          <div className="gp-field">
+            <label className="gp-label">Company Name <span style={{color:' #EF4444'}}>*</span></label>
+            <input className="gp-input" value={form.company_name} onChange={set('company_name')} placeholder="e.g. Acme Corp" required />
+          </div>
+          <div className="gp-field">
+            <label className="gp-label">Contact Name</label>
+            <input className="gp-input" value={form.contact_name} onChange={set('contact_name')} placeholder="Full name" />
+          </div>
+          <div className="gp-field">
+            <label className="gp-label">Email</label>
+            <input className="gp-input" type="email" value={form.email} onChange={set('email')} placeholder="contact@acme.com" />
+          </div>
+          <div className="gp-field" style={{marginBottom:26}}>
+            <label className="gp-label">Phone</label>
+            <input className="gp-input" type="tel" value={form.phone} onChange={set('phone')} placeholder="+91 98765 43210" />
+          </div>
+          <div style={{display:'flex',gap:10}}>
+            <button type="button" className="gp-ghost-btn" onClick={onClose} style={{flex:1,justifyContent:'center',padding:'11px 0'}}>Cancel</button>
+            <button type="submit" className="gp-primary-btn" disabled={submitting} style={{flex:2,justifyContent:'center',padding:'12px 0',borderRadius:10,fontSize:14}}>
+              {submitting ? <><Ico.spin/> Adding…</> : 'Add Client & Continue'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}
+
+function CreateModal({ clients, onClose, onCreated, onError, onAddClient }) {
   const [form, setForm] = useState({client_id:'',name:'',category:'quiz',description:'',redirect_url:''})
   const [submitting, setSubmitting] = useState(false)
   const navigate = useNavigate()
@@ -179,11 +296,11 @@ const handleSubmit = async e => {
 
   return (
     <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
-      <div style={{background:' #fff',borderRadius:20,width:'100%',maxWidth:500,maxHeight:'92vh',overflow:'auto',padding:'34px 30px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{background:' #fff',borderRadius:20,width:'100%',maxWidth:640,maxHeight:'95vh',overflow:'visible',padding:'36px 34px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
           <div>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:22,color:' #0D0D1A',letterSpacing:'-0.02em'}}>New Game</h2>
-            <p style={{color:' #9CA3AF',fontSize:13,marginTop:5}}>Configure the game — you'll build questions next.</p>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:24,color:' #0D0D1A',letterSpacing:'-0.02em'}}>New Game</h2>
+            <p style={{color:' #9CA3AF',fontSize:14,marginTop:5}}>Configure the game — you'll build questions next.</p>
           </div>
           <button className="gp-icon-btn" onClick={onClose}><Ico.close/></button>
         </div>
@@ -191,34 +308,39 @@ const handleSubmit = async e => {
         <form onSubmit={handleSubmit}>
           <div className="gp-field">
             <label className="gp-label">Client <span style={{color:' #EF4444'}}>*</span></label>
-            <div style={{position:'relative'}}>
-              <select className="gp-select" value={form.client_id} onChange={set('client_id')} required>
-                <option value="">Select a client…</option>
-                {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
-              </select>
-              <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:' #9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+            <div style={{display:'flex',gap:8,alignItems:'center'}}>
+              <div style={{position:'relative',flex:1}}>
+                <select className="gp-select" value={form.client_id} onChange={set('client_id')} required style={{padding:'10px 36px 10px 14px',fontSize:14,background:' #fff'}}>
+                  <option value="">Select a client…</option>
+                  {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+                </select>
+                <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:' #9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+              </div>
+              <button type="button" className="gp-ghost-btn" onClick={onAddClient} style={{padding:'10px 14px',whiteSpace:'nowrap',fontSize:13}}>
+                + Add Client
+              </button>
             </div>
           </div>
 
           <div className="gp-field">
             <label className="gp-label">Game Name <span style={{color:' #EF4444'}}>*</span></label>
-            <input className="gp-input" value={form.name} onChange={set('name')} placeholder="e.g. Product Knowledge Quiz" required />
+            <input className="gp-input" value={form.name} onChange={set('name')} placeholder="e.g. Product Knowledge Quiz" required style={{fontSize:14}} />
           </div>
 
           <div className="gp-field">
             <label className="gp-label">Category</label>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
               {Object.entries(CATEGORY_META).map(([k,v]) => (
                 <button key={k} type="button"
                   onClick={() => setForm(f=>({...f,category:k}))}
                   style={{
-                    padding:'10px 8px',borderRadius:10,border:`2px solid ${form.category===k ? v.dot : ' #E5E7EB'}`,
+                    padding:'14px 10px',borderRadius:12,border:`2px solid ${form.category===k ? v.dot : ' #E5E7EB'}`,
                     background: form.category===k ? v.bg : ' #FAFAFA',
                     cursor:'pointer',transition:'all .14s',
-                    display:'flex',flexDirection:'column',alignItems:'center',gap:4,
+                    display:'flex',flexDirection:'column',alignItems:'center',gap:6,
                   }}>
-                  <span style={{width:8,height:8,borderRadius:'50%',background:v.dot}} />
-                  <span style={{fontSize:13,fontWeight:600,color:form.category===k?v.fg:' #374151',fontFamily:"'DM Sans',sans-serif"}}>
+                  <span style={{width:10,height:10,borderRadius:'50%',background:v.dot}} />
+                  <span style={{fontSize:14,fontWeight:600,color:form.category===k?v.fg:' #374151',fontFamily:"'DM Sans',sans-serif"}}>
                     {v.label}
                   </span>
                 </button>
@@ -228,16 +350,16 @@ const handleSubmit = async e => {
 
           <div className="gp-field">
             <label className="gp-label">Description</label>
-            <textarea className="gp-input" rows={2} value={form.description} onChange={set('description')} style={{resize:'vertical'}} />
+            <textarea className="gp-input" rows={3} value={form.description} onChange={set('description')} style={{resize:'vertical',fontSize:14}} />
           </div>
 
           <div className="gp-field" style={{marginBottom:26}}>
             <label className="gp-label">Redirect URL <span style={{color:' #9CA3AF',fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:11}}>(after game ends)</span></label>
-            <input className="gp-input" type="url" value={form.redirect_url} onChange={set('redirect_url')} placeholder="https://yoursite.com/thankyou" />
+            <input className="gp-input" type="url" value={form.redirect_url} onChange={set('redirect_url')} placeholder="https://yoursite.com/thankyou" style={{fontSize:14}} />
           </div>
 
           <div style={{display:'flex',gap:10}}>
-            <button type="button" className="gp-ghost-btn" onClick={onClose} style={{flex:1,justifyContent:'center',padding:'11px 0'}}>Cancel</button>
+            <button type="button" className="gp-ghost-btn" onClick={onClose} style={{flex:1,justifyContent:'center',padding:'11px 0',fontSize:14}}>Cancel</button>
             <button type="submit" className="gp-primary-btn" disabled={submitting} style={{flex:2,justifyContent:'center',padding:'12px 0',borderRadius:10,fontSize:14}}>
               {submitting ? <><Ico.spin/> Creating…</> : 'Create & Open Builder →'}
             </button>
@@ -250,17 +372,16 @@ const handleSubmit = async e => {
 
 // Column definitions — order here = order in table
 const COLUMNS = [
-  { key:'name',              label:'Game Name',     sortable:true  },
-  { key:'company_name',      label:'Client',        sortable:true  },
-  { key:'category',          label:'Category',      sortable:false },
-  { key:'question_count',    label:'Questions',     sortable:true,  center:true },
-  { key:'play_count',        label:'Plays',         sortable:true,  center:true },
-  { key:'is_active',         label:'Active',        sortable:false, center:true },
-  { key:'show_in_play_page', label:'Play Page',     sortable:false, center:true },
-  { key:'show_in_hero_page', label:'Hero / Home',   sortable:false, center:true },
-  { key:'slug',              label:'URL Slug',      sortable:false },
-  { key:'created_at',        label:'Created',       sortable:true  },
-  { key:'actions',           label:'Actions',       sortable:false, center:true },
+  { key:'name',         label:'Game',          sortable:true  },
+  { key:'category',     label:'Category',      sortable:false },
+  { key:'qty_plays',    label:'Qty / Plays',   sortable:false, center:true },
+  { key:'is_active',    label:'Active',        sortable:false, center:true },
+  { key:'show_in_play_page', label:'Play Page', sortable:false, center:true },
+  { key:'show_in_hero_page', label:'Hero',     sortable:false, center:true },
+  { key:'game_type',    label:'Game Type',     sortable:false, center:true },
+  { key:'created_edited', label:'Created / Edited', sortable:false },
+  { key:'actions',      label:'Actions',       sortable:false, center:true },
+  { key:'qr',           label:'QR',            sortable:false, center:true },
 ]
 
 function SortTh({ col, sortKey, sortDir, onSort }) {
@@ -289,6 +410,8 @@ export default function GamesPage() {
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
+  const [showClientForm, setShowClientForm] = useState(false)
+  const [qrModalGame, setQrModalGame] = useState(null)
   const [toast, setToast] = useState(null)
   const [search, setSearch] = useState('')
   const [filterCat, setFilterCat] = useState('all')
@@ -316,6 +439,25 @@ export default function GamesPage() {
       await api.put(`/games/${game.id}`, { [field]: game[field] ? 0 : 1 })
       load()
     } catch { showToast('Failed to update','error') }
+  }
+
+  const handleDuplicate = async id => {
+    try {
+      await api.post(`/games/${id}/duplicate`)
+      showToast('Game duplicated')
+      load()
+    } catch { showToast('Duplicate failed','error') }
+  }
+
+  const handleGameTypeToggle = async (game, e) => {
+    e.stopPropagation()
+    const newType = game.game_type === 'branded' ? 'promogames' : 'branded'
+    try {
+      await api.put(`/games/${game.id}`, { game_type: newType })
+      load()
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update game type','error')
+    }
   }
 
   const copyLink = (game, e) => {
@@ -355,6 +497,8 @@ export default function GamesPage() {
     plays: games.reduce((a,g) => a + (g.play_count||0), 0),
     onPlayPage: games.filter(g => g.show_in_play_page).length,
     onHero: games.filter(g => g.show_in_hero_page).length,
+    branded: games.filter(g => g.game_type === 'branded').length,
+    promogames: games.filter(g => g.game_type === 'promogames').length,
   }
 
   const fmtDate = dt => {
@@ -368,62 +512,19 @@ export default function GamesPage() {
       <style>{CSS}</style>
       <div style={{padding:'36px 40px',maxWidth:1400,margin:'0 auto'}}>
 
-        {/* Header */}
-        <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:28,flexWrap:'wrap',gap:16}}>
-          <div>
-            <p style={{fontSize:11,fontWeight:700,color:' #9CA3AF',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Management</p>
-            <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:' #0D0D1A',letterSpacing:'-0.03em',lineHeight:1}}>
-              Games
-            </h1>
-            <p style={{fontSize:13,color:' #9CA3AF',marginTop:8}}>
-              {stats.total} game{stats.total!==1?'s':''} &middot; {stats.active} active &middot; {stats.plays.toLocaleString()} plays &middot; {stats.onPlayPage} on play page &middot; {stats.onHero} on hero
-            </p>
-          </div>
-          <button className="gp-primary-btn" onClick={() => setShowForm(true)}><Ico.plus/> Create Game</button>
-        </div>
-
-        {/* Filters */}
-        {games.length > 0 && (
-          <div style={{display:'flex',alignItems:'center',gap:12,marginBottom:20,flexWrap:'wrap'}}>
-            <div style={{position:'relative',flex:'0 0 280px'}}>
+        {/* Header — 3-col: Title | Search | Add Game */}
+        <div style={{display:'grid',gridTemplateColumns:'1fr 1.5fr 1fr',alignItems:'center',marginBottom:28,gap:16}}>
+          <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:' #0D0D1A',letterSpacing:'-0.03em',lineHeight:1}}>
+            Games
+          </h1>
+          {games.length > 0 && (
+            <div style={{position:'relative'}}>
               <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:' #9CA3AF'}}><Ico.search/></span>
-              <input className="gp-input" style={{paddingLeft:40,height:38,padding:'0 14px 0 40px'}} placeholder="Search games or client…" value={search} onChange={e=>setSearch(e.target.value)} />
+              <input className="gp-input" style={{paddingLeft:40,height:38,padding:'0 14px 0 40px',width:'100%'}} placeholder="Search games or client…" value={search} onChange={e=>setSearch(e.target.value)} />
             </div>
-            <div style={{display:'flex',gap:6}}>
-              {['all','quiz','survey','poll'].map(k => {
-                const isAll = k === 'all'
-                const meta = isAll ? null : catMeta(k)
-                const active = filterCat === k
-                return (
-                  <button key={k} onClick={()=>setFilterCat(k)} style={{
-                    padding:'6px 14px',borderRadius:9,border:`1.5px solid ${active?' #A5B4FC':' #E5E7EB'}`,
-                    background: active ? ' #EEF2FF' : ' #fff',
-                    color: active ? ' #4338CA' : ' #374151',
-                    fontSize:12,fontWeight:600,cursor:'pointer',
-                    fontFamily:"'DM Sans',sans-serif",
-                    transition:'all .13s',
-                  }}>
-                    {isAll ? 'All' : meta.label}
-                  </button>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* Column legend for new toggles */}
-        <div style={{display:'flex',gap:20,marginBottom:14,flexWrap:'wrap'}}>
-          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:' #6B7280'}}>
-            <span style={{display:'inline-flex',alignItems:'center',gap:4,background:' #EEF2FF',color:' #4338CA',padding:'3px 9px',borderRadius:100,fontWeight:600,fontSize:11}}>
-              <Ico.globe/> Play Page
-            </span>
-            Show game in the public website's games section
-          </div>
-          <div style={{display:'flex',alignItems:'center',gap:6,fontSize:12,color:' #6B7280'}}>
-            <span style={{display:'inline-flex',alignItems:'center',gap:4,background:' #FFF7ED',color:' #C2410C',padding:'3px 9px',borderRadius:100,fontWeight:600,fontSize:11}}>
-              <Ico.star/> Hero / Home
-            </span>
-            Feature game in the homepage hero section
+          )}
+          <div style={{justifySelf:'end'}}>
+            <button className="gp-primary-btn" onClick={() => setShowForm(true)}><Ico.plus/> Create Game</button>
           </div>
         </div>
 
@@ -446,6 +547,7 @@ export default function GamesPage() {
             No games match your filters.
           </div>
         ) : (
+          <>
           <div className="gp-table-wrap" style={{overflowX:'auto'}}>
             <table className="gp-table">
               <thead>
@@ -465,25 +567,15 @@ export default function GamesPage() {
                       style={{animationDelay:`${i*30}ms`, cursor:'pointer'}}
                       onClick={() => navigate(`/dashboard/games/${game.id}/responses`)}
                     >
-                      {/* Game Name */}
-                      <td style={{minWidth:180}}>
-                        <div style={{fontWeight:600,color:' #0D0D1A',fontSize:13.5,fontFamily:"'DM Sans',sans-serif",marginBottom:2}}>
+                      {/* Game + Client */}
+                      <td style={{minWidth:160}}>
+                        <div style={{fontWeight:600,color:' #0D0D1A',fontSize:13.5,fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>
                           {game.name}
                         </div>
-                        {game.description && (
-                          <div style={{fontSize:11.5,color:' #9CA3AF',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                            {game.description}
-                          </div>
-                        )}
-                      </td>
-
-                      {/* Client */}
-                      <td style={{minWidth:130}}>
-                        <span style={{fontSize:12.5,color:' #374151',fontWeight:500}}>
+                        <div style={{fontSize:11.5,color:' #6B7280',fontWeight:500}}>
                           {game.company_name || '—'}
-                        </span>
+                        </div>
                       </td>
-
                       {/* Category */}
                       <td style={{minWidth:90}}>
                         <span style={{display:'inline-flex',alignItems:'center',gap:5,background:cat.bg,color:cat.fg,fontSize:11,fontWeight:600,padding:'3px 9px',borderRadius:100,letterSpacing:'.01em'}}>
@@ -492,17 +584,11 @@ export default function GamesPage() {
                         </span>
                       </td>
 
-                      {/* Questions */}
-                      <td className="center" style={{minWidth:80}}>
-                        <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,color:' #6B7280',fontWeight:500}}>
-                          <Ico.question/> {game.question_count||0}
-                        </span>
-                      </td>
-
-                      {/* Plays */}
-                      <td className="center" style={{minWidth:80}}>
-                        <span style={{display:'inline-flex',alignItems:'center',gap:4,fontSize:13,color:' #6B7280',fontWeight:500}}>
-                          <Ico.play/> {(game.play_count||0).toLocaleString()}
+                      {/* Qty / Plays */}
+                      <td className="center" style={{minWidth:90}}>
+                        <span style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,fontSize:12,color:' #374151'}}>
+                          <span style={{display:'flex',alignItems:'center',gap:4,fontWeight:600}}><Ico.question/> {game.question_count||0}</span>
+                          <span style={{display:'flex',alignItems:'center',gap:4,color:' #6B7280'}}><Ico.play/> {(game.play_count||0).toLocaleString()}</span>
                         </span>
                       </td>
 
@@ -542,50 +628,65 @@ export default function GamesPage() {
                         </div>
                       </td>
 
-                      {/* URL Slug */}
-                      <td style={{minWidth:180}}>
-                        <div style={{background:' #F8F9FB',borderRadius:6,padding:'5px 9px',fontSize:11,color:' #6B7280',fontFamily:'monospace',maxWidth:200,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>
-                          /play/{game.slug}/{game.client_slug}
+                      {/* Game Type */}
+                      <td className="center" style={{minWidth:90}} onClick={e => e.stopPropagation()}>
+                        <div className="gp-toggle-wrap">
+                          <button
+                            className={`gp-toggle ${game.game_type === 'branded' ? 'on' : 'off'}`}
+                            onClick={e => handleGameTypeToggle(game, e)}
+                          />
+                          <span className="gp-toggle-label">
+                            {game.game_type === 'branded' ? 'Branded' : 'PromoGames'}
+                          </span>
                         </div>
                       </td>
 
-                      {/* Created At */}
-                      <td style={{minWidth:100,fontSize:12,color:' #9CA3AF',whiteSpace:'nowrap'}}>
-                        {fmtDate(game.created_at)}
+                      {/* Created / Edited */}
+                      <td style={{minWidth:130,fontSize:11.5,color:' #9CA3AF',whiteSpace:'nowrap'}}>
+                        <div>Created {fmtDate(game.created_at)}</div>
+                        {game.updated_at && new Date(game.updated_at).getTime() !== new Date(game.created_at).getTime() && (
+                          <div style={{color:' #6B7280',marginTop:2}}>
+                            Edited {fmtDate(game.updated_at)}
+                            {game.updated_by_name && <span> by {game.updated_by_name}</span>}
+                          </div>
+                        )}
                       </td>
 
                       {/* Actions */}
-                      <td className="center" style={{minWidth:150}} onClick={e => e.stopPropagation()}>
-                        <div style={{display:'flex',alignItems:'center',gap:6,justifyContent:'center',flexWrap:'nowrap'}}>
-                          <button className="gp-ghost-btn" style={{background:' #18181B',color:' #fff',borderColor:' #18181B',padding:'5px 11px'}}
-                            onClick={() => {
-  if (game.category === 'crossword') {
-    navigate(`/dashboard/games/${game.id}/crossword-builder`)
-  } else if (game.category === 'spin') {
-    navigate(`/dashboard/games/${game.id}/spin-builder`)
-  } else {
-    navigate(`/dashboard/games/${game.id}/builder`)
-  }
-}}
-                            title="Open Builder">
-                            <Ico.wrench/> Builder
-                          </button>
-                          <button className="gp-ghost-btn" style={{padding:'5px 11px'}}
-                            onClick={() => navigate(`/dashboard/games/${game.id}/responses`)}
-                            title="View Responses">
-                            <Ico.chart/>
-                          </button>
-                          <button className="gp-ghost-btn" style={{padding:'5px 11px'}}
-                            onClick={e => copyLink(game, e)}
-                            title="Copy game link">
-                            <Ico.link/>
-                          </button>
-                          <button className="gp-icon-btn del"
-                            onClick={e => { e.stopPropagation(); handleDelete(game.id) }}
-                            title="Delete game">
-                            <Ico.trash/>
-                          </button>
+                      <td className="center" style={{minWidth:100}} onClick={e => e.stopPropagation()}>
+                        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
+                          <div style={{display:'flex',alignItems:'center',gap:5}}>
+                            <button className="gp-icon-btn" onClick={e => { e.stopPropagation(); handleDuplicate(game.id) }} title="Duplicate">
+                              <Ico.copy/>
+                            </button>
+                            <button className="gp-ghost-btn" style={{background:' #18181B',color:' #fff',borderColor:' #18181B',padding:'4px 10px',justifyContent:'center',fontSize:10.5,gap:3}}
+                              onClick={() => {
+                                if (game.category === 'crossword') navigate(`/dashboard/games/${game.id}/crossword-builder`)
+                                else if (game.category === 'spin') navigate(`/dashboard/games/${game.id}/spin-builder`)
+                                else navigate(`/dashboard/games/${game.id}/builder`)
+                              }} title="Builder">
+                              <Ico.wrench/> Builder
+                            </button>
+                          </div>
+                          <div style={{display:'flex',alignItems:'center',gap:5}}>
+                            <button className="gp-icon-btn" onClick={() => navigate(`/dashboard/games/${game.id}/responses`)} title="Responses">
+                              <Ico.chart/>
+                            </button>
+                            <button className="gp-icon-btn" onClick={e => copyLink(game, e)} title="Copy link">
+                              <Ico.link/>
+                            </button>
+                            <button className="gp-icon-btn del" onClick={e => { e.stopPropagation(); handleDelete(game.id) }} title="Delete">
+                              <Ico.trash/>
+                            </button>
+                          </div>
                         </div>
+                      </td>
+
+                      {/* QR */}
+                      <td className="center" style={{minWidth:50}} onClick={e => e.stopPropagation()}>
+                        <button className="gp-icon-btn" onClick={() => setQrModalGame(game)} title="Show QR Code">
+                          <Ico.qr/>
+                        </button>
                       </td>
                     </tr>
                   )
@@ -598,24 +699,50 @@ export default function GamesPage() {
               <span style={{fontSize:12,color:' #9CA3AF'}}>
                 Showing {sorted.length} of {games.length} game{games.length!==1?'s':''}
               </span>
-              <div style={{display:'flex',gap:16,fontSize:12,color:' #6B7280'}}>
-                <span>✅ Active: <strong>{stats.active}</strong></span>
-                <span>🌐 Play Page: <strong>{stats.onPlayPage}</strong></span>
-                <span>⭐ Hero: <strong>{stats.onHero}</strong></span>
-                <span>🎮 Total Plays: <strong>{stats.plays.toLocaleString()}</strong></span>
-              </div>
             </div>
           </div>
+
+          {/* Stats */}
+          <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:16,marginTop:20}}>
+            {[
+              { label:'Active Games', value: stats.active, color:' #4F46E5' },
+              { label:'On Play Page', value: stats.onPlayPage, color:' #059669' },
+              { label:'On Hero', value: stats.onHero, color:' #D97706' },
+              { label:'Total Plays', value: stats.plays.toLocaleString(), color:' #0D0D1A' },
+              { label:'Branded', value: stats.branded, color:' #15803D' },
+              { label:'PromoGames', value: stats.promogames, color:' #B45309' },
+            ].map(s => (
+              <div key={s.label} style={{background:' #fff',borderRadius:12,border:'1.5px solid  #EAECF0',padding:'16px 20px'}}>
+                <div style={{fontSize:11,fontWeight:700,color:' #9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>{s.label}</div>
+                <div style={{fontSize:22,fontWeight:700,color:s.color,fontFamily:"'Fraunces',serif"}}>{s.value}</div>
+              </div>
+            ))}
+          </div>
+          </>
         )}
       </div>
 
-      {showForm && (
+      {showForm && !showClientForm && (
         <CreateModal
           clients={clients}
           onClose={() => setShowForm(false)}
           onCreated={load}
           onError={msg => showToast(msg,'error')}
+          onAddClient={() => setShowClientForm(true)}
         />
+      )}
+      {showClientForm && (
+        <QuickAddClientModal
+          onClose={() => setShowClientForm(false)}
+          onCreated={client => {
+            setShowClientForm(false)
+            setClients(prev => [client, ...prev])
+          }}
+          onError={msg => showToast(msg,'error')}
+        />
+      )}
+      {qrModalGame && (
+        <QRCodeModal game={qrModalGame} onClose={() => setQrModalGame(null)} onError={msg => showToast(msg,'error')} />
       )}
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>

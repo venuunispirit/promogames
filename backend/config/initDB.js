@@ -313,6 +313,7 @@ async function initDB() {
   await addColumn(connection, 'games', 'show_in_hero_page', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'games', 'created_by', 'INT');
   await addColumn(connection, 'games', 'updated_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
+  await addColumn(connection, 'games', 'updated_by', 'INT DEFAULT NULL');
 
   /* PLAYER SESSIONS */
   await addColumn(connection, 'player_sessions', 'source_type', "VARCHAR(20) DEFAULT 'direct'");

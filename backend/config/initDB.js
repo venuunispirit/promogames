@@ -307,6 +307,15 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'heading_1_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
   await addColumn(connection, 'quiz_settings', 'heading_2_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
   await addColumn(connection, 'quiz_settings', 'intro_text_color', "VARCHAR(20) DEFAULT '#444444'");
+  await addColumn(connection, 'quiz_settings', 'thankyou_subtitle', 'VARCHAR(500)');
+  await addColumn(connection, 'quiz_settings', 'outro_text_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
+  await addColumn(connection, 'quiz_settings', 'thankyou_subtitle_color', "VARCHAR(20) DEFAULT '#444444'");
+  await addColumn(connection, 'quiz_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
+  await addColumn(connection, 'quiz_settings', 'start_button_bg_color', 'VARCHAR(20)');
+  await addColumn(connection, 'quiz_settings', 'submit_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
+  await addColumn(connection, 'quiz_settings', 'submit_button_bg_color', 'VARCHAR(20)');
+  await addColumn(connection, 'quiz_settings', 'continue_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
+  await addColumn(connection, 'quiz_settings', 'continue_button_bg_color', 'VARCHAR(20)');
 
   /* GAMES */
   await addColumn(connection, 'games', 'client_id', 'INT');

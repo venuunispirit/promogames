@@ -85,7 +85,7 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   try {
-    const allowed = ['name','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type'];
+    const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type'];
     const booleans = ['is_active','show_in_play_page','show_in_hero_page'];
     const fields = []; const values = [];
     for (const key of allowed) {
@@ -136,9 +136,9 @@ router.post('/:id/duplicate', auth, async (req, res) => {
     if (settings[0]) {
       const s = settings[0];
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email, heading_1_color, heading_2_color, intro_text_color)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.heading_1, s.heading_2, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email, s.heading_1_color, s.heading_2_color, s.intro_text_color]
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text_color, start_button_bg_color, submit_button_text_color, submit_button_bg_color, continue_button_text_color, continue_button_bg_color)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.heading_1, s.heading_2, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email, s.heading_1_color, s.heading_2_color, s.intro_text_color, s.thankyou_subtitle, s.outro_text_color, s.thankyou_subtitle_color, s.start_button_text_color, s.start_button_bg_color, s.submit_button_text_color, s.submit_button_bg_color, s.continue_button_text_color, s.continue_button_bg_color]
       );
     } else {
       await db.query('INSERT INTO quiz_settings (game_id) VALUES (?)', [newId]);
@@ -282,7 +282,11 @@ router.put('/:id/settings', auth, upload.fields([
     win_sound_url, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id,
     terms_enabled, terms_text, terms_url, send_email,
     bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url,
-    heading_1_color, heading_2_color, intro_text_color } = req.body;
+    heading_1_color, heading_2_color, intro_text_color,
+    thankyou_subtitle, outro_text_color, thankyou_subtitle_color,
+    start_button_text_color, start_button_bg_color,
+    submit_button_text_color, submit_button_bg_color,
+    continue_button_text_color, continue_button_bg_color } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [req.params.id]);
     const bgImg   = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           || (existing[0]?.bg_image_url           || null));
@@ -291,8 +295,8 @@ router.put('/:id/settings', auth, upload.fields([
     const gifImg  = req.files?.submit_confirm_gif ? `/uploads/images/${req.files.submit_confirm_gif[0].filename}` : (submit_confirm_gif_url || (existing[0]?.submit_confirm_gif_url  || null));
 
     await db.query(
-      `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text_color, start_button_bg_color, submit_button_text_color, submit_button_bg_color, continue_button_text_color, continue_button_bg_color)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE bg_color=VALUES(bg_color), primary_color=VALUES(primary_color),
        show_progress=VALUES(show_progress), allow_back=VALUES(allow_back),
        time_per_question=VALUES(time_per_question),
@@ -306,13 +310,26 @@ router.put('/:id/settings', auth, upload.fields([
        game_logo_url=VALUES(game_logo_url), font_family=VALUES(font_family),
        submit_confirm_gif_url=VALUES(submit_confirm_gif_url),
        heading_1_color=VALUES(heading_1_color), heading_2_color=VALUES(heading_2_color),
-       intro_text_color=VALUES(intro_text_color)`,
+       intro_text_color=VALUES(intro_text_color),
+       thankyou_subtitle=VALUES(thankyou_subtitle),
+       outro_text_color=VALUES(outro_text_color),
+       thankyou_subtitle_color=VALUES(thankyou_subtitle_color),
+       start_button_text_color=VALUES(start_button_text_color),
+       start_button_bg_color=VALUES(start_button_bg_color),
+       submit_button_text_color=VALUES(submit_button_text_color),
+       submit_button_bg_color=VALUES(submit_button_bg_color),
+       continue_button_text_color=VALUES(continue_button_text_color),
+       continue_button_bg_color=VALUES(continue_button_bg_color)`,
       [req.params.id, bg_color, primary_color, show_progress, allow_back, time_per_question,
        heading_1 || null, heading_2 || null, intro_text, outro_text,
        win_sound_url, bgImg, tyImg, terms_enabled ? 1 : 0, terms_text, terms_url, send_email !== '0' ? 1 : 0,
        win_sound_id || null, lose_sound_id || null, sound_correct_id || null, sound_wrong_id || null,
        logoImg || null, font_family || 'DM Sans', gifImg || null,
-       heading_1_color || null, heading_2_color || null, intro_text_color || null]
+       heading_1_color || null, heading_2_color || null, intro_text_color || null,
+       thankyou_subtitle || null, outro_text_color || null, thankyou_subtitle_color || null,
+       start_button_text_color || null, start_button_bg_color || null,
+       submit_button_text_color || null, submit_button_bg_color || null,
+       continue_button_text_color || null, continue_button_bg_color || null]
     );
     res.json({ success: true, message: 'Settings saved' });
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }

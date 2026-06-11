@@ -531,11 +531,11 @@ export default function PlayerPage() {
               <img src={gameLogo} alt="Logo" style={{ maxWidth: '100%', maxHeight: 300, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 10, display: 'block' }} />
             </div>
           )}
-          <h1 style={{ color: hasBgImg ? '#fff' : (s.heading_1_color||'#1a1a2e'), fontFamily: ff, fontSize: 'clamp(22px,6vw,30px)', textAlign: 'center', marginBottom: 2, lineHeight: 1, textShadow: hasBgImg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none', fontWeight: 800 }}>{s.heading_1 || game.name}</h1>
-          {s.heading_2 && <div style={{ fontSize: 15, fontWeight: 600, textAlign: 'center', marginBottom: 6, color: hasBgImg ? 'rgba(255,255,255,0.9)' : (s.heading_2_color||'#1a1a2e'), lineHeight: 1.3, fontFamily: ff }}>{s.heading_2}</div>}
+          <h1 style={{ color: s.heading_1_color||'#1a1a2e', fontFamily: ff, fontSize: 'clamp(22px,6vw,30px)', textAlign: 'center', marginBottom: 2, lineHeight: 1, textShadow: hasBgImg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none', fontWeight: 800 }}>{s.heading_1 || 'Untitled'}</h1>
+          {s.heading_2 && <div style={{ fontSize: 15, fontWeight: 600, textAlign: 'center', marginBottom: 6, color: s.heading_2_color||'#1a1a2e', lineHeight: 1.3, fontFamily: ff }}>{s.heading_2}</div>}
           {game.description && <p style={{ color: hasBgImg ? 'rgba(255,255,255,0.85)' : '#666', textAlign: 'center', marginBottom: 20, fontSize: 12, lineHeight: 1.6, fontFamily: ff }}>{game.description}</p>}
           {s.intro_text && (
-            <div style={{ background: hasBgImg ? 'rgba(255,255,255,0.15)' : `${primaryColor}12`, border: `1.5px solid ${hasBgImg ? 'rgba(255,255,255,0.3)' : primaryColor + '30'}`, borderRadius: 12, padding: '12px 16px', marginBottom: 24, color: hasBgImg ? '#fff' : (s.intro_text_color||'#444'), fontSize: 13, textAlign: 'center', lineHeight: 1.6, fontFamily: ff }}>
+            <div style={{ background: hasBgImg ? 'rgba(255,255,255,0.15)' : `${primaryColor}12`, border: `1.5px solid ${hasBgImg ? 'rgba(255,255,255,0.3)' : primaryColor + '30'}`, borderRadius: 12, padding: '12px 16px', marginBottom: 24, color: s.intro_text_color||'#444', fontSize: 13, textAlign: 'center', lineHeight: 1.6, fontFamily: ff }}>
               {s.intro_text}
             </div>
           )}
@@ -991,7 +991,7 @@ const handleModalConfirm = () => {
             </div>
           )}
           <div style={{ fontSize: 60, marginBottom: 12, animation: 'bounce 0.6s 0.3s ease both' }}>🎉</div>
-          <h1 style={{ fontFamily: ff, fontSize: 'clamp(20px,6vw,30px)', color: hasBgImage ? '#fff' : '#1a1a2e', marginBottom: 20, lineHeight: 1.25, textShadow: hasBgImage ? '0 2px 8px rgba(0,0,0,0.3)' : 'none', fontWeight: 800 }}>
+          <h1 style={{ fontFamily: ff, fontSize: 'clamp(20px,6vw,30px)', color: s.outro_text_color||'#1a1a2e', marginBottom: 20, lineHeight: 1.25, textShadow: hasBgImage ? '0 2px 8px rgba(0,0,0,0.3)' : 'none', fontWeight: 800 }}>
             {s.outro_text || 'Yay! You completed the game!'}
           </h1>
           {hasScore && (
@@ -1000,8 +1000,8 @@ const handleModalConfirm = () => {
             </div>
           )}
           {!hasScore && (
-            <div style={{ background: hasBgImage ? 'rgba(255,255,255,0.15)' : `${primaryColor}12`, border: `1.5px solid ${hasBgImage ? 'rgba(255,255,255,0.3)' : primaryColor + '30'}`, borderRadius: 14, padding: '14px 20px', marginBottom: 24, color: hasBgImage ? '#fff' : '#444', fontSize: 14 }}>
-              ✅ Thank you for completing!
+            <div style={{ background: hasBgImage ? 'rgba(255,255,255,0.15)' : `${primaryColor}12`, border: `1.5px solid ${hasBgImage ? 'rgba(255,255,255,0.3)' : primaryColor + '30'}`, borderRadius: 14, padding: '14px 20px', marginBottom: 24, color: s.thankyou_subtitle_color||'#444', fontSize: 14 }}>
+              {s.thankyou_subtitle || '✅ Thank you for completing!'}
             </div>
           )}
 
@@ -1010,12 +1010,12 @@ const handleModalConfirm = () => {
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               width: '100%',
-              background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-              color: '#fff', border: 'none',
+              background: s.submit_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+              color: s.submit_button_text_color||'#fff', border: 'none',
               padding: '14px 20px', borderRadius: 14,
               fontSize: 17, fontWeight: 700,
               cursor: 'pointer', fontFamily: ff,
-              boxShadow: `0 6px 24px ${primaryColor}55`,
+              boxShadow: s.submit_button_bg_color ? '0 6px 24px rgba(0,0,0,0.15)' : `0 6px 24px ${primaryColor}55`,
               touchAction: 'manipulation',
               letterSpacing: '0.02em',
               minHeight: 52,

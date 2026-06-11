@@ -624,7 +624,7 @@ export default function GameBuilderPage() {
   const [game,          setGame]          = useState(null)
   const [loading,       setLoading]       = useState(true)
   const [fetchError,    setFetchError]    = useState(null)
-  const [tab,           setTab]           = useState('questions')
+  const [tab,           setTab]           = useState('form')
   const [toast,         setToast]         = useState(null)
   const [questions,     setQuestions]     = useState([])
   const [formFields,    setFormFields]    = useState([])
@@ -678,6 +678,21 @@ const [nameInput,     setNameInput]     = useState('')
     link.href = 'https://fonts.googleapis.com/css2?family=' + encodeURIComponent(font) + ':wght@400;600;700;800&display=swap'
     document.head.appendChild(link)
   }, [settings.font_family])
+
+  /* ─── Preload all 48 fonts for font selector ─── */
+  useEffect(() => {
+    const families = FONT_CATEGORIES.flatMap(c => c.fonts)
+      .filter(f => f !== 'DM Sans')
+      .map(f => encodeURIComponent(f) + ':wght@400;600;700')
+      .join('&family=')
+    if (!families) return
+    const id = 'gf-all-fonts'
+    if (document.getElementById(id)) return
+    const link = document.createElement('link')
+    link.id = id; link.rel = 'stylesheet'
+    link.href = 'https://fonts.googleapis.com/css2?family=' + families + '&display=swap'
+    document.head.appendChild(link)
+  }, [])
 
   /* ─── Add Question ─── */
   const addQuestion = async () => {
@@ -1121,32 +1136,35 @@ const [nameInput,     setNameInput]     = useState('')
                 <button className="gb-btn gb-btn-primary" onClick={saveFormFields} disabled={saving}>{saving ? 'Saving…' : '💾 Save Form'}</button>
               </div>
 
-              <div className="gb-card" style={{ marginBottom:16, marginTop:20, padding:16 }}>
-                <div className="gb-section-title">🚀 Start Button</div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr auto auto', gap:'8px 16px', alignItems:'end' }}>
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <input value={settings.start_button_text||''} onChange={e => setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Quiz →" />
-                  </div>
-                  <ColorPicker value={settings.start_button_text_color||'#ffffff'} onChange={v => setSettings({...settings,start_button_text_color:v})} noPresets label="Text" />
-                  <ColorPicker value={settings.start_button_bg_color||''} onChange={v => setSettings({...settings,start_button_bg_color:v})} noPresets label="Background" />
-                </div>
-              </div>
-
               <div className="gb-card" style={{ marginBottom:20, padding:16 }}>
-                <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                  <input type="checkbox" id="termsEnabled" checked={!!settings.terms_enabled}
-                    onChange={e => setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                  <label htmlFor="termsEnabled" style={{ fontWeight:700, cursor:'pointer', fontSize:14 }}>Enable Terms & Conditions Checkbox</label>
-                </div>
-                {settings.terms_enabled
-                  ? (
-                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                      <div className="gb-fg"><span className="gb-label">Terms Label</span><input value={settings.terms_text||''} onChange={e => setSettings({...settings,terms_text:e.target.value})} placeholder="Terms & Conditions" /></div>
-                      <div className="gb-fg"><span className="gb-label">Terms URL (optional)</span><input value={settings.terms_url||''} onChange={e => setSettings({...settings,terms_url:e.target.value})} placeholder="https://yoursite.com/terms" /></div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+                  <div>
+                    <div className="gb-section-title">📜 Terms & Conditions</div>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
+                      <input type="checkbox" id="termsEnabled" checked={!!settings.terms_enabled}
+                        onChange={e => setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                      <label htmlFor="termsEnabled" style={{ fontWeight:600, cursor:'pointer', fontSize:13 }}>Require acceptance</label>
                     </div>
-                  )
-                  : <p style={{ color:'var(--gb-text3)', fontSize:13 }}>Enable to require players to accept T&C before starting.</p>
-                }
+                    <div className="gb-fg" style={{ marginBottom:10 }}>
+                      <span className="gb-label">Label Text</span>
+                      <input value={settings.terms_text||''} onChange={e => setSettings({...settings,terms_text:e.target.value})} placeholder="Terms & Conditions" />
+                    </div>
+                    <div className="gb-fg" style={{ marginBottom:0 }}>
+                      <span className="gb-label">URL (optional)</span>
+                      <input value={settings.terms_url||''} onChange={e => setSettings({...settings,terms_url:e.target.value})} placeholder="https://yoursite.com/terms" />
+                    </div>
+                  </div>
+                  <div>
+                    <div className="gb-section-title">🚀 Start Button</div>
+                    <div className="gb-fg" style={{ marginBottom:10 }}>
+                      <input value={settings.start_button_text||''} onChange={e => setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Quiz →" />
+                    </div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                      <ColorPicker value={settings.start_button_text_color||'#ffffff'} onChange={v => setSettings({...settings,start_button_text_color:v})} noPresets label="Text Color" />
+                      <ColorPicker value={settings.start_button_bg_color||''} onChange={v => setSettings({...settings,start_button_bg_color:v})} noPresets label="Background Color" />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               <div style={{ display:'flex', justifyContent:'flex-end' }}>
@@ -1192,7 +1210,7 @@ const [nameInput,     setNameInput]     = useState('')
           {/* ════ THANKYOU TAB ════ */}
           {tab === 'thankyou' && (
             <div>
-              <div style={{ display:'grid', gridTemplateColumns:'60% 40%', gap:16, marginBottom:16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
                   <div className="gb-section-title">🎊 Thankyou Page Background</div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
@@ -1236,7 +1254,7 @@ const [nameInput,     setNameInput]     = useState('')
                 </div>
               </div>
 
-              <div style={{ display:'grid', gridTemplateColumns:'60% 40%', gap:16, marginBottom:16 }}>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
                   <div className="gb-section-title">🎊 Submit Confirmation GIF</div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
@@ -1310,14 +1328,14 @@ const [nameInput,     setNameInput]     = useState('')
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">🔤 Font Family</div>
                 <div style={{ display:'grid', gap:12 }}>
-                  {FONT_CATEGORIES.map(cat => (
-                    <div key={cat.name}>
+                  {FONT_CATEGORIES.map((cat, ci) => (
+                    <div key={cat.name} style={ci < FONT_CATEGORIES.length - 1 ? {paddingBottom:12,borderBottom:'1px solid var(--gb-border)'} : {}}>
                       <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase', color:'var(--gb-text3)', marginBottom:6 }}>{cat.name}</div>
                       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
                         {cat.fonts.map(font => (
                           <div key={font} onClick={() => setSettings({...settings,font_family:font})}
                             style={{ padding:'6px 8px', borderRadius:6, cursor:'pointer', fontSize:12,
-                              border:`1.5px solid ${settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? 'var(--gb-primary)' : 'transparent'}`,
+                              border:`1.5px solid ${settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? 'var(--gb-primary)' : 'var(--gb-border)'}`,
                               background: settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? '#eef0ff' : '#fff',
                               transition:'all .12s', fontFamily: "'" + font + "', sans-serif" }}>
                             <div style={{ fontWeight:700, lineHeight:1.3 }}>{font}</div>
@@ -1341,11 +1359,11 @@ const [nameInput,     setNameInput]     = useState('')
                     </div>
                   </div>
                   <div style={{ border:'1px solid var(--gb-border)', borderRadius:10, overflow:'hidden', background:'#fff', boxShadow:'0 2px 12px rgba(0,0,0,0.06)' }}>
-                    <div style={{ height:120, background: settings.bg_image_url ? `center/cover url(${settings.bg_image_url})` : (settings.primary_color||'#6366f1'), display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:32, fontWeight:800 }}>{settings.heading_1 ? settings.heading_1[0] : 'Q'}</div>
+                    <div style={{ height:120, background: settings.bg_image_url ? `center/cover url(${settings.bg_image_url})` : (settings.primary_color||'#6366f1'), display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:32, fontWeight:800 }}></div>
                     <div style={{ padding:'12px 14px' }}>
                       <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', color:'#888', marginBottom:3 }}>{window.location.hostname || 'yourdomain.com'}</div>
-                      <div style={{ fontSize:13, fontWeight:700, color:'#1a1a2e', marginBottom:4, lineHeight:1.3 }}>{settings.heading_1 || 'Untitled Game'}</div>
-                      <div style={{ fontSize:12, color:'#555', lineHeight:1.4, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden' }}>{settings.meta_description || 'Play this game and win exciting rewards!'}</div>
+                      <div style={{ fontSize:13, fontWeight:700, color:'#1a1a2e', marginBottom:4, lineHeight:1.3 }}>{game?.name || 'Untitled'}</div>
+                      <div style={{ fontSize:12, color:'#555', lineHeight:1.4 }}>{settings.meta_description || 'Play this game and win exciting rewards!'}</div>
                     </div>
                   </div>
                 </div>
@@ -1481,7 +1499,13 @@ const [nameInput,     setNameInput]     = useState('')
                     )}
                   </div>
                 ))}
-                <div style={{ marginTop:8 }}>
+                {!!settings.terms_enabled && (
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:12, fontSize:11, color: hasBg ? 'rgba(255,255,255,0.85)' : '#666' }}>
+                    <span style={{ width:14, height:14, border:'1.5px solid currentColor', borderRadius:3, display:'inline-block', flexShrink:0 }} />
+                    {settings.terms_text || 'Terms & Conditions'}
+                  </div>
+                )}
+                <div style={{ marginTop:!!settings.terms_enabled && (settings.terms_text || settings.terms_url) ? 0 : 8 }}>
                   <div style={{
                     width:'100%', textAlign:'center',
                     background: settings.start_button_bg_color || `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,
@@ -1684,7 +1708,13 @@ const [nameInput,     setNameInput]     = useState('')
                     color: settings.intro_text_color||'#444', fontSize:12, textAlign:'center', lineHeight:1.5,
                   }}>{settings.intro_text}</div>
                 )}
-                <div style={{ marginTop:8 }}>
+                {!!settings.terms_enabled && (
+                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:12, fontSize:11, color: hasBg ? 'rgba(255,255,255,0.85)' : '#666' }}>
+                    <span style={{ width:14, height:14, border:'1.5px solid currentColor', borderRadius:3, display:'inline-block', flexShrink:0 }} />
+                    {settings.terms_text || 'Terms & Conditions'}
+                  </div>
+                )}
+                <div style={{ marginTop:!!settings.terms_enabled && (settings.terms_text || settings.terms_url) ? 0 : 8 }}>
                   <div style={{
                     width:'100%', textAlign:'center',
                     background: settings.start_button_bg_color || `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,

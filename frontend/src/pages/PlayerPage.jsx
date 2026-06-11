@@ -578,7 +578,7 @@ export default function PlayerPage() {
               )
             })}
 
-            {s.terms_enabled && (s.terms_text || s.terms_url) && (
+            {!!s.terms_enabled && (s.terms_text || s.terms_url) && (
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16, marginTop: 4 }}>
                 <div onClick={() => setTermsAgreed(!termsAgreed)} style={{ width: 22, height: 22, flexShrink: 0, marginTop: 2, border: `2px solid ${termsAgreed ? primaryColor : '#ccc'}`, borderRadius: 5, background: termsAgreed ? primaryColor : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                   {termsAgreed && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}

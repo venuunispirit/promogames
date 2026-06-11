@@ -1093,7 +1093,7 @@ const [nameInput,     setNameInput]     = useState('')
                             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
                               <button onClick={e => { e.stopPropagation(); duplicateQuestion(q) }}
                                 style={{ background:'none', border:'none', cursor:'pointer', padding:0, fontSize:13, lineHeight:1, color:'var(--gb-text2)' }}
-                                title="Duplicate">📋</button>
+                                title="Duplicate">⧉</button>
                               <button onClick={e => { e.stopPropagation(); deleteQuestion(q); if (selectedQuestionId === q.id) { const remaining = questions.filter(rq => rq.id !== q.id); setSelectedQuestionId(remaining.length ? remaining[0].id : null) } }}
                                 style={{ background:'none', border:'none', cursor:'pointer', padding:0, fontSize:13, lineHeight:1, color:'var(--gb-danger)' }}
                                 title="Delete">🗑</button>

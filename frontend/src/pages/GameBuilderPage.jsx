@@ -1044,7 +1044,7 @@ const [nameInput,     setNameInput]     = useState('')
                   <div style={{ marginBottom:14 }}>
                     <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
                       <input type="checkbox" checked={!!settings.randomize_questions} onChange={e => setSettings({...settings,randomize_questions:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                      Randomize question order for players
+                      Randomise questions
                     </label>
                   </div>
                   <div className="gb-fg" style={{ marginBottom:0 }}>
@@ -1062,12 +1062,11 @@ const [nameInput,     setNameInput]     = useState('')
                   {questions.length === 0 ? (
                     <p style={{ color:'var(--gb-text3)', fontSize:13 }}>No questions yet.</p>
                   ) : (
-                    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                    <div style={{ display:'flex', flexDirection:'column', gap:4, minWidth:0 }}>
                       {questions.map((q, i) => {
                         const isSelected = selectedQuestionId === q.id
-                        const displayText = (q.question_text || 'New Question').length > 20
-                          ? (q.question_text || 'New Question').slice(0, 20) + '…'
-                          : (q.question_text || 'New Question')
+                        const text = q.question_text || 'New Question'
+                        const displayText = text.length > 20 ? text.slice(0, 20) + '…' : text
                         const isDragging = dragIdx === i
                         return (
                           <div key={q.id}
@@ -1077,17 +1076,18 @@ const [nameInput,     setNameInput]     = useState('')
                             onDragEnd={handleDragEnd}
                             onClick={() => setSelectedQuestionId(q.id)}
                             style={{
+                              width:'100%', boxSizing:'border-box',
                               padding:'8px 10px', borderRadius:8, cursor:'grab', fontSize:13,
                               background: isDragging ? '#e8e8ff' : isSelected ? '#eef0ff' : '#fff',
                               border:`1.5px solid ${isSelected ? 'var(--gb-primary)' : 'var(--gb-border)'}`,
                               opacity: isDragging ? 0.6 : 1,
                               transition:'all .12s',
-                              position:'relative',
+                              position:'relative', overflow:'hidden',
                             }}>
                             {/* Row 1: # + truncated text */}
-                            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4, whiteSpace:'nowrap', overflow:'hidden' }}>
+                            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4, minWidth:0 }}>
                               <span style={{ fontWeight:700, color:'var(--gb-primary)', fontSize:12, flexShrink:0 }}>#{i+1}</span>
-                              <span style={{ color:'var(--gb-text)', fontSize:12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{displayText}</span>
+                              <span style={{ minWidth:0, color:'var(--gb-text)', fontSize:12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{displayText}</span>
                             </div>
                             {/* Row 2: Duplicate + Delete */}
                             <div style={{ display:'flex', alignItems:'center', gap:6 }}>
@@ -1657,9 +1657,6 @@ const [nameInput,     setNameInput]     = useState('')
                   <div style={{ height:4, background: hasBg ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius:10, overflow:'hidden' }}>
                     <div style={{ height:'100%', width:`${((questions.indexOf(previewQ)+1)/questions.length)*100}%`, background:`linear-gradient(90deg, ${settings.primary_color||'#7c6ff7'}, ${(settings.primary_color||'#7c6ff7')}bb)`, borderRadius:10, transition:'width 0.5s ease' }} />
                   </div>
-                  {!!settings.randomize_questions && (
-                    <div style={{ fontSize:9, color: hasBg ? 'rgba(255,255,255,0.7)' : '#999', marginTop:4, textAlign:'center' }}>🔀 Random order</div>
-                  )}
                 </div>
               )}
               {/* Question card */}

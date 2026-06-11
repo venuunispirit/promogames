@@ -119,6 +119,40 @@ router.delete('/questions/:id', auth, async (req, res) => {
   } catch (err) { res.status(500).json({ success: false, message: err.message }); }
 });
 
+// POST duplicate a question with all its options
+router.post('/questions/:id/duplicate', auth, async (req, res) => {
+  try {
+    const [src] = await db.query('SELECT * FROM questions WHERE id = ?', [req.params.id]);
+    if (!src.length) return res.status(404).json({ success: false, message: 'Question not found' });
+    const q = src[0];
+
+    // Shift later questions down
+    await db.query('UPDATE questions SET question_order = question_order + 1 WHERE game_id = ? AND question_order > ?', [q.game_id, q.question_order]);
+
+    const [qr] = await db.query(
+      `INSERT INTO questions (game_id, question_text, question_image_url, question_bg_image_url, question_type, question_color, question_order, num_options, sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id, overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out, question_image_animation)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [q.game_id, q.question_text + ' (copy of)', q.question_image_url, q.question_bg_image_url, q.question_type, q.question_color, q.question_order + 1, q.num_options,
+       q.sound_correct, q.sound_wrong, q.sound_neutral, q.sound_correct_id, q.sound_wrong_id, q.sound_neutral_id,
+       q.overlay_duration, q.overlay_idle_time, q.overlay_animation_in, q.overlay_animation_out, q.question_image_animation]
+    );
+    const newQId = qr.insertId;
+
+    // Clone options
+    const [options] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [q.id]);
+    for (const o of options) {
+      await db.query(
+        'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [newQId, o.option_text, o.option_image_url, o.option_overlay_image_url, o.option_color, o.option_text_color, o.is_correct, o.option_order]
+      );
+    }
+
+    const [newQ] = await db.query('SELECT * FROM questions WHERE id = ?', [newQId]);
+    const [newOpts] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [newQId]);
+    res.status(201).json({ success: true, question: { ...newQ[0], options: newOpts } });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 router.post('/games/:gameId/questions/reorder', auth, async (req, res) => {
   const { order } = req.body;
   try {

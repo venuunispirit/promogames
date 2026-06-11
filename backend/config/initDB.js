@@ -316,6 +316,10 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'submit_button_bg_color', 'VARCHAR(20)');
   await addColumn(connection, 'quiz_settings', 'continue_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
   await addColumn(connection, 'quiz_settings', 'continue_button_bg_color', 'VARCHAR(20)');
+  await addColumn(connection, 'quiz_settings', 'next_button_text', "VARCHAR(100) DEFAULT 'Next →'");
+  await addColumn(connection, 'quiz_settings', 'next_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
+  await addColumn(connection, 'quiz_settings', 'next_button_bg_color', 'VARCHAR(20)');
+  await addColumn(connection, 'quiz_settings', 'randomize_questions', 'TINYINT(1) DEFAULT 0');
 
   /* GAMES */
   await addColumn(connection, 'games', 'client_id', 'INT');

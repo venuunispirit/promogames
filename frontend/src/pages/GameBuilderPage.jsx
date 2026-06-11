@@ -395,9 +395,9 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
 }
 
 /* ─────────── QuestionCard ─────────── */
-function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown }) {
+function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown, forceOpen }) {
   const [q, setQ] = useState(question)
-  const [open, setOpen] = useState(false)
+  const [open, setOpen] = useState(!!forceOpen)
   const [saving, setSaving] = useState(false)
   const [imgPreview, setImgPreview] = useState(question.question_image_url||null)
   const [bgPreview,  setBgPreview]  = useState(question.question_bg_image_url||null)
@@ -407,7 +407,8 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
     setQ(question)
     setImgPreview(question.question_image_url||null)
     setBgPreview(question.question_bg_image_url||null)
-  }, [question])
+    if (forceOpen) setOpen(true)
+  }, [question, forceOpen])
 
   const updateOption = (i, field, val) => {
     const opts = [...(q.options||[])]; opts[i] = { ...opts[i], [field]:val }; setQ({ ...q, options:opts })
@@ -639,6 +640,10 @@ const [nameInput,     setNameInput]     = useState('')
   const [saving,        setSaving]        = useState(false)
   const [soundUploading,setSoundUploading]= useState(false)
   const [addingQ,       setAddingQ]       = useState(false)
+  const [selectedQuestionId, setSelectedQuestionId] = useState(null)
+  const [dragIdx, setDragIdx] = useState(null)
+  const questionsRef = useRef(questions)
+  questionsRef.current = questions
   const [redirectUrl,   setRedirectUrl]   = useState('')
 
   const soundUploadRef = useRef()
@@ -654,6 +659,7 @@ const [nameInput,     setNameInput]     = useState('')
       const g = res.data.game
       setGame(g)
       setQuestions(g.questions||[])
+      if (g.questions?.length) setSelectedQuestionId(g.questions[0].id)
       setFormFields(g.formFields||[])
       setEmailTemplate(g.emailTemplate||{})
       setSettings(g.settings||{})
@@ -707,6 +713,7 @@ const [nameInput,     setNameInput]     = useState('')
       const res = await api.post(`/quiz/games/${id}/questions`, fd)
       // New question comes back with no options — safe to add directly
       setQuestions(prev => [...prev, { ...res.data.question, options: [] }])
+      setSelectedQuestionId(res.data.question.id)
       showToast('Question added ✅')
     } catch (err) { showToast('Error: ' + (err.response?.data?.message||err.message), 'error') }
     setAddingQ(false)
@@ -782,6 +789,45 @@ const [nameInput,     setNameInput]     = useState('')
     } catch { showToast('Error deleting question', 'error') }
   }
 
+  /* ─── Drag & Drop Reorder ─── */
+  const handleDragStart = (idx) => { setDragIdx(idx) }
+  const handleDragOver = (e, idx) => {
+    e.preventDefault()
+    if (dragIdx === null || dragIdx === idx) return
+    setQuestions(prev => {
+      const arr = [...prev]
+      const [item] = arr.splice(dragIdx, 1)
+      arr.splice(idx, 0, item)
+      return arr.map((q, i) => ({ ...q, question_order: i }))
+    })
+    setDragIdx(idx)
+  }
+  const handleDragEnd = async () => {
+    setDragIdx(null)
+    try {
+      const current = questionsRef.current
+      const order = current.map((q, i) => ({ id: q.id, question_order: i }))
+      await api.post(`/quiz/games/${id}/questions/reorder`, { order })
+    } catch { showToast('Reorder failed', 'error') }
+  }
+
+  /* ─── Duplicate Question ─── */
+  const duplicateQuestion = async (q) => {
+    try {
+      const res = await api.post(`/quiz/questions/${q.id}/duplicate`)
+      setQuestions(prev => {
+        const idx = prev.findIndex(pq => pq.id === q.id)
+        const dup = { ...res.data.question, options: res.data.question.options || [] }
+        const copy = [...prev]
+        copy.splice(idx + 1, 0, dup)
+        // Renumber
+        return copy.map((cq, ci) => ({ ...cq, question_order: ci }))
+      })
+      setSelectedQuestionId(res.data.question.id)
+      showToast('Question duplicated ✅')
+    } catch (err) { showToast('Error: ' + (err.response?.data?.message||err.message), 'error') }
+  }
+
   /* ─── Reorder helpers ─── */
   const moveQuestion = async (from, to) => {
     const arr = [...questions]
@@ -830,7 +876,9 @@ const [nameInput,     setNameInput]     = useState('')
         'thankyou_subtitle','outro_text_color','thankyou_subtitle_color',
         'start_button_text_color','start_button_bg_color',
         'submit_button_text_color','submit_button_bg_color',
-        'continue_button_text_color','continue_button_bg_color']
+        'continue_button_text_color','continue_button_bg_color',
+        'next_button_text','next_button_text_color','next_button_bg_color',
+        'randomize_questions']
       for (const f of fields) fd.append(f, settings[f]??'')
       if (settings._bgImageFile)    fd.append('bg_image',           settings._bgImageFile)
       else if (settings.bg_image_url) fd.append('bg_image_url',     settings.bg_image_url)
@@ -980,69 +1028,133 @@ const [nameInput,     setNameInput]     = useState('')
         <div>
           {/* ════ QUESTIONS TAB ════ */}
           {tab === 'questions' && (
-            <div>
-              <div className="gb-sticky-bar">
-                <span style={{ fontSize:13, color:'var(--gb-text2)', fontWeight:600 }}>
-                  {questions.length} question{questions.length!==1?'s':''}
-                </span>
-                <button className="gb-btn gb-btn-primary" onClick={addQuestion} disabled={addingQ}>
-                  {addingQ ? '⏳ Adding…' : '+ Add Question'}
-                </button>
-              </div>
+            <div style={{ display:'grid', gridTemplateColumns:'30% 70%', gap:16, alignItems:'start' }}>
+              {/* 30% Sidebar */}
+              <div>
 
-              {questions.length === 0
-                ? (
-                  <div className="gb-empty">
-                    <div className="gb-empty-icon">❓</div>
-                    <h3 style={{ color:'var(--gb-text)', marginBottom:8 }}>No questions yet</h3>
-                    <p>Add your first question to get started</p>
-                    <button className="gb-btn gb-btn-primary" style={{ marginTop:16 }} onClick={addQuestion}>+ Add First Question</button>
+                {/* Card 1: Progress & Timing */}
+                <div className="gb-card" style={{ padding:16, marginBottom:16 }}>
+                  <div className="gb-section-title">⚙️ Progress & Timing</div>
+                  <div style={{ marginBottom:14 }}>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
+                      <input type="checkbox" checked={!!settings.show_progress} onChange={e => setSettings({...settings,show_progress:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                      Show progress bar
+                    </label>
                   </div>
-                )
-                : questions.map((q,i) => (
-                  <QuestionCard
-                    key={q.id}
-                    question={q}
-                    index={i}
-                    total={questions.length}
-                    onSave={saveQuestion}
-                    onDelete={deleteQuestion}
-                    onMoveUp={idx  => moveQuestion(idx, idx-1)}
-                    onMoveDown={idx => moveQuestion(idx, idx+1)}
-                  />
-                ))
-              }
+                  <div style={{ marginBottom:14 }}>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
+                      <input type="checkbox" checked={!!settings.randomize_questions} onChange={e => setSettings({...settings,randomize_questions:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                      Randomize question order for players
+                    </label>
+                  </div>
+                  <div className="gb-fg" style={{ marginBottom:0 }}>
+                    <span className="gb-label">Time Per Question (sec)</span>
+                    <input type="number" min={0} value={settings.time_per_question||0} onChange={e => setSettings({...settings,time_per_question:e.target.value})} placeholder="0 = no limit" />
+                  </div>
+                </div>
 
-              {questions.length > 0 && (
-                <div style={{ textAlign:'center', paddingTop:8 }}>
-                  <button className="gb-btn gb-btn-primary" onClick={addQuestion} disabled={addingQ}>
-                    {addingQ ? '⏳ Adding…' : '+ Add Another Question'}
+                {/* Card 2: Question List */}
+                <div className="gb-card" style={{ padding:16, marginBottom:16 }}>
+                  <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:12 }}>
+                    <div className="gb-section-title" style={{ marginBottom:0 }}>📝 Questions</div>
+                    <span style={{ fontSize:12, color:'var(--gb-text2)', fontWeight:600 }}>{questions.length}</span>
+                  </div>
+                  {questions.length === 0 ? (
+                    <p style={{ color:'var(--gb-text3)', fontSize:13 }}>No questions yet.</p>
+                  ) : (
+                    <div style={{ display:'flex', flexDirection:'column', gap:4 }}>
+                      {questions.map((q, i) => {
+                        const isSelected = selectedQuestionId === q.id
+                        const displayText = (q.question_text || 'New Question').length > 20
+                          ? (q.question_text || 'New Question').slice(0, 20) + '…'
+                          : (q.question_text || 'New Question')
+                        const isDragging = dragIdx === i
+                        return (
+                          <div key={q.id}
+                            draggable
+                            onDragStart={() => handleDragStart(i)}
+                            onDragOver={(e) => handleDragOver(e, i)}
+                            onDragEnd={handleDragEnd}
+                            onClick={() => setSelectedQuestionId(q.id)}
+                            style={{
+                              padding:'8px 10px', borderRadius:8, cursor:'grab', fontSize:13,
+                              background: isDragging ? '#e8e8ff' : isSelected ? '#eef0ff' : '#fff',
+                              border:`1.5px solid ${isSelected ? 'var(--gb-primary)' : 'var(--gb-border)'}`,
+                              opacity: isDragging ? 0.6 : 1,
+                              transition:'all .12s',
+                              position:'relative',
+                            }}>
+                            {/* Row 1: # + truncated text */}
+                            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:4, whiteSpace:'nowrap', overflow:'hidden' }}>
+                              <span style={{ fontWeight:700, color:'var(--gb-primary)', fontSize:12, flexShrink:0 }}>#{i+1}</span>
+                              <span style={{ color:'var(--gb-text)', fontSize:12, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{displayText}</span>
+                            </div>
+                            {/* Row 2: Duplicate + Delete */}
+                            <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+                              <button onClick={e => { e.stopPropagation(); duplicateQuestion(q) }}
+                                style={{ background:'none', border:'none', cursor:'pointer', padding:0, fontSize:13, lineHeight:1, color:'var(--gb-text2)' }}
+                                title="Duplicate">📋</button>
+                              <button onClick={e => { e.stopPropagation(); deleteQuestion(q); if (selectedQuestionId === q.id) { const remaining = questions.filter(rq => rq.id !== q.id); setSelectedQuestionId(remaining.length ? remaining[0].id : null) } }}
+                                style={{ background:'none', border:'none', cursor:'pointer', padding:0, fontSize:13, lineHeight:1, color:'var(--gb-danger)' }}
+                                title="Delete">🗑</button>
+                            </div>
+                            {/* Bottom-right: options count */}
+                            <span style={{
+                              position:'absolute', bottom:4, right:8,
+                              fontSize:10, color:'var(--gb-text3)', fontWeight:600,
+                            }}>
+                              {(q.options||[]).length} opt{(q.options||[]).length !== 1 ? 's' : ''}
+                            </span>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                  <button className="gb-btn gb-btn-primary gb-btn-sm" onClick={addQuestion} disabled={addingQ} style={{ width:'100%', marginTop:10, justifyContent:'center' }}>
+                    {addingQ ? '⏳ Adding…' : '+ Add Question'}
                   </button>
                 </div>
-              )}
 
-              <div className="gb-card" style={{ marginTop:24, padding:16 }}>
-                <div className="gb-section-title">⚙️ Next Button & Gameplay</div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:14 }}>
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <span className="gb-label">Next Button Text</span>
+                {/* Card 3: Next Button */}
+                <div className="gb-card" style={{ padding:16 }}>
+                  <div className="gb-section-title">⏩ Next Button</div>
+                  <div className="gb-fg" style={{ marginBottom:10 }}>
                     <input value={settings.next_button_text||''} onChange={e => setSettings({...settings,next_button_text:e.target.value})} placeholder="Next →" />
                   </div>
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <span className="gb-label">Time Per Question (sec, 0 = no limit)</span>
-                    <input type="number" min={0} value={settings.time_per_question||0} onChange={e => setSettings({...settings,time_per_question:e.target.value})} />
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                    <ColorPicker value={settings.next_button_text_color||'#ffffff'} onChange={v => setSettings({...settings,next_button_text_color:v})} noPresets label="Text Color" />
+                    <ColorPicker value={settings.next_button_bg_color||''} onChange={v => setSettings({...settings,next_button_bg_color:v})} noPresets label="Background" />
                   </div>
                 </div>
-                <div style={{ display:'flex', gap:20, flexWrap:'wrap' }}>
-                  <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
-                    <input type="checkbox" checked={!!settings.show_progress} onChange={e => setSettings({...settings,show_progress:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                    Show progress bar
-                  </label>
-                  <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
-                    <input type="checkbox" checked={settings.send_email!==0&&settings.send_email!=='0'} onChange={e => setSettings({...settings,send_email:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                    Send completion email
-                  </label>
-                </div>
+
+              </div>
+
+              {/* 70% Main — Selected Question Editor */}
+              <div>
+                {(() => {
+                  const selQ = questions.find(q => q.id === selectedQuestionId)
+                  if (!selQ) return (
+                    <div className="gb-empty">
+                      <div className="gb-empty-icon">❓</div>
+                      <h3 style={{ color:'var(--gb-text)', marginBottom:8 }}>Select a question</h3>
+                      <p>Click a question from the sidebar to edit it here.</p>
+                    </div>
+                  )
+                  const idx = questions.indexOf(selQ)
+                  return (
+                    <QuestionCard
+                      key={selQ.id}
+                      question={selQ}
+                      index={idx}
+                      total={questions.length}
+                      onSave={saveQuestion}
+                      onDelete={(qObj) => { const remaining = questions.filter(q => q.id !== qObj.id); deleteQuestion(qObj); if (selectedQuestionId === qObj.id) { setSelectedQuestionId(remaining.length ? remaining[0].id : null) } }}
+                      onMoveUp={i => moveQuestion(i, i-1)}
+                      onMoveDown={i => moveQuestion(i, i+1)}
+                      forceOpen={true}
+                    />
+                  )
+                })()}
               </div>
             </div>
           )}
@@ -1521,11 +1633,14 @@ const [nameInput,     setNameInput]     = useState('')
           )})()}
 
           {/* ── Questions preview ── */}
-          {tab === 'questions' && questions.length > 0 && (
+          {tab === 'questions' && questions.length > 0 && (() => {
+            const previewQ = questions.find(q => q.id === selectedQuestionId) || questions[0]
+            const hasBg = previewQ.question_bg_image_url || settings.bg_image_url
+            return (
             <div style={{
               flex:1, display:'flex', flexDirection:'column',
-              background: questions[0].question_bg_image_url
-                ? `url(${questions[0].question_bg_image_url}) center/cover`
+              background: previewQ.question_bg_image_url
+                ? `url(${previewQ.question_bg_image_url}) center/cover`
                 : settings.bg_image_url
                   ? `url(${settings.bg_image_url}) center/cover`
                   : (settings.bg_color||'#f4f4ff'),
@@ -1535,13 +1650,16 @@ const [nameInput,     setNameInput]     = useState('')
               {/* Progress bar */}
               {(settings.show_progress !== 0) && (
                 <div style={{ padding:'10px 14px 0', flexShrink:0 }}>
-                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color: (questions[0].question_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.9)' : '#888', fontWeight:600, marginBottom:4 }}>
-                    <span>Question 1 of {questions.length}</span>
-                    <span>{Math.round((1/questions.length)*100)}%</span>
+                  <div style={{ display:'flex', justifyContent:'space-between', fontSize:10, color: hasBg ? 'rgba(255,255,255,0.9)' : '#888', fontWeight:600, marginBottom:4 }}>
+                    <span>Question {questions.indexOf(previewQ)+1} of {questions.length}</span>
+                    <span>{Math.round(((questions.indexOf(previewQ)+1)/questions.length)*100)}%</span>
                   </div>
-                  <div style={{ height:4, background: (questions[0].question_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius:10, overflow:'hidden' }}>
-                    <div style={{ height:'100%', width:`${(1/questions.length)*100}%`, background:`linear-gradient(90deg, ${settings.primary_color||'#7c6ff7'}, ${(settings.primary_color||'#7c6ff7')}bb)`, borderRadius:10, transition:'width 0.5s ease' }} />
+                  <div style={{ height:4, background: hasBg ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius:10, overflow:'hidden' }}>
+                    <div style={{ height:'100%', width:`${((questions.indexOf(previewQ)+1)/questions.length)*100}%`, background:`linear-gradient(90deg, ${settings.primary_color||'#7c6ff7'}, ${(settings.primary_color||'#7c6ff7')}bb)`, borderRadius:10, transition:'width 0.5s ease' }} />
                   </div>
+                  {!!settings.randomize_questions && (
+                    <div style={{ fontSize:9, color: hasBg ? 'rgba(255,255,255,0.7)' : '#999', marginTop:4, textAlign:'center' }}>🔀 Random order</div>
+                  )}
                 </div>
               )}
               {/* Question card */}
@@ -1551,33 +1669,33 @@ const [nameInput,     setNameInput]     = useState('')
               }}>
                 <div style={{
                   flex:1, display:'flex', flexDirection:'column',
-                  background: (questions[0].question_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.97)',
+                  background: hasBg ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.97)',
                   backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
                   borderRadius:18,
-                  border: (questions[0].question_bg_image_url||settings.bg_image_url) ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
-                  boxShadow: (questions[0].question_bg_image_url||settings.bg_image_url) ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
+                  border: hasBg ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
+                  boxShadow: hasBg ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
                   overflow:'hidden',
                 }}>
                   {/* Question image */}
-                  {questions[0].question_image_url && (
+                  {previewQ.question_image_url && (
                     <div style={{
                       flex:1, minHeight:0, display:'flex', alignItems:'center', justifyContent:'center',
-                      padding:'10px 10px 0', background: (questions[0].question_bg_image_url||settings.bg_image_url) ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.03)', overflow:'hidden',
+                      padding:'10px 10px 0', background: hasBg ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.03)', overflow:'hidden',
                     }}>
-                      <img src={questions[0].question_image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8 }} />
+                      <img src={previewQ.question_image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8 }} />
                     </div>
                   )}
                   {/* Bottom: question text + options */}
                   <div style={{ flexShrink:0, display:'flex', flexDirection:'column', padding:'10px 12px 12px', gap:8 }}>
                     <h2 style={{
-                      color: (questions[0].question_bg_image_url||settings.bg_image_url) ? '#fff' : (questions[0].question_color||'#1a1a2e'),
+                      color: hasBg ? '#fff' : (previewQ.question_color||'#1a1a2e'),
                       fontSize:13, textAlign:'center', fontWeight:700, margin:0, lineHeight:1.4,
-                      textShadow: (questions[0].question_bg_image_url||settings.bg_image_url) ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
+                      textShadow: hasBg ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
                     }}>
-                      {questions[0].question_text || 'Untitled question'}
+                      {previewQ.question_text || 'Untitled question'}
                     </h2>
                     <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                      {(questions[0].options||[]).slice(0,4).map((opt,i) => (
+                      {(previewQ.options||[]).slice(0,4).map((opt,i) => (
                         <div key={opt.id||i} style={{
                           background: opt.option_color || '#1a1a2e',
                           color: opt.option_text_color || '#ffffff',
@@ -1593,7 +1711,7 @@ const [nameInput,     setNameInput]     = useState('')
                 </div>
               </div>
             </div>
-          )}
+          )})()}
 
           {/* ── Thankyou preview ── */}
           {tab === 'thankyou' && (

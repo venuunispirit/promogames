@@ -226,8 +226,10 @@ const LIGHT = `
 @keyframes slideRight { from { transform:translateX(-100%) } to { transform:translateX(0) } }
 @keyframes slideLeft { from { transform:translateX(100%) } to { transform:translateX(0) } }
 @keyframes qFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-@keyframes qPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
-@keyframes qBounce { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-10px)} 60%{transform:translateY(-4px)} }
+@keyframes qBreathe { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.03);opacity:0.85} }
+@keyframes qPulse { 0%,100%{transform:scale(1);filter:brightness(1)} 50%{transform:scale(1.04);filter:brightness(1.1)} }
+@keyframes qShimmer { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(1deg)} 75%{transform:rotate(-1deg)} }
+@keyframes qKenBurns { 0%{transform:scale(1)} 100%{transform:scale(1.15)} }
 `
 
 /* ─────────── helpers ─────────── */
@@ -498,13 +500,13 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             <div style={{ display:'flex', gap:20, flexWrap:'wrap' }}>
               <div className="gb-fg">
                 <ImageUpload label="Question Image (optional)" url={imgPreview}
-                  onFile={f => { const r=new FileReader(); r.onload=ev=>setImgPreview(ev.target.result); r.readAsDataURL(f); setQ({ ...q, _imageFile:f }) }}
-                  onClear={() => { setImgPreview(null); setQ({ ...q, _imageFile:null, question_image_url:'' }) }} />
+                  onFile={f => { const r=new FileReader(); r.onload=ev=>{ const url=ev.target.result; setImgPreview(url); setQ(prev=>({...prev, _imageFile:f, question_image_url:url })) }; r.readAsDataURL(f) }}
+                  onClear={() => { setImgPreview(null); setQ(prev=>({...prev, _imageFile:null, question_image_url:'' })) }} />
               </div>
               <div className="gb-fg">
                 <ImageUpload label="BG Image (overrides game BG)" url={bgPreview}
-                  onFile={f => { const r=new FileReader(); r.onload=ev=>setBgPreview(ev.target.result); r.readAsDataURL(f); setQ({ ...q, _bgImageFile:f }) }}
-                  onClear={() => { setBgPreview(null); setQ({ ...q, _bgImageFile:null, question_bg_image_url:'' }) }} />
+                  onFile={f => { const r=new FileReader(); r.onload=ev=>{ const url=ev.target.result; setBgPreview(url); setQ(prev=>({...prev, _bgImageFile:f, question_bg_image_url:url })) }; r.readAsDataURL(f) }}
+                  onClear={() => { setBgPreview(null); setQ(prev=>({...prev, _bgImageFile:null, question_bg_image_url:'' })) }} />
               </div>
             </div>
           </div>
@@ -616,7 +618,15 @@ const [nameInput,     setNameInput]     = useState('')
   const [dragIdx, setDragIdx] = useState(null)
   const questionsRef = useRef(questions)
   questionsRef.current = questions
-  const liveQuestionRef = useRef(null)
+  const [liveQ, setLiveQ] = useState(null)
+  const liveRafRef = useRef(null)
+  const handleLiveChange = useCallback((qData) => {
+    if (liveRafRef.current) return
+    liveRafRef.current = requestAnimationFrame(() => {
+      liveRafRef.current = null
+      setLiveQ({ ...qData, options: qData.options?.map(o => ({ ...o })) })
+    })
+  }, [])
   const [previewOverlay, setPreviewOverlay] = useState(null)
   const [previewStage, setPreviewStage] = useState('initial')
   useEffect(() => { setPreviewOverlay(null); setPreviewStage('initial') }, [selectedQuestionId])
@@ -1128,7 +1138,7 @@ const [nameInput,     setNameInput]     = useState('')
                       onMoveUp={i => moveQuestion(i, i-1)}
                       onMoveDown={i => moveQuestion(i, i+1)}
                       forceOpen={true}
-                      onLiveChange={(qData) => { liveQuestionRef.current = qData }}
+                      onLiveChange={handleLiveChange}
                     />
                   )
                 })()}
@@ -1609,10 +1619,9 @@ const [nameInput,     setNameInput]     = useState('')
             </div>
           )})()}
 
-          {/* ── Questions preview (live edits via ref) ── */}
+          {/* ── Questions preview (live edits via throttled state) ── */}
           {tab === 'questions' && questions.length > 0 && (() => {
-            const live = liveQuestionRef.current
-            const previewQ = live?.id === selectedQuestionId ? live : (questions.find(q => q.id === selectedQuestionId) || questions[0])
+            const previewQ = liveQ?.id === selectedQuestionId ? liveQ : (questions.find(q => q.id === selectedQuestionId) || questions[0])
             const hasBg = previewQ.question_bg_image_url || settings.bg_image_url
             const handleOptionClick = (opt) => {
               const hasOverlay = !!opt.option_overlay_image_url
@@ -1694,8 +1703,10 @@ const [nameInput,     setNameInput]     = useState('')
                         style={{
                           width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8,
                           animation: previewQ.question_image_animation === 'float' ? 'qFloat 3s ease-in-out infinite' :
-                            previewQ.question_image_animation === 'pulse' ? 'qPulse 2s ease-in-out infinite' :
-                            previewQ.question_image_animation === 'bounce' ? 'qBounce 1.5s ease-in-out infinite' :
+                            previewQ.question_image_animation === 'breathe' ? 'qBreathe 2.8s ease-in-out infinite' :
+                            previewQ.question_image_animation === 'pulse' ? 'qPulse 2.4s ease-in-out infinite' :
+                            previewQ.question_image_animation === 'shimmer' ? 'qShimmer 3s ease-in-out infinite' :
+                            previewQ.question_image_animation === 'kenburns' ? 'qKenBurns 8s ease-in-out infinite alternate' :
                             'none',
                         }} />
                     </div>

@@ -472,7 +472,36 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
 
       {/* ── body (always open) ── */}
         <div className="gb-q-body">
-          {/* top: question text + color */}
+          {/* images — 2‑col upload cards like form tab */}
+          <div className="gb-section" style={{ marginBottom:14 }}>
+            <div className="gb-section-title">🖼️ Images</div>
+            <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Question Image</span>
+                <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button"
+                  onClick={() => { const inp = document.createElement('input'); inp.type='file'; inp.accept='image/png,image/jpeg,image/jpg'; inp.onchange=e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>{const url=ev.target.result;setImgPreview(url);setQ(prev=>({...prev,_imageFile:f,question_image_url:url}))};r.readAsDataURL(f)}};inp.click() }}
+                  style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
+                {imgPreview && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
+                  <img src={imgPreview} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
+                  <button style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
+                    type="button" onClick={() => { setImgPreview(null); setQ(prev=>({...prev, _imageFile:null, question_image_url:'' })) }}>✕</button>
+                </div>}
+              </div>
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>BG Image (overrides game BG)</span>
+                <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button"
+                  onClick={() => { const inp = document.createElement('input'); inp.type='file'; inp.accept='image/png,image/jpeg,image/jpg'; inp.onchange=e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>{const url=ev.target.result;setBgPreview(url);setQ(prev=>({...prev,_bgImageFile:f,question_bg_image_url:url}))};r.readAsDataURL(f)}};inp.click() }}
+                  style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
+                {bgPreview && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
+                  <img src={bgPreview} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
+                  <button style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
+                    type="button" onClick={() => { setBgPreview(null); setQ(prev=>({...prev, _bgImageFile:null, question_bg_image_url:'' })) }}>✕</button>
+                </div>}
+              </div>
+            </div>
+          </div>
+
+          {/* question text */}
           <div style={{ display:'flex', gap:12, marginBottom:14, flexWrap:'wrap', alignItems:'flex-end' }}>
             <div className="gb-fg" style={{ flex:3 }}>
               <span className="gb-label">Question Text</span>
@@ -481,23 +510,6 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             </div>
             <div>
               <ColorPicker value={q.question_color||'#1a1a2e'} onChange={v => setQ({ ...q, question_color:v })} label="Text Color" />
-            </div>
-          </div>
-
-          {/* images */}
-          <div className="gb-section">
-            <div className="gb-section-title">🖼️ Images</div>
-            <div style={{ display:'flex', gap:20, flexWrap:'wrap' }}>
-              <div className="gb-fg">
-                <ImageUpload label="Question Image (optional)" url={imgPreview}
-                  onFile={f => { const r=new FileReader(); r.onload=ev=>{ const url=ev.target.result; setImgPreview(url); setQ(prev=>({...prev, _imageFile:f, question_image_url:url })) }; r.readAsDataURL(f) }}
-                  onClear={() => { setImgPreview(null); setQ(prev=>({...prev, _imageFile:null, question_image_url:'' })) }} />
-              </div>
-              <div className="gb-fg">
-                <ImageUpload label="BG Image (overrides game BG)" url={bgPreview}
-                  onFile={f => { const r=new FileReader(); r.onload=ev=>{ const url=ev.target.result; setBgPreview(url); setQ(prev=>({...prev, _bgImageFile:f, question_bg_image_url:url })) }; r.readAsDataURL(f) }}
-                  onClear={() => { setBgPreview(null); setQ(prev=>({...prev, _bgImageFile:null, question_bg_image_url:'' })) }} />
-              </div>
             </div>
           </div>
 

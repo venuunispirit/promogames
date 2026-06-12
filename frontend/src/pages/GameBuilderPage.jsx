@@ -407,20 +407,18 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
 }
 
 /* ─────────── QuestionCard ─────────── */
-function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown, forceOpen, onLiveChange }) {
+function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown, onLiveChange }) {
   const [q, setQ] = useState(question)
-  const [open, setOpen] = useState(!!forceOpen)
   const [saving, setSaving] = useState(false)
   const [imgPreview, setImgPreview] = useState(question.question_image_url||null)
   const [bgPreview,  setBgPreview]  = useState(question.question_bg_image_url||null)
 
-  // Keep in sync if parent re-orders or refreshes
+    // Keep in sync if parent re-orders or refreshes
   useEffect(() => {
     setQ(question)
     setImgPreview(question.question_image_url||null)
     setBgPreview(question.question_bg_image_url||null)
-    if (forceOpen) setOpen(true)
-  }, [question, forceOpen])
+  }, [question])
 
   // Push live edits up to parent for the preview
   useEffect(() => { onLiveChange?.(q) }, [q, onLiveChange])
@@ -444,8 +442,8 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
 
   return (
     <div className="gb-q-row">
-      {/* ── header (always visible) ── */}
-      <div className="gb-q-header" onClick={() => setOpen(o => !o)}>
+      {/* ── header ── */}
+      <div className="gb-q-header" style={{ cursor:'default' }}>
         {/* drag/reorder arrows */}
         <div style={{ display:'flex', flexDirection:'column', gap:1 }} onClick={e => e.stopPropagation()}>
           <button className="gb-btn gb-btn-ghost gb-btn-icon gb-btn-sm" disabled={index===0}
@@ -461,19 +459,21 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {q.question_text || <span style={{ color:'var(--gb-text3)' }}>Untitled question…</span>}
         </span>
-        {/* badges */}
+        {/* type dropdown + opts + delete */}
         <div style={{ display:'flex', gap:6, alignItems:'center' }} onClick={e => e.stopPropagation()}>
-          <span className={`gb-badge ${q.question_type==='opinion' ? 'gb-badge-gray' : 'gb-badge-purple'}`}>{typeLabel}</span>
+          <select value={q.question_type} onChange={e => setQ({ ...q, question_type: e.target.value })}
+            style={{ fontSize:11, padding:'2px 6px', borderRadius:6, border:'1.5px solid var(--gb-border)', background:'var(--gb-surface)', color:'var(--gb-text)', fontWeight:600, cursor:'pointer', outline:'none' }}>
+            <option value="right_wrong">Right / Wrong</option>
+            <option value="opinion">Opinion</option>
+          </select>
           <span className="gb-badge gb-badge-gray">{(q.options||[]).length} opts</span>
           {q.question_type==='right_wrong' && correctCount>0 && <span className="gb-badge gb-badge-green">✓ set</span>}
           {imgPreview && <span title="Has image">🖼️</span>}
           <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" onClick={e => { e.stopPropagation(); onDelete(question) }}>🗑</button>
         </div>
-        <span style={{ color:'var(--gb-text3)', marginLeft:4, fontSize:14 }}>{open ? '▾' : '▸'}</span>
       </div>
 
-      {/* ── body (collapsible) ── */}
-      {open && (
+      {/* ── body (always open) ── */}
         <div className="gb-q-body">
           {/* top: type + question text + color */}
           <div style={{ display:'flex', gap:12, marginBottom:14, flexWrap:'wrap', alignItems:'flex-end' }}>

@@ -264,6 +264,14 @@ async function initDB() {
     )
   `, 'crossword_settings table');
 
+  /* ── CROSSWORD SETTINGS COLOR MIGRATIONS ── */
+  await addColumn(connection, 'crossword_settings', 'heading_1_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
+  await addColumn(connection, 'crossword_settings', 'heading_2_color', "VARCHAR(20) DEFAULT '#666666'");
+  await addColumn(connection, 'crossword_settings', 'heading_3_color', "VARCHAR(20) DEFAULT '#777777'");
+  await addColumn(connection, 'crossword_settings', 'description_color', "VARCHAR(20) DEFAULT '#888888'");
+  await addColumn(connection, 'crossword_settings', 'blank_cell_image_url', 'VARCHAR(500)');
+  await addColumn(connection, 'crossword_settings', 'submit_confirm_gif_url', 'VARCHAR(500)');
+
   /* ── EXISTING COLUMN MIGRATIONS (all from your original, unchanged) ── */
   console.log('🔄 Running column migrations...');
 

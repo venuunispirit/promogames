@@ -218,6 +218,13 @@ const LIGHT = `
   background: var(--gb-surface2); border: 1px solid var(--gb-border);
   border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
 }
+
+/* preview overlay animations */
+@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
+@keyframes slideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
+@keyframes slideDown { from { transform:translateY(-100%) } to { transform:translateY(0) } }
+@keyframes slideRight { from { transform:translateX(-100%) } to { transform:translateX(0) } }
+@keyframes slideLeft { from { transform:translateX(100%) } to { transform:translateX(0) } }
 `
 
 /* ─────────── helpers ─────────── */
@@ -644,6 +651,8 @@ const [nameInput,     setNameInput]     = useState('')
   const [dragIdx, setDragIdx] = useState(null)
   const questionsRef = useRef(questions)
   questionsRef.current = questions
+  const [previewOverlay, setPreviewOverlay] = useState(null)
+  useEffect(() => { setPreviewOverlay(null) }, [selectedQuestionId])
   const [redirectUrl,   setRedirectUrl]   = useState('')
 
   const soundUploadRef = useRef()
@@ -1636,6 +1645,13 @@ const [nameInput,     setNameInput]     = useState('')
           {tab === 'questions' && questions.length > 0 && (() => {
             const previewQ = questions.find(q => q.id === selectedQuestionId) || questions[0]
             const hasBg = previewQ.question_bg_image_url || settings.bg_image_url
+            const handleOptionClick = (opt) => {
+              if (opt.option_overlay_image_url) {
+                setPreviewOverlay(opt)
+                const dur = (Number(previewQ.overlay_duration) || 3) * 1000
+                setTimeout(() => setPreviewOverlay(null), dur)
+              }
+            }
             return (
             <div style={{
               flex:1, display:'flex', flexDirection:'column',
@@ -1645,8 +1661,25 @@ const [nameInput,     setNameInput]     = useState('')
                   ? `url(${settings.bg_image_url}) center/cover`
                   : (settings.bg_color||'#f4f4ff'),
               fontFamily: settings.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif",
-              position:'relative',
+              position:'relative', overflow:'hidden',
             }}>
+              {/* Overlay layer */}
+              {previewOverlay && previewOverlay.option_overlay_image_url && (
+                <div style={{
+                  position:'absolute', inset:0, zIndex:10,
+                  display:'flex', alignItems:'center', justifyContent:'center',
+                  animation: `${
+                    previewQ.overlay_animation_in === 'flyFromBottom' ? 'slideUp' :
+                    previewQ.overlay_animation_in === 'flyToTop' ? 'slideDown' :
+                    previewQ.overlay_animation_in === 'flyFromLeft' ? 'slideRight' :
+                    previewQ.overlay_animation_in === 'flyToRight' ? 'slideLeft' :
+                    'fadeIn'
+                  } 0.4s ease`,
+                }}>
+                  <img src={previewOverlay.option_overlay_image_url} alt=""
+                    style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                </div>
+              )}
               {/* Progress bar */}
               {(settings.show_progress !== 0) && (
                 <div style={{ padding:'10px 14px 0', flexShrink:0 }}>
@@ -1682,7 +1715,7 @@ const [nameInput,     setNameInput]     = useState('')
                       <img src={previewQ.question_image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8 }} />
                     </div>
                   )}
-                  {/* Bottom: question text + options */}
+                  {/* Bottom: question text + options + next button */}
                   <div style={{ flexShrink:0, display:'flex', flexDirection:'column', padding:'10px 12px 12px', gap:8 }}>
                     <h2 style={{
                       color: hasBg ? '#fff' : (previewQ.question_color||'#1a1a2e'),
@@ -1693,16 +1726,27 @@ const [nameInput,     setNameInput]     = useState('')
                     </h2>
                     <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
                       {(previewQ.options||[]).slice(0,4).map((opt,i) => (
-                        <div key={opt.id||i} style={{
-                          background: opt.option_color || '#1a1a2e',
-                          color: opt.option_text_color || '#ffffff',
-                          borderRadius:12, padding:'8px 12px', fontSize:12, fontWeight:600,
-                          textAlign:'center', border:'2px solid transparent',
-                          boxShadow:'0 2px 8px rgba(0,0,0,0.1)',
-                        }}>
+                        <div key={opt.id||i} onClick={() => handleOptionClick(opt)}
+                          style={{
+                            background: opt.option_color || '#1a1a2e',
+                            color: opt.option_text_color || '#ffffff',
+                            borderRadius:12, padding:'8px 12px', fontSize:12, fontWeight:600,
+                            textAlign:'center', border:'2px solid transparent',
+                            boxShadow:'0 2px 8px rgba(0,0,0,0.1)', cursor:'pointer',
+                          }}>
                           {opt.option_text || `Option ${i+1}`}
                         </div>
                       ))}
+                    </div>
+                    {/* Next button */}
+                    <div style={{
+                      width:'100%', textAlign:'center', marginTop:4,
+                      background: settings.next_button_bg_color || `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,
+                      color: settings.next_button_text_color||'#fff', borderRadius:10, padding:'10px', fontSize:13, fontWeight:700,
+                      boxShadow: settings.next_button_bg_color ? '0 4px 16px rgba(0,0,0,0.12)' : `0 4px 16px ${(settings.primary_color||'#6366f1')}33`,
+                      cursor:'default', opacity:0.85,
+                    }}>
+                      {settings.next_button_text || 'Next →'}
                     </div>
                   </div>
                 </div>

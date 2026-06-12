@@ -121,13 +121,18 @@ router.get('/:gameId/settings', auth, async (req, res) => {
 router.put('/:gameId/settings', auth, upload.fields([
   { name: 'bg_image', maxCount: 1 },
   { name: 'thankyou_bg_image', maxCount: 1 },
-  { name: 'game_logo', maxCount: 1 }
+  { name: 'game_logo', maxCount: 1 },
+  { name: 'submit_confirm_gif', maxCount: 1 },
+  { name: 'blank_cell_image', maxCount: 1 }
 ]), async (req, res) => {
   const {
     grid_rows, grid_cols, cell_size, show_timer, time_limit_seconds, allow_hints,
     heading_1, heading_2, heading_3, description_text,
+    heading_1_color, heading_2_color, heading_3_color, description_color,
     bg_color, primary_color, bg_image_url, thankyou_bg_image_url, game_logo_url,
-    font_family, sound_correct_id, sound_wrong_id
+    font_family, sound_correct_id, sound_wrong_id,
+intro_text, outro_text, submit_button_text, continue_button_text, start_button_text,
+    terms_enabled, terms_text, terms_url, meta_description, submit_confirm_gif_url, blank_cell_image_url
   } = req.body;
 
   try {
@@ -136,39 +141,64 @@ router.put('/:gameId/settings', auth, upload.fields([
     const bgImg  = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           || (existing[0]?.bg_image_url           || null));
     const tyImg  = req.files?.thankyou_bg_image  ? `/uploads/images/${req.files.thankyou_bg_image[0].filename}`  : (thankyou_bg_image_url  || (existing[0]?.thankyou_bg_image_url  || null));
     const logoImg = req.files?.game_logo         ? `/uploads/images/${req.files.game_logo[0].filename}`          : (game_logo_url !== undefined ? game_logo_url : (existing[0]?.game_logo_url || null));
+    const gifImg  = req.files?.submit_confirm_gif  ? `/uploads/images/${req.files.submit_confirm_gif[0].filename}`  : (submit_confirm_gif_url  || (existing[0]?.submit_confirm_gif_url  || null));
+    const blankImg = req.files?.blank_cell_image   ? `/uploads/images/${req.files.blank_cell_image[0].filename}`   : (blank_cell_image_url    || (existing[0]?.blank_cell_image_url    || null));
 
     if (existing.length === 0) {
-      await db.query(
+await db.query(
         `INSERT INTO crossword_settings (game_id, grid_rows, grid_cols, cell_size, show_timer, time_limit_seconds, allow_hints,
-         heading_1, heading_2, heading_3, description_text, bg_color, primary_color,
-         bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, sound_correct_id, sound_wrong_id)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-         [req.params.gameId, grid_rows || 10, grid_cols || 10, cell_size || 40,
+         heading_1, heading_2, heading_3, description_text,
+         heading_1_color, heading_2_color, heading_3_color, description_color,
+         bg_color, primary_color, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, sound_correct_id, sound_wrong_id,
+         intro_text, outro_text, submit_button_text, continue_button_text, start_button_text,
+         terms_enabled, terms_text, terms_url, meta_description, submit_confirm_gif_url, blank_cell_image_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [req.params.gameId, grid_rows || 10, grid_cols || 10, cell_size || 40,
           show_timer !== undefined ? Number(show_timer) : 1, time_limit_seconds || 0, allow_hints !== undefined ? Number(allow_hints) : 1,
-         heading_1 || null, heading_2 || null, heading_3 || null, description_text || null,
-         bg_color || '#f8f8ff', primary_color || '#7c6ff7', bgImg, tyImg, logoImg,
-         font_family || 'DM Sans', sound_correct_id || null, sound_wrong_id || null]
+          heading_1 || null, heading_2 || null, heading_3 || null, description_text || null,
+          heading_1_color || '#1a1a2e', heading_2_color || '#666666', heading_3_color || '#777777', description_color || '#888888',
+          bg_color || '#f8f8ff', primary_color || '#7c6ff7', bgImg, tyImg, logoImg,
+          font_family || 'DM Sans', sound_correct_id || null, sound_wrong_id || null,
+          intro_text || null, outro_text || null, submit_button_text || null, continue_button_text || null, start_button_text || null,
+          terms_enabled !== undefined ? Number(terms_enabled) : 0, terms_text || null, terms_url || null, meta_description || null, gifImg || null, blankImg || null]
       );
     } else {
       const e = existing[0];
       await db.query(
         `UPDATE crossword_settings SET grid_rows=?, grid_cols=?, cell_size=?, show_timer=?, time_limit_seconds=?, allow_hints=?,
          heading_1=?, heading_2=?, heading_3=?, description_text=?,
+         heading_1_color=?, heading_2_color=?, heading_3_color=?, description_color=?,
          bg_color=?, primary_color=?, bg_image_url=?, thankyou_bg_image_url=?, game_logo_url=?,
-         font_family=?, sound_correct_id=?, sound_wrong_id=? WHERE game_id=?`,
-         [grid_rows || e.grid_rows, grid_cols || e.grid_cols, cell_size || e.cell_size,
-          show_timer !== undefined ? Number(show_timer) : e.show_timer,
-          time_limit_seconds !== undefined ? time_limit_seconds : e.time_limit_seconds,
-          allow_hints !== undefined ? Number(allow_hints) : e.allow_hints,
+         font_family=?, sound_correct_id=?, sound_wrong_id=?,
+         intro_text=?, outro_text=?, submit_button_text=?, continue_button_text=?, start_button_text=?,
+         terms_enabled=?, terms_text=?, terms_url=?, meta_description=?, submit_confirm_gif_url=?, blank_cell_image_url=? WHERE game_id=?`,
+        [grid_rows || e.grid_rows, grid_cols || e.grid_cols, cell_size || e.cell_size,
+         show_timer !== undefined ? Number(show_timer) : e.show_timer,
+         time_limit_seconds !== undefined ? time_limit_seconds : e.time_limit_seconds,
+         allow_hints !== undefined ? Number(allow_hints) : e.allow_hints,
          heading_1 !== undefined ? heading_1 : e.heading_1,
          heading_2 !== undefined ? heading_2 : e.heading_2,
          heading_3 !== undefined ? heading_3 : e.heading_3,
          description_text !== undefined ? description_text : e.description_text,
+         heading_1_color || e.heading_1_color || '#1a1a2e',
+         heading_2_color || e.heading_2_color || '#666666',
+         heading_3_color || e.heading_3_color || '#777777',
+         description_color || e.description_color || '#888888',
          bg_color || e.bg_color, primary_color || e.primary_color,
          bgImg, tyImg, logoImg,
          font_family || e.font_family,
          sound_correct_id !== undefined ? sound_correct_id : e.sound_correct_id,
          sound_wrong_id !== undefined ? sound_wrong_id : e.sound_wrong_id,
+         intro_text !== undefined ? intro_text : e.intro_text,
+         outro_text !== undefined ? outro_text : e.outro_text,
+         submit_button_text !== undefined ? submit_button_text : e.submit_button_text,
+         continue_button_text !== undefined ? continue_button_text : e.continue_button_text,
+         start_button_text !== undefined ? start_button_text : e.start_button_text,
+         terms_enabled !== undefined ? Number(terms_enabled) : e.terms_enabled,
+         terms_text !== undefined ? terms_text : e.terms_text,
+         terms_url !== undefined ? terms_url : e.terms_url,
+         meta_description !== undefined ? meta_description : e.meta_description,
+         gifImg || null, blankImg || null,
          req.params.gameId]
       );
     }

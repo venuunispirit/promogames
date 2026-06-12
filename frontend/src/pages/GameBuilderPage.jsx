@@ -225,6 +225,9 @@ const LIGHT = `
 @keyframes slideDown { from { transform:translateY(-100%) } to { transform:translateY(0) } }
 @keyframes slideRight { from { transform:translateX(-100%) } to { transform:translateX(0) } }
 @keyframes slideLeft { from { transform:translateX(100%) } to { transform:translateX(0) } }
+@keyframes qFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
+@keyframes qPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
+@keyframes qBounce { 0%,100%{transform:translateY(0)} 40%{transform:translateY(-10px)} 60%{transform:translateY(-4px)} }
 `
 
 /* ─────────── helpers ─────────── */
@@ -569,47 +572,6 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             }
           </div>
 
-          {/* Live Preview */}
-          {(q.options||[]).length > 0 && (
-            <div className="gb-section">
-              <div className="gb-section-title">📱 Live Preview</div>
-              <div style={{ display:'flex', gap:20, flexWrap:'wrap', alignItems:'flex-start' }}>
-                {/* phone mockup */}
-                <div className="gb-phone" style={{
-                  background: bgPreview ? `url(${bgPreview}) center/cover` : (q.bg_color||'#f0f0fa') }}>
-                  <div style={{ padding:'20px 14px', height:'100%', display:'flex', flexDirection:'column', gap:12 }}>
-                    {imgPreview && (
-                      <div style={{ textAlign:'center' }}>
-                        <img src={imgPreview} alt="" style={{ maxWidth:'100%', maxHeight:100, borderRadius:8, objectFit:'contain' }} />
-                      </div>
-                    )}
-                    <p style={{ color: q.question_color||'#1a1a2e', fontWeight:700, fontSize:13, textAlign:'center', margin:0 }}>
-                      {q.question_text||'Your question here…'}
-                    </p>
-                    <div style={{ display:'flex', flexDirection:'column', gap:7 }}>
-                      {(q.options||[]).map((opt,i) => (
-                        <div key={i} style={{ background:opt.option_color||'#6366f1', borderRadius:9, padding:'9px 12px',
-                          color:opt.option_text_color||'#fff', fontSize:12, fontWeight:600,
-                          display:'flex', alignItems:'center', gap:8, justifyContent:'center' }}>
-                          {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ height:28, width:'auto', borderRadius:4 }} />}
-                          {opt.option_text||`Option ${i+1}`}
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-                {/* info */}
-                <div style={{ fontSize:12, color:'var(--gb-text2)', lineHeight:1.8 }}>
-                  <div>📐 <b>Options:</b> {(q.options||[]).length}</div>
-                  <div>🎯 <b>Type:</b> {typeLabel}</div>
-                  {q.question_type==='right_wrong' && <div>✅ <b>Correct:</b> {correctCount > 0 ? 'Set' : <span style={{ color:'var(--gb-danger)' }}>Not set</span>}</div>}
-                  <div>🎨 <b>Has BG:</b> {bgPreview ? 'Yes' : 'No'}</div>
-                  <div>🖼️ <b>Has Image:</b> {imgPreview ? 'Yes' : 'No'}</div>
-                </div>
-              </div>
-            </div>
-          )}
-
           {/* save bar */}
           <div style={{ display:'flex', justifyContent:'flex-end', paddingTop:4 }}>
             <button className="gb-btn gb-btn-primary" onClick={handleSave} disabled={saving}>
@@ -652,7 +614,8 @@ const [nameInput,     setNameInput]     = useState('')
   const questionsRef = useRef(questions)
   questionsRef.current = questions
   const [previewOverlay, setPreviewOverlay] = useState(null)
-  useEffect(() => { setPreviewOverlay(null) }, [selectedQuestionId])
+  const [previewStage, setPreviewStage] = useState('initial')
+  useEffect(() => { setPreviewOverlay(null); setPreviewStage('initial') }, [selectedQuestionId])
   const [redirectUrl,   setRedirectUrl]   = useState('')
 
   const soundUploadRef = useRef()
@@ -1646,10 +1609,19 @@ const [nameInput,     setNameInput]     = useState('')
             const previewQ = questions.find(q => q.id === selectedQuestionId) || questions[0]
             const hasBg = previewQ.question_bg_image_url || settings.bg_image_url
             const handleOptionClick = (opt) => {
-              if (opt.option_overlay_image_url) {
+              const hasOverlay = !!opt.option_overlay_image_url
+              if (hasOverlay) {
                 setPreviewOverlay(opt)
+                setPreviewStage('overlay')
                 const dur = (Number(previewQ.overlay_duration) || 3) * 1000
-                setTimeout(() => setPreviewOverlay(null), dur)
+                const idle = (Number(previewQ.overlay_idle_time) || 3) * 1000
+                setTimeout(() => {
+                  setPreviewOverlay(null)
+                  setPreviewStage('idle')
+                  setTimeout(() => setPreviewStage('next'), idle)
+                }, dur)
+              } else {
+                setPreviewStage('next')
               }
             }
             return (
@@ -1706,13 +1678,20 @@ const [nameInput,     setNameInput]     = useState('')
                   boxShadow: hasBg ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
                   overflow:'hidden',
                 }}>
-                  {/* Question image */}
+                  {/* Question image — no fallback shown */}
                   {previewQ.question_image_url && (
                     <div style={{
                       flex:1, minHeight:0, display:'flex', alignItems:'center', justifyContent:'center',
                       padding:'10px 10px 0', background: hasBg ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.03)', overflow:'hidden',
                     }}>
-                      <img src={previewQ.question_image_url} alt="" style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8 }} />
+                      <img src={previewQ.question_image_url} alt=""
+                        style={{
+                          width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8,
+                          animation: previewQ.question_image_animation === 'float' ? 'qFloat 3s ease-in-out infinite' :
+                            previewQ.question_image_animation === 'pulse' ? 'qPulse 2s ease-in-out infinite' :
+                            previewQ.question_image_animation === 'bounce' ? 'qBounce 1.5s ease-in-out infinite' :
+                            'none',
+                        }} />
                     </div>
                   )}
                   {/* Bottom: question text + options + next button */}
@@ -1738,16 +1717,18 @@ const [nameInput,     setNameInput]     = useState('')
                         </div>
                       ))}
                     </div>
-                    {/* Next button */}
-                    <div style={{
-                      width:'100%', textAlign:'center', marginTop:4,
-                      background: settings.next_button_bg_color || `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,
-                      color: settings.next_button_text_color||'#fff', borderRadius:10, padding:'10px', fontSize:13, fontWeight:700,
-                      boxShadow: settings.next_button_bg_color ? '0 4px 16px rgba(0,0,0,0.12)' : `0 4px 16px ${(settings.primary_color||'#6366f1')}33`,
-                      cursor:'default', opacity:0.85,
-                    }}>
-                      {settings.next_button_text || 'Next →'}
-                    </div>
+                    {/* Next button — appears after overlay + idle */}
+                    {previewStage === 'next' && (
+                      <div style={{
+                        width:'100%', textAlign:'center', marginTop:4,
+                        background: settings.next_button_bg_color || `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,
+                        color: settings.next_button_text_color||'#fff', borderRadius:10, padding:'10px', fontSize:13, fontWeight:700,
+                        boxShadow: settings.next_button_bg_color ? '0 4px 16px rgba(0,0,0,0.12)' : `0 4px 16px ${(settings.primary_color||'#6366f1')}33`,
+                        cursor:'default', opacity:0.85,
+                      }}>
+                        {settings.next_button_text || 'Next →'}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

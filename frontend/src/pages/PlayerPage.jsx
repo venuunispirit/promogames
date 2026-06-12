@@ -178,6 +178,40 @@ export default function PlayerPage() {
   const [showContinueBtn, setShowContinueBtn] = useState(false)
   const continueTimerRef = useRef(null)
 
+  // Timer per question
+  const [timeLeft, setTimeLeft] = useState(null)
+  const questionTimerRef = useRef(null)
+  const autoAdvanceRef = useRef({ doAdvance: null, sessionToken: null })
+
+  // Reset timer when question changes
+  useEffect(() => {
+    const t = game?.settings?.time_per_question
+    if (t && t > 0 && phase === 'playing' && !answered) {
+      setTimeLeft(t)
+      clearInterval(questionTimerRef.current)
+      questionTimerRef.current = setInterval(() => {
+        setTimeLeft(prev => {
+          if (prev <= 1) {
+            clearInterval(questionTimerRef.current)
+            return 0
+          }
+          return prev - 1
+        })
+      }, 1000)
+    } else if (answered || phase !== 'playing') {
+      clearInterval(questionTimerRef.current)
+    }
+    return () => clearInterval(questionTimerRef.current)
+  }, [currentQ, phase, answered, game?.settings?.time_per_question])
+
+  // Auto-advance when timer hits 0
+  useEffect(() => {
+    if (timeLeft === 0 && !answered && autoAdvanceRef.current.doAdvance) {
+      const qs = game?.questions?.length || 0
+      autoAdvanceRef.current.doAdvance(currentQ + 1 >= qs, autoAdvanceRef.current.sessionToken)
+    }
+  }, [timeLeft, answered, currentQ, game?.questions?.length])
+
   // Overlay state machine
   const [overlayState, setOverlayState] = useState('hidden')
   const [overlayData, setOverlayData] = useState(null)
@@ -219,6 +253,15 @@ export default function PlayerPage() {
           setFormData(init)
           setPhase('form')
           return
+        }
+        // Shuffle questions if randomize_questions is enabled
+        if (g.settings?.randomize_questions && g.questions?.length) {
+          const arr = [...g.questions]
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]]
+          }
+          g.questions = arr
         }
         const init = {}
         for (const f of (g.formFields || [])) init[f.field_label] = ''
@@ -346,6 +389,8 @@ export default function PlayerPage() {
   }, [completeSession])
 
   useEffect(() => { advanceRef.current = doAdvance }, [doAdvance])
+  useEffect(() => { autoAdvanceRef.current.doAdvance = doAdvance }, [doAdvance])
+  useEffect(() => { autoAdvanceRef.current.sessionToken = sessionToken }, [sessionToken])
   const handleContinueClick = useCallback(() => {
   if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
   setShowContinueBtn(false)
@@ -682,8 +727,8 @@ export default function PlayerPage() {
                   position: 'absolute',
                   bottom: 'calc(env(safe-area-inset-bottom) + 32px)',
                   zIndex: 1001,
-                  background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-                  color: '#fff',
+                  background: s.next_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+                  color: s.next_button_text_color || '#fff',
                   border: 'none',
                   borderRadius: 50,
                   padding: '16px 44px',
@@ -691,7 +736,7 @@ export default function PlayerPage() {
                   fontWeight: 700,
                   cursor: 'pointer',
                   fontFamily: ff,
-                  boxShadow: `0 12px 40px ${primaryColor}88`,
+                  boxShadow: s.next_button_bg_color ? '0 12px 40px rgba(0,0,0,0.2)' : `0 12px 40px ${primaryColor}88`,
                   animation: 'nextBtnIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards',
                   letterSpacing: '0.02em',
                   minWidth: 160,
@@ -724,7 +769,14 @@ export default function PlayerPage() {
             <div style={{ flexShrink: 0, paddingTop: 12, paddingBottom: 10 }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 12, color: hasBgImage ? 'rgba(255,255,255,0.9)' : '#888', fontWeight: 600 }}>
                 <span>Question {currentQ + 1} of {game.questions.length}</span>
-                <span>{Math.round(progress)}%</span>
+                <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+                  {timeLeft !== null && !answered && (
+                    <span style={{ color: timeLeft <= 5 ? '#ef4444' : (hasBgImage ? 'rgba(255,255,255,0.9)' : '#888'), fontWeight:700 }}>
+                      ⏱ {timeLeft}s
+                    </span>
+                  )}
+                  <span>{Math.round(progress)}%</span>
+                </div>
               </div>
               <div style={{ height: 5, background: hasBgImage ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius: 10, overflow: 'hidden' }}>
                 <div style={{ height: '100%', width: `${progress}%`, background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`, borderRadius: 10, transition: 'width 0.5s ease' }} />

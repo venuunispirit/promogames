@@ -459,16 +459,13 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
           overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
           {q.question_text || <span style={{ color:'var(--gb-text3)' }}>Untitled question…</span>}
         </span>
-        {/* type dropdown + opts + delete */}
+        {/* type dropdown + delete */}
         <div style={{ display:'flex', gap:6, alignItems:'center' }} onClick={e => e.stopPropagation()}>
           <select value={q.question_type} onChange={e => setQ({ ...q, question_type: e.target.value })}
             style={{ fontSize:11, padding:'2px 6px', borderRadius:6, border:'1.5px solid var(--gb-border)', background:'var(--gb-surface)', color:'var(--gb-text)', fontWeight:600, cursor:'pointer', outline:'none' }}>
             <option value="right_wrong">Right / Wrong</option>
             <option value="opinion">Opinion</option>
           </select>
-          <span className="gb-badge gb-badge-gray">{(q.options||[]).length} opts</span>
-          {q.question_type==='right_wrong' && correctCount>0 && <span className="gb-badge gb-badge-green">✓ set</span>}
-          {imgPreview && <span title="Has image">🖼️</span>}
           <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" onClick={e => { e.stopPropagation(); onDelete(question) }}>🗑</button>
         </div>
       </div>

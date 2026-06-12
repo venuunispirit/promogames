@@ -472,15 +472,8 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
 
       {/* ── body (always open) ── */}
         <div className="gb-q-body">
-          {/* top: type + question text + color */}
+          {/* top: question text + color */}
           <div style={{ display:'flex', gap:12, marginBottom:14, flexWrap:'wrap', alignItems:'flex-end' }}>
-            <div className="gb-fg" style={{ minWidth:160, maxWidth:200 }}>
-              <span className="gb-label">Question Type</span>
-              <select value={q.question_type} onChange={e => setQ({ ...q, question_type: e.target.value })}>
-                <option value="right_wrong">Right / Wrong</option>
-                <option value="opinion">Opinion Based</option>
-              </select>
-            </div>
             <div className="gb-fg" style={{ flex:3 }}>
               <span className="gb-label">Question Text</span>
               <textarea rows={2} value={q.question_text||''} onChange={e => setQ({ ...q, question_text: e.target.value })}

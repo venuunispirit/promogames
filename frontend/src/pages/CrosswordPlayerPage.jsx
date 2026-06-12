@@ -38,7 +38,10 @@ function buildNumberMap(words) {
 
 function playSound(url) {
   if (!url) return
-  try { new Audio(url).play() } catch {}
+  try {
+    const a = new Audio(url)
+    a.play().catch(() => {})
+  } catch {}
 }
 
 /* ─── timer ─────────────────────────────────────────────── */
@@ -165,11 +168,13 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
     const newInputs = { ...inputs, [key]: ch }
     setInputs(newInputs)
 
-    // auto-advance in selected word direction
+    // auto-advance in selected word direction, skipping already-filled cells
     if (ch && selectedWord) {
       let nr = r, nc = c
-      if (selectedWord.direction === 'across') nc++
-      else nr++
+      do {
+        if (selectedWord.direction === 'across') nc++
+        else nr++
+      } while (nr < rows && nc < cols && grid[nr][nc].letter && newInputs[`${nr},${nc}`])
       if (nr < rows && nc < cols && grid[nr][nc].letter) {
         cellRefs.current[`${nr},${nc}`]?.focus()
       }
@@ -258,7 +263,10 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
                 const key = `${r},${c}`
                 const cell = grid[r][c]
                 if (!cell.letter) {
-                  return <div key={key} style={{ width: cellSize, height: cellSize, background: 'transparent' }} />
+                  const bg = settings?.blank_cell_image_url
+                    ? `#1a1a2e url("${settings.blank_cell_image_url}") center / contain no-repeat`
+                    : 'transparent'
+                  return <div key={key} style={{ width: cellSize, height: cellSize, background: bg }} />
                 }
 
                 const isHighlighted = highlightedCells.has(key)

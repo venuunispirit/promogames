@@ -320,9 +320,9 @@ function GridPreview({ words, rows, cols, blankCellImageUrl }) {
 }
 
 /* ─────────── WordCard ─────────── */
-function WordCard({ word, index, sounds, onUpdate, onDelete, onSave, saving }) {
-  const [open, setOpen] = useState(false)
+function WordCard({ word, index, sounds, onUpdate, onDelete, onSave, saving, open, onToggle }) {
   const [localWord, setLocalWord] = useState(word)
+  useEffect(() => { setLocalWord(word) }, [word])
   const set = (k, v) => {
     const updated = { ...localWord, [k]: v }
     setLocalWord(updated)
@@ -331,7 +331,7 @@ function WordCard({ word, index, sounds, onUpdate, onDelete, onSave, saving }) {
 
   return (
     <div style={{ border:'1.5px solid var(--gb-border)', borderRadius:10, marginBottom:10, overflow:'hidden' }}>
-      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--gb-surface2)', cursor:'pointer' }} onClick={() => setOpen(o => !o)}>
+      <div style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px', background:'var(--gb-surface2)', cursor:'pointer' }} onClick={() => onToggle(word.id)}>
         <span style={{ fontWeight:700, fontSize:13, minWidth:24, color:'var(--gb-primary)' }}>#{index+1}</span>
         <span style={{ fontWeight:700, fontSize:14, letterSpacing:1, flex:1 }}>{localWord.word_text || '—'}</span>
         <span style={{ fontSize:12, color:'var(--gb-text2)', background:'var(--gb-bg)', borderRadius:4, padding:'2px 8px' }}>{localWord.direction}</span>
@@ -428,6 +428,8 @@ export default function CrosswordBuilderPage() {
   const [heading3Color, setHeading3Color] = useState('#777777')
   const [descColor, setDescColor] = useState('#888888')
   const [savingWord, setSavingWord] = useState(null)
+  const [openWordId, setOpenWordId] = useState(null)
+  const dirtyRef = useRef(new Set())
   const [showAddModal, setShowAddModal] = useState(false)
   const [newWord, setNewWord] = useState({
     word_text: '', clue_text: '', direction: 'across', start_row: 0, start_col: 0,
@@ -522,6 +524,7 @@ export default function CrosswordBuilderPage() {
       if (w._overlayFile) fd.append('overlay_image', w._overlayFile)
       else fd.append('overlay_image_url', w.overlay_image_url || '')
       await api.put(`/crossword/words/${w.id}`, fd)
+      dirtyRef.current.delete(w.id)
       showToast('Word saved ✅')
     } catch (err) { showToast('Error saving word: ' + (err.response?.data?.message || err.message), 'error') }
     setSavingWord(null)
@@ -531,6 +534,35 @@ export default function CrosswordBuilderPage() {
     if (!confirm(`Delete "${w.word_text}"?`)) return
     try { await api.delete(`/crossword/words/${w.id}`); setWords(prev => prev.filter(x => x.id !== w.id)); showToast('Word deleted') }
     catch { showToast('Error deleting word', 'error') }
+  }
+
+  const handleWordToggle = async (wordId) => {
+    if (wordId === openWordId) { setOpenWordId(null); return }
+    if (openWordId !== null && dirtyRef.current.has(openWordId)) {
+      const dirtyWord = words.find(w => w.id === openWordId)
+      if (dirtyWord) {
+        setSavingWord(openWordId)
+        try {
+          const fd = new FormData()
+          fd.append('word_text', dirtyWord.word_text || '')
+          fd.append('clue_text', dirtyWord.clue_text || '')
+          fd.append('start_row', dirtyWord.start_row ?? 0)
+          fd.append('start_col', dirtyWord.start_col ?? 0)
+          fd.append('direction', dirtyWord.direction || 'across')
+          fd.append('word_order', dirtyWord.word_order ?? 0)
+          fd.append('sound_correct_id', dirtyWord.sound_correct_id || '')
+          fd.append('sound_wrong_id', dirtyWord.sound_wrong_id || '')
+          fd.append('word_color', dirtyWord.word_color || '#7c6ff7')
+          if (dirtyWord._overlayFile) fd.append('overlay_image', dirtyWord._overlayFile)
+          else fd.append('overlay_image_url', dirtyWord.overlay_image_url || '')
+          await api.put(`/crossword/words/${openWordId}`, fd)
+          showToast('Word auto-saved ✅')
+        } catch { showToast('Error saving word', 'error') }
+        dirtyRef.current.delete(openWordId)
+        setSavingWord(null)
+      }
+    }
+    setOpenWordId(wordId)
   }
 
   const autoGenerateGrid = async () => {
@@ -565,7 +597,7 @@ export default function CrosswordBuilderPage() {
     setSaving(true)
     try {
       const fd = new FormData()
-      const fields = ['grid_rows','grid_cols','cell_size','show_timer','time_limit_seconds','allow_hints',
+      const fields = ['grid_rows','grid_cols','cell_size','show_timer','time_limit_seconds','allow_hints','auto_size',
         'heading_1','heading_2','heading_3','description_text',
         'heading_1_color','heading_2_color','heading_3_color','description_color',
         'bg_color','primary_color','font_family','meta_description',
@@ -595,7 +627,7 @@ export default function CrosswordBuilderPage() {
     try {
       const fd = new FormData()
       const sFields = ['heading_1','heading_2','heading_3','description_text','intro_text','meta_description','font_family',
-        'bg_color','primary_color','show_timer','allow_hints','time_limit_seconds',
+        'bg_color','primary_color','show_timer','allow_hints','auto_size','time_limit_seconds',
         'sound_correct_id','sound_wrong_id']
       for (const f of sFields) fd.append(f, settings[f]??'')
       fd.append('heading_1_color', heading1Color)
@@ -665,12 +697,11 @@ export default function CrosswordBuilderPage() {
 
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
   const TABS = [
-    { id:'form',      label:'📋 Player Form' },
+    { id:'display',   label:'🎨 Game Display' },
     { id:'sounds',    label:'🔊 Sounds' },
     { id:'words',     label:'🔤 Words' },
     { id:'thankyou',  label:'🙏 Thank You' },
     { id:'email',     label:'📧 Email' },
-    { id:'display',   label:'🎨 Game Display' },
     { id:'settings',  label:'⚙️ Settings' },
   ]
 
@@ -705,22 +736,24 @@ export default function CrosswordBuilderPage() {
       <style>{LIGHT}</style>
 
       {/* ─── Header with tabs ─── */}
-      <div style={{ background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)', padding:'6px 20px', display:'flex', alignItems:'center', gap:6, position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
-        <button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={() => navigate('/dashboard/games')} title="Back">←</button>
-        <div style={{ fontWeight:700, fontSize:13, color:'var(--gb-text)', whiteSpace:'nowrap', minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>{game?.name}</div>
-        <div style={{ flex:1, minWidth:0, display:'flex', gap:0, overflowX:'auto', justifyContent:'center' }}>
-          {TABS.map(t => {
-            return (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                style={{ padding:'5px 10px', fontSize:11, fontWeight:600, border:'none', background:'none', cursor:'pointer', color:tab===t.id?'var(--gb-primary)':'var(--gb-text2)', borderBottom:'2px solid '+(tab===t.id?'var(--gb-primary)':'transparent'), whiteSpace:'nowrap', fontFamily:'inherit', transition:'color .15s', flexShrink:0 }}>
-                {t.label}
-              </button>
-            )
-          })}
-        </div>
-        <div style={{ display:'flex', gap:4, alignItems:'center', flexShrink:0 }}>
-          <button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }} title="Copy link">🔗</button>
-          <a href={gameLink} target="_blank" rel="noreferrer" className="cb-btn cb-btn-ghost cb-btn-sm" title="Preview">👁</a>
+      <div style={{ position:'sticky', top:0, zIndex:50, background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)', boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
+        <div style={{ position:'relative', padding:'6px 20px', display:'flex', alignItems:'center', gap:6 }}>
+          <button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={() => navigate('/dashboard/games')} title="Back">←</button>
+          <div style={{ fontWeight:700, fontSize:13, color:'var(--gb-text)', whiteSpace:'nowrap', minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>{game?.name}</div>
+          <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', display:'flex', gap:0, overflowX:'auto' }}>
+            {TABS.map(t => {
+              return (
+                <button key={t.id} onClick={() => setTab(t.id)}
+                  style={{ padding:'5px 10px', fontSize:11, fontWeight:600, border:'none', background:'none', cursor:'pointer', color:tab===t.id?'var(--gb-primary)':'var(--gb-text2)', borderBottom:'2px solid '+(tab===t.id?'var(--gb-primary)':'transparent'), whiteSpace:'nowrap', fontFamily:'inherit', transition:'color .15s', flexShrink:0 }}>
+                  {t.label}
+                </button>
+              )
+            })}
+          </div>
+          <div style={{ marginLeft:'auto', display:'flex', gap:4, alignItems:'center', flexShrink:0 }}>
+            <button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }} title="Copy link">🔗</button>
+            <a href={gameLink} target="_blank" rel="noreferrer" className="cb-btn cb-btn-ghost cb-btn-sm" title="Preview">👁</a>
+          </div>
         </div>
       </div>
 
@@ -729,9 +762,92 @@ export default function CrosswordBuilderPage() {
         {/* ─── Left: Settings ─── */}
         <div style={{ flex:'3 1 0%', minWidth:0, maxWidth:'60%' }}>
 
-        {/* ════ FORM TAB ════ */}
-        {tab === 'form' && (
+        {/* ════ DISPLAY TAB ════ */}
+        {tab === 'display' && (
           <div>
+            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
+              <div className="gb-section-title">🎮 Game Name</div>
+              <input value={text1||game?.name||''} onChange={e => setText1(e.target.value)}
+                style={{ fontSize:16, fontWeight:700, padding:'10px 14px' }} placeholder="Game display title" />
+              <p style={{ fontSize:12, color:'var(--gb-text3)', marginTop:6 }}>This is what players see on the game page.</p>
+            </div>
+
+            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
+              <div className="gb-section-title">🖼️ Images</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                <div style={{ textAlign:'center' }}>
+                  <span className="gb-label">Game Background Image</span>
+                  <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
+                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
+                    style={{ display:'none' }} />
+                  <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
+                    <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => bgImgRef.current.click()}>📷 Upload</button>
+                  </div>
+                  {settings.bg_image_url ? (
+                    <div style={{ position:'relative', display:'inline-block' }}>
+                      <img src={settings.bg_image_url} className="gb-thumb" alt="" />
+                      <button className="cb-btn cb-btn-danger cb-btn-icon"
+                        style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
+                        type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})} title="Delete">✕</button>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
+                  )}
+                </div>
+                <div style={{ textAlign:'center' }}>
+                  <span className="gb-label">Game Logo</span>
+                  <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
+                    style={{ display:'none' }} />
+                  <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
+                    <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()}>📷 Upload</button>
+                  </div>
+                  {settings.game_logo_url ? (
+                    <div style={{ position:'relative', display:'inline-block' }}>
+                      <img src={settings.game_logo_url} alt="" className="gb-thumb" style={{ background:'#fff' }} />
+                      <button className="cb-btn cb-btn-danger cb-btn-icon"
+                        style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
+                        type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} title="Delete">✕</button>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
+              <div className="gb-section-title">📝 Headings & Description</div>
+              <div className="gb-fg" style={{ marginBottom:8 }}>
+                <span className="gb-label">Heading 1</span>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                  <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main heading" style={{ flex:1 }} />
+                  <ColorPicker value={heading1Color} onChange={v => setHeading1Color(v)} label="Color" />
+                </div>
+              </div>
+              <div className="gb-fg" style={{ marginBottom:8 }}>
+                <span className="gb-label">Heading 2 / Sub-heading</span>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                  <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" style={{ flex:1 }} />
+                  <ColorPicker value={heading2Color} onChange={v => setHeading2Color(v)} label="Color" />
+                </div>
+              </div>
+              <div className="gb-fg" style={{ marginBottom:8 }}>
+                <span className="gb-label">Heading 3 / Instructions</span>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                  <input value={settings.heading_3||''} onChange={e => setSettings({...settings,heading_3:e.target.value})} placeholder="Short instructions" style={{ flex:1 }} />
+                  <ColorPicker value={heading3Color} onChange={v => setHeading3Color(v)} label="Color" />
+                </div>
+              </div>
+              <div className="gb-fg">
+                <span className="gb-label">Description</span>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                  <textarea rows={2} value={settings.description_text||''} onChange={e => setSettings({...settings,description_text:e.target.value})} placeholder="Optional description shown above the grid" style={{ flex:1, resize:'vertical' }} />
+                  <ColorPicker value={descColor} onChange={v => setDescColor(v)} label="Color" />
+                </div>
+              </div>
+            </div>
+
             <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
               <div className="gb-section-title">📋 Form Fields</div>
               <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:8 }}>These fields appear on the registration screen before the crossword starts.</p>
@@ -766,9 +882,9 @@ export default function CrosswordBuilderPage() {
 
             <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
               <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <input type="checkbox" id="termsEnabledForm" checked={Number(settings.terms_enabled)===1}
+                <input type="checkbox" id="termsEnabledDisplay" checked={Number(settings.terms_enabled)===1}
                   onChange={e => setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                <label htmlFor="termsEnabledForm" style={{ fontWeight:700, cursor:'pointer', fontSize:14 }}>Require Terms & Conditions</label>
+                <label htmlFor="termsEnabledDisplay" style={{ fontWeight:700, cursor:'pointer', fontSize:14 }}>Require Terms & Conditions</label>
               </div>
               {settings.terms_enabled ? (
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
@@ -789,7 +905,9 @@ export default function CrosswordBuilderPage() {
             </div>
 
             <div style={{ display:'flex', justifyContent:'flex-end', gap:10 }}>
-              <button className="cb-btn cb-btn-primary" onClick={saveFormFields} disabled={saving}>{saving ? 'Saving…' : '💾 Save Form Settings'}</button>
+              <button className="cb-btn cb-btn-primary" onClick={saveDisplaySettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                {saving ? '⏳ Saving…' : '💾 Save Display Settings'}
+              </button>
             </div>
           </div>
         )}
@@ -899,7 +1017,14 @@ export default function CrosswordBuilderPage() {
                       <input type="checkbox" checked={!!settings.allow_hints} onChange={e => setSettings({...settings,allow_hints:e.target.checked?1:0})} />
                       Allow Hints
                     </label>
-                    <button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={autoGenerateGrid}>🔲 Auto-size</button>
+                    <label style={{ display:'flex', alignItems:'center', gap:5, cursor:'pointer', fontSize:13, whiteSpace:'nowrap' }}>
+                      <input type="checkbox" checked={!!settings.auto_size} onChange={e => {
+                        const v = e.target.checked ? 1 : 0
+                        setSettings({...settings, auto_size: v})
+                        if (v) autoGenerateGrid()
+                      }} />
+                      Auto-size
+                    </label>
                   </div>
                 </div>
                 {/* Right — blank cell image */}
@@ -929,7 +1054,6 @@ export default function CrosswordBuilderPage() {
 
             <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 }}>
               <span style={{ color:'var(--gb-text2)', fontSize:13 }}>{words.length} word{words.length !== 1 ? 's' : ''}</span>
-              <button className="cb-btn cb-btn-primary" onClick={openAddModal}>+ Add Word</button>
             </div>
 
             {words.length === 0 ? (
@@ -942,13 +1066,21 @@ export default function CrosswordBuilderPage() {
               words.map((w, i) => (
                 <WordCard
                   key={w.id} word={w} index={i} sounds={sounds}
+                  open={openWordId === w.id}
+                  onToggle={handleWordToggle}
                   saving={savingWord === w.id}
-                  onUpdate={updated => setWords(prev => prev.map(x => x.id === updated.id ? { ...x, ...updated } : x))}
+                  onUpdate={updated => {
+                    setWords(prev => prev.map(x => x.id === updated.id ? { ...x, ...updated } : x))
+                    dirtyRef.current.add(updated.id)
+                  }}
                   onSave={saveWord}
                   onDelete={deleteWord}
                 />
               ))
             )}
+            <div style={{ textAlign:'center', marginTop:16 }}>
+              <button className="cb-btn cb-btn-primary" onClick={openAddModal}>+ Add Word</button>
+            </div>
           </div>
         )}
 
@@ -1099,92 +1231,11 @@ export default function CrosswordBuilderPage() {
           </div>
         )}
 
-        {/* ════ DISPLAY TAB ════ */}
-        {tab === 'display' && (
+        {/* ════ SETTINGS TAB ════ */}
+        {tab === 'settings' && (
           <div>
-            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">🎮 Game Name</div>
-              <input value={text1||game?.name||''} onChange={e => setText1(e.target.value)}
-                style={{ fontSize:16, fontWeight:700, padding:'10px 14px' }} placeholder="Game display title" />
-              <p style={{ fontSize:12, color:'var(--gb-text3)', marginTop:6 }}>This is what players see on the game page.</p>
-            </div>
 
-            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">🖼️ Images</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                <div style={{ textAlign:'center' }}>
-                  <span className="gb-label">Game Background Image</span>
-                  <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
-                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
-                    style={{ display:'none' }} />
-                  <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
-                    <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => bgImgRef.current.click()}>📷 Upload</button>
-                  </div>
-                  {settings.bg_image_url ? (
-                    <div style={{ position:'relative', display:'inline-block' }}>
-                      <img src={settings.bg_image_url} className="gb-thumb" alt="" />
-                      <button className="cb-btn cb-btn-danger cb-btn-icon"
-                        style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
-                        type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})} title="Delete">✕</button>
-                    </div>
-                  ) : (
-                    <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
-                  )}
-                </div>
-                <div style={{ textAlign:'center' }}>
-                  <span className="gb-label">Game Logo</span>
-                  <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
-                    style={{ display:'none' }} />
-                  <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
-                    <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()}>📷 Upload</button>
-                  </div>
-                  {settings.game_logo_url ? (
-                    <div style={{ position:'relative', display:'inline-block' }}>
-                      <img src={settings.game_logo_url} alt="" className="gb-thumb" style={{ background:'#fff' }} />
-                      <button className="cb-btn cb-btn-danger cb-btn-icon"
-                        style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
-                        type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} title="Delete">✕</button>
-                    </div>
-                  ) : (
-                    <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">📝 Headings & Description</div>
-              <div className="gb-fg" style={{ marginBottom:8 }}>
-                <span className="gb-label">Heading 1</span>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                  <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main heading" style={{ flex:1 }} />
-                  <ColorPicker value={heading1Color} onChange={v => setHeading1Color(v)} label="Color" />
-                </div>
-              </div>
-              <div className="gb-fg" style={{ marginBottom:8 }}>
-                <span className="gb-label">Heading 2 / Sub-heading</span>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                  <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" style={{ flex:1 }} />
-                  <ColorPicker value={heading2Color} onChange={v => setHeading2Color(v)} label="Color" />
-                </div>
-              </div>
-              <div className="gb-fg" style={{ marginBottom:8 }}>
-                <span className="gb-label">Heading 3 / Instructions</span>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                  <input value={settings.heading_3||''} onChange={e => setSettings({...settings,heading_3:e.target.value})} placeholder="Short instructions" style={{ flex:1 }} />
-                  <ColorPicker value={heading3Color} onChange={v => setHeading3Color(v)} label="Color" />
-                </div>
-              </div>
-              <div className="gb-fg">
-                <span className="gb-label">Description</span>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                  <textarea rows={2} value={settings.description_text||''} onChange={e => setSettings({...settings,description_text:e.target.value})} placeholder="Optional description shown above the grid" style={{ flex:1, resize:'vertical' }} />
-                  <ColorPicker value={descColor} onChange={v => setDescColor(v)} label="Color" />
-                </div>
-              </div>
-            </div>
-
+            {/* URL Slug */}
             <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
               <div className="gb-section-title">🔗 Game URL</div>
               <div style={{ display:'flex', alignItems:'center', gap:0, background:'var(--gb-surface)', border:'1.5px solid var(--gb-border)', borderRadius:'var(--gb-radius-sm)', padding:'0', overflow:'hidden' }}>
@@ -1194,19 +1245,6 @@ export default function CrosswordBuilderPage() {
                 <span style={{ padding:'9px 12px 9px 0', fontSize:14, color:'var(--gb-text3)', background:'var(--gb-surface2)', borderLeft:'1px solid var(--gb-border)', whiteSpace:'nowrap', fontFamily:'monospace' }}>/{game?.client_slug||'client'}</span>
               </div>
             </div>
-
-            <div style={{ display:'flex', justifyContent:'flex-end' }}>
-              <button className="cb-btn cb-btn-primary" onClick={saveDisplaySettings} disabled={saving} style={{ padding:'10px 28px' }}>
-                {saving ? '⏳ Saving…' : '💾 Save Display Settings'}
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* ════ SETTINGS TAB ════ */}
-        {tab === 'settings' && (
-          <div>
-
 
             {/* Font */}
             <div className="cb-card" style={{ marginBottom:10, padding:14 }}>

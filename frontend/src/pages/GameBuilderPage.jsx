@@ -405,7 +405,7 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
 }
 
 /* ─────────── QuestionCard ─────────── */
-function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown, forceOpen }) {
+function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown, forceOpen, onLiveChange }) {
   const [q, setQ] = useState(question)
   const [open, setOpen] = useState(!!forceOpen)
   const [saving, setSaving] = useState(false)
@@ -419,6 +419,9 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
     setBgPreview(question.question_bg_image_url||null)
     if (forceOpen) setOpen(true)
   }, [question, forceOpen])
+
+  // Push live edits up to parent for the preview
+  useEffect(() => { onLiveChange?.(q) }, [q, onLiveChange])
 
   const updateOption = (i, field, val) => {
     const opts = [...(q.options||[])]; opts[i] = { ...opts[i], [field]:val }; setQ({ ...q, options:opts })
@@ -613,6 +616,7 @@ const [nameInput,     setNameInput]     = useState('')
   const [dragIdx, setDragIdx] = useState(null)
   const questionsRef = useRef(questions)
   questionsRef.current = questions
+  const liveQuestionRef = useRef(null)
   const [previewOverlay, setPreviewOverlay] = useState(null)
   const [previewStage, setPreviewStage] = useState('initial')
   useEffect(() => { setPreviewOverlay(null); setPreviewStage('initial') }, [selectedQuestionId])
@@ -1124,6 +1128,7 @@ const [nameInput,     setNameInput]     = useState('')
                       onMoveUp={i => moveQuestion(i, i-1)}
                       onMoveDown={i => moveQuestion(i, i+1)}
                       forceOpen={true}
+                      onLiveChange={(qData) => { liveQuestionRef.current = qData }}
                     />
                   )
                 })()}
@@ -1604,9 +1609,10 @@ const [nameInput,     setNameInput]     = useState('')
             </div>
           )})()}
 
-          {/* ── Questions preview ── */}
+          {/* ── Questions preview (live edits via ref) ── */}
           {tab === 'questions' && questions.length > 0 && (() => {
-            const previewQ = questions.find(q => q.id === selectedQuestionId) || questions[0]
+            const live = liveQuestionRef.current
+            const previewQ = live?.id === selectedQuestionId ? live : (questions.find(q => q.id === selectedQuestionId) || questions[0])
             const hasBg = previewQ.question_bg_image_url || settings.bg_image_url
             const handleOptionClick = (opt) => {
               const hasOverlay = !!opt.option_overlay_image_url

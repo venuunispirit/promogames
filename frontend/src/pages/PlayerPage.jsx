@@ -23,6 +23,25 @@ const OVERLAY_STYLES = `
   @keyframes flyFromRight   { from { transform: translateX(110vw) scale(0.9); opacity:0 } to { transform: translateX(0) scale(1); opacity:1 } }
   @keyframes zoomIn         { from { transform: scale(0.1); opacity:0 } to { transform: scale(1); opacity:1 } }
   @keyframes fadeIn         { from { opacity:0 } to { opacity:1 } }
+  @keyframes scaleIn        { from { transform: scale(0.5); opacity:0 } to { transform: scale(1); opacity:1 } }
+  @keyframes slideUp        { from { transform: translateY(60px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+  @keyframes slideDown      { from { transform: translateY(-60px); opacity:0 } to { transform: translateY(0); opacity:1 } }
+  @keyframes rotateIn       { from { transform: rotate(-360deg) scale(0.3); opacity:0 } to { transform: rotate(0) scale(1); opacity:1 } }
+  @keyframes flipIn         { from { transform: rotateX(-90deg); opacity:0 } to { transform: rotateX(0); opacity:1 } }
+  @keyframes swirlIn        { from { transform: rotate(720deg) scale(0.1); opacity:0 } to { transform: rotate(0) scale(1); opacity:1 } }
+  @keyframes bounceIn       { 0%{transform:scale(0);opacity:0} 50%{transform:scale(1.15)} 70%{transform:scale(0.92)} 85%{transform:scale(1.06)} 100%{transform:scale(1);opacity:1} }
+  @keyframes elasticIn      { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.08)} 80%{transform:scale(0.95)} 100%{transform:scale(1);opacity:1} }
+  @keyframes blurIn         { from { filter:blur(12px); opacity:0 } to { filter:blur(0); opacity:1 } }
+  @keyframes dropIn         { 0%{transform:translateY(-120vh) rotate(-20deg);opacity:0} 60%{transform:translateY(10px) rotate(2deg);opacity:1} 80%{transform:translateY(-5px) rotate(-1deg)} 100%{transform:translateY(0) rotate(0);opacity:1} }
+  @keyframes wipeIn         { from { clip-path:inset(0 100% 0 0) } to { clip-path:inset(0 0 0 0) } }
+  @keyframes skewIn         { from { transform:skewX(-20deg); opacity:0 } to { transform:skewX(0); opacity:1 } }
+  @keyframes spiralIn       { from { transform:rotate(1080deg) translateX(-200px); opacity:0 } to { transform:rotate(0) translateX(0); opacity:1 } }
+  @keyframes rushIn         { from { transform:scale(3); opacity:0 } to { transform:scale(1); opacity:1 } }
+  @keyframes foldIn         { from { transform:perspective(500px) rotateY(90deg); opacity:0 } to { transform:perspective(500px) rotateY(0); opacity:1 } }
+  @keyframes revealIn       { from { clip-path:circle(0% at 50% 50%) } to { clip-path:circle(100% at 50% 50%) } }
+  @keyframes spinIn         { from { transform:rotate(720deg) scale(0); opacity:0 } to { transform:rotate(0) scale(1); opacity:1 } }
+  @keyframes cometIn        { from { transform:translate(-200px,-200px) rotate(-30deg) scale(0.3); opacity:0 } to { transform:translate(0,0) rotate(0) scale(1); opacity:1 } }
+  @keyframes floatIn        { from { transform:translateY(40px); opacity:0 } to { transform:translateY(0); opacity:1 } }
 
   @keyframes flyToTop       { from { transform: translateY(0) scale(1); opacity:1 } to { transform: translateY(-110vh) scale(0.9); opacity:0 } }
   @keyframes flyToBottom    { from { transform: translateY(0) scale(1); opacity:1 } to { transform: translateY(110vh) scale(0.9); opacity:0 } }
@@ -30,9 +49,27 @@ const OVERLAY_STYLES = `
   @keyframes flyToRight     { from { transform: translateX(0) scale(1); opacity:1 } to { transform: translateX(110vw) scale(0.9); opacity:0 } }
   @keyframes zoomOut        { from { transform: scale(1); opacity:1 } to { transform: scale(0.1); opacity:0 } }
   @keyframes fadeOut        { from { opacity:1 } to { opacity:0 } }
+  @keyframes scaleOut       { from { transform: scale(1); opacity:1 } to { transform: scale(0.5); opacity:0 } }
+  @keyframes slideUpOut     { from { transform: translateY(0); opacity:1 } to { transform: translateY(-60px); opacity:0 } }
+  @keyframes slideDownOut   { from { transform: translateY(0); opacity:1 } to { transform: translateY(60px); opacity:0 } }
+  @keyframes rotateOut      { from { transform: rotate(0) scale(1); opacity:1 } to { transform: rotate(360deg) scale(0.3); opacity:0 } }
+  @keyframes flipOut        { from { transform: rotateX(0); opacity:1 } to { transform: rotateX(90deg); opacity:0 } }
+  @keyframes swirlOut       { from { transform: rotate(0) scale(1); opacity:1 } to { transform: rotate(-720deg) scale(0.1); opacity:0 } }
+  @keyframes bounceOut      { 0%{transform:scale(1);opacity:1} 50%{transform:scale(1.06)} 100%{transform:scale(0.1);opacity:0} }
+  @keyframes elasticOut     { 0%{transform:scale(1);opacity:1} 30%{transform:scale(0.92)} 60%{transform:scale(1.06)} 100%{transform:scale(0);opacity:0} }
+  @keyframes blurOut        { from { filter:blur(0); opacity:1 } to { filter:blur(12px); opacity:0 } }
+  @keyframes dropOut        { 0%{transform:translateY(0) rotate(0);opacity:1} 40%{transform:translateY(10px) rotate(2deg);opacity:1} 100%{transform:translateY(120vh) rotate(20deg);opacity:0} }
+  @keyframes wipeOut        { from { clip-path:inset(0 0 0 0) } to { clip-path:inset(0 0 0 100%) } }
+  @keyframes skewOut        { from { transform:skewX(0); opacity:1 } to { transform:skewX(20deg); opacity:0 } }
+  @keyframes spiralOut      { from { transform:rotate(0) translateX(0); opacity:1 } to { transform:rotate(-1080deg) translateX(200px); opacity:0 } }
+  @keyframes rushOut        { from { transform:scale(1); opacity:1 } to { transform:scale(3); opacity:0 } }
+  @keyframes foldOut        { from { transform:perspective(500px) rotateY(0); opacity:1 } to { transform:perspective(500px) rotateY(90deg); opacity:0 } }
+  @keyframes hideOut        { from { clip-path:circle(100% at 50% 50%) } to { clip-path:circle(0% at 50% 50%) } }
+  @keyframes spinOut        { from { transform:rotate(0) scale(1); opacity:1 } to { transform:rotate(-720deg) scale(0); opacity:0 } }
+  @keyframes cometOut       { from { transform:translate(0,0) rotate(0) scale(1); opacity:1 } to { transform:translate(200px,200px) rotate(30deg) scale(0.3); opacity:0 } }
+  @keyframes floatOut       { from { transform:translateY(0); opacity:1 } to { transform:translateY(-40px); opacity:0 } }
 
   @keyframes spin           { to { transform: rotate(360deg) } }
-  @keyframes slideUp        { from { opacity:0; transform: translateY(28px) } to { opacity:1; transform: translateY(0) } }
   @keyframes questionEnter  { from { opacity:0; transform: translateY(18px) scale(0.98) } to { opacity:1; transform: translateY(0) scale(1) } }
   @keyframes scaleIn        { from { opacity:0; transform: scale(0.85) } to { opacity:1; transform: scale(1) } }
   @keyframes bounce         { 0%,100% { transform:scale(1) } 50% { transform:scale(1.2) } }
@@ -45,6 +82,26 @@ const OVERLAY_STYLES = `
   @keyframes qImgPulse      { 0%,100% { transform: scale(1); filter: brightness(1) } 50% { transform: scale(1.05); filter: brightness(1.08) } }
   @keyframes qImgShimmer    { 0%,100% { transform: rotate(-1deg) scale(1) } 50% { transform: rotate(1deg) scale(1.03) } }
   @keyframes qImgKenBurns   { 0% { transform: scale(1) translate(0,0) } 100% { transform: scale(1.08) translate(-2%,-2%) } }
+  @keyframes qImgBounce     { 0%,100% { transform: translateY(0) } 20% { transform: translateY(-14px) } 40% { transform: translateY(-7px) } 60% { transform: translateY(-3px) } 80% { transform: translateY(-1px) } }
+  @keyframes qImgSway      { 0%,100% { transform: translateX(0) } 25% { transform: translateX(-6px) } 75% { transform: translateX(6px) } }
+  @keyframes qImgWobble    { 0%,100% { transform: translateX(0) } 15% { transform: translateX(-6px) rotate(-3deg) } 30% { transform: translateX(4px) rotate(2deg) } 45% { transform: translateX(-3px) rotate(-1deg) } 60% { transform: translateX(2px) rotate(1deg) } }
+  @keyframes qImgSwing     { 0%,100% { transform: rotate(0deg) } 20% { transform: rotate(6deg) } 40% { transform: rotate(-5deg) } 60% { transform: rotate(3deg) } 80% { transform: rotate(-2deg) } }
+  @keyframes qImgTada      { 0%,100% { transform: scale(1) rotate(0deg) } 10% { transform: scale(0.94) rotate(-2deg) } 20% { transform: scale(1.06) rotate(2deg) } 30% { transform: scale(1) rotate(-2deg) } 40% { transform: scale(1.02) rotate(0deg) } }
+  @keyframes qImgHeartBeat { 0%,100% { transform: scale(1) } 15% { transform: scale(1.12) } 30% { transform: scale(1) } 45% { transform: scale(1.08) } 60% { transform: scale(1) } }
+  @keyframes qImgRotate    { 0% { transform: rotate(0deg) } 100% { transform: rotate(360deg) } }
+  @keyframes qImgFlash     { 0%,100% { opacity:1 } 25% { opacity:0.3 } 50% { opacity:1 } 75% { opacity:0.3 } }
+  @keyframes qImgRubberBand { 0%,100% { transform: scaleX(1) scaleY(1) } 15% { transform: scaleX(1.2) scaleY(0.85) } 30% { transform: scaleX(0.9) scaleY(1.1) } 45% { transform: scaleX(1.08) scaleY(0.95) } 60% { transform: scaleX(0.97) scaleY(1.03) } }
+  @keyframes qImgSlideUpDown { 0%,100% { transform: translateY(0) } 25% { transform: translateY(-20px) } 50% { transform: translateY(0) } 75% { transform: translateY(12px) } }
+  @keyframes qImgZoomInOut  { 0%,100% { transform: scale(1) } 50% { transform: scale(1.12) } }
+  @keyframes qImgFadeInOut  { 0%,100% { opacity:1 } 50% { opacity:0.3 } }
+  @keyframes qImgWave       { 0%,100% { transform: translateY(0) rotate(0deg) } 25% { transform: translateY(-6px) rotate(1deg) } 50% { transform: translateY(0) rotate(0deg) } 75% { transform: translateY(4px) rotate(-1deg) } }
+  @keyframes qImgOrbit      { 0% { transform: translate(0,0) } 25% { transform: translate(10px,-10px) } 50% { transform: translate(0,-16px) } 75% { transform: translate(-10px,-10px) } 100% { transform: translate(0,0) } }
+  @keyframes qImgGlitch     { 0%,100% { transform: translate(0) } 20% { transform: translate(-2px,1px) skewX(-1deg) } 40% { transform: translate(2px,-1px) skewX(1deg) } 60% { transform: translate(-1px,-1px) skewX(-0.5deg) } 80% { transform: translate(1px,2px) skewX(0.5deg) } }
+  @keyframes qImgBlurBlink  { 0%,100% { filter:blur(0);opacity:1 } 25% { filter:blur(3px);opacity:0.6 } 50% { filter:blur(0);opacity:1 } 75% { filter:blur(2px);opacity:0.7 } }
+  @keyframes qImgSkew       { 0%,100% { transform: skewX(0deg) } 25% { transform: skewX(-4deg) } 50% { transform: skewX(0deg) } 75% { transform: skewX(4deg) } }
+  @keyframes qImgRoll       { 0% { transform: translateX(0) rotate(0deg) } 50% { transform: translateX(60px) rotate(360deg) } 100% { transform: translateX(0) rotate(720deg) } }
+  @keyframes qImgBounceIn   { 0% { transform: scale(0);opacity:0 } 50% { transform: scale(1.12) } 70% { transform: scale(0.94) } 85% { transform: scale(1.04) } 100% { transform: scale(1);opacity:1 } }
+  @keyframes qImgJello      { 0%,100% { transform: skewX(0deg) skewY(0deg) } 25% { transform: skewX(-5deg) skewY(3deg) } 50% { transform: skewX(5deg) skewY(-3deg) } 75% { transform: skewX(-3deg) skewY(2deg) } }
   @keyframes qImgEntrance   { from { opacity:0; transform: scale(0.88) translateY(16px) } to { opacity:1; transform: scale(1) translateY(0) } }
 
   @keyframes modalIn        { from { opacity:0; transform: scale(0.82) translateY(32px) } to { opacity:1; transform: scale(1) translateY(0) } }
@@ -817,11 +874,31 @@ export default function PlayerPage() {
               const idleAnimDef = qImgAnimKey !== 'none'
                 ? (() => {
                     const map = {
-                      float:    'qImgFloat 3.2s ease-in-out 0.55s infinite',
-                      breathe:  'qImgBreathe 2.8s ease-in-out 0.55s infinite',
-                      pulse:    'qImgPulse 2.4s ease-in-out 0.55s infinite',
-                      shimmer:  'qImgShimmer 3s ease-in-out 0.55s infinite',
-                      kenburns: 'qImgKenBurns 8s ease-in-out 0.55s infinite alternate',
+                      float:     'qImgFloat 3s ease-in-out infinite',
+                      breathe:   'qImgBreathe 2.8s ease-in-out infinite',
+                      pulse:     'qImgPulse 2.4s ease-in-out infinite',
+                      shimmer:   'qImgShimmer 3s ease-in-out infinite',
+                      kenburns:  'qImgKenBurns 8s ease-in-out infinite alternate',
+                      bounce:    'qImgBounce 1.8s ease-in-out infinite',
+                      sway:      'qImgSway 2.5s ease-in-out infinite',
+                      wobble:    'qImgWobble 2.2s ease-in-out infinite',
+                      swing:     'qImgSwing 2.4s ease-in-out infinite',
+                      tada:      'qImgTada 2.6s ease-in-out infinite',
+                      heartBeat: 'qImgHeartBeat 1.6s ease-in-out infinite',
+                      rotate:    'qImgRotate 6s linear infinite',
+                      flash:     'qImgFlash 1.8s ease-in-out infinite',
+                      rubberBand:'qImgRubberBand 2s ease-in-out infinite',
+                      slideUpDown:'qImgSlideUpDown 3s ease-in-out infinite',
+                      zoomInOut: 'qImgZoomInOut 2.4s ease-in-out infinite',
+                      fadeInOut: 'qImgFadeInOut 2.6s ease-in-out infinite',
+                      wave:      'qImgWave 2.8s ease-in-out infinite',
+                      orbit:     'qImgOrbit 4s ease-in-out infinite',
+                      glitch:    'qImgGlitch 1.5s ease-in-out infinite',
+                      blurBlink: 'qImgBlurBlink 2.2s ease-in-out infinite',
+                      skew:      'qImgSkew 2.5s ease-in-out infinite',
+                      roll:      'qImgRoll 3s ease-in-out infinite',
+                      bounceIn:  'qImgBounceIn 2.2s ease-in-out infinite',
+                      jello:     'qImgJello 2.4s ease-in-out infinite',
                     }
                     return map[qImgAnimKey] || map.float
                   })()

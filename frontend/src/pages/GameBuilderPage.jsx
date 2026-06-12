@@ -220,16 +220,82 @@ const LIGHT = `
 }
 
 /* preview overlay animations */
-@keyframes fadeIn { from { opacity:0 } to { opacity:1 } }
-@keyframes slideUp { from { transform:translateY(100%) } to { transform:translateY(0) } }
-@keyframes slideDown { from { transform:translateY(-100%) } to { transform:translateY(0) } }
-@keyframes slideRight { from { transform:translateX(-100%) } to { transform:translateX(0) } }
-@keyframes slideLeft { from { transform:translateX(100%) } to { transform:translateX(0) } }
-@keyframes qFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-8px)} }
-@keyframes qBreathe { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.03);opacity:0.85} }
-@keyframes qPulse { 0%,100%{transform:scale(1);filter:brightness(1)} 50%{transform:scale(1.04);filter:brightness(1.1)} }
-@keyframes qShimmer { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(1deg)} 75%{transform:rotate(-1deg)} }
-@keyframes qKenBurns { 0%{transform:scale(1)} 100%{transform:scale(1.15)} }
+@keyframes flyFromBottom  { from { transform:translateY(110vh) scale(0.9);opacity:0 } to { transform:translateY(0) scale(1);opacity:1 } }
+@keyframes flyFromTop     { from { transform:translateY(-110vh) scale(0.9);opacity:0 } to { transform:translateY(0) scale(1);opacity:1 } }
+@keyframes flyFromLeft    { from { transform:translateX(-110vw) scale(0.9);opacity:0 } to { transform:translateX(0) scale(1);opacity:1 } }
+@keyframes flyFromRight   { from { transform:translateX(110vw) scale(0.9);opacity:0 } to { transform:translateX(0) scale(1);opacity:1 } }
+@keyframes zoomIn         { from { transform:scale(0.1);opacity:0 } to { transform:scale(1);opacity:1 } }
+@keyframes fadeIn         { from { opacity:0 } to { opacity:1 } }
+@keyframes scaleIn        { from { transform:scale(0.5);opacity:0 } to { transform:scale(1);opacity:1 } }
+@keyframes slideUp        { from { transform:translateY(60px);opacity:0 } to { transform:translateY(0);opacity:1 } }
+@keyframes slideDown      { from { transform:translateY(-60px);opacity:0 } to { transform:translateY(0);opacity:1 } }
+@keyframes rotateIn       { from { transform:rotate(-360deg) scale(0.3);opacity:0 } to { transform:rotate(0) scale(1);opacity:1 } }
+@keyframes flipIn         { from { transform:rotateX(-90deg);opacity:0 } to { transform:rotateX(0);opacity:1 } }
+@keyframes swirlIn        { from { transform:rotate(720deg) scale(0.1);opacity:0 } to { transform:rotate(0) scale(1);opacity:1 } }
+@keyframes bounceIn       { 0%{transform:scale(0);opacity:0} 50%{transform:scale(1.15)} 70%{transform:scale(0.92)} 85%{transform:scale(1.06)} 100%{transform:scale(1);opacity:1} }
+@keyframes elasticIn      { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.08)} 80%{transform:scale(0.95)} 100%{transform:scale(1);opacity:1} }
+@keyframes blurIn         { from { filter:blur(12px);opacity:0 } to { filter:blur(0);opacity:1 } }
+@keyframes dropIn         { 0%{transform:translateY(-120vh) rotate(-20deg);opacity:0} 60%{transform:translateY(10px) rotate(2deg);opacity:1} 80%{transform:translateY(-5px) rotate(-1deg)} 100%{transform:translateY(0) rotate(0);opacity:1} }
+@keyframes wipeIn         { from { clip-path:inset(0 100% 0 0) } to { clip-path:inset(0 0 0 0) } }
+@keyframes skewIn         { from { transform:skewX(-20deg);opacity:0 } to { transform:skewX(0);opacity:1 } }
+@keyframes spiralIn       { from { transform:rotate(1080deg) translateX(-200px);opacity:0 } to { transform:rotate(0) translateX(0);opacity:1 } }
+@keyframes rushIn         { from { transform:scale(3);opacity:0 } to { transform:scale(1);opacity:1 } }
+@keyframes foldIn         { from { transform:perspective(500px) rotateY(90deg);opacity:0 } to { transform:perspective(500px) rotateY(0);opacity:1 } }
+@keyframes revealIn       { from { clip-path:circle(0% at 50% 50%) } to { clip-path:circle(100% at 50% 50%) } }
+@keyframes spinIn         { from { transform:rotate(720deg) scale(0);opacity:0 } to { transform:rotate(0) scale(1);opacity:1 } }
+@keyframes cometIn        { from { transform:translate(-200px,-200px) rotate(-30deg) scale(0.3);opacity:0 } to { transform:translate(0,0) rotate(0) scale(1);opacity:1 } }
+@keyframes floatIn        { from { transform:translateY(40px);opacity:0 } to { transform:translateY(0);opacity:1 } }
+
+@keyframes flyToTop       { from { transform:translateY(0) scale(1);opacity:1 } to { transform:translateY(-110vh) scale(0.9);opacity:0 } }
+@keyframes flyToBottom    { from { transform:translateY(0) scale(1);opacity:1 } to { transform:translateY(110vh) scale(0.9);opacity:0 } }
+@keyframes flyToLeft      { from { transform:translateX(0) scale(1);opacity:1 } to { transform:translateX(-110vw) scale(0.9);opacity:0 } }
+@keyframes flyToRight     { from { transform:translateX(0) scale(1);opacity:1 } to { transform:translateX(110vw) scale(0.9);opacity:0 } }
+@keyframes zoomOut        { from { transform:scale(1);opacity:1 } to { transform:scale(0.1);opacity:0 } }
+@keyframes fadeOut        { from { opacity:1 } to { opacity:0 } }
+@keyframes scaleOut       { from { transform:scale(1);opacity:1 } to { transform:scale(0.5);opacity:0 } }
+@keyframes slideUpOut     { from { transform:translateY(0);opacity:1 } to { transform:translateY(-60px);opacity:0 } }
+@keyframes slideDownOut   { from { transform:translateY(0);opacity:1 } to { transform:translateY(60px);opacity:0 } }
+@keyframes rotateOut      { from { transform:rotate(0) scale(1);opacity:1 } to { transform:rotate(360deg) scale(0.3);opacity:0 } }
+@keyframes flipOut        { from { transform:rotateX(0);opacity:1 } to { transform:rotateX(90deg);opacity:0 } }
+@keyframes swirlOut       { from { transform:rotate(0) scale(1);opacity:1 } to { transform:rotate(-720deg) scale(0.1);opacity:0 } }
+@keyframes bounceOut      { 0%{transform:scale(1);opacity:1} 50%{transform:scale(1.06)} 100%{transform:scale(0.1);opacity:0} }
+@keyframes elasticOut     { 0%{transform:scale(1);opacity:1} 30%{transform:scale(0.92)} 60%{transform:scale(1.06)} 100%{transform:scale(0);opacity:0} }
+@keyframes blurOut        { from { filter:blur(0);opacity:1 } to { filter:blur(12px);opacity:0 } }
+@keyframes dropOut        { 0%{transform:translateY(0) rotate(0);opacity:1} 40%{transform:translateY(10px) rotate(2deg);opacity:1} 100%{transform:translateY(120vh) rotate(20deg);opacity:0} }
+@keyframes wipeOut        { from { clip-path:inset(0 0 0 0) } to { clip-path:inset(0 0 0 100%) } }
+@keyframes skewOut        { from { transform:skewX(0);opacity:1 } to { transform:skewX(20deg);opacity:0 } }
+@keyframes spiralOut      { from { transform:rotate(0) translateX(0);opacity:1 } to { transform:rotate(-1080deg) translateX(200px);opacity:0 } }
+@keyframes rushOut        { from { transform:scale(1);opacity:1 } to { transform:scale(3);opacity:0 } }
+@keyframes foldOut        { from { transform:perspective(500px) rotateY(0);opacity:1 } to { transform:perspective(500px) rotateY(90deg);opacity:0 } }
+@keyframes hideOut        { from { clip-path:circle(100% at 50% 50%) } to { clip-path:circle(0% at 50% 50%) } }
+@keyframes spinOut        { from { transform:rotate(0) scale(1);opacity:1 } to { transform:rotate(-720deg) scale(0);opacity:0 } }
+@keyframes cometOut       { from { transform:translate(0,0) rotate(0) scale(1);opacity:1 } to { transform:translate(200px,200px) rotate(30deg) scale(0.3);opacity:0 } }
+@keyframes floatOut       { from { transform:translateY(0);opacity:1 } to { transform:translateY(-40px);opacity:0 } }
+@keyframes qFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
+@keyframes qBreathe { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.04);opacity:0.9} }
+@keyframes qPulse { 0%,100%{transform:scale(1);filter:brightness(1)} 50%{transform:scale(1.05);filter:brightness(1.08)} }
+@keyframes qShimmer { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(1.5deg)} 75%{transform:rotate(-1.5deg)} }
+@keyframes qKenBurns { 0%{transform:scale(1) translate(0,0)} 100%{transform:scale(1.08) translate(-2%,-2%)} }
+@keyframes qBounce { 0%,100%{transform:translateY(0)} 20%{transform:translateY(-14px)} 40%{transform:translateY(-7px)} 60%{transform:translateY(-3px)} 80%{transform:translateY(-1px)} }
+@keyframes qSway { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
+@keyframes qWobble { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-6px) rotate(-3deg)} 30%{transform:translateX(4px) rotate(2deg)} 45%{transform:translateX(-3px) rotate(-1deg)} 60%{transform:translateX(2px) rotate(1deg)} }
+@keyframes qSwing { 0%,100%{transform:rotate(0deg)} 20%{transform:rotate(6deg)} 40%{transform:rotate(-5deg)} 60%{transform:rotate(3deg)} 80%{transform:rotate(-2deg)} }
+@keyframes qTada { 0%,100%{transform:scale(1) rotate(0deg)} 10%{transform:scale(0.94) rotate(-2deg)} 20%{transform:scale(1.06) rotate(2deg)} 30%{transform:scale(1) rotate(-2deg)} 40%{transform:scale(1.02) rotate(0deg)} }
+@keyframes qHeartBeat { 0%,100%{transform:scale(1)} 15%{transform:scale(1.12)} 30%{transform:scale(1)} 45%{transform:scale(1.08)} 60%{transform:scale(1)} }
+@keyframes qRotate { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
+@keyframes qFlash { 0%,100%{opacity:1} 25%{opacity:0.3} 50%{opacity:1} 75%{opacity:0.3} }
+@keyframes qRubberBand { 0%,100%{transform:scaleX(1) scaleY(1)} 15%{transform:scaleX(1.2) scaleY(0.85)} 30%{transform:scaleX(0.9) scaleY(1.1)} 45%{transform:scaleX(1.08) scaleY(0.95)} 60%{transform:scaleX(0.97) scaleY(1.03)} }
+@keyframes qSlideUpDown { 0%,100%{transform:translateY(0)} 25%{transform:translateY(-20px)} 50%{transform:translateY(0)} 75%{transform:translateY(12px)} }
+@keyframes qZoomInOut { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
+@keyframes qFadeInOut { 0%,100%{opacity:1} 50%{opacity:0.3} }
+@keyframes qWave { 0%,100%{transform:translateY(0) rotate(0deg)} 25%{transform:translateY(-6px) rotate(1deg)} 50%{transform:translateY(0) rotate(0deg)} 75%{transform:translateY(4px) rotate(-1deg)} }
+@keyframes qOrbit { 0%{transform:translate(0,0)} 25%{transform:translate(10px,-10px)} 50%{transform:translate(0,-16px)} 75%{transform:translate(-10px,-10px)} 100%{transform:translate(0,0)} }
+@keyframes qGlitch { 0%,100%{transform:translate(0)} 20%{transform:translate(-2px,1px) skewX(-1deg)} 40%{transform:translate(2px,-1px) skewX(1deg)} 60%{transform:translate(-1px,-1px) skewX(-0.5deg)} 80%{transform:translate(1px,2px) skewX(0.5deg)} }
+@keyframes qBlurBlink { 0%,100%{filter:blur(0);opacity:1} 25%{filter:blur(3px);opacity:0.6} 50%{filter:blur(0);opacity:1} 75%{filter:blur(2px);opacity:0.7} }
+@keyframes qSkew { 0%,100%{transform:skewX(0deg)} 25%{transform:skewX(-4deg)} 50%{transform:skewX(0deg)} 75%{transform:skewX(4deg)} }
+@keyframes qRoll { 0%{transform:translateX(0) rotate(0deg)} 50%{transform:translateX(60px) rotate(360deg)} 100%{transform:translateX(0) rotate(720deg)} }
+@keyframes qBounceIn { 0%{transform:scale(0);opacity:0} 50%{transform:scale(1.12)} 70%{transform:scale(0.94)} 85%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
+@keyframes qJello { 0%,100%{transform:skewX(0deg) skewY(0deg)} 25%{transform:skewX(-5deg) skewY(3deg)} 50%{transform:skewX(5deg) skewY(-3deg)} 75%{transform:skewX(-3deg) skewY(2deg)} }
 `
 
 /* ─────────── helpers ─────────── */
@@ -240,6 +306,25 @@ const ANIM_IN  = [
   { value:'flyFromRight',  label:'⬅️ Fly from Right' },
   { value:'zoomIn',        label:'🔍 Zoom In' },
   { value:'fadeIn',        label:'✨ Fade In' },
+  { value:'scaleIn',       label:'📐 Scale In' },
+  { value:'slideUp',       label:'⬆️ Slide Up' },
+  { value:'slideDown',     label:'⬇️ Slide Down' },
+  { value:'rotateIn',      label:'🔄 Rotate In' },
+  { value:'flipIn',        label:'🪞 Flip In' },
+  { value:'swirlIn',       label:'🌀 Swirl In' },
+  { value:'bounceIn',      label:'🏀 Bounce In' },
+  { value:'elasticIn',     label:'🧵 Elastic In' },
+  { value:'blurIn',        label:'👁️ Blur In' },
+  { value:'dropIn',        label:'💧 Drop In' },
+  { value:'wipeIn',        label:'🧹 Wipe In' },
+  { value:'skewIn',        label:'📏 Skew In' },
+  { value:'spiralIn',      label:'🐚 Spiral In' },
+  { value:'rushIn',        label:'💨 Rush In' },
+  { value:'foldIn',        label:'📄 Fold In' },
+  { value:'revealIn',      label:'🎭 Reveal In' },
+  { value:'spinIn',        label:'🪀 Spin In' },
+  { value:'cometIn',       label:'☄️ Comet In' },
+  { value:'floatIn',       label:'🌊 Float In' },
 ]
 const ANIM_OUT = [
   { value:'flyToTop',     label:'⬆️ Fly to Top' },
@@ -248,7 +333,59 @@ const ANIM_OUT = [
   { value:'flyToRight',   label:'➡️ Fly to Right' },
   { value:'zoomOut',      label:'🔍 Zoom Out' },
   { value:'fadeOut',      label:'✨ Fade Out' },
+  { value:'scaleOut',     label:'📐 Scale Out' },
+  { value:'slideUpOut',   label:'⬆️ Slide Up Out' },
+  { value:'slideDownOut', label:'⬇️ Slide Down Out' },
+  { value:'rotateOut',    label:'🔄 Rotate Out' },
+  { value:'flipOut',      label:'🪞 Flip Out' },
+  { value:'swirlOut',     label:'🌀 Swirl Out' },
+  { value:'bounceOut',    label:'🏀 Bounce Out' },
+  { value:'elasticOut',   label:'🧵 Elastic Out' },
+  { value:'blurOut',      label:'👁️ Blur Out' },
+  { value:'dropOut',      label:'💧 Drop Out' },
+  { value:'wipeOut',      label:'🧹 Wipe Out' },
+  { value:'skewOut',      label:'📏 Skew Out' },
+  { value:'spiralOut',    label:'🐚 Spiral Out' },
+  { value:'rushOut',      label:'💨 Rush Out' },
+  { value:'foldOut',      label:'📄 Fold Out' },
+  { value:'hideOut',      label:'🎭 Hide Out' },
+  { value:'spinOut',      label:'🪀 Spin Out' },
+  { value:'cometOut',     label:'☄️ Comet Out' },
+  { value:'floatOut',     label:'🌊 Float Out' },
 ]
+const IMAGE_ANIMS = [
+  { value:'float',     label:'🌊 Float' },
+  { value:'breathe',   label:'💨 Breathe' },
+  { value:'pulse',     label:'💓 Pulse' },
+  { value:'shimmer',   label:'✨ Shimmer' },
+  { value:'kenburns',  label:'🎥 Ken Burns' },
+  { value:'bounce',    label:'🔄 Bounce' },
+  { value:'sway',      label:'🌿 Sway' },
+  { value:'wobble',    label:'🤪 Wobble' },
+  { value:'swing',     label:'⏳ Swing' },
+  { value:'tada',      label:'🎉 Tada' },
+  { value:'heartBeat', label:'💖 Heart Beat' },
+  { value:'rotate',    label:'🔄 Rotate' },
+  { value:'flash',     label:'⚡ Flash' },
+  { value:'rubberBand',label:'🌀 Rubber Band' },
+  { value:'slideUpDown',label:'📐 Slide Up/Down' },
+  { value:'zoomInOut', label:'🔍 Zoom In/Out' },
+  { value:'fadeInOut', label:'🌅 Fade In/Out' },
+  { value:'wave',      label:'🌊 Wave' },
+  { value:'orbit',     label:'🪐 Orbit' },
+  { value:'glitch',    label:'💥 Glitch' },
+  { value:'blurBlink', label:'👁️ Blur Blink' },
+  { value:'skew',      label:'📏 Skew' },
+  { value:'roll',      label:'🥌 Roll' },
+  { value:'bounceIn',  label:'🏀 Bounce In' },
+  { value:'jello',     label:'🍮 Jello' },
+  { value:'none',      label:'⛔ None' },
+]
+const IMAGE_ANIM_MAP = IMAGE_ANIMS.reduce((map, a) => {
+  if (a.value === 'none') return map
+  map[a.value] = `q${a.value.charAt(0).toUpperCase() + a.value.slice(1)} ${a.value === 'kenburns' ? '8s' : a.value === 'orbit' ? '4s' : a.value === 'roll' ? '3s' : '2.5s'} ease-in-out infinite`
+  return map
+}, {})
 const FONT_CATEGORIES = [
   { name:'Handwriting', fonts:['Caveat','Patrick Hand','Indie Flower','Shadows Into Light','Gloria Hallelujah','Permanent Marker','Kalam','Satisfy','Reenie Beanie','Homemade Apple','Sacramento','Alex Brush'] },
   { name:'Professional', fonts:['Inter','Work Sans','Source Sans 3','Lato','Open Sans','Roboto','Nunito','DM Sans','Poppins','Rubik','Exo 2','Cabin'] },
@@ -342,7 +479,7 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
     const f = e.target.files[0]
     if (f) {
       const r = new FileReader()
-      r.onload = ev => setImgPrev(ev.target.result)
+      r.onload = ev => { setImgPrev(ev.target.result); onUpdate('option_image_url', ev.target.result) }
       r.readAsDataURL(f)
       onUpdate('_optImageFile', f)
     }
@@ -351,54 +488,72 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
     const f = e.target.files[0]
     if (f) {
       const r = new FileReader()
-      r.onload = ev => setOverlayPrev(ev.target.result)
+      r.onload = ev => { setOverlayPrev(ev.target.result); onUpdate('option_overlay_image_url', ev.target.result) }
       r.readAsDataURL(f)
       onUpdate('_overlayFile', f)
     }
   }
 
   return (
-    <div className="gb-opt-row">
-      {/* row 1: text + colors + correct + remove */}
-      <div style={{ display:'flex', gap:8, alignItems:'center', flexWrap:'wrap', marginBottom:8 }}>
-        <span style={{ color:'var(--gb-text3)', fontSize:12, minWidth:18, fontWeight:700 }}>{index+1}.</span>
-        <input value={opt.option_text||''} onChange={e => onUpdate('option_text', e.target.value)}
-          placeholder={`Option ${index+1}`} style={{ flex:1, minWidth:100 }} />
-        <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-          <ColorPicker value={opt.option_color} onChange={v => onUpdate('option_color', v)} />
-          <span style={{ fontSize:10, color:'var(--gb-text3)' }}>BG</span>
-          <ColorPicker value={opt.option_text_color||'#ffffff'} onChange={v => onUpdate('option_text_color', v)} />
-          <span style={{ fontSize:10, color:'var(--gb-text3)' }}>Txt</span>
-        </div>
-        {showCorrect && (
-          <button
-            className={`gb-btn gb-btn-sm ${Number(opt.is_correct)===1 ? 'gb-btn-success' : 'gb-btn-ghost'}`}
-            onClick={onSetCorrect}>
-            {Number(opt.is_correct)===1 ? '✅ Correct' : '○ Mark Correct'}
-          </button>
-        )}
-        <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" onClick={onRemove}>✕</button>
-      </div>
-      {/* row 2: images */}
-      <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+    <div className="gb-opt-row" style={{ position:'relative', paddingRight:36 }}>
+      {/* delete button — top right corner of card */}
+      <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon"
+        onClick={onRemove}
+        style={{ position:'absolute', top:6, right:6, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, boxShadow:'0 2px 6px rgba(0,0,0,0.15)' }}>✕</button>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:16 }}>
+        {/* Col 1: field + colors + correct */}
         <div>
-          <span className="gb-label" style={{ marginBottom:3 }}>Option Image</span>
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+          <div style={{ display:'flex', gap:8, alignItems:'center', marginBottom:10 }}>
+            <input value={opt.option_text||''} onChange={e => onUpdate('option_text', e.target.value)}
+              placeholder={`Option ${index+1}`} style={{ flex:1 }} />
+            {/* option image upload */}
             <input type="file" ref={imgRef} accept="image/png,image/jpeg,image/jpg" onChange={handleImgFile} style={{ display:'none' }} />
-            <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => imgRef.current.click()}>📷</button>
-            {imgPrev && <img src={imgPrev} className="gb-thumb" alt="" style={{ height:36 }} />}
-            {imgPrev && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button"
-              onClick={() => { setImgPrev(null); onUpdate('option_image_url','') }}>✕</button>}
+            {imgPrev ? (
+              <div style={{ position:'relative', flexShrink:0 }}>
+                <img src={imgPrev} alt="" style={{ height:28, width:'auto', borderRadius:4, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9', display:'block' }} />
+                <button style={{ position:'absolute', top:-5, right:-5, borderRadius:'50%', width:14, height:14, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'1.5px solid #fff', cursor:'pointer' }}
+                  type="button" onClick={() => { setImgPrev(null); onUpdate('option_image_url','') }}>✕</button>
+              </div>
+            ) : (
+              <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => imgRef.current.click()}
+                style={{ border:'1.5px dashed var(--gb-border)', borderRadius:6, padding:'4px 8px', cursor:'pointer', background:'transparent', fontSize:14, lineHeight:1, flexShrink:0 }} title="Option image">📷</button>
+            )}
+          </div>
+          <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+            <ColorPicker value={opt.option_text_color||'#ffffff'} onChange={v => onUpdate('option_text_color', v)} label="Text Color" />
+            <ColorPicker value={opt.option_color} onChange={v => onUpdate('option_color', v)} label="BG Color" />
+            {showCorrect && (
+              <div style={{ paddingTop:18 }}>
+                <button
+                  className={`gb-btn gb-btn-sm ${Number(opt.is_correct)===1 ? 'gb-btn-success' : 'gb-btn-ghost'}`}
+                  onClick={onSetCorrect}>
+                  {Number(opt.is_correct)===1 ? '✅ Correct' : '○ Mark Correct'}
+                </button>
+              </div>
+            )}
           </div>
         </div>
-        <div>
-          <span className="gb-label" style={{ marginBottom:3 }}>Overlay (after select)</span>
-          <div style={{ display:'flex', alignItems:'center', gap:6 }}>
+        {/* Col 2: overlay image */}
+        <div style={{ display:'flex', flexDirection:'column', alignItems:'center', minWidth:100 }}>
+          <span className="gb-label" style={{ marginBottom:6, whiteSpace:'nowrap' }}>Overlay Image</span>
+          <div style={{ position:'relative', display:'inline-block' }}>
+            {overlayPrev && (
+              <>
+                <img src={overlayPrev} alt="" style={{ height:64, width:'auto', maxWidth:100, borderRadius:6, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9', display:'block' }} />
+                <button style={{ position:'absolute', top:-6, right:-6, borderRadius:'50%', width:18, height:18, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 4px rgba(0,0,0,0.2)' }}
+                  type="button" onClick={() => { setOverlayPrev(null); onUpdate('option_overlay_image_url','') }}>✕</button>
+              </>
+            )}
             <input type="file" ref={overlayRef} accept="image/png,image/jpeg,image/jpg" onChange={handleOverlayFile} style={{ display:'none' }} />
-            <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => overlayRef.current.click()}>🖼️</button>
-            {overlayPrev && <img src={overlayPrev} className="gb-thumb" alt="" style={{ height:36 }} />}
-            {overlayPrev && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button"
-              onClick={() => { setOverlayPrev(null); onUpdate('option_overlay_image_url','') }}>✕</button>}
+            {!overlayPrev && (
+              <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => overlayRef.current.click()}
+                  style={{ width:64, height:64, border:'1.5px dashed var(--gb-border)', borderRadius:8, cursor:'pointer', background:'transparent', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2, padding:0 }}>
+                  <span style={{ fontSize:20, lineHeight:1, opacity:0.6 }}>⊞</span>
+                  <span style={{ fontSize:10, color:'var(--gb-text3)' }}>Upload</span>
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -486,6 +641,16 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
                   <button style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                     type="button" onClick={() => { setImgPreview(null); setQ(prev=>({...prev, _imageFile:null, question_image_url:'' })) }}>✕</button>
                 </div>}
+                {/* Effect dropdown below preview */}
+                {imgPreview && (
+                  <div style={{ width:'100%', marginTop:10, display:'flex', alignItems:'center', gap:6 }}>
+                    <span className="gb-label" style={{ whiteSpace:'nowrap', marginBottom:0 }}>Use Effect</span>
+                    <select value={q.question_image_animation||'float'} onChange={e => setQ({ ...q, question_image_animation:e.target.value })}
+                      style={{ flex:1, fontSize:12, padding:'5px 0', border:'none', borderBottom:'1.5px solid var(--gb-border)', background:'transparent', color:'var(--gb-text)', cursor:'pointer', outline:'none', borderRadius:0 }}>
+                      {IMAGE_ANIMS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
+                    </select>
+                  </div>
+                )}
               </div>
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                 <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>BG Image (overrides game BG)</span>
@@ -513,26 +678,23 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             </div>
           </div>
 
-          {/* Question image idle animation */}
-          {imgPreview && (
-            <div className="gb-section">
-              <div className="gb-section-title">🌊 Question Image — Idle Motion</div>
-              <div className="gb-fg">
-                <span className="gb-label">Animation while player reads</span>
-                <select value={q.question_image_animation||'float'} onChange={e => setQ({ ...q, question_image_animation:e.target.value })}>
-                  <option value="float">🌊 Float (up & down)</option>
-                  <option value="breathe">💨 Breathe (gentle scale)</option>
-                  <option value="pulse">💓 Pulse (brightness + scale)</option>
-                  <option value="shimmer">✨ Shimmer (subtle tilt)</option>
-                  <option value="kenburns">🎥 Ken Burns (slow zoom-pan)</option>
-                  <option value="none">⛔ No animation</option>
-                </select>
-              </div>
-              <p style={{ fontSize:11, color:'var(--gb-text3)', marginTop:8 }}>
-                Entrance anim plays first, then loops this idle. Use "No animation" for GIFs.
-              </p>
+          {/* Options */}
+          <div className="gb-section">
+            <div className="gb-section-title" style={{ marginBottom:10 }}>🔘 Answer Options</div>
+            {(q.options||[]).length === 0
+              ? <p style={{ fontSize:13, color:'var(--gb-text3)', textAlign:'center', padding:'12px 0' }}>No options yet</p>
+              : (q.options||[]).map((opt,i) => (
+                <OptionRow key={`opt-${opt.id || 'new'}-${i}`} opt={opt} index={i}
+                  onUpdate={(field,val) => updateOption(i,field,val)}
+                  onRemove={() => removeOption(i)}
+                  onSetCorrect={() => setCorrect(i)}
+                  showCorrect={q.question_type==='right_wrong'} />
+              ))
+            }
+            <div style={{ display:'flex', justifyContent:'center', marginTop:(q.options||[]).length === 0 ? 0 : 12 }}>
+              <button className="gb-btn gb-btn-primary gb-btn-sm" onClick={addOption}>+ Add Option</button>
             </div>
-          )}
+          </div>
 
           {/* overlay animation */}
           <div className="gb-section">
@@ -561,24 +723,6 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             </p>
           </div>
 
-          {/* Options */}
-          <div className="gb-section">
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
-              <div className="gb-section-title" style={{ marginBottom:0 }}>🔘 Answer Options</div>
-              <button className="gb-btn gb-btn-primary gb-btn-sm" onClick={addOption}>+ Add Option</button>
-            </div>
-            {(q.options||[]).length === 0
-              ? <p style={{ fontSize:13, color:'var(--gb-text3)', textAlign:'center', padding:'16px 0' }}>No options yet — add some above</p>
-              : (q.options||[]).map((opt,i) => (
-                <OptionRow key={`opt-${opt.id || 'new'}-${i}`} opt={opt} index={i}
-                  onUpdate={(field,val) => updateOption(i,field,val)}
-                  onRemove={() => removeOption(i)}
-                  onSetCorrect={() => setCorrect(i)}
-                  showCorrect={q.question_type==='right_wrong'} />
-              ))
-            }
-          </div>
-
           {/* save bar */}
           <div style={{ display:'flex', justifyContent:'flex-end', paddingTop:4 }}>
             <button className="gb-btn gb-btn-primary" onClick={handleSave} disabled={saving}>
@@ -586,7 +730,7 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             </button>
           </div>
         </div>
-      )}
+      
     </div>
   )
 }
@@ -631,7 +775,8 @@ const [nameInput,     setNameInput]     = useState('')
   }, [])
   const [previewOverlay, setPreviewOverlay] = useState(null)
   const [previewStage, setPreviewStage] = useState('initial')
-  useEffect(() => { setPreviewOverlay(null); setPreviewStage('initial') }, [selectedQuestionId])
+  const previewTimerRef = useRef(null)
+  useEffect(() => { clearTimeout(previewTimerRef.current); setPreviewOverlay(null); setPreviewStage('initial') }, [selectedQuestionId])
   const [redirectUrl,   setRedirectUrl]   = useState('')
 
   const soundUploadRef = useRef()
@@ -1626,17 +1771,22 @@ const [nameInput,     setNameInput]     = useState('')
             const previewQ = liveQ?.id === selectedQuestionId ? liveQ : (questions.find(q => q.id === selectedQuestionId) || questions[0])
             const hasBg = previewQ.question_bg_image_url || settings.bg_image_url
             const handleOptionClick = (opt) => {
+              clearTimeout(previewTimerRef.current)
               const hasOverlay = !!opt.option_overlay_image_url
               if (hasOverlay) {
                 setPreviewOverlay(opt)
-                setPreviewStage('overlay')
-                const dur = (Number(previewQ.overlay_duration) || 3) * 1000
+                setPreviewStage('flyingIn')
                 const idle = (Number(previewQ.overlay_idle_time) || 3) * 1000
-                setTimeout(() => {
-                  setPreviewOverlay(null)
-                  setPreviewStage('idle')
-                  setTimeout(() => setPreviewStage('next'), idle)
-                }, dur)
+                previewTimerRef.current = setTimeout(() => {
+                  setPreviewStage('visible')
+                  previewTimerRef.current = setTimeout(() => {
+                    setPreviewStage('flyingOut')
+                    previewTimerRef.current = setTimeout(() => {
+                      setPreviewOverlay(null)
+                      setPreviewStage('next')
+                    }, 550)
+                  }, idle)
+                }, 650)
               } else {
                 setPreviewStage('next')
               }
@@ -1657,13 +1807,13 @@ const [nameInput,     setNameInput]     = useState('')
                 <div style={{
                   position:'absolute', inset:0, zIndex:10,
                   display:'flex', alignItems:'center', justifyContent:'center',
-                  animation: `${
-                    previewQ.overlay_animation_in === 'flyFromBottom' ? 'slideUp' :
-                    previewQ.overlay_animation_in === 'flyToTop' ? 'slideDown' :
-                    previewQ.overlay_animation_in === 'flyFromLeft' ? 'slideRight' :
-                    previewQ.overlay_animation_in === 'flyToRight' ? 'slideLeft' :
-                    'fadeIn'
-                  } 0.4s ease`,
+                  animation: previewStage === 'flyingIn'
+                    ? `${previewQ.overlay_animation_in || 'flyFromBottom'} 0.6s cubic-bezier(0.34,1.3,0.64,1) forwards`
+                    : previewStage === 'flyingOut'
+                      ? `${previewQ.overlay_animation_out || 'flyToTop'} 0.5s cubic-bezier(0.55,0,0.85,0.36) forwards`
+                      : 'none',
+                  opacity: previewStage === 'visible' ? 1 : undefined,
+                  transform: previewStage === 'visible' ? 'translateY(0) translateX(0) scale(1)' : undefined,
                 }}>
                   <img src={previewOverlay.option_overlay_image_url} alt=""
                     style={{ width:'100%', height:'100%', objectFit:'cover' }} />
@@ -1704,12 +1854,7 @@ const [nameInput,     setNameInput]     = useState('')
                       <img src={previewQ.question_image_url} alt=""
                         style={{
                           width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8,
-                          animation: previewQ.question_image_animation === 'float' ? 'qFloat 3s ease-in-out infinite' :
-                            previewQ.question_image_animation === 'breathe' ? 'qBreathe 2.8s ease-in-out infinite' :
-                            previewQ.question_image_animation === 'pulse' ? 'qPulse 2.4s ease-in-out infinite' :
-                            previewQ.question_image_animation === 'shimmer' ? 'qShimmer 3s ease-in-out infinite' :
-                            previewQ.question_image_animation === 'kenburns' ? 'qKenBurns 8s ease-in-out infinite alternate' :
-                            'none',
+                          animation: IMAGE_ANIM_MAP[previewQ.question_image_animation] || 'none',
                         }} />
                     </div>
                   )}
@@ -1728,11 +1873,15 @@ const [nameInput,     setNameInput]     = useState('')
                           style={{
                             background: opt.option_color || '#1a1a2e',
                             color: opt.option_text_color || '#ffffff',
-                            borderRadius:12, padding:'8px 12px', fontSize:12, fontWeight:600,
+                            borderRadius:12, padding: opt.option_image_url ? '0' : '8px 12px', fontSize:12, fontWeight:600,
                             textAlign:'center', border:'2px solid transparent',
                             boxShadow:'0 2px 8px rgba(0,0,0,0.1)', cursor:'pointer',
+                            overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', minHeight:36,
                           }}>
-                          {opt.option_text || `Option ${i+1}`}
+                          {opt.option_image_url
+                            ? <img src={opt.option_image_url} alt="" style={{ maxWidth:'100%', maxHeight:72, objectFit:'contain', borderRadius:8 }} />
+                            : (opt.option_text || `Option ${i+1}`)
+                          }
                         </div>
                       ))}
                     </div>

@@ -665,12 +665,12 @@ export default function CrosswordBuilderPage() {
 
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
   const TABS = [
-    { id:'display',   label:'🎨 Game Display' },
     { id:'form',      label:'📋 Player Form' },
+    { id:'sounds',    label:'🔊 Sounds' },
     { id:'words',     label:'🔤 Words' },
     { id:'thankyou',  label:'🙏 Thank You' },
     { id:'email',     label:'📧 Email' },
-    { id:'sounds',    label:'🔊 Sounds' },
+    { id:'display',   label:'🎨 Game Display' },
     { id:'settings',  label:'⚙️ Settings' },
   ]
 
@@ -729,111 +729,137 @@ export default function CrosswordBuilderPage() {
         {/* ─── Left: Settings ─── */}
         <div style={{ flex:'3 1 0%', minWidth:0, maxWidth:'60%' }}>
 
-        {/* ════ DISPLAY TAB ════ */}
-        {tab === 'display' && (
+        {/* ════ FORM TAB ════ */}
+        {tab === 'form' && (
           <div>
-            {/* Game Name */}
             <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">🎮 Game Name</div>
-              <input value={text1||game?.name||''} onChange={e => setText1(e.target.value)}
-                style={{ fontSize:16, fontWeight:700, padding:'10px 14px' }} placeholder="Game display title" />
-              <p style={{ fontSize:12, color:'var(--gb-text3)', marginTop:6 }}>This is what players see on the game page.</p>
-            </div>
-
-            {/* Game BG Image + Logo merged */}
-            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">🖼️ Images</div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                <div style={{ textAlign:'center' }}>
-                  <span className="gb-label">Game Background Image</span>
-                  <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
-                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
-                    style={{ display:'none' }} />
-                  <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
-                    <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => bgImgRef.current.click()}>📷 Upload</button>
+              <div className="gb-section-title">📋 Form Fields</div>
+              <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:8 }}>These fields appear on the registration screen before the crossword starts.</p>
+              {formFields.map((f,i) => (
+                <div key={i} style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end', marginBottom:8, padding:'8px 10px', background:'var(--gb-surface2)', borderRadius:'var(--gb-radius-sm)' }}>
+                  <div className="gb-fg" style={{ flex:2, minWidth:130 }}>
+                    <span className="gb-label">Label</span>
+                    <input value={f.field_label} onChange={e => updateFormField(i,'field_label',e.target.value)} />
                   </div>
-                  {settings.bg_image_url ? (
-                    <div style={{ position:'relative', display:'inline-block' }}>
-                      <img src={settings.bg_image_url} className="gb-thumb" alt="" />
-                      <button className="cb-btn cb-btn-danger cb-btn-icon"
-                        style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
-                        type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})} title="Delete this">✕</button>
-                    </div>
-                  ) : (
-                    <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
-                  )}
-                </div>
-                <div style={{ textAlign:'center' }}>
-                  <span className="gb-label">Game Logo</span>
-                  <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
-                    style={{ display:'none' }} />
-                  <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
-                    <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()}>📷 Upload</button>
+                  <div className="gb-fg" style={{ flex:1, minWidth:110 }}>
+                    <span className="gb-label">Type</span>
+                    <select value={f.field_type} onChange={e => updateFormField(i,'field_type',e.target.value)}>
+                      <option value="text">Text</option>
+                      <option value="email">Email</option>
+                      <option value="phone">Phone</option>
+                      <option value="number">Number</option>
+                      <option value="textarea">Textarea</option>
+                      <option value="select">Dropdown</option>
+                    </select>
                   </div>
-                  {settings.game_logo_url ? (
-                    <div style={{ position:'relative', display:'inline-block' }}>
-                      <img src={settings.game_logo_url} alt="" className="gb-thumb" style={{ background:'#fff' }} />
-                      <button className="cb-btn cb-btn-danger cb-btn-icon"
-                        style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
-                        type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} title="Delete this">✕</button>
-                    </div>
-                  ) : (
-                    <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
-                  )}
+                  <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer', paddingBottom:2, whiteSpace:'nowrap' }}>
+                    <input type="checkbox" checked={Number(f.is_required)===1} onChange={e => updateFormField(i,'is_required',e.target.checked?1:0)} style={{ width:16,height:16 }} />
+                    Required
+                  </label>
+                  <button className="cb-btn cb-btn-danger cb-btn-sm" onClick={() => removeFormField(i)}>✕</button>
                 </div>
+              ))}
+              <div style={{ textAlign:'center', marginTop:6 }}>
+                <button className="cb-btn cb-btn-primary" onClick={addFormField}>+ Add Field</button>
               </div>
             </div>
 
-            {/* Headings */}
             <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">📝 Headings & Description</div>
-              <div className="gb-fg" style={{ marginBottom:8 }}>
-                <span className="gb-label">Heading 1</span>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                  <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main heading" style={{ flex:1 }} />
-                  <ColorPicker value={heading1Color} onChange={v => setHeading1Color(v)} label="Color" />
-                </div>
+              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
+                <input type="checkbox" id="termsEnabledForm" checked={Number(settings.terms_enabled)===1}
+                  onChange={e => setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                <label htmlFor="termsEnabledForm" style={{ fontWeight:700, cursor:'pointer', fontSize:14 }}>Require Terms & Conditions</label>
               </div>
-              <div className="gb-fg" style={{ marginBottom:8 }}>
-                <span className="gb-label">Heading 2 / Sub-heading</span>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                  <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" style={{ flex:1 }} />
-                  <ColorPicker value={heading2Color} onChange={v => setHeading2Color(v)} label="Color" />
+              {settings.terms_enabled ? (
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                  <div className="gb-fg"><span className="gb-label">Terms Label</span><input value={settings.terms_text||''} onChange={e => setSettings({...settings,terms_text:e.target.value})} placeholder="Terms & Conditions" /></div>
+                  <div className="gb-fg"><span className="gb-label">Terms URL (optional)</span><input value={settings.terms_url||''} onChange={e => setSettings({...settings,terms_url:e.target.value})} placeholder="https://yoursite.com/terms" /></div>
                 </div>
-              </div>
-              <div className="gb-fg" style={{ marginBottom:8 }}>
-                <span className="gb-label">Heading 3 / Instructions</span>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                  <input value={settings.heading_3||''} onChange={e => setSettings({...settings,heading_3:e.target.value})} placeholder="Short instructions" style={{ flex:1 }} />
-                  <ColorPicker value={heading3Color} onChange={v => setHeading3Color(v)} label="Color" />
-                </div>
-              </div>
-              <div className="gb-fg">
-                <span className="gb-label">Description</span>
-                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                  <textarea rows={2} value={settings.description_text||''} onChange={e => setSettings({...settings,description_text:e.target.value})} placeholder="Optional description shown above the grid" style={{ flex:1, resize:'vertical' }} />
-                  <ColorPicker value={descColor} onChange={v => setDescColor(v)} label="Color" />
-                </div>
-              </div>
+              ) : (
+                <p style={{ color:'var(--gb-text3)', fontSize:13 }}>Enable to require players to accept T&C before starting.</p>
+              )}
             </div>
 
-            {/* URL */}
             <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">🔗 Game URL</div>
-              <div style={{ display:'flex', alignItems:'center', gap:0, background:'var(--gb-surface)', border:'1.5px solid var(--gb-border)', borderRadius:'var(--gb-radius-sm)', padding:'0', overflow:'hidden' }}>
-                <span style={{ padding:'9px 0 9px 12px', fontSize:14, color:'var(--gb-text3)', background:'var(--gb-surface2)', borderRight:'1px solid var(--gb-border)', whiteSpace:'nowrap', fontFamily:'monospace' }}>/play/</span>
-                <input value={gameSlug} onChange={e => setGameSlug(e.target.value)}
-                  style={{ border:'none', borderRadius:0, background:'var(--gb-surface)', fontSize:14, padding:'9px 8px', outline:'none', flex:1, fontFamily:'monospace' }} />
-                <span style={{ padding:'9px 12px 9px 0', fontSize:14, color:'var(--gb-text3)', background:'var(--gb-surface2)', borderLeft:'1px solid var(--gb-border)', whiteSpace:'nowrap', fontFamily:'monospace' }}>/{game?.client_slug||'client'}</span>
+              <div className="gb-section-title">🎯 Start Button</div>
+              <div className="gb-fg" style={{ maxWidth:280 }}>
+                <span className="gb-label">Button Text</span>
+                <input value={settings.start_button_text||''} onChange={e => setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Crossword →" />
               </div>
             </div>
 
-            <div style={{ display:'flex', justifyContent:'flex-end' }}>
-              <button className="cb-btn cb-btn-primary" onClick={saveDisplaySettings} disabled={saving} style={{ padding:'10px 28px' }}>
-                {saving ? '⏳ Saving…' : '💾 Save Display Settings'}
-              </button>
+            <div style={{ display:'flex', justifyContent:'flex-end', gap:10 }}>
+              <button className="cb-btn cb-btn-primary" onClick={saveFormFields} disabled={saving}>{saving ? 'Saving…' : '💾 Save Form Settings'}</button>
             </div>
+          </div>
+        )}
+
+        {/* ════ SOUNDS TAB ════ */}
+        {tab === 'sounds' && (
+          <div>
+            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10, flexWrap:'wrap', gap:10 }}>
+              <div>
+                <h3 style={{ color:'var(--gb-text)', fontFamily:'inherit', marginBottom:4 }}>Sound Library</h3>
+                <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Upload MP3, WAV or OGG files, then assign them per-word or globally.</p>
+              </div>
+              {sounds.length > 0 && (
+              <div>
+                <button className="cb-btn cb-btn-primary" onClick={() => soundUploadRef.current.click()} disabled={soundUploading}>
+                  {soundUploading ? '⏳ Uploading…' : '+ Upload Sound'}
+                </button>
+              </div>
+              )}
+            </div>
+            <input type="file" ref={soundUploadRef} accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/x-wav,audio/wave" onChange={uploadSound} style={{ display:'none' }} />
+
+            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
+              <div className="gb-section-title">🎮 Assign Sounds to Crossword</div>
+              <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:8 }}>
+                These play globally. Per-word sounds can be set inside each word card.
+              </p>
+              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:10, marginBottom:10 }}>
+                <SoundSelector label="✅ Correct Answer" value={settings.sound_correct_id} onChange={v => setSettings({...settings,sound_correct_id:v})} sounds={sounds} />
+                <SoundSelector label="❌ Wrong Answer" value={settings.sound_wrong_id} onChange={v => setSettings({...settings,sound_wrong_id:v})} sounds={sounds} />
+              </div>
+              <div style={{ display:'flex', justifyContent:'flex-end' }}>
+                <button className="cb-btn cb-btn-primary cb-btn-sm" onClick={saveSettings} disabled={saving}>
+                  {saving ? 'Saving…' : '💾 Save Sound Assignments'}
+                </button>
+              </div>
+            </div>
+
+            {sounds.length === 0
+              ? (
+                <div className="gb-empty">
+                  <div className="gb-empty-icon">🔊</div>
+                  <h3 style={{ color:'var(--gb-text)', marginBottom:8 }}>No sounds yet</h3>
+                  <p>Upload MP3, WAV, or OGG files</p>
+                  <button className="cb-btn cb-btn-primary" style={{ marginTop:16 }} onClick={() => soundUploadRef.current.click()}>+ Upload Sound</button>
+                </div>
+              )
+              : (
+                <div>
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    {sounds.map(s => (
+                      <div key={s.id} className="cb-card" style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px' }}>
+                        <span style={{ fontSize:20 }}>🎵</span>
+                        <div style={{ flex:1 }}>
+                          <div style={{ fontWeight:700, fontSize:14, color:'var(--gb-text)' }}>{s.name}</div>
+                          <div style={{ color:'var(--gb-text3)', fontSize:11, marginTop:2 }}>ID: {s.id} · {s.sound_type}</div>
+                        </div>
+                        <audio controls src={s.url} style={{ height:32 }} />
+                        <button className="cb-btn cb-btn-danger cb-btn-sm cb-btn-icon" onClick={() => deleteSound(s)} title="Remove sound">✕</button>
+                      </div>
+                    ))}
+                  </div>
+                  <div style={{ textAlign:'center', marginTop:10 }}>
+                    <button className="cb-btn cb-btn-primary" onClick={() => soundUploadRef.current.click()} disabled={soundUploading}>
+                      {soundUploading ? '⏳ Uploading…' : '+ Upload Sound'}
+                    </button>
+                  </div>
+                </div>
+              )
+            }
           </div>
         )}
 
@@ -926,70 +952,7 @@ export default function CrosswordBuilderPage() {
           </div>
         )}
 
-        {/* ════ FORM TAB ════ */}
-        {tab === 'form' && (
-          <div>
-            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">📋 Form Fields</div>
-              <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:8 }}>These fields appear on the registration screen before the crossword starts.</p>
-              {formFields.map((f,i) => (
-                <div key={i} style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end', marginBottom:8, padding:'8px 10px', background:'var(--gb-surface2)', borderRadius:'var(--gb-radius-sm)' }}>
-                  <div className="gb-fg" style={{ flex:2, minWidth:130 }}>
-                    <span className="gb-label">Label</span>
-                    <input value={f.field_label} onChange={e => updateFormField(i,'field_label',e.target.value)} />
-                  </div>
-                  <div className="gb-fg" style={{ flex:1, minWidth:110 }}>
-                    <span className="gb-label">Type</span>
-                    <select value={f.field_type} onChange={e => updateFormField(i,'field_type',e.target.value)}>
-                      <option value="text">Text</option>
-                      <option value="email">Email</option>
-                      <option value="phone">Phone</option>
-                      <option value="number">Number</option>
-                      <option value="textarea">Textarea</option>
-                      <option value="select">Dropdown</option>
-                    </select>
-                  </div>
-                  <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer', paddingBottom:2, whiteSpace:'nowrap' }}>
-                    <input type="checkbox" checked={Number(f.is_required)===1} onChange={e => updateFormField(i,'is_required',e.target.checked?1:0)} style={{ width:16,height:16 }} />
-                    Required
-                  </label>
-                  <button className="cb-btn cb-btn-danger cb-btn-sm" onClick={() => removeFormField(i)}>✕</button>
-                </div>
-              ))}
-              <div style={{ textAlign:'center', marginTop:6 }}>
-                <button className="cb-btn cb-btn-primary" onClick={addFormField}>+ Add Field</button>
-              </div>
-            </div>
 
-            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:10 }}>
-                <input type="checkbox" id="termsEnabledForm" checked={Number(settings.terms_enabled)===1}
-                  onChange={e => setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                <label htmlFor="termsEnabledForm" style={{ fontWeight:700, cursor:'pointer', fontSize:14 }}>Require Terms & Conditions</label>
-              </div>
-              {settings.terms_enabled ? (
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
-                  <div className="gb-fg"><span className="gb-label">Terms Label</span><input value={settings.terms_text||''} onChange={e => setSettings({...settings,terms_text:e.target.value})} placeholder="Terms & Conditions" /></div>
-                  <div className="gb-fg"><span className="gb-label">Terms URL (optional)</span><input value={settings.terms_url||''} onChange={e => setSettings({...settings,terms_url:e.target.value})} placeholder="https://yoursite.com/terms" /></div>
-                </div>
-              ) : (
-                <p style={{ color:'var(--gb-text3)', fontSize:13 }}>Enable to require players to accept T&C before starting.</p>
-              )}
-            </div>
-
-            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">🎯 Start Button</div>
-              <div className="gb-fg" style={{ maxWidth:280 }}>
-                <span className="gb-label">Button Text</span>
-                <input value={settings.start_button_text||''} onChange={e => setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Crossword →" />
-              </div>
-            </div>
-
-            <div style={{ display:'flex', justifyContent:'flex-end', gap:10 }}>
-              <button className="cb-btn cb-btn-primary" onClick={saveFormFields} disabled={saving}>{saving ? 'Saving…' : '💾 Save Form Settings'}</button>
-            </div>
-          </div>
-        )}
 
         {/* ════ THANK YOU TAB ════ */}
         {tab === 'thankyou' && (
@@ -1136,6 +1099,110 @@ export default function CrosswordBuilderPage() {
           </div>
         )}
 
+        {/* ════ DISPLAY TAB ════ */}
+        {tab === 'display' && (
+          <div>
+            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
+              <div className="gb-section-title">🎮 Game Name</div>
+              <input value={text1||game?.name||''} onChange={e => setText1(e.target.value)}
+                style={{ fontSize:16, fontWeight:700, padding:'10px 14px' }} placeholder="Game display title" />
+              <p style={{ fontSize:12, color:'var(--gb-text3)', marginTop:6 }}>This is what players see on the game page.</p>
+            </div>
+
+            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
+              <div className="gb-section-title">🖼️ Images</div>
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                <div style={{ textAlign:'center' }}>
+                  <span className="gb-label">Game Background Image</span>
+                  <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
+                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
+                    style={{ display:'none' }} />
+                  <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
+                    <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => bgImgRef.current.click()}>📷 Upload</button>
+                  </div>
+                  {settings.bg_image_url ? (
+                    <div style={{ position:'relative', display:'inline-block' }}>
+                      <img src={settings.bg_image_url} className="gb-thumb" alt="" />
+                      <button className="cb-btn cb-btn-danger cb-btn-icon"
+                        style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
+                        type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})} title="Delete">✕</button>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
+                  )}
+                </div>
+                <div style={{ textAlign:'center' }}>
+                  <span className="gb-label">Game Logo</span>
+                  <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
+                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
+                    style={{ display:'none' }} />
+                  <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
+                    <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()}>📷 Upload</button>
+                  </div>
+                  {settings.game_logo_url ? (
+                    <div style={{ position:'relative', display:'inline-block' }}>
+                      <img src={settings.game_logo_url} alt="" className="gb-thumb" style={{ background:'#fff' }} />
+                      <button className="cb-btn cb-btn-danger cb-btn-icon"
+                        style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
+                        type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} title="Delete">✕</button>
+                    </div>
+                  ) : (
+                    <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
+              <div className="gb-section-title">📝 Headings & Description</div>
+              <div className="gb-fg" style={{ marginBottom:8 }}>
+                <span className="gb-label">Heading 1</span>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                  <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main heading" style={{ flex:1 }} />
+                  <ColorPicker value={heading1Color} onChange={v => setHeading1Color(v)} label="Color" />
+                </div>
+              </div>
+              <div className="gb-fg" style={{ marginBottom:8 }}>
+                <span className="gb-label">Heading 2 / Sub-heading</span>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                  <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" style={{ flex:1 }} />
+                  <ColorPicker value={heading2Color} onChange={v => setHeading2Color(v)} label="Color" />
+                </div>
+              </div>
+              <div className="gb-fg" style={{ marginBottom:8 }}>
+                <span className="gb-label">Heading 3 / Instructions</span>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                  <input value={settings.heading_3||''} onChange={e => setSettings({...settings,heading_3:e.target.value})} placeholder="Short instructions" style={{ flex:1 }} />
+                  <ColorPicker value={heading3Color} onChange={v => setHeading3Color(v)} label="Color" />
+                </div>
+              </div>
+              <div className="gb-fg">
+                <span className="gb-label">Description</span>
+                <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                  <textarea rows={2} value={settings.description_text||''} onChange={e => setSettings({...settings,description_text:e.target.value})} placeholder="Optional description shown above the grid" style={{ flex:1, resize:'vertical' }} />
+                  <ColorPicker value={descColor} onChange={v => setDescColor(v)} label="Color" />
+                </div>
+              </div>
+            </div>
+
+            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
+              <div className="gb-section-title">🔗 Game URL</div>
+              <div style={{ display:'flex', alignItems:'center', gap:0, background:'var(--gb-surface)', border:'1.5px solid var(--gb-border)', borderRadius:'var(--gb-radius-sm)', padding:'0', overflow:'hidden' }}>
+                <span style={{ padding:'9px 0 9px 12px', fontSize:14, color:'var(--gb-text3)', background:'var(--gb-surface2)', borderRight:'1px solid var(--gb-border)', whiteSpace:'nowrap', fontFamily:'monospace' }}>/play/</span>
+                <input value={gameSlug} onChange={e => setGameSlug(e.target.value)}
+                  style={{ border:'none', borderRadius:0, background:'var(--gb-surface)', fontSize:14, padding:'9px 8px', outline:'none', flex:1, fontFamily:'monospace' }} />
+                <span style={{ padding:'9px 12px 9px 0', fontSize:14, color:'var(--gb-text3)', background:'var(--gb-surface2)', borderLeft:'1px solid var(--gb-border)', whiteSpace:'nowrap', fontFamily:'monospace' }}>/{game?.client_slug||'client'}</span>
+              </div>
+            </div>
+
+            <div style={{ display:'flex', justifyContent:'flex-end' }}>
+              <button className="cb-btn cb-btn-primary" onClick={saveDisplaySettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                {saving ? '⏳ Saving…' : '💾 Save Display Settings'}
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* ════ SETTINGS TAB ════ */}
         {tab === 'settings' && (
           <div>
@@ -1223,74 +1290,6 @@ export default function CrosswordBuilderPage() {
           </div>
         )}
 
-        {/* ════ SOUNDS TAB ════ */}
-        {tab === 'sounds' && (
-          <div>
-            <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:10, flexWrap:'wrap', gap:10 }}>
-              <div>
-                <h3 style={{ color:'var(--gb-text)', fontFamily:'inherit', marginBottom:4 }}>Sound Library</h3>
-                <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Upload MP3, WAV or OGG files, then assign them in Settings.</p>
-              </div>
-              {sounds.length > 0 && (
-              <div>
-                <button className="cb-btn cb-btn-primary" onClick={() => soundUploadRef.current.click()} disabled={soundUploading}>
-                  {soundUploading ? '⏳ Uploading…' : '+ Upload Sound'}
-                </button>
-              </div>
-              )}
-            </div>
-            <input type="file" ref={soundUploadRef} accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/x-wav,audio/wave" onChange={uploadSound} style={{ display:'none' }} />
-
-            <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
-              <div className="gb-section-title">🎮 Assign Sounds to Crossword</div>
-              <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:8 }}>
-                These play globally across the entire crossword.
-              </p>
-              <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:10, marginBottom:10 }}>
-                <SoundSelector label="✅ Correct Answer" value={settings.sound_correct_id} onChange={v => setSettings({...settings,sound_correct_id:v})} sounds={sounds} />
-                <SoundSelector label="❌ Wrong Answer" value={settings.sound_wrong_id} onChange={v => setSettings({...settings,sound_wrong_id:v})} sounds={sounds} />
-              </div>
-              <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <button className="cb-btn cb-btn-primary cb-btn-sm" onClick={saveSettings} disabled={saving}>
-                  {saving ? 'Saving…' : '💾 Save Sound Assignments'}
-                </button>
-              </div>
-            </div>
-
-            {sounds.length === 0
-              ? (
-                <div className="gb-empty">
-                  <div className="gb-empty-icon">🔊</div>
-                  <h3 style={{ color:'var(--gb-text)', marginBottom:8 }}>No sounds yet</h3>
-                  <p>Upload MP3, WAV, or OGG files</p>
-                  <button className="cb-btn cb-btn-primary" style={{ marginTop:16 }} onClick={() => soundUploadRef.current.click()}>+ Upload Sound</button>
-                </div>
-              )
-              : (
-                <div>
-                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                    {sounds.map(s => (
-                      <div key={s.id} className="cb-card" style={{ display:'flex', alignItems:'center', gap:10, padding:'10px 14px' }}>
-                        <span style={{ fontSize:20 }}>🎵</span>
-                        <div style={{ flex:1 }}>
-                          <div style={{ fontWeight:700, fontSize:14, color:'var(--gb-text)' }}>{s.name}</div>
-                          <div style={{ color:'var(--gb-text3)', fontSize:11, marginTop:2 }}>ID: {s.id} · {s.sound_type}</div>
-                        </div>
-                        <audio controls src={s.url} style={{ height:32 }} />
-                        <button className="cb-btn cb-btn-danger cb-btn-sm cb-btn-icon" onClick={() => deleteSound(s)} title="Remove sound">✕</button>
-                      </div>
-                    ))}
-                  </div>
-                  <div style={{ textAlign:'center', marginTop:10 }}>
-                    <button className="cb-btn cb-btn-primary" onClick={() => soundUploadRef.current.click()} disabled={soundUploading}>
-                      {soundUploading ? '⏳ Uploading…' : '+ Upload Sound'}
-                    </button>
-                  </div>
-                </div>
-              )
-            }
-          </div>
-        )}
         </div>
 
         {/* ─── Right: Live Preview (40%) ─── */}

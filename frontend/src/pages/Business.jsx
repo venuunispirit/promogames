@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import CountUp from "../components/CountUp";
 
 /* ─── DATA ─────────────────────────────────────────── */
 const NAV = [
@@ -466,7 +467,7 @@ function YStack() {
             <div className="ycard-body">
               <span className="ycard-tag" style={{ background: `${c.color}22`, border: `1px solid ${c.color}44`, color: c.color }}>{c.label}</span>
               <div className="ycard-sub">{c.sub}</div>
-              <div className="ycard-stat">{c.stat}</div>
+              <CountUp as="div" className="ycard-stat" value={c.stat} />
               <div style={{ fontFamily: "var(--fb)", fontSize: 10, color: "var(--muted)" }}>{c.statLabel}</div>
             </div>
           </div>
@@ -550,7 +551,7 @@ function HexCapabilities() {
                 </div>
               </div>
               <div className="hex-panel-right">
-                <div className="hex-stat-val" key={`sv-${panelKey.current}`}>{activeFeature.stat}</div>
+                <CountUp as="div" className="hex-stat-val" value={activeFeature.stat} key={`sv-${panelKey.current}`} />
                 <div className="hex-stat-lbl" key={`sl-${panelKey.current}`}>{activeFeature.statLabel}</div>
               </div>
             </div>
@@ -839,7 +840,7 @@ export default function Business() {
             <div className="hero-stats">
               {STATS.map(({ val, label }) => (
                 <div className="hst" key={label}>
-                  <span className="hst-n">{val}</span>
+                  <CountUp as="span" className="hst-n" value={val} />
                   <span className="hst-l">{label}</span>
                 </div>
               ))}
@@ -860,7 +861,7 @@ export default function Business() {
       <div className="stats-strip">
         {STATS.map(({ val, label }) => (
           <div key={label} className="stat-item">
-            <div className="stat-val">{val}</div>
+            <CountUp as="div" className="stat-val" value={val} />
             <div className="stat-lbl">{label}</div>
           </div>
         ))}

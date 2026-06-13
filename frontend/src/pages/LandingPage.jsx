@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import CountUp from "../components/CountUp";
 
 /* ─── DATA ─────────────────────────────────────────── */
 const NAV = [
@@ -819,11 +820,62 @@ function TestimonialsCarousel({ onIndexChange }) {
 }
 
 /* ─── MAIN COMPONENT ────────────────────────────────── */
+const QUICK_FONTS = [
+  "'Poppins',sans-serif",
+  "'Inter',sans-serif",
+  "'Playfair Display',serif",
+  "'Monoton',cursive",
+  "'Bangers',cursive",
+  "'Orbitron',sans-serif",
+  "'Space Grotesk',sans-serif",
+  "'Cinzel',serif",
+  "'Unbounded',sans-serif",
+  "'Abril Fatface',cursive",
+  "'Great Vibes',cursive",
+  "'Pacifico',cursive",
+  "'Caveat',cursive",
+  "'Dancing Script',cursive",
+  "'Bodoni Moda',serif",
+  "'Cormorant Garamond',serif",
+  "'Anton',sans-serif",
+  "'Righteous',cursive",
+  "'Old Standard TT',serif",
+  "'Prata',serif",
+];
+
+function randHSL() {
+  return `hsl(${Math.random() * 360}, ${60 + Math.random() * 30}%, ${45 + Math.random() * 35}%)`;
+}
+
+function AnimateBar({ pct, threshold = 0.3 }) {
+  const ref = useRef(null);
+  const done = useRef(false);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || done.current) return;
+    const obs = new IntersectionObserver(([entry]) => {
+      if (!entry.isIntersecting) return;
+      done.current = true;
+      obs.disconnect();
+      el.style.transition = 'width 1.2s cubic-bezier(.22,1,.36,1)';
+      el.style.width = `${pct}%`;
+    }, { threshold });
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [pct, threshold]);
+  return <div className="lb-bar-wrap"><div className="lb-bar" ref={ref} style={{ width: 0 }} /></div>;
+}
+
 export default function PromoGamesHome() {
+  const [fontIdx, setFontIdx] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [accentGrad, setAccentGrad] = useState(null);
   const dotRef  = useRef(null);
   const ringRef = useRef(null);
   const flyRef = useRef(null);
+  const accentRef = useRef(null);
+  const accentHoverRef = useRef(false);
+  const accentTimerRef = useRef(null);
   const mx = useRef(0); const my = useRef(0);
   const rx = useRef(0); const ry = useRef(0);
   const rafRef = useRef(null);
@@ -847,6 +899,36 @@ export default function PromoGamesHome() {
     rafRef.current = requestAnimationFrame(loop);
     return () => { document.removeEventListener('mousemove', move); cancelAnimationFrame(rafRef.current); };
   }, []);
+
+  useEffect(() => {
+    const id = setInterval(() => setFontIdx(i => (i + 1) % QUICK_FONTS.length), 200);
+    return () => clearInterval(id);
+  }, []);
+
+  function startAccentAnim() {
+    let speed = 1000;
+    const t0 = Date.now();
+    function tick() {
+      if (!accentHoverRef.current) return;
+      const el = Date.now() - t0;
+      const p = Math.min(el / 1500, 1);
+      speed = 1000 - Math.pow(p, 1.5) * 950;
+      setAccentGrad(`linear-gradient(90deg,${randHSL()},${randHSL()},${randHSL()})`);
+      accentTimerRef.current = setTimeout(tick, Math.max(speed, 50));
+    }
+    tick();
+  }
+
+  function handleAccentEnter() {
+    accentHoverRef.current = true;
+    startAccentAnim();
+  }
+
+  function handleAccentLeave() {
+    accentHoverRef.current = false;
+    clearTimeout(accentTimerRef.current);
+    setAccentGrad(null);
+  }
 
   const flyModeRef = useRef('path');
   const testimonialIdxRef = useRef(0);
@@ -983,8 +1065,12 @@ export default function PromoGamesHome() {
           <div className="hero-left">
             <div className="hero-eyebrow">🎮 Gaming That Rewards You</div>
             <h1 className="hero-h1">
-              Quick Games.<br />
-              <span className="line-accent">Real Rewards.</span>
+              <span style={{ fontFamily: QUICK_FONTS[fontIdx], transition: 'font-family 0.15s' }}>Quick Games.</span><br />
+              <span style={{position:'relative',display:'inline-block'}} onMouseEnter={handleAccentEnter} onMouseLeave={handleAccentLeave}>
+                <span className="line-accent" style={{opacity:0,pointerEvents:'none'}}>Real Rewards.</span>
+                <span className="line-accent" style={{position:'absolute',inset:0}}>Real Rewards.</span>
+                <span className="line-accent" ref={accentRef} style={{position:'absolute',inset:0,backgroundImage:accentGrad||undefined,opacity:accentGrad?1:0,transition:'opacity 2s ease',pointerEvents:'none'}}>Real Rewards.</span>
+              </span>
             </h1>
             <p className="hero-sub">
               Play exciting quick games, climb the leaderboard, and unlock real-time rewards every day.
@@ -996,7 +1082,7 @@ export default function PromoGamesHome() {
             <div className="hero-stats">
               {STATS.map(({ val, label }) => (
                 <div className="hst" key={label}>
-                  <span className="hst-n">{val}</span>
+                  <CountUp as="span" className="hst-n" value={val} />
                   <span className="hst-l">{label}</span>
                 </div>
               ))}
@@ -1084,10 +1170,8 @@ export default function PromoGamesHome() {
                   {p.initials}
                 </div>
                 <span className="lb-name">{p.name}</span>
-                <span className="lb-score">{p.score}</span>
-                <div className="lb-bar-wrap">
-                  <div className="lb-bar" style={{ width:`${p.pct}%` }} />
-                </div>
+                <CountUp as="span" className="lb-score" value={p.score} />
+                <AnimateBar pct={p.pct} />
               </div>
             ))}
           </div>
@@ -1165,7 +1249,7 @@ export default function PromoGamesHome() {
         <div className="stats-grid">
           {STATS.map(({ val, label }) => (
             <div key={label} className="stat-card">
-              <div className="stat-val">{val}</div>
+              <CountUp as="div" className="stat-val" value={val} />
               <div className="stat-lbl">{label}</div>
             </div>
           ))}

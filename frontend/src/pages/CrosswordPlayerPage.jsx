@@ -81,6 +81,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
   const [selected, setSelected] = useState(null) // { wordId }
   const [gameOver, setGameOver] = useState(false)
   const [submitted, setSubmitted] = useState({}) // wordId -> true (already sent to server)
+  const [isTyping, setIsTyping] = useState(false) // prevent onFocus from changing word while typing
   const cellRefs = useRef({})
 
   const { display: timerDisplay, remaining } = useTimer(!gameOver, settings?.time_limit_seconds || 0)
@@ -163,6 +164,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
 
   /* handle cell input */
   const handleInput = (r, c, val) => {
+    setIsTyping(true)
     const ch = val.replace(/[^a-zA-Z]/g, '').toUpperCase().slice(-1)
     const key = `${r},${c}`
     const newInputs = { ...inputs, [key]: ch }
@@ -193,6 +195,8 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
         if (allFilled) checkWord(w, newInputs)
       }
     }
+    
+    setTimeout(() => setIsTyping(false), 50)
   }
 
   const handleKeyDown = (r, c, e) => {
@@ -291,16 +295,20 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
                       onChange={e => handleInput(r, c, e.target.value)}
                       onKeyDown={e => handleKeyDown(r, c, e)}
                       onFocus={() => {
-                        // select the first word that owns this cell that isn't yet correct
-                        const owningWord = words.find(w => cell.wordIds.includes(w.id) && !correct[w.id])
-                          || words.find(w => cell.wordIds.includes(w.id))
-                        if (owningWord) setSelected({ wordId: owningWord.id })
+                        // only change word on focus if not currently typing
+                        if (!isTyping) {
+                          const owningWord = words.find(w => cell.wordIds.includes(w.id) && !correct[w.id])
+                            || words.find(w => cell.wordIds.includes(w.id))
+                          if (owningWord) setSelected({ wordId: owningWord.id })
+                        }
                       }}
                       style={{
                         width: '100%', height: '100%', border: `2px solid ${isHighlighted ? primaryColor : '#ccc'}`,
                         borderRadius: 4, textAlign: 'center', fontSize: cellSize * 0.42, fontWeight: 700,
-                        background: bg, color: '#1a1a2e', outline: 'none', cursor: isCorrect ? 'default' : 'text',
-                        textTransform: 'uppercase', padding: 0, boxSizing: 'border-box', paddingTop: num ? cellSize * 0.2 : 0
+                        background: bg + ' !important', color: '#1a1a2e', outline: 'none !important', cursor: isCorrect ? 'default' : 'text',
+                        textTransform: 'uppercase', padding: 0, boxSizing: 'border-box', paddingTop: num ? cellSize * 0.2 : 0,
+                        WebkitAppearance: 'none', WebkitBoxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)',
+                        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1) !important'
                       }}
                     />
                   </div>

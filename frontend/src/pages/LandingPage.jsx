@@ -50,15 +50,16 @@ const WHY_POINTS = [
 ];
 
 const STATS = [
-  { val: "5M+",   label: "Games Played"    },
-  { val: "200K+", label: "Rewards Claimed" },
-  { val: "1500+", label: "Daily Players"   },
-  { val: "100+",  label: "Active Games"    },
+  { val: "20+",   label: "Games Played"    },
+  { val: "50+", label: "Rewards Claimed" },
+  { val: "10+", label: "Daily Players"   },
+  { val: "10+",  label: "Active Games"    },
 ];
 
 const FOOTER_NAV = [
   ["Play Now", "/arcade"],
   ["Leaderboard", "/leaderboard"],
+  ["Business", "/business"],
   ["Log In", "/login"],
 ];
 
@@ -356,12 +357,23 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .why-orb-inner{text-align:center}
 .why-orb-emoji{font-size:72px;margin-bottom:12px;animation:floatY 3s ease-in-out infinite}
 .why-orb-text{font-family:var(--fh);font-size:22px;letter-spacing:2px;color:rgba(255,255,255,0.7)}
+/* REELS CAROUSEL */
+.reels-wrap{width:100%;max-width:400px;height:520px;border-radius:20px;overflow:hidden;position:relative;border:1px solid rgba(255,255,255,0.10);background:#0a0514}
+.reels-track{position:relative;width:100%;height:100%}
+.reel-card{position:absolute;inset:0;transition:transform .6s cubic-bezier(.22,1,.36,1),opacity .6s;will-change:transform,opacity}
+.reel-card video{width:100%;height:100%;object-fit:cover;display:block}
+.reel-overlay{position:absolute;bottom:0;left:0;right:0;padding:40px 20px 24px;background:linear-gradient(transparent,rgba(0,0,0,0.85))}
+.reel-overlay p{font-family:var(--fb);font-size:14px;font-weight:600;color:#fff}
+.reel-overlay span{font-family:var(--fb);font-size:11px;color:var(--muted)}
+.reel-nav{position:absolute;right:12px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:10}
+.reel-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.35);transition:background .3s,height .3s;border:none;padding:0;cursor:pointer}
+.reel-dot.active{background:var(--purple);height:18px;border-radius:3px}
 
 /* TESTIMONIALS */
-#testimonials{padding:100px 6%;position:relative;overflow:hidden;background:radial-gradient(ellipse 70% 50% at 50% 50%,rgba(146,16,246,0.08) 0%,transparent 70%)}
+#testimonials{padding:140px 6% 100px;position:relative;overflow:hidden;background:radial-gradient(ellipse 70% 50% at 50% 50%,rgba(146,16,246,0.08) 0%,transparent 70%)}
 #testimonials::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(146,16,246,0.35),transparent)}
 .testimonials-inner{max-width:1440px;margin:0 auto}
-.testimonials-head{text-align:center;margin-bottom:64px}
+.testimonials-head{text-align:center;margin-bottom:80px}
 .testimonials-head .section-sub{margin:0 auto}
 .tcarousel-wrap{position:relative;display:flex;align-items:center;justify-content:center;height:300px}
 .tcarousel-track{position:relative;width:100%;height:100%;display:flex;align-items:center;justify-content:center}
@@ -415,9 +427,14 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .cta-final-sub{font-family:var(--fb);font-size:17px;color:var(--muted);max-width:440px;margin:0 auto 44px;line-height:1.75}
 .cta-final-actions{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap}
 
+/* STACKING — section bg at 0, fly at 1, content at 2 */
+section > *, .marquee-strip > *, footer > *{position:relative;z-index:2}
+section::before,section::after,.marquee-strip::before,.marquee-strip::after,footer::before,footer::after{z-index:auto}
+.marquee-strip,footer{position:relative}
+
 /* FOOTER */
 .footer{border-top:1px solid rgba(255,255,255,0.07)}
-.footer-main{padding:60px 6%;display:grid;grid-template-columns:1.4fr 1fr;gap:60px;max-width:1440px;margin:0 auto}
+.footer-main{padding:60px 6%;display:grid;grid-template-columns:1.4fr 1fr 1.6fr;gap:40px;max-width:1440px;margin:0 auto}
 .footer-brand-name{font-family:var(--fh);font-size:32px;letter-spacing:4px;margin-bottom:8px}
 .footer-tagline{font-family:var(--fm);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
 .footer-desc{font-family:var(--fb);font-size:14px;color:var(--muted);line-height:1.75;max-width:360px;margin-bottom:28px}
@@ -431,6 +448,8 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .footer-contact{display:flex;flex-direction:column;gap:10px;margin-top:28px}
 .footer-contact a{font-family:var(--fb);font-size:14px;color:var(--muted);text-decoration:none;transition:color .2s}
 .footer-contact a:hover{color:#fff}
+.footer-map{border-top:1px solid rgba(255,255,255,0.07);padding:40px 6%;max-width:1440px;margin:0 auto}
+.footer-map iframe{width:100%;height:280px;border-radius:16px;border:none}
 .footer-bar{border-top:1px solid rgba(255,255,255,0.07);padding:18px 6%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-family:var(--fm);font-size:11px;color:rgba(255,255,255,0.3);max-width:1440px;margin:0 auto;letter-spacing:.5px}
 .footer-bar a{color:rgba(255,255,255,0.3);text-decoration:none;transition:color .2s}
 .footer-bar a:hover{color:#fff}
@@ -665,11 +684,74 @@ function RewardsCarousel() {
   );
 }
 
+/* ─── REELS CAROUSEL ─── */
+const REELS = [
+  { url: 'https://assets.mixkit.co/videos/48862/48862-720.mp4', label: 'Quick reflexes, big rewards', tag: '#Gaming' },
+  { url: 'https://assets.mixkit.co/videos/48864/48864-720.mp4', label: 'Spin to win every day', tag: '#Rewards' },
+  { url: 'https://assets.mixkit.co/videos/48860/48860-720.mp4', label: 'Climb the leaderboard', tag: '#Compete' },
+];
+
+function ReelsCarousel() {
+  const [current, setCurrent] = useState(0);
+  const autoRef = useRef(null);
+
+  useEffect(() => {
+    autoRef.current = setInterval(() => setCurrent(c => (c + 1) % REELS.length), 7000);
+    return () => clearInterval(autoRef.current);
+  }, []);
+
+  return (
+    <div className="reels-wrap">
+      <div className="reels-track">
+        {REELS.map((reel, i) => {
+          const diff = (i - current + REELS.length) % REELS.length;
+          const isCenter = diff === 0;
+          const isUp = diff === 1 || (diff === 0 && current === 0 && i === REELS.length - 1) ? false : diff > 1;
+          const transform = isCenter ? 'translateY(0)' : `${isUp ? 'translateY(-100%)' : 'translateY(100%)'}`;
+          return (
+            <div
+              key={i}
+              className="reel-card"
+              style={{
+                transform,
+                opacity: isCenter ? 1 : 0,
+                pointerEvents: isCenter ? 'auto' : 'none',
+              }}
+            >
+              {isCenter && (
+                <video
+                  autoPlay muted loop playsInline
+                  src={reel.url || 'https://assets.mixkit.co/videos/48862/48862-720.mp4'}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  onError={e => { e.target.style.display = 'none'; }}
+                />
+              )}
+              <div className="reel-overlay">
+                <p>{reel.label}</p>
+                <span>{reel.tag}</span>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="reel-nav">
+        {REELS.map((_, i) => (
+          <button key={i} className={`reel-dot${i === current ? ' active' : ''}`} onClick={() => setCurrent(i)} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ─── TESTIMONIALS CAROUSEL ─── */
-function TestimonialsCarousel() {
+function TestimonialsCarousel({ onIndexChange }) {
   const N = TESTIMONIALS.length;
   const [current, setCurrent] = useState(0);
   const autoRef = useRef(null);
+
+  useEffect(() => {
+    if (onIndexChange) onIndexChange(current);
+  }, [current, onIndexChange]);
 
   const getPos = useCallback((i) => {
     const diff = ((i - current) % N + N) % N;
@@ -741,6 +823,7 @@ export default function PromoGamesHome() {
   const [menuOpen, setMenuOpen] = useState(false);
   const dotRef  = useRef(null);
   const ringRef = useRef(null);
+  const flyRef = useRef(null);
   const mx = useRef(0); const my = useRef(0);
   const rx = useRef(0); const ry = useRef(0);
   const rafRef = useRef(null);
@@ -765,13 +848,97 @@ export default function PromoGamesHome() {
     return () => { document.removeEventListener('mousemove', move); cancelAnimationFrame(rafRef.current); };
   }, []);
 
+  const flyModeRef = useRef('path');
+  const testimonialIdxRef = useRef(0);
+
   useEffect(() => {
-    const onScroll = () => {
-      const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
-      document.documentElement.style.setProperty('--scroll-pct', `${pct}%`);
+    const PATH = [
+      { x: 0.50, y: -0.02 },
+      { x: 0.45, y:  0.05 },
+      { x: 0.05, y:  0.14 },
+      { x: 0.92, y:  0.23 },
+      { x: 0.45, y:  0.33 },
+      { x: 0.05, y:  0.42 },
+      { x: 0.45, y:  0.50 },
+      { x: 0.50, y:  0.56 },
+    ];
+    const N = PATH.length;
+    const END_Y = 0.55;
+
+    function catmull(p, i, t) {
+      const p0 = p[Math.max(i - 1, 0)];
+      const p1 = p[i];
+      const p2 = p[Math.min(i + 1, N - 1)];
+      const p3 = p[Math.min(i + 2, N - 1)];
+      const t2 = t * t, t3 = t2 * t;
+      return {
+        x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
+        y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
+      };
+    }
+
+    let floatPhase = 0;
+    let floatRaf = null;
+
+    const TESTIMONIAL_START = 0.54;
+    const TESTIMONIAL_END = 0.65;
+
+    const tick = () => {
+      floatPhase += 0.018;
+      const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight);
+      document.documentElement.style.setProperty('--scroll-pct', `${pct * 100}%`);
+
+      if (!flyRef.current) { floatRaf = requestAnimationFrame(tick); return; }
+
+      const t = Math.min(Math.max(pct, 0), 1);
+
+      if (t >= TESTIMONIAL_START && t <= TESTIMONIAL_END) {
+        flyModeRef.current = 'testimonial';
+      } else if (t > TESTIMONIAL_END) {
+        flyModeRef.current = 'hidden';
+      } else {
+        flyModeRef.current = 'path';
+      }
+
+      const mode = flyModeRef.current;
+
+      if (mode === 'path') {
+        flyRef.current.style.opacity = '1';
+        const segs = N - 1;
+        const raw = (t / END_Y) * segs;
+        const seg = Math.min(Math.floor(raw), segs - 1);
+        const local = raw - seg;
+        const ease = local * local * (3 - 2 * local);
+        const pt = catmull(PATH, seg, ease);
+
+        const vw = window.innerWidth;
+        const sh = document.body.scrollHeight - window.innerHeight;
+        const x = vw * pt.x;
+        const y = sh * pt.y + 60;
+        const floatY = Math.sin(floatPhase) * 8;
+        const rot = floatPhase * 8;
+
+        flyRef.current.style.transform = `translate3d(${x}px, ${y + floatY}px, 0) rotate(${rot}deg)`;
+      } else if (mode === 'testimonial') {
+        flyRef.current.style.opacity = '1';
+        const testimonialsEl = document.getElementById('testimonials');
+        if (testimonialsEl) {
+          const rect = testimonialsEl.getBoundingClientRect();
+          const cx = window.innerWidth * 0.50;
+          const cy = rect.top + rect.height * 0.42 + testimonialIdxRef.current * 8;
+          const floatY = Math.sin(floatPhase) * 8;
+          const rot = floatPhase * 8;
+          flyRef.current.style.transform = `translate3d(${cx}px, ${cy + floatY}px, 0) rotate(${rot}deg)`;
+        }
+      } else {
+        flyRef.current.style.opacity = '0';
+      }
+
+      floatRaf = requestAnimationFrame(tick);
     };
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
+
+    floatRaf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(floatRaf);
   }, []);
 
   return (
@@ -780,6 +947,13 @@ export default function PromoGamesHome() {
       <div className="scroll-bar" />
       <div ref={dotRef}  className="cursor-dot"  />
       <div ref={ringRef} className="cursor-ring" />
+      <img ref={flyRef} src="/favicon.png" alt=""
+        style={{
+          position: 'fixed', top: 0, left: 0, zIndex: 1,
+          width: 40, height: 40, objectFit: 'contain',
+          pointerEvents: 'none', willChange: 'transform',
+          filter: 'brightness(0) invert(1) drop-shadow(0 0 16px rgba(192,64,255,0.6)) drop-shadow(0 0 40px rgba(146,16,246,0.3))',
+        }} />
 
       {/* ── NAV ── */}
       <div className="nav-wrap">
@@ -924,7 +1098,7 @@ export default function PromoGamesHome() {
       <section id="rewards">
         <div className="rewards-inner">
           <p className="section-kicker">Rewards</p>
-          <h2 className="section-h2">Every Win Feels<br />Rewarding</h2>
+          <h2 className="section-h2">Every Play Feels<br />Rewarding</h2>
           <p className="section-sub">
             Play games and unlock exciting gifts, cashback, coupons, exclusive offers, and surprise rewards.
           </p>
@@ -948,12 +1122,7 @@ export default function PromoGamesHome() {
             </div>
           </div>
           <div className="why-visual">
-            <div className="why-orb">
-              <div className="why-orb-inner">
-                <div className="why-orb-emoji">🏆</div>
-                <div className="why-orb-text">Win Every Day</div>
-              </div>
-            </div>
+            <ReelsCarousel />
           </div>
         </div>
       </section>
@@ -968,7 +1137,7 @@ export default function PromoGamesHome() {
               Don't just take our word for it — hear from players who've already started winning.
             </p>
           </div>
-          <TestimonialsCarousel />
+          <TestimonialsCarousel onIndexChange={idx => { testimonialIdxRef.current = idx; }} />
         </div>
       </section>
 
@@ -1020,7 +1189,7 @@ export default function PromoGamesHome() {
         <div className="footer-main">
           <div>
             <p className="footer-tagline">Play Everyday. Win Everyday.</p>
-            <h4 className="footer-brand-name">PROMOGAMES</h4>
+            <img src="/favicon2.png" alt="Promogames" style={{ height: 48, width: 'auto', marginBottom: 12, borderRadius: 8 }} />
             <p className="footer-desc">
               Quick games, real rewards, and a leaderboard that keeps you coming back. Your reward journey starts here.
             </p>
@@ -1040,8 +1209,21 @@ export default function PromoGamesHome() {
             <div className="footer-contact">
               <div className="footer-links-title" style={{ marginTop:24 }}>Get in Touch</div>
               <a href="tel:+916366870248">📞 +91 6366 870 248</a>
-              <a href="mailto:hello@promogames.in">📧 hello@promogames.in</a>
+              <a href="mailto:offers.promogames@gmail.com">📧 offers.promogames@gmail.com</a>
             </div>
+          </div>
+          <div>
+            <div className="footer-links-title">Our Office</div>
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15543.255684115567!2d77.548492!3d13.105036!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae230b7c2c9c6f%3A0x9b6d0c5e5c5e5c5e!2sVidyaranyapura%2C%20Bengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1712345678901!5m2!1sen!2sin"
+              width="100%" height="260" style={{ borderRadius: 14, border: 'none' }}
+              loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+              title="Office Address"
+            />
+            <p style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted)', marginTop: 10, lineHeight: 1.6 }}>
+              #14 AMS Layout, Near Jelly Machine<br />
+              Vidyaranyapura, Bangalore
+            </p>
           </div>
         </div>
         <div className="footer-bar" style={{ width:'100%' }}>

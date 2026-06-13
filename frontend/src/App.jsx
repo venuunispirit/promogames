@@ -16,7 +16,8 @@ import CrosswordBuilderPage from './pages/CrosswordBuilderPage'
 import SpinBuilderTab     from './pages/SpinBuilderTab'
 import PlayerDashboard   from './pages/PlayerDashboard'
 import PlayersPage       from './pages/PlayersPage'
-import LeaderboardPage   from './pages/LeaderboardPage' // ← ADD THIS
+import LeaderboardPage   from './pages/LeaderboardPage'
+import Business          from './pages/Business'
 
 // ── Admin protected route ─────────────────────────────────────────────────────
 function ProtectedRoute({ children }) {
@@ -47,7 +48,8 @@ function AppRoutes() {
       <Route path="/"           element={<LandingPage />} />
       <Route path="/login"      element={<LoginPage />} />
       <Route path="/arcade"     element={<ArcadePage />} />
-      <Route path="/leaderboard" element={<LeaderboardPage />} /> {/* ← ADD THIS */}
+      <Route path="/leaderboard" element={<LeaderboardPage />} />
+      <Route path="/business"    element={<Business />} />
 
       {/* Player game route */}
       <Route path="/play/:gameName/:companyName" element={<PlayerPage />} />

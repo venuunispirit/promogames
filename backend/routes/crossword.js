@@ -44,7 +44,7 @@ router.post('/games/:gameId/words', auth, upload.single('overlay_image'), async 
       `INSERT INTO crossword_words (game_id, word_text, clue_text, start_row, start_col, direction, word_order, sound_correct_id, sound_wrong_id, overlay_image_url, word_color)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.params.gameId, (word_text || '').toUpperCase(), clue_text, start_row || 0, start_col || 0, direction || 'across',
-       word_order || 0, sound_correct_id || null, sound_wrong_id || null, overlay_url, word_color || '#7c6ff7']
+       word_order || 0, sound_correct_id ? parseInt(sound_correct_id) : null, sound_wrong_id ? parseInt(sound_wrong_id) : null, overlay_url, word_color || '#7c6ff7']
     );
     const [word] = await db.query('SELECT * FROM crossword_words WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, word: word[0] });
@@ -71,7 +71,7 @@ router.put('/words/:id', auth, upload.single('overlay_image'), async (req, res) 
     await db.query(
       `UPDATE crossword_words SET word_text=?, clue_text=?, start_row=?, start_col=?, direction=?, word_order=?, sound_correct_id=?, sound_wrong_id=?, overlay_image_url=?, word_color=? WHERE id=?`,
       [(word_text || '').toUpperCase(), clue_text, start_row, start_col, direction, word_order,
-       sound_correct_id || null, sound_wrong_id || null, overlay_url, word_color || existing[0].word_color, req.params.id]
+       sound_correct_id ? parseInt(sound_correct_id) : null, sound_wrong_id ? parseInt(sound_wrong_id) : null, overlay_url, word_color || existing[0].word_color, req.params.id]
     );
     const [updated] = await db.query('SELECT * FROM crossword_words WHERE id = ?', [req.params.id]);
     res.json({ success: true, word: updated[0] });

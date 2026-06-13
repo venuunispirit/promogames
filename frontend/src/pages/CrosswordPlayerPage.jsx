@@ -305,10 +305,9 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
                       style={{
                         width: '100%', height: '100%', border: `2px solid ${isHighlighted ? primaryColor : '#ccc'}`,
                         borderRadius: 4, textAlign: 'center', fontSize: cellSize * 0.42, fontWeight: 700,
-                        background: bg + ' !important', color: '#1a1a2e', outline: 'none !important', cursor: isCorrect ? 'default' : 'text',
+                        background: bg, color: '#1a1a2e', outline: 'none', cursor: isCorrect ? 'default' : 'text',
                         textTransform: 'uppercase', padding: 0, boxSizing: 'border-box', paddingTop: num ? cellSize * 0.2 : 0,
-                        WebkitAppearance: 'none', WebkitBoxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)',
-                        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1) !important'
+                        boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.1)'
                       }}
                     />
                   </div>

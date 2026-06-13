@@ -6,6 +6,13 @@ const NAV = [
   { label: "Leaderboard", href: "/leaderboard" },
 ];
 
+const FOOTER_NAV = [
+  ["Play Now", "/arcade"],
+  ["Leaderboard", "/leaderboard"],
+  ["Business", "/business"],
+  ["Log In", "/login"],
+];
+
 const GAME_DROPDOWN = [
   { icon: "🧩", label: "Quiz Game"    },
   { icon: "🎁", label: "Scratch Cards"},
@@ -133,8 +140,6 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .nav-wrap{position:fixed;top:0;left:0;right:0;z-index:1000;padding:18px 0;pointer-events:none;display:flex;justify-content:center}
 .navbar{pointer-events:all;width:62%;max-width:700px;min-width:580px;display:flex;align-items:center;justify-content:space-between;padding:11px 20px 11px 18px;border-radius:100px;background:rgba(10,5,20,0.82);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(146,16,246,0.22);box-shadow:0 8px 48px rgba(0,0,0,0.60),0 0 0 0.5px rgba(146,16,246,0.08) inset}
 .logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-mark{width:34px;height:34px;border-radius:9px;flex-shrink:0;background:transparent;display:grid;place-items:center;font-family:var(--fb);font-weight:800;font-size:18px}
-.logo-name{font-family:var(--fh);font-weight:400;font-size:15px;color:#fff;white-space:nowrap;letter-spacing:.5px}
 .nav-links{list-style:none;display:flex;gap:26px;align-items:center;position:relative}
 .nav-links a{font-family:var(--fb);font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;position:relative;transition:color .22s;cursor:none}
 .nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--purple3));transition:width .25s}
@@ -353,22 +358,23 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 
 /* FOOTER */
 .footer{padding-top:80px}
-.footer-cta{text-align:center;padding:0 6% 80px;display:flex;flex-direction:column;align-items:center;gap:30px;background:radial-gradient(ellipse 60% 80% at 50% 0%,rgba(146,16,246,0.1) 0%,transparent 70%)}
-.footer-cta h2{font-family:var(--fh);font-size:clamp(28px,5vw,62px);font-weight:400;line-height:1.08;letter-spacing:-0.01em;max-width:680px}
-.footer-main{border-top:1px solid rgba(255,255,255,.08);padding:60px 6%;display:grid;grid-template-columns:1fr 1fr;gap:40px;max-width:1440px;margin:0 auto}
-.fp-brand{font-family:var(--fb);font-size:11px;color:var(--muted);letter-spacing:.5px;margin-bottom:6px}
-.fp-name{font-family:var(--fh);font-size:19px;font-weight:400;letter-spacing:1px;margin-bottom:14px}
-.fp-desc{font-family:var(--fb);font-size:14px;color:var(--muted);line-height:1.75;max-width:360px;margin-bottom:24px}
+.footer-tagline{font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:16px}
+.footer-brand-img{height:48px;width:auto;margin-bottom:12px;border-radius:8px}
+.footer-desc{font-family:var(--fb);font-size:14px;color:var(--muted);line-height:1.75;max-width:360px;margin-bottom:28px}
 .socials{display:flex;gap:10px}
-.soc{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid var(--gb);display:grid;place-items:center;color:#fff;font-family:var(--fb);font-size:12px;font-weight:700;text-decoration:none;transition:background .2s;cursor:none}
+.soc{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:grid;place-items:center;color:#fff;font-family:var(--fb);font-size:12px;font-weight:700;text-decoration:none;transition:background .2s}
 .soc:hover{background:rgba(146,16,246,0.25)}
+.footer-links-title{font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:20px}
+.footer-links{display:flex;flex-direction:column;gap:12px}
+.footer-links a{font-family:var(--fb);font-size:14px;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:#fff}
+.footer-contact{display:flex;flex-direction:column;gap:10px;margin-top:28px}
+.footer-contact a{font-family:var(--fb);font-size:14px;color:var(--muted);text-decoration:none;transition:color .2s}
+.footer-contact a:hover{color:#fff}
 .footer-bar{border-top:1px solid rgba(255,255,255,.07);padding:18px 6%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-family:var(--fb);font-size:13px;color:rgba(255,255,255,.36);max-width:1440px;margin:0 auto}
 .footer-bar a{color:rgba(255,255,255,.36);text-decoration:none;transition:color .2s}
 .footer-bar a:hover{color:#fff}
-.footer-contact{display:flex;flex-direction:column;gap:14px}
-.footer-contact-item{font-family:var(--fb);font-size:14px;color:rgba(255,255,255,.65);display:flex;align-items:center;gap:10px}
-.footer-contact-item a{color:rgba(255,255,255,.65);text-decoration:none;transition:color .2s}
-.footer-contact-item a:hover{color:#fff}
+.footer-main{padding:60px 6%;display:grid;grid-template-columns:1.4fr 1fr 1.6fr;gap:40px;max-width:1440px;margin:0 auto}
 /* RANKED GAMES */
 .rg-section{padding:70px 6% 60px;position:relative;overflow:hidden}
 .rg-section::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(146,16,246,0.4),transparent)}
@@ -686,7 +692,6 @@ function RankedGames() {
 
   if (loading || games.length === 0) return null;
 
-  // Placeholder game art colors for when there's no image
   const COLORS = ['#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497'];
 
   return (
@@ -703,32 +708,20 @@ function RankedGames() {
             style={{ animationDelay: `${i * 60}ms`, marginLeft: i === 0 ? 0 : i < 3 ? 36 : 24, marginTop: 28 }}
             onClick={() => window.open(`/play/${game.slug}/${game.client_slug}`, '_blank')}
           >
-            {/* Big rank number */}
             <span className="rg-rank">{i + 1}</span>
 
             <div className="rg-card">
-              {/* Game image or color fallback */}
               {game.game_logo_url || game.bg_image_url ? (
-                <img
-                  className="rg-card-img"
-                  src={game.game_logo_url || game.bg_image_url}
-                  alt={game.name}
-                  loading="lazy"
-                />
+                <img className="rg-card-img" src={game.game_logo_url || game.bg_image_url} alt={game.name} loading="lazy" />
               ) : (
                 <div className="rg-card-img" style={{
                   background: `linear-gradient(135deg, ${COLORS[i % COLORS.length]}44, ${COLORS[(i+2) % COLORS.length]}22)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: 40
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40
                 }}>
                   🎮
                 </div>
               )}
-
-              {/* Category badge */}
               <span className="rg-card-badge">{game.category || 'Quiz'}</span>
-
-              {/* Bottom info */}
               <div className="rg-card-body">
                 <div className="rg-card-name">{game.name}</div>
                 <div className="rg-card-plays">
@@ -736,8 +729,6 @@ function RankedGames() {
                   {(game.play_count || 0).toLocaleString()} plays
                 </div>
               </div>
-
-              {/* Hover overlay with play button */}
               <div className="rg-card-overlay">
                 <div className="rg-play-btn">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="#9210f6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -751,7 +742,7 @@ function RankedGames() {
   );
 }
 /* ─── MAIN COMPONENT ────────────────────────────────── */
-export default function PromoGamesHome() {
+export default function Business() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [active, setActive] = useState(0);
   const hovRef = useRef(false);
@@ -761,7 +752,6 @@ export default function PromoGamesHome() {
   const rx = useRef(0); const ry = useRef(0);
   const rafRef = useRef(null);
 
-  // Custom cursor
   useEffect(() => {
     const move = (e) => { mx.current = e.clientX; my.current = e.clientY; document.body.classList.add("cursor-visible"); };
     const enter = () => document.body.classList.add("cursor-hover");
@@ -779,7 +769,6 @@ export default function PromoGamesHome() {
     return () => { document.removeEventListener("mousemove", move); cancelAnimationFrame(rafRef.current); };
   }, []);
 
-  // Scroll bar
   useEffect(() => {
     const onScroll = () => {
       const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
@@ -789,7 +778,6 @@ export default function PromoGamesHome() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // Service card auto-rotate
   useEffect(() => {
     const t = setInterval(() => {
       if (!hovRef.current) setActive(p => (p + 1) % SERVICES.length);
@@ -804,12 +792,10 @@ export default function PromoGamesHome() {
       <div ref={dotRef} className="cursor-dot" />
       <div ref={ringRef} className="cursor-ring" />
 
-      {/* NAV */}
       <div className="nav-wrap">
         <nav className="navbar">
-          <a href="#home" className="logo">
-            <img src="/favicon.png" alt="Promogames" className="logo-mark" style={{borderRadius:'9px',objectFit:'cover'}} />
-            <span className="logo-name">Promogames</span>
+          <a href="/" className="logo">
+            <img src="/favicon2.png" alt="Promogames" style={{height:60,width:'auto',borderRadius:8}} />
           </a>
           <div style={{flex:1}} />
           <ul className="nav-links">
@@ -834,7 +820,6 @@ export default function PromoGamesHome() {
         <a href="tel:+916366870248" className="mob-cta">Talk to an Expert</a>
       </div>
 
-      {/* HERO */}
       <section id="home">
         <div className="hero-inner">
           <div className="hero-left">
@@ -872,7 +857,6 @@ export default function PromoGamesHome() {
         </div>
       </section>
 
-      {/* STATS STRIP */}
       <div className="stats-strip">
         {STATS.map(({ val, label }) => (
           <div key={label} className="stat-item">
@@ -881,8 +865,7 @@ export default function PromoGamesHome() {
           </div>
         ))}
       </div>
- <RankedGames />
-      {/* SERVICES */}
+      <RankedGames />
       <section id="services">
         <div className="svc-head">
           <div>
@@ -911,7 +894,6 @@ export default function PromoGamesHome() {
         </div>
       </section>
 
-      {/* MARQUEE */}
       <section className="marquee-section">
         <div className="marquee-label">Trusted by brands across India</div>
         <div className="marquee-track">
@@ -923,10 +905,8 @@ export default function PromoGamesHome() {
         </div>
       </section>
 
-      {/* CHANGING TEXT */}
       <ChangingText />
 
-      {/* CAPABILITIES */}
       <section id="capabilities">
         <div className="cs-inner">
           <HexCapabilities />
@@ -934,46 +914,50 @@ export default function PromoGamesHome() {
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer className="footer" id="contact">
-        <div className="footer-cta">
-          <h2>Ready to Gamify<br />Your Next Campaign?</h2>
-          <BookBtn href="https://forms.gle/LUs2Q7cVS8tU8ra66" label="Get a Trial Game" />
-        </div>
+      <footer className="footer">
         <div className="footer-main">
           <div>
-            <p className="fp-brand">Brand Promotion Gamified</p>
-            <h4 className="fp-name">PROMOGAMES</h4>
-            <p className="fp-desc">
-              Transforming brand promotions into interactive experiences. Custom games that convert clicks to customers — powered by play, driven by performance.
+            <p className="footer-tagline">Play Everyday. Win Everyday.</p>
+            <img src="/favicon2.png" alt="Promogames" className="footer-brand-img" />
+            <p className="footer-desc">
+              Quick games, real rewards, and a leaderboard that keeps you coming back. Your reward journey starts here.
             </p>
             <div className="socials">
-              {[["in", "https://www.linkedin.com"], ["f", "https://www.facebook.com/profile.php?id=61579982040453"], ["𝕏", "#"], ["▶", "#"], ["📷", "#"]].map(([s, href], i) => (
+              {[["in","https://www.linkedin.com"],["f","https://www.facebook.com/profile.php?id=61579982040453"],["𝕏","#"],["▶","#"],["📷","#"]].map(([s, href], i) => (
                 <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="soc">{s}</a>
               ))}
             </div>
           </div>
-          <div className="footer-contact">
-            <div style={{ fontFamily: "var(--fb)", fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--purple)", marginBottom: 8 }}>Get in Touch</div>
-            <div className="footer-contact-item">📞 <a href="tel:+916366870248">+91 6366 870 248</a></div>
-            <div className="footer-contact-item">📧 <a href="mailto:hello@promogames.in">hello@promogames.in</a></div>
-            <div style={{ marginTop: 20 }}>
-              <div style={{ fontFamily: "var(--fb)", fontSize: 13, fontWeight: 700, letterSpacing: 1.5, textTransform: "uppercase", color: "var(--purple)", marginBottom: 12 }}>Quick Links</div>
-              {[["About Us", "#about"], ["Explore Games", "#games"], ["Play", "#play"], ["Blog", "#blog"], ["Log in", "/login"]].map(([label, href]) => (
-                <div key={label} style={{ marginBottom: 8 }}>
-                  <a href={href} style={{ fontFamily: "var(--fb)", fontSize: 14, color: "rgba(255,255,255,0.6)", textDecoration: "none", transition: "color .2s" }}
-                    onMouseEnter={e => e.target.style.color = "#fff"}
-                    onMouseLeave={e => e.target.style.color = "rgba(255,255,255,0.6)"}>
-                    {label}
-                  </a>
-                </div>
+          <div>
+            <div className="footer-links-title">Quick Links</div>
+            <div className="footer-links">
+              {FOOTER_NAV.map(([label, href]) => (
+                <a key={label} href={href}>{label}</a>
               ))}
             </div>
+            <div className="footer-contact">
+              <div className="footer-links-title" style={{ marginTop: 24 }}>Get in Touch</div>
+              <a href="tel:+916366870248">📞 +91 6366 870 248</a>
+              <a href="mailto:offers.promogames@gmail.com">📧 offers.promogames@gmail.com</a>
+            </div>
+          </div>
+          <div>
+            <div className="footer-links-title">Our Office</div>
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15543.255684115567!2d77.548492!3d13.105036!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae230b7c2c9c6f%3A0x9b6d0c5e5c5e5c5e!2sVidyaranyapura%2C%20Bengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1712345678901!5m2!1sen!2sin"
+              width="100%" height="260" style={{ borderRadius: 14, border: 'none' }}
+              loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+              title="Office Address"
+            />
+            <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 10, lineHeight: 1.6 }}>
+              #14 AMS Layout, Near Jelly Machine<br />
+              Vidyaranyapura, Bangalore
+            </p>
           </div>
         </div>
         <div className="footer-bar">
-          <p>© 2026 Promogames. All rights reserved.</p>
-          <div style={{ display: "flex", gap: 8 }}>
+          <p>© 2026 Promogames. Fun Games. Exciting Gifts.</p>
+          <div style={{ display: 'flex', gap: 8 }}>
             <a href="#">Terms of Use</a><span>|</span><a href="#">Privacy Policy</a>
           </div>
         </div>

@@ -192,7 +192,13 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .hero-inner{width:100%;max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1fr 480px;gap:60px;align-items:center}
 .hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border-radius:100px;background:rgba(146,16,246,0.12);border:1px solid rgba(146,16,246,0.30);font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:24px;animation:fadeUp .6s ease both}
 .hero-h1{font-family:var(--fh);font-size:clamp(52px,7.5vw,110px);font-weight:400;letter-spacing:3px;line-height:.96;margin-bottom:22px;animation:fadeUp .6s .1s ease both}
-.hero-h1 .line-accent{display:block;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.hero-h1 .line-accent{display:block;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;animation:glitch 5s infinite}
+.hero-h1 .line-accent::before,.hero-h1 .line-accent::after{content:attr(data-text);position:absolute;inset:0;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;pointer-events:none}
+.hero-h1 .line-accent::before{animation:glitchTop 5s infinite;clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}
+.hero-h1 .line-accent::after{animation:glitchBottom 5s infinite;clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}
+@keyframes glitch{0%,5%,44%,49%,100%{transform:translate(0)}1%{transform:translate(-3px,2px)}2%{transform:translate(3px,-1px)}3%{transform:translate(-2px,-2px)}4%{transform:translate(0)}45%{transform:translate(4px,-2px)}46%{transform:translate(-4px,1px)}47%{transform:translate(2px,2px)}48%{transform:translate(0)}}
+@keyframes glitchTop{0%,5%,44%,49%,100%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}1%{transform:translate(-5px,4px);clip-path:polygon(0 0,100% 0,100% 45%,0 45%)}2%{transform:translate(5px,-3px);clip-path:polygon(0 0,100% 0,100% 20%,0 20%)}3%,4%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}45%{transform:translate(-6px,3px);clip-path:polygon(0 0,100% 0,100% 55%,0 55%)}46%{transform:translate(6px,-2px);clip-path:polygon(0 0,100% 0,100% 25%,0 25%)}47%,48%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}}
+@keyframes glitchBottom{0%,5%,44%,49%,100%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}1%{transform:translate(4px,-3px);clip-path:polygon(0 55%,100% 55%,100% 100%,0 100%)}2%{transform:translate(-5px,2px);clip-path:polygon(0 75%,100% 75%,100% 100%,0 100%)}3%,4%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}45%{transform:translate(5px,3px);clip-path:polygon(0 50%,100% 50%,100% 100%,0 100%)}46%{transform:translate(-4px,-3px);clip-path:polygon(0 80%,100% 80%,100% 100%,0 100%)}47%,48%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}}
 .hero-sub{font-family:var(--fb);font-size:17px;color:var(--muted);line-height:1.75;max-width:460px;margin-bottom:36px;animation:fadeUp .6s .18s ease both}
 .hero-actions{display:flex;align-items:center;gap:14px;margin-bottom:44px;flex-wrap:wrap;animation:fadeUp .6s .26s ease both}
 .hero-stats{display:flex;gap:0;animation:fadeUp .6s .34s ease both}
@@ -843,10 +849,6 @@ const QUICK_FONTS = [
   "'Prata',serif",
 ];
 
-function randHSL() {
-  return `hsl(${Math.random() * 360}, ${60 + Math.random() * 30}%, ${45 + Math.random() * 35}%)`;
-}
-
 function AnimateBar({ pct, threshold = 0.3 }) {
   const ref = useRef(null);
   const done = useRef(false);
@@ -869,13 +871,9 @@ function AnimateBar({ pct, threshold = 0.3 }) {
 export default function PromoGamesHome() {
   const [fontIdx, setFontIdx] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
-  const [accentGrad, setAccentGrad] = useState(null);
   const dotRef  = useRef(null);
   const ringRef = useRef(null);
   const flyRef = useRef(null);
-  const accentRef = useRef(null);
-  const accentHoverRef = useRef(false);
-  const accentTimerRef = useRef(null);
   const mx = useRef(0); const my = useRef(0);
   const rx = useRef(0); const ry = useRef(0);
   const rafRef = useRef(null);
@@ -904,31 +902,6 @@ export default function PromoGamesHome() {
     const id = setInterval(() => setFontIdx(i => (i + 1) % QUICK_FONTS.length), 200);
     return () => clearInterval(id);
   }, []);
-
-  function startAccentAnim() {
-    let speed = 1000;
-    const t0 = Date.now();
-    function tick() {
-      if (!accentHoverRef.current) return;
-      const el = Date.now() - t0;
-      const p = Math.min(el / 1500, 1);
-      speed = 1000 - Math.pow(p, 1.5) * 950;
-      setAccentGrad(`linear-gradient(90deg,${randHSL()},${randHSL()},${randHSL()})`);
-      accentTimerRef.current = setTimeout(tick, Math.max(speed, 50));
-    }
-    tick();
-  }
-
-  function handleAccentEnter() {
-    accentHoverRef.current = true;
-    startAccentAnim();
-  }
-
-  function handleAccentLeave() {
-    accentHoverRef.current = false;
-    clearTimeout(accentTimerRef.current);
-    setAccentGrad(null);
-  }
 
   const flyModeRef = useRef('path');
   const testimonialIdxRef = useRef(0);
@@ -1066,11 +1039,7 @@ export default function PromoGamesHome() {
             <div className="hero-eyebrow">🎮 Gaming That Rewards You</div>
             <h1 className="hero-h1">
               <span style={{ fontFamily: QUICK_FONTS[fontIdx], transition: 'font-family 0.15s' }}>Quick Games.</span><br />
-              <span style={{position:'relative',display:'inline-block'}} onMouseEnter={handleAccentEnter} onMouseLeave={handleAccentLeave}>
-                <span className="line-accent" style={{opacity:0,pointerEvents:'none'}}>Real Rewards.</span>
-                <span className="line-accent" style={{position:'absolute',inset:0}}>Real Rewards.</span>
-                <span className="line-accent" ref={accentRef} style={{position:'absolute',inset:0,backgroundImage:accentGrad||undefined,opacity:accentGrad?1:0,transition:'opacity 2s ease',pointerEvents:'none'}}>Real Rewards.</span>
-              </span>
+              <span className="line-accent" data-text="Real Rewards.">Real Rewards.</span>
             </h1>
             <p className="hero-sub">
               Play exciting quick games, climb the leaderboard, and unlock real-time rewards every day.

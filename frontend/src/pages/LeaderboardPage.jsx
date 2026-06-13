@@ -31,33 +31,12 @@ function playGrandEntrance(ctx) {
     playTone(ctx, freq, "triangle", duration, 0.22, delay);
   });
 }
-function playCrowdCheer(ctx) {
-  if (!ctx) return;
-  [523, 659, 784, 1047, 1319].forEach((f, i) => {
-    playTone(ctx, f, "sine", 0.35, 0.15, i * 0.06);
-    playTone(ctx, f * 1.5, "sine", 0.25, 0.08, i * 0.06 + 0.1);
-  });
-}
-function playRankReveal(ctx, rank) {
-  if (!ctx) return;
-  const freqs = { 1: [784, 1047, 1319, 1568], 2: [659, 880, 1047, 1319], 3: [523, 659, 784, 1047] };
-  const f = freqs[rank] || [440, 554, 659, 784];
-  f.forEach((freq, i) => playTone(ctx, freq, "triangle", 0.25, 0.18, i * 0.08));
-}
-function playRowPop(ctx, index) {
-  if (!ctx) return;
-  playTone(ctx, 350 + index * 25, "sine", 0.1, 0.12);
-}
-function playCountUp(ctx) {
-  if (!ctx) return;
-  playTone(ctx, 880, "sine", 0.04, 0.08);
-}
 
 const INITIALS = (name = "") =>
   name.split(" ").map(w => w[0]).join("").toUpperCase().slice(0, 2) || "?";
 
-/* ── Animated counter (preserved exactly) ── */
-function Counter({ target, duration = 1200, onTick, suffix = "" }) {
+/* ── Animated counter ── */
+function Counter({ target, duration = 1200, suffix = "" }) {
   const [val, setVal] = useState(0);
   const raf = useRef();
   useEffect(() => {
@@ -65,14 +44,12 @@ function Counter({ target, duration = 1200, onTick, suffix = "" }) {
     function tick(now) {
       const p = Math.min((now - start) / duration, 1);
       const ease = 1 - Math.pow(1 - p, 3);
-      const cur = Math.round(ease * target);
-      setVal(cur);
-      if (onTick && cur !== val) onTick();
+      setVal(Math.round(ease * target));
       if (p < 1) raf.current = requestAnimationFrame(tick);
     }
     raf.current = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf.current);
-  }, [target]);
+    return () => { cancelAnimationFrame(raf.current); };
+  }, [target, duration]);
   return <>{val.toLocaleString()}{suffix}</>;
 }
 
@@ -96,8 +73,15 @@ function getRowStyle(rank) {
   };
 }
 
+const FOOTER_NAV = [
+  ["Play Now", "/arcade"],
+  ["Leaderboard", "/leaderboard"],
+  ["Business", "/business"],
+  ["Log In", "/login"],
+];
+
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&family=Nunito:wght@600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap');
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #1a1a2e; }
@@ -120,14 +104,7 @@ body { background: #1a1a2e; }
   border-bottom: 2px solid rgba(255,200,50,0.2);
   box-shadow: 0 4px 24px rgba(0,0,0,0.5);
 }
-.lb-nav img { width: 30px; height: 30px; border-radius: 8px; }
-.lb-nav-brand {
-  font-family: 'Fredoka One', cursive;
-  font-size: 18px;
-  color: #ffd700;
-  letter-spacing: 0.5px;
-  text-shadow: 0 2px 8px rgba(255,215,0,0.4);
-}
+.lb-nav img { width: 32px; height: 32px; border-radius: 8px; }
 .lb-nav-back {
   margin-left: auto;
   font-size: 13px; font-weight: 800;
@@ -203,7 +180,7 @@ body { background: #1a1a2e; }
 .lb-ribbon::before { left: -6px; }
 .lb-ribbon::after  { right: -6px; }
 .lb-ribbon-text {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 22px;
   letter-spacing: 3px;
   color: #fff;
@@ -249,13 +226,18 @@ body { background: #1a1a2e; }
   transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.34,1.4,.64,1), box-shadow 0.2s;
 }
 .lb-row:hover { transform: scale(1.025) translateX(2px); }
+.lb-row-top { animation: row-glow 2s ease-in-out infinite; }
+@keyframes row-glow {
+  0%,100% { filter: brightness(1); }
+  50% { filter: brightness(1.15); }
+}
 
 .row-rank-badge {
   width: 52px;
   height: 52px;
   display: grid;
   place-items: center;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 20px;
   color: #fff;
   flex-shrink: 0;
@@ -269,7 +251,7 @@ body { background: #1a1a2e; }
   border: 2px solid rgba(255,255,255,0.5);
   display: grid;
   place-items: center;
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 14px;
   color: #fff;
   flex-shrink: 0;
@@ -318,7 +300,7 @@ body { background: #1a1a2e; }
   flex-shrink: 0;
 }
 .row-score {
-  font-family: 'Fredoka One', cursive;
+  font-family: 'Poppins', sans-serif;
   font-size: 15px;
   color: #fff;
   text-shadow: 0 1px 4px rgba(0,0,0,0.4);
@@ -362,11 +344,34 @@ body { background: #1a1a2e; }
 }
 .lb-info .pp-hl { color: #ffd700; font-size: 15px; font-weight: 900; }
 
+/* FOOTER */
+.footer{border-top:1px solid rgba(255,255,255,0.07);margin-top:60px}
+.footer-main{padding:60px 6%;display:grid;grid-template-columns:1.4fr 1fr 1.6fr;gap:40px;max-width:1440px;margin:0 auto}
+.footer-tagline{font-family:'Poppins',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:#9210f6;margin-bottom:16px}
+.footer-brand-img{height:48px;width:auto;margin-bottom:12px;border-radius:8px}
+.footer-desc{font-family:'Inter',sans-serif;font-size:14px;color:rgba(255,255,255,0.5);line-height:1.75;max-width:360px;margin-bottom:28px}
+.socials{display:flex;gap:10px}
+.soc{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);display:grid;place-items:center;color:#fff;font-family:'Inter',sans-serif;font-size:12px;font-weight:700;text-decoration:none;transition:background .2s}
+.soc:hover{background:rgba(146,16,246,0.25)}
+.footer-links-title{font-family:'Inter',sans-serif;font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:#9210f6;margin-bottom:20px}
+.footer-links{display:flex;flex-direction:column;gap:12px}
+.footer-links a{font-family:'Inter',sans-serif;font-size:14px;color:rgba(255,255,255,0.5);text-decoration:none;transition:color .2s}
+.footer-links a:hover{color:#fff}
+.footer-contact{display:flex;flex-direction:column;gap:10px;margin-top:28px}
+.footer-contact a{font-family:'Inter',sans-serif;font-size:14px;color:rgba(255,255,255,0.5);text-decoration:none;transition:color .2s}
+.footer-contact a:hover{color:#fff}
+.footer-map-wrap{padding:0 6%;max-width:1440px;margin:0 auto}
+.footer-map-wrap iframe{width:100%;height:280px;border-radius:16px;border:none}
+.footer-bar{border-top:1px solid rgba(255,255,255,0.07);padding:18px 6%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-family:'Inter',sans-serif;font-size:11px;color:rgba(255,255,255,0.3);max-width:1440px;margin:0 auto;letter-spacing:.5px}
+.footer-bar a{color:rgba(255,255,255,0.3);text-decoration:none;transition:color .2s}
+.footer-bar a:hover{color:#fff}
+
 @media (max-width: 520px) {
   .lb-board { border-radius: 20px; }
   .lb-ribbon-text { font-size: 18px; letter-spacing: 2px; }
   .row-name { font-size: 11px; }
   .row-score { font-size: 13px; }
+  .footer-main{grid-template-columns:1fr}
 }
 `;
 
@@ -398,22 +403,17 @@ export default function LeaderboardPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  // Staggered row reveals + sounds
+  // Staggered row reveals + single entrance sound
   useEffect(() => {
     if (loading || entries.length === 0) return;
-    playGrandEntrance(audioRef.current);
-    setRowsReady(new Array(entries.length).fill(false));
-    entries.forEach((_, i) => {
+    const top = entries.slice(0, 8);
+    setRowsReady(new Array(top.length).fill(false));
+    top.forEach((_, i) => {
       setTimeout(() => {
         setRowsReady(prev => { const n = [...prev]; n[i] = true; return n; });
-        playRowPop(audioRef.current, i);
-        if (i === 0) {
-          setTimeout(() => playRankReveal(audioRef.current, 1), 100);
-          setTimeout(() => playCrowdCheer(audioRef.current), 400);
-        } else if (i === 1) setTimeout(() => playRankReveal(audioRef.current, 2), 100);
-        else if (i === 2) setTimeout(() => playRankReveal(audioRef.current, 3), 100);
-      }, 300 + i * 120);
+      }, 200 + i * 100);
     });
+    setTimeout(() => playGrandEntrance(audioRef.current), 200);
   }, [loading, entries.length]);
 
   return (
@@ -423,8 +423,7 @@ export default function LeaderboardPage() {
 
         {/* Nav bar (preserved from original) */}
         <nav className="lb-nav">
-          <img src="/favicon.png" alt="Promogames" />
-          <span className="lb-nav-brand">Promogames</span>
+          <a href="/"><img src="/favicon2.png" alt="Promogames" style={{ height: 60, width: 'auto', borderRadius: 8 }} /></a>
           <a href="/" className="lb-nav-back">← Back to Home</a>
         </nav>
 
@@ -454,20 +453,19 @@ export default function LeaderboardPage() {
               <div className="lb-empty">No players yet — be the first! 🎮</div>
             ) : (
               <div className="lb-rows" style={{ position: "relative" }}>
-                {entries.map((entry, i) => {
+                {entries.slice(0, 8).map((entry, i) => {
                   const rank = i + 1;
                   const style = getRowStyle(rank);
-                  const isBottom3 = i >= entries.length - 2;
+                  const isTop3 = i < 3;
                   return (
                     <div
                       key={entry.player_email || entry.player_name}
-                      className={`lb-row${rowsReady[i] ? " visible" : ""}`}
+                      className={`lb-row${rowsReady[i] ? " visible" : ""}${isTop3 ? " lb-row-top" : ""}`}
                       style={{
                         background: style.bg,
                         boxShadow: style.shadow,
                         border: `2px solid ${style.border}`,
-                        transitionDelay: `${i * 0.06}s`,
-                        opacity: rowsReady[i] ? (isBottom3 ? Math.max(0.3, 1 - (i - (entries.length - 3)) * 0.25) : 1) : 0,
+                        transitionDelay: `${i * 0.1}s`,
                       }}
                     >
                       {/* Rank badge */}
@@ -494,7 +492,6 @@ export default function LeaderboardPage() {
                           <Counter
                             target={entry.promo_points}
                             duration={900 + i * 80}
-                            onTick={() => playCountUp(audioRef.current)}
                           />
                         </div>
                       </div>
@@ -502,8 +499,8 @@ export default function LeaderboardPage() {
                   );
                 })}
 
-                {/* Fade mask at bottom like reference */}
-                {entries.length > 6 && <div className="lb-fade-mask" />}
+                {/* Fade mask */}
+                {entries.length > 8 && <div className="lb-fade-mask" />}
               </div>
             )}
 
@@ -515,6 +512,56 @@ export default function LeaderboardPage() {
           </div>
         </div>
       </div>
+
+      {/* ── FOOTER ── */}
+      <footer className="footer">
+        <div className="footer-main">
+          <div>
+            <p className="footer-tagline">Play Everyday. Win Everyday.</p>
+            <img src="/favicon2.png" alt="Promogames" className="footer-brand-img" />
+            <p className="footer-desc">
+              Quick games, real rewards, and a leaderboard that keeps you coming back. Your reward journey starts here.
+            </p>
+            <div className="socials">
+              {[["in","https://www.linkedin.com"],["f","https://www.facebook.com/profile.php?id=61579982040453"],["𝕏","#"],["▶","#"],["📷","#"]].map(([s, href], i) => (
+                <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="soc">{s}</a>
+              ))}
+            </div>
+          </div>
+          <div>
+            <div className="footer-links-title">Quick Links</div>
+            <div className="footer-links">
+              {FOOTER_NAV.map(([label, href]) => (
+                <a key={label} href={href}>{label}</a>
+              ))}
+            </div>
+            <div className="footer-contact">
+              <div className="footer-links-title" style={{ marginTop: 24 }}>Get in Touch</div>
+              <a href="tel:+916366870248">📞 +91 6366 870 248</a>
+              <a href="mailto:offers.promogames@gmail.com">📧 offers.promogames@gmail.com</a>
+            </div>
+          </div>
+          <div>
+            <div className="footer-links-title">Our Office</div>
+            <iframe
+              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15543.255684115567!2d77.548492!3d13.105036!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae230b7c2c9c6f%3A0x9b6d0c5e5c5e5c5e!2sVidyaranyapura%2C%20Bengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1712345678901!5m2!1sen!2sin"
+              width="100%" height="260" style={{ borderRadius: 14, border: 'none' }}
+              loading="lazy" referrerPolicy="no-referrer-when-downgrade"
+              title="Office Address"
+            />
+            <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 10, lineHeight: 1.6 }}>
+              #14 AMS Layout, Near Jelly Machine<br />
+              Vidyaranyapura, Bangalore
+            </p>
+          </div>
+        </div>
+        <div className="footer-bar">
+          <p>© 2026 Promogames. Fun Games. Exciting Gifts.</p>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <a href="#">Terms of Use</a><span>|</span><a href="#">Privacy Policy</a>
+          </div>
+        </div>
+      </footer>
     </>
   );
 }

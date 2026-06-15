@@ -232,6 +232,7 @@ export default function PlayerPage() {
   const [completing, setCompleting] = useState(false)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [questionKey, setQuestionKey] = useState(0)
+  const [playerProfile, setPlayerProfile] = useState(null)
   const [showContinueBtn, setShowContinueBtn] = useState(false)
   const continueTimerRef = useRef(null)
 
@@ -282,53 +283,95 @@ export default function PlayerPage() {
   const overlayTimerRef = useRef(null)
   const advanceRef = useRef(null)
 
+  // ── Known field mapping from player profile ──────────────────────────────
+  const KNOWN_FIELD_MAP = {
+    name: ['name','full name','fullname','player name','your name','yourname'],
+    email: ['email','email address','emailaddress','e-mail','e mail'],
+    whatsapp: ['whatsapp','whatsapp number','phone','phone number','mobile','mobile number','contact','contact number'],
+    city: ['city','town','city/town','location'],
+    pincode: ['pincode','pin code','zip','zip code','postal code','postalcode'],
+  }
+
+  const getPlayerField = (profile, fieldLabel) => {
+    const norm = fieldLabel.toLowerCase().replace(/\s+/g, '')
+    for (const [key, aliases] of Object.entries(KNOWN_FIELD_MAP)) {
+      if (aliases.some(a => a.replace(/\s+/g, '') === norm || a === fieldLabel.toLowerCase())) {
+        return profile?.[key] || null
+      }
+    }
+    return null
+  }
+
   useEffect(() => {
-    api.get(`/play/${gameName}/${companyName}`)
-      .then(res => {
-        const g = res.data.game
-        setGame(g)
-        if (g.settings?.font_family) loadFont(g.settings.font_family)
-        if (g.category === 'crossword') {
-          // Show landing page first like spin/quiz
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-        if (g.category === 'spin') {
-          // SpinPlayerPage handles session creation on first spin click
-          // Skip form if player is logged in and no custom fields configured
-          const playerUser = JSON.parse(localStorage.getItem('playerUser') || '{}')
-          const hasForm = g.formFields && g.formFields.length > 0
-          if (!hasForm || playerUser.id) {
-            setPhase('spin')
+    // Check for logged-in player
+    const token = localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken')
+    const userData = localStorage.getItem('playerUser') || sessionStorage.getItem('playerUser')
+    let profilePromise = Promise.resolve(null)
+    if (token && userData) {
+      profilePromise = fetch('/api/pauth/me', { headers: { Authorization: `Bearer ${token}` } })
+        .then(r => r.json())
+        .then(d => d.success ? d.player : null)
+        .catch(() => null)
+    }
+
+    profilePromise.then(profile => {
+      setPlayerProfile(profile)
+      return api.get(`/play/${gameName}/${companyName}`)
+        .then(res => {
+          const g = res.data.game
+          setGame(g)
+          if (g.settings?.font_family) loadFont(g.settings.font_family)
+
+          // Determine if form can be skipped for logged-in players
+          const canSkipForm = () => {
+            if (!profile) return false
+            const fields = g.formFields || []
+            if (fields.length === 0) return true
+            return fields.every(f => {
+              const val = getPlayerField(profile, f.field_label)
+              if (f.is_required) return !!val
+              return true
+            })
+          }
+
+          if (g.category === 'crossword') {
+            const init = {}
+            for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+            setFormData(init)
+            setPhase(canSkipForm() ? 'crossword' : 'form')
             return
           }
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-        // Shuffle questions if randomize_questions is enabled
-        if (g.settings?.randomize_questions && g.questions?.length) {
-          const arr = [...g.questions]
-          for (let i = arr.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [arr[i], arr[j]] = [arr[j], arr[i]]
+          if (g.category === 'spin') {
+            const hasForm = g.formFields && g.formFields.length > 0
+            if (!hasForm || canSkipForm()) {
+              setPhase('spin')
+              return
+            }
+            const init = {}
+            for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+            setFormData(init)
+            setPhase('form')
+            return
           }
-          g.questions = arr
-        }
-        const init = {}
-        for (const f of (g.formFields || [])) init[f.field_label] = ''
-        setFormData(init)
-        setPhase('form')
-      })
-      .catch(err => {
-        setErrorMsg(err.response?.data?.message || 'Game not found')
-        setPhase('error')
-      })
+          // Shuffle questions if randomize_questions is enabled
+          if (g.settings?.randomize_questions && g.questions?.length) {
+            const arr = [...g.questions]
+            for (let i = arr.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [arr[i], arr[j]] = [arr[j], arr[i]]
+            }
+            g.questions = arr
+          }
+          const init = {}
+          for (const f of (g.formFields || [])) init[f.field_label] = getPlayerField(profile, f.field_label) || ''
+          setFormData(init)
+          setPhase(canSkipForm() ? 'playing' : 'form')
+        })
+        .catch(err => {
+          setErrorMsg(err.response?.data?.message || 'Game not found')
+          setPhase('error')
+        })
+    })
   }, [gameName, companyName])
 
   const resolveSound = useCallback((idOrUrl, soundMap) => {
@@ -382,7 +425,13 @@ export default function PlayerPage() {
     if (hasErrors) return
     setSubmitting(true)
     try {
-      const res = await api.post('/play/session/start', { game_id: game.id, player_data: formData, source_type: searchParams.get('source') === 'direct' ? 'direct' : 'link' })
+      const payload = {
+        game_id: game.id,
+        player_data: formData,
+        source_type: searchParams.get('source') === 'direct' ? 'direct' : (playerProfile ? 'player' : 'link'),
+      }
+      if (playerProfile) payload.promo_player_id = playerProfile.id
+      const res = await api.post('/play/session/start', payload)
       setSessionToken(res.data.session_token)
       if (game.category === 'crossword') {
         setPhase('crossword')
@@ -648,6 +697,7 @@ export default function PlayerPage() {
               const touched = formTouched[f.field_label]
               const hasErr = touched && !!err
               const fieldId = `field-${i}-${f.field_label.toLowerCase().replace(/\s+/g, '-')}`
+              const fromProfile = playerProfile && !!getPlayerField(playerProfile, f.field_label)
               const inputStyle = {
                 background: hasErr ? 'rgba(239,68,68,0.08)' : 'rgba(255,255,255,0.88)',
                 border: `1.5px solid ${hasErr ? '#ef4444' : (hasBgImg ? 'rgba(255,255,255,0.45)' : '#e0e0f0')}`,
@@ -659,6 +709,7 @@ export default function PlayerPage() {
                 <div key={i} style={{ marginBottom: 6 }}>
                   <label htmlFor={fieldId} style={{ display: 'block', fontSize: 12, fontWeight: 700, color: hasBgImg ? 'rgba(255,255,255,0.9)' : '#555', marginBottom: 5, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
                     {f.field_label} {f.is_required ? <span style={{ color: '#ef4444' }}>*</span> : ''}
+                    {fromProfile && <span style={{ marginLeft: 6, fontSize: 10, color: '#22c55e', fontWeight: 600 }}>✓ from profile</span>}
                   </label>
                   {f.field_type === 'textarea' ? (
                     <textarea id={fieldId} name={fieldId} rows={3} value={val}
@@ -669,9 +720,10 @@ export default function PlayerPage() {
                     <input id={fieldId} name={fieldId}
                       type={f.field_type === 'phone' ? 'tel' : f.field_type === 'email' ? 'email' : f.field_type === 'number' ? 'number' : 'text'}
                       value={val}
+                      disabled={fromProfile}
                       onChange={e => handleFieldChange(f.field_label, e.target.value, f.field_type, f.is_required)}
                       onBlur={e => handleFieldBlur(f.field_label, e.target.value, f.field_type, f.is_required)}
-                      style={inputStyle} />
+                      style={{ ...inputStyle, opacity: fromProfile ? 0.7 : 1 }} />
                   )}
                   <div style={{ height: 20, marginTop: 3 }}>
                     {hasErr && <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600 }}>⚠ {err}</span>}

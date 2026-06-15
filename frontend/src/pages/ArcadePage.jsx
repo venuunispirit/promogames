@@ -178,7 +178,8 @@ const getCatIcon = (cat) => CAT_ICONS[cat?.toLowerCase()] || '🎮'
 function GameModal({ game, allGames, onClose, onSwitch }) {
   const [loaded, setLoaded] = useState(false)
   const iframeRef = useRef(null)
-  const src = `/play/${game.slug}/${game.client_slug}?source=direct`
+  const isLoggedIn = !!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))
+  const src = `/play/${game.slug}/${game.client_slug}?source=${isLoggedIn ? 'player' : 'direct'}`
 
   useEffect(() => { setLoaded(false) }, [game.id])
   useEffect(() => {

@@ -1,6 +1,8 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+// Load env FIRST so all routes have access
+require('dotenv').config({ path: __dirname + '/backend/.env' });
 
 const app = express();
 
@@ -22,6 +24,7 @@ const spinRoutes = require("./backend/routes/spin");
 const crosswordRoutes = require("./backend/routes/crossword");
 const leaderboardRoutes = require("./backend/routes/leaderboard");
 const playersAdminRoutes = require("./backend/routes/players-admin");
+const { startPCResetCron } = require("./backend/cron/pcReset");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -39,6 +42,9 @@ app.use("/api/players-admin", playersAdminRoutes);
 app.get("/", (req, res) => {
   res.send("Backend Running");
 });
+
+// Start PC monthly reset cron job
+startPCResetCron();
 
 app.listen(5050, () => {
   console.log("Server running on port 5050");

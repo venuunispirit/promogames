@@ -320,7 +320,7 @@ export default function DashboardHome() {
   const cityData = Object.entries(cityMap).sort((a,b) => b[1]-a[1]).slice(0,8).map(([name,value]) => ({name,value}))
   const maxCity  = cityData[0]?.value || 1
 
-  // PP distribution
+  // PC distribution
   const ppBuckets = { '0–99':0,'100–299':0,'300–499':0,'500–999':0,'1000+':0 }
   players.forEach(p => {
     const b = p.pp_balance||0
@@ -352,7 +352,7 @@ export default function DashboardHome() {
   })
 
   // top players
-  const topPlayers = [...players].sort((a,b) => (b.pp_balance||0)-(a.pp_balance||0)).slice(0,8)
+  const topPlayers = [...players].sort((a,b) => (b.pc_balance||0)-(a.pc_balance||0)).slice(0,8)
     .map(p => ({ name: (p.name||'?').split(' ')[0], pp: p.pp_balance||0 }))
 
   // most active (leaderboard)
@@ -585,7 +585,7 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Row 5 — City + PP distribution */}
+        {/* Row 5 — City + PC distribution */}
         <div className="dh-row5">
           <div className="dh-card">
             <SecHead title="Players by City" sub="Geographic distribution" action="All players" onAction={() => navigate('/dashboard/players')}/>
@@ -603,7 +603,7 @@ export default function DashboardHome() {
           </div>
 
           <div className="dh-card">
-            <SecHead title="PromoPoints Distribution" sub="Players grouped by PP balance"/>
+            <SecHead title="Promo Coins Distribution" sub="Players grouped by PC balance"/>
             <div style={{padding:'16px 20px 8px'}}>
               {loading ? <Skel h={180}/> : players.length===0 ? <Empty msg="No players yet"/> : (
                 <ResponsiveContainer width="100%" height={200}>
@@ -620,10 +620,10 @@ export default function DashboardHome() {
           </div>
         </div>
 
-        {/* Row 6 — Top PP players + Most active */}
+        {/* Row 6 — Top PC players + Most active */}
         <div className="dh-row5">
           <div className="dh-card">
-            <SecHead title="Top Players by PromoPoints" sub="Highest PP balances" action="All players" onAction={() => navigate('/dashboard/players')}/>
+            <SecHead title="Top Players by Promo Coins" sub="Highest PC balances" action="All players" onAction={() => navigate('/dashboard/players')}/>
             <div style={{padding:'16px 20px 8px'}}>
               {loading ? <Skel h={200}/> : topPlayers.length===0 ? <Empty msg="No players yet"/> : (
                 <ResponsiveContainer width="100%" height={220}>
@@ -632,7 +632,7 @@ export default function DashboardHome() {
                     <XAxis type="number" tick={axisStyle} axisLine={false} tickLine={false}/>
                     <YAxis type="category" dataKey="name" width={70} tick={axisStyle} axisLine={false} tickLine={false}/>
                     <Tooltip content={<Tip/>}/>
-                    <Bar dataKey="pp" name="PromoPoints" fill={C.pink} radius={[0,4,4,0]} barSize={14}/>
+                    <Bar dataKey="pc_balance" name="Promo Coins" fill={C.pink} radius={[0,4,4,0]} barSize={14}/>
                   </BarChart>
                 </ResponsiveContainer>
               )}
@@ -678,7 +678,7 @@ export default function DashboardHome() {
             {[
               { label:'Total players',     val: fmtN(pStats?.total||players.length) },
               { label:'New this month',    val: fmtN(pStats?.new_month||0) },
-              { label:'Avg PP balance',    val: fmtN(pStats?.avg_pp||0) },
+              { label:'Avg PC balance',    val: fmtN(pStats?.avg_pc||0) },
             ].map((r,i,arr) => (
               <div key={r.label} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'11px 0',borderBottom:i<arr.length-1?`1px solid ${T.border}`:'none'}}>
                 <span style={{fontSize:12.5,color:T.text2,fontWeight:500,fontFamily:"'DM Sans',sans-serif"}}>{r.label}</span>
@@ -693,7 +693,7 @@ export default function DashboardHome() {
               {[
                 { label:'Add a client',   sub:'Onboard new organisation', to:'/dashboard/clients', accent:C.purple },
                 { label:'Create a game',  sub:'Set up questions & rules',  to:'/dashboard/games',   accent:C.teal   },
-                { label:'View players',   sub:'PromoPoints & profiles',    to:'/dashboard/players', accent:C.pink   },
+                { label:'View players',   sub:'Promo Coins & profiles',    to:'/dashboard/players', accent:C.pink   },
               ].map(a => (
                 <button key={a.label} onClick={() => navigate(a.to)} style={{
                   display:'flex',alignItems:'center',gap:10,padding:'10px 12px',

@@ -14,7 +14,7 @@ router.get('/', async (req, res) => {
     const [players] = await db.query(`
       SELECT
         id, name, email, whatsapp, city, pincode,
-        pp_balance, dob, created_at
+        pc_balance, dob, created_at
       FROM promo_players
       ORDER BY created_at DESC
     `)
@@ -24,8 +24,8 @@ router.get('/', async (req, res) => {
       SELECT
         COUNT(*)                                         AS total,
         SUM(CASE WHEN created_at >= DATE_SUB(NOW(), INTERVAL 30 DAY) THEN 1 ELSE 0 END) AS new_month,
-        SUM(pp_balance)                                  AS total_pp,
-        ROUND(AVG(pp_balance))                           AS avg_pp
+        SUM(pc_balance)                                  AS total_pc,
+        ROUND(AVG(pc_balance))                           AS avg_pc
       FROM promo_players
     `)
 
@@ -44,14 +44,14 @@ router.get('/:id/transactions', async (req, res) => {
 
     // Verify player exists
     const [[player]] = await db.query(
-      'SELECT id, name, email, pp_balance FROM promo_players WHERE id = ?',
+      'SELECT id, name, email, pc_balance FROM promo_players WHERE id = ?',
       [id]
     )
     if (!player) return res.status(404).json({ success: false, message: 'Player not found' })
 
     const [transactions] = await db.query(`
       SELECT id, type, points, note, created_at
-      FROM pp_transactions
+      FROM pc_transactions
       WHERE player_id = ?
       ORDER BY created_at DESC
       LIMIT 100

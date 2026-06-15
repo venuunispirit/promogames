@@ -4,7 +4,7 @@
  * POST /api/pauth/check-email   → is this admin or player?
  * POST /api/pauth/send-otp      → generate & email 4-digit OTP
  * POST /api/pauth/verify-otp    → verify OTP, return JWT + player info
- * POST /api/pauth/register      → create new promo_player + 100 PP welcome bonus
+ * POST /api/pauth/register      → create new promo_player + 100 PC welcome bonus
  * GET  /api/pauth/me            → get logged-in player profile (requires playerAuth)
  */
 
@@ -167,7 +167,7 @@ router.post('/verify-otp', async (req, res) => {
         token,
         player: {
           id: player.id, name: player.name, email: player.email,
-          pp_balance: player.pp_balance, city: player.city,
+          pc_balance: player.pc_balance, city: player.city,
         },
       });
     }
@@ -187,11 +187,11 @@ router.post('/verify-otp', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/pauth/register
-// Body: { tempToken, name, age, dob, whatsapp, city, pincode }
-// Creates promo_player + 100 PP welcome bonus transaction
+// Body: { tempToken, name, dob, whatsapp, city, pincode }
+// Creates promo_player + 100 PC welcome bonus transaction
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
-  const { tempToken, name, age, dob, whatsapp, city, pincode } = req.body;
+  const { tempToken, name, dob, whatsapp, city, pincode } = req.body;
 
   if (!tempToken || !name) {
     return res.status(400).json({ success: false, message: 'Missing required fields' });
@@ -213,18 +213,18 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ success: false, message: 'Account already exists for this email' });
     }
 
-    // Create player with 100 PP welcome bonus
+    // Create player with 100 PC welcome bonus
     const [result] = await db.query(
-      `INSERT INTO promo_players (name, age, dob, email, whatsapp, city, pincode, pp_balance)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 100)`,
-      [name, age || null, dob || null, email, whatsapp || null, city || null, pincode || null]
+      `INSERT INTO promo_players (name, dob, email, whatsapp, city, pincode, pc_balance)
+       VALUES (?, ?, ?, ?, ?, ?, 100)`,
+      [name, dob || null, email, whatsapp || null, city || null, pincode || null]
     );
 
     const playerId = result.insertId;
 
-    // Log the welcome bonus in pp_transactions
+    // Log the welcome bonus in pc_transactions
     await db.query(
-      `INSERT INTO pp_transactions (player_id, type, points, note)
+      `INSERT INTO pc_transactions (player_id, type, points, note)
        VALUES (?, 'earn', 100, 'Welcome bonus')`,
       [playerId]
     );
@@ -239,7 +239,7 @@ router.post('/register', async (req, res) => {
     res.json({
       success: true,
       token,
-      player: { id: playerId, name, email, pp_balance: 100, city },
+      player: { id: playerId, name, email, pc_balance: 100, city },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -248,12 +248,14 @@ router.post('/register', async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/pauth/me
-// Returns current player profile + pp_balance
+// Returns current player profile + pc_balance
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/me', playerAuth, async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT id, name, age, dob, email, whatsapp, city, pincode, pp_balance, created_at FROM promo_players WHERE id = ?',
+      `SELECT id, name, dob, email, whatsapp, city, pincode, pc_balance, created_at,
+              TIMESTAMPDIFF(YEAR, dob, CURDATE()) as age
+       FROM promo_players WHERE id = ?`,
       [req.player.id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Player not found' });
@@ -265,13 +267,13 @@ router.get('/me', playerAuth, async (req, res) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/pauth/transactions
-// Returns PP transaction history for logged-in player
+// Returns PC transaction history for logged-in player
 // ─────────────────────────────────────────────────────────────────────────────
 router.get('/transactions', playerAuth, async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT t.*, g.name as game_name
-       FROM pp_transactions t
+       FROM pc_transactions t
        LEFT JOIN games g ON t.game_id = g.id
        WHERE t.player_id = ?
        ORDER BY t.created_at DESC

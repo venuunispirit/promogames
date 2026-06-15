@@ -36,7 +36,7 @@ async function initPromo() {
       whatsapp     VARCHAR(20),
       city         VARCHAR(100),
       pincode      VARCHAR(10),
-      pp_balance   INT           NOT NULL DEFAULT 100,
+      pc_balance   INT           NOT NULL DEFAULT 100,
       created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
       updated_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
@@ -69,9 +69,9 @@ async function initPromo() {
     )
   `, 'trusted_devices table');
 
-  // ── 4. PP TRANSACTIONS ────────────────────────────────────────────────────
+  // ── 4. PC TRANSACTIONS ────────────────────────────────────────────────────
   await safeQuery(connection, `
-    CREATE TABLE IF NOT EXISTS pp_transactions (
+    CREATE TABLE IF NOT EXISTS pc_transactions (
       id         INT AUTO_INCREMENT PRIMARY KEY,
       player_id  INT          NOT NULL,
       type       ENUM('earn','spend','reset') NOT NULL,
@@ -82,7 +82,7 @@ async function initPromo() {
       FOREIGN KEY (player_id) REFERENCES promo_players(id) ON DELETE CASCADE,
       INDEX idx_player (player_id)
     )
-  `, 'pp_transactions table');
+  `, 'pc_transactions table');
 
   // ── 5. BRAND REWARDS ──────────────────────────────────────────────────────
   await safeQuery(connection, `
@@ -115,7 +115,59 @@ async function initPromo() {
     )
   `, 'redemptions table');
 
-  // ── 7. Add game_type column to games (branded vs promogames) ──────────────
+  // ── 7. RESET LOG ──────────────────────────────────────────────────────────
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS reset_log (
+      id INT PRIMARY KEY DEFAULT 1,
+      last_reset_at TIMESTAMP NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `, 'reset_log table');
+  await safeQuery(connection, 'INSERT IGNORE INTO reset_log (id, last_reset_at) VALUES (1, NULL)', 'reset_log seed');
+
+  // ── 8. Rename pp_balance → pc_balance ──────────────────────────────────────
+  try {
+    const [ppCol] = await connection.query(`SHOW COLUMNS FROM \`promo_players\` LIKE 'pp_balance'`);
+    if (ppCol.length > 0) {
+      const [pcCol] = await connection.query(`SHOW COLUMNS FROM \`promo_players\` LIKE 'pc_balance'`);
+      if (pcCol.length === 0) {
+        await connection.query('ALTER TABLE promo_players CHANGE pp_balance pc_balance INT NOT NULL DEFAULT 100');
+        console.log("✅ promo_players.pp_balance → pc_balance");
+      }
+    }
+  } catch (err) {
+    console.error("❌ pp_balance migration:", err.message);
+  }
+
+  // ── 9. Rename player_sessions.pp_awarded → pc_awarded ──────────────────────
+  try {
+    const [ppAw] = await connection.query(`SHOW COLUMNS FROM \`player_sessions\` LIKE 'pp_awarded'`);
+    if (ppAw.length > 0) {
+      const [pcAw] = await connection.query(`SHOW COLUMNS FROM \`player_sessions\` LIKE 'pc_awarded'`);
+      if (pcAw.length === 0) {
+        await connection.query('ALTER TABLE player_sessions CHANGE pp_awarded pc_awarded TINYINT(1) DEFAULT 0');
+        console.log("✅ player_sessions.pp_awarded → pc_awarded");
+      }
+    }
+  } catch (err) {
+    console.error("❌ pp_awarded migration:", err.message);
+  }
+
+  // ── 10. Rename pp_transactions table → pc_transactions ─────────────────────
+  try {
+    const [ppTable] = await connection.query(`SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_schema = ? AND table_name = 'pp_transactions'`, [dbName]);
+    if (ppTable[0].cnt > 0) {
+      const [pcTable] = await connection.query(`SELECT COUNT(*) as cnt FROM information_schema.tables WHERE table_schema = ? AND table_name = 'pc_transactions'`, [dbName]);
+      if (pcTable[0].cnt === 0) {
+        await connection.query('RENAME TABLE pp_transactions TO pc_transactions');
+        console.log("✅ pp_transactions → pc_transactions");
+      }
+    }
+  } catch (err) {
+    console.error("❌ pp_transactions rename:", err.message);
+  }
+
+  // ── 11. Add game_type column to games (branded vs promogames) ──────────────
   try {
     const [cols] = await connection.query(`SHOW COLUMNS FROM \`games\` LIKE 'game_type'`);
     if (cols.length === 0) {
@@ -131,18 +183,18 @@ async function initPromo() {
     console.error("❌ games.game_type migration:", err.message);
   }
 
-  // ── 8. Add pp_awarded column to player_sessions ───────────────────────────
+  // ── 8. Add pc_awarded column to player_sessions ───────────────────────────
   try {
-    const [cols] = await connection.query(`SHOW COLUMNS FROM \`player_sessions\` LIKE 'pp_awarded'`);
+    const [cols] = await connection.query(`SHOW COLUMNS FROM \`player_sessions\` LIKE 'pc_awarded'`);
     if (cols.length === 0) {
       await connection.query(`
         ALTER TABLE \`player_sessions\`
-        ADD COLUMN \`pp_awarded\`    TINYINT(1) DEFAULT 0,
+        ADD COLUMN \`pc_awarded\`    TINYINT(1) DEFAULT 0,
         ADD COLUMN \`promo_player_id\` INT DEFAULT NULL
       `);
-      console.log("✅ player_sessions.pp_awarded + promo_player_id columns added");
+      console.log("✅ player_sessions.pc_awarded + promo_player_id columns added");
     } else {
-      console.log("ℹ️  player_sessions.pp_awarded already exists");
+      console.log("ℹ️  player_sessions.pc_awarded already exists");
     }
   } catch (err) {
     console.error("❌ player_sessions migration:", err.message);
@@ -150,8 +202,8 @@ async function initPromo() {
 
   await connection.end();
   console.log('\n🎉 PromoPlayer migration completed successfully!');
-  console.log('Tables created: promo_players, otp_tokens, trusted_devices, pp_transactions, brand_rewards, redemptions');
-  console.log('Columns added: games.game_type, player_sessions.pp_awarded, player_sessions.promo_player_id');
+  console.log('Tables created: promo_players, otp_tokens, trusted_devices, pc_transactions, brand_rewards, redemptions');
+  console.log('Columns added: games.game_type, player_sessions.pc_awarded, player_sessions.promo_player_id');
 }
 
 initPromo().catch(err => {

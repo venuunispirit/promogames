@@ -270,7 +270,7 @@ function PlayerDrawer({ player, onClose }) {
             <button onClick={onClose} style={{ background:'rgba(255,255,255,0.15)',border:'none',borderRadius:8,width:34,height:34,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,color:'#fff',flexShrink:0 }}>×</button>
           </div>
 
-          {/* PP balance banner inside header */}
+           {/* PC balance banner inside header */}
           <div style={{ display:'flex', gap:10, paddingBottom:18 }}>
             <div style={{ flex:1, background:'rgba(255,255,255,0.15)', borderRadius:10, padding:'12px 16px', textAlign:'center' }}>
               <div style={{ fontSize:28, fontWeight:900, color:'#fff', lineHeight:1 }}>{fmt(player.pp_balance)}</div>
@@ -313,7 +313,7 @@ function PlayerDrawer({ player, onClose }) {
 
               {/* Monthly reset notice */}
               <div className="pp-warn" style={{ marginBottom:16 }}>
-                ⏰ This player's balance resets to <b>0 PP</b> on the 1st of next month — <b>{daysUntilReset()} days</b> remaining.
+                ⏰ This player's balance resets to <b>0 PC</b> on the 1st of next month — <b>{daysUntilReset()} days</b> remaining.
               </div>
 
               {/* Profile details */}
@@ -354,14 +354,14 @@ function PlayerDrawer({ player, onClose }) {
                     <TxnIcon type={t.type} />
                     <div style={{ flex:1, minWidth:0 }}>
                       <div style={{ fontSize:13, fontWeight:700, color:'#1e1e2e', marginBottom:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>
-                        {t.note || 'PromoPoints transaction'}
+                        {t.note || 'Promo Coins transaction'}
                       </div>
                       <div style={{ fontSize:11, color:'#9899b8' }}>{fmtDateTime(t.created_at)}</div>
                     </div>
                     <div style={{ display:'flex', flexDirection:'column', alignItems:'flex-end', gap:4, flexShrink:0 }}>
                       <Badge type={t.type} />
                       <span style={{ fontSize:14, fontWeight:900, color: t.type==='earn'||t.type==='bonus' ? '#16a34a' : t.type==='spend' ? '#dc2626' : '#d97706' }}>
-                        {t.type==='spend' ? '−' : '+'}{fmt(t.points)} PP
+                        {t.type==='spend' ? '−' : '+'}{fmt(t.points)} PC
                       </span>
                     </div>
                   </div>
@@ -427,7 +427,7 @@ export default function PlayersPage() {
 
   /* csv export */
   const exportCSV = () => {
-    const headers = ['ID','Name','Email','WhatsApp','City','Pincode','PP Balance','Joined']
+    const headers = ['ID','Name','Email','WhatsApp','City','Pincode','PC Balance','Joined']
     const rows = filtered.map(p => [p.id,p.name,p.email,p.whatsapp||'',p.city||'',p.pincode||'',p.pp_balance,fmtDate(p.created_at)])
     const csv  = [headers,...rows].map(r => r.map(c=>`"${c}"`).join(',')).join('\n')
     const blob = new Blob([csv],{type:'text/csv'})
@@ -452,7 +452,7 @@ export default function PlayersPage() {
       <div style={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', marginBottom:28, flexWrap:'wrap', gap:12 }}>
         <div>
           <h1 style={{ fontSize:24, fontWeight:900, color:'#1e1e2e', marginBottom:4 }}>👥 Players</h1>
-          <p style={{ color:'#5a5b72', fontSize:14 }}>All registered PromoGames players and their PP activity</p>
+          <p style={{ color:'#5a5b72', fontSize:14 }}>All registered PromoGames players and their PC activity</p>
         </div>
         <div style={{ display:'flex', gap:10 }}>
           <button className="pp-btn pp-btn-ghost" onClick={load}>🔄 Refresh</button>
@@ -464,9 +464,9 @@ export default function PlayersPage() {
       <div style={{ background:'linear-gradient(135deg,#fffbeb,#fef9ec)', border:'1.5px solid #fde68a', borderRadius:12, padding:'14px 20px', marginBottom:24, display:'flex', alignItems:'center', gap:14, flexWrap:'wrap' }}>
         <div style={{ fontSize:28 }}>🔄</div>
         <div style={{ flex:1 }}>
-          <div style={{ fontSize:14, fontWeight:800, color:'#92400e' }}>Monthly PP Balance Reset</div>
+          <div style={{ fontSize:14, fontWeight:800, color:'#92400e' }}>Monthly PC Balance Reset</div>
           <div style={{ fontSize:13, color:'#a16207', marginTop:2 }}>
-            All player balances reset to <b>0 PP</b> on the 1st of every month. Points history is preserved forever.
+            All player balances reset to <b>0 PC</b> on the 1st of every month. Points history is preserved forever.
             <b style={{ marginLeft:6 }}>{days} day{days!==1?'s':''} until next reset.</b>
           </div>
         </div>
@@ -481,8 +481,8 @@ export default function PlayersPage() {
         {[
           { icon:'👥', label:'Total Players',   value:fmt(stats.total),     color:'#6366f1', bg:'#eef0ff' },
           { icon:'🆕', label:'New This Month',  value:fmt(stats.new_month), color:'#16a34a', bg:'#dcfce7' },
-          { icon:'💰', label:'Total PP Issued', value:fmt(stats.total_pp),  color:'#d97706', bg:'#fef3c7' },
-          { icon:'📊', label:'Avg PP / Player', value:fmt(stats.avg_pp),    color:'#0891b2', bg:'#e0f7fa' },
+          { icon:'💰', label:'Total PC Issued', value:fmt(stats.total_pc),  color:'#d97706', bg:'#fef3c7' },
+          { icon:'📊', label:'Avg PC / Player', value:fmt(stats.avg_pc),    color:'#0891b2', bg:'#e0f7fa' },
         ].map(s => (
           <div key={s.label} className="pp-stat">
             <div className="pp-stat-icon" style={{ background:s.bg }}>
@@ -534,7 +534,7 @@ export default function PlayersPage() {
                     { label:'Player',     col:'name'       },
                     { label:'City',       col:'city'       },
                     { label:'WhatsApp',   col:'whatsapp'   },
-                    { label:'PP Balance', col:'pp_balance' },
+                    { label:'PC Balance', col:'pc_balance' },
                     { label:'Joined',     col:'created_at' },
                   ].map(h => (
                     <th key={h.col} className="pp-th" onClick={() => toggleSort(h.col)}>
@@ -566,11 +566,11 @@ export default function PlayersPage() {
                       <td className="pp-td" style={{ color:'#5a5b72' }}>{p.city||'—'}</td>
                       {/* WhatsApp */}
                       <td className="pp-td" style={{ color:'#5a5b72' }}>{p.whatsapp||'—'}</td>
-                      {/* PP Balance */}
+                      {/* PC Balance */}
                       <td className="pp-td">
                         <div className={`pp-pill${hasBalance?'':' zero'}`}>
-                          <span className="pp-pill-val">{fmt(p.pp_balance)}</span>
-                          <span className="pp-pill-lbl">PP</span>
+                          <span className="pp-pill-val">{fmt(p.pc_balance)}</span>
+                          <span className="pp-pill-lbl">PC</span>
                         </div>
                       </td>
                       {/* Joined */}

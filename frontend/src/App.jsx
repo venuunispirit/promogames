@@ -35,8 +35,8 @@ function ProtectedRoute({ children }) {
 
 // ── Player protected route ────────────────────────────────────────────────────
 function PlayerRoute({ children }) {
-  const token = localStorage.getItem('playerToken')
-  const user  = localStorage.getItem('playerUser')
+  const token = localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken')
+  const user  = localStorage.getItem('playerUser') || sessionStorage.getItem('playerUser')
   if (!token || !user) return <Navigate to="/login" replace />
   return children
 }

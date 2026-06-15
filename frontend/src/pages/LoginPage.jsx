@@ -445,9 +445,15 @@ export default function LoginPage() {
   const [loading,   setLoading]   = useState(false)
   const [error,     setError]     = useState('')
   const [resendCD,  setResendCD]  = useState(0)
-  const [form, setForm] = useState({name:'',age:'',dob:'',whatsapp:'',city:'',pincode:''})
+  const [rememberMe, setRememberMe] = useState(true)
+  const [form, setForm] = useState({name:'',dob:'',whatsapp:'',city:'',pincode:''})
 
   const setField = (k,v) => setForm(f=>({...f,[k]:v}))
+  const storeAuth = (token, player) => {
+    const storage = rememberMe ? localStorage : sessionStorage
+    storage.setItem('playerToken', token)
+    storage.setItem('playerUser', JSON.stringify(player))
+  }
   const clearErr = () => setError('')
 
   const startCountdown = () => {
@@ -480,8 +486,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/pauth/verify-otp', { email, otp })
       if (data.type === 'player') {
-        sessionStorage.setItem('playerToken', data.token)
-        sessionStorage.setItem('playerUser', JSON.stringify(data.player))
+        storeAuth(data.token, data.player)
         navigate('/player/dashboard')
       } else { setTempToken(data.tempToken); setStep(STEP_REGISTER) }
     } catch(err) { setError(err.response?.data?.message || 'Invalid or expired code.'); setOtp('') }
@@ -494,11 +499,10 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/pauth/register', {
         tempToken, name: form.name.trim(),
-        age: form.age||null, dob: form.dob||null,
+        dob: form.dob||null,
         whatsapp: form.whatsapp||null, city: form.city||null, pincode: form.pincode||null,
       })
-      sessionStorage.setItem('playerToken', data.token)
-      sessionStorage.setItem('playerUser', JSON.stringify(data.player))
+      storeAuth(data.token, data.player)
       navigate('/player/dashboard')
     } catch(err) { setError(err.response?.data?.message || 'Registration failed.') }
     finally { setLoading(false) }
@@ -523,6 +527,12 @@ export default function LoginPage() {
             onChange={e=>{setEmail(e.target.value);clearErr()}}
             onKeyDown={e=>e.key==='Enter'&&!loading&&email&&handleEmailSubmit()}
             placeholder="you@example.com"/>
+        </div>
+        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+          <div onClick={()=>setRememberMe(!rememberMe)} style={{width:20,height:20,flexShrink:0,border:`2px solid ${rememberMe?'rgba(255,255,255,0.7)':'rgba(255,255,255,0.3)'}`,borderRadius:5,background:rememberMe?'rgba(255,255,255,0.18)':'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s'}}>
+            {rememberMe && <span style={{color:'#fff',fontSize:11,fontWeight:700}}>✓</span>}
+          </div>
+          <span style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.55)',cursor:'pointer',userSelect:'none'}} onClick={()=>setRememberMe(!rememberMe)}>Remember me</span>
         </div>
         <button className={`pg-btn${loading?' busy':''}`} onClick={handleEmailSubmit} disabled={loading||!email}>
           {loading ? <><Dots/>&nbsp;Checking…</> : 'Continue →'}
@@ -598,16 +608,9 @@ export default function LoginPage() {
           <input className="pg-inp" type="text" value={form.name} autoFocus
             onChange={e=>{setField('name',e.target.value);clearErr()}} placeholder="Your full name"/>
         </div>
-        <div className="pg-row pg-fg">
-          <div>
-            <label className="pg-lbl">Age</label>
-            <input className="pg-inp" type="number" value={form.age}
-              onChange={e=>setField('age',e.target.value)} placeholder="25" min={5} max={120}/>
-          </div>
-          <div>
-            <label className="pg-lbl">Date of Birth</label>
-            <input className="pg-inp" type="date" value={form.dob} onChange={e=>setField('dob',e.target.value)}/>
-          </div>
+        <div className="pg-fg">
+          <label className="pg-lbl">Date of Birth</label>
+          <input className="pg-inp" type="date" value={form.dob} onChange={e=>setField('dob',e.target.value)}/>
         </div>
         <div className="pg-fg">
           <label className="pg-lbl">WhatsApp Number</label>
@@ -628,10 +631,10 @@ export default function LoginPage() {
         </div>
         <div className="bonus">
           <span style={{fontSize:22}}>🎁</span>
-          <span>You'll get <strong style={{color:'#a8ffcc'}}>100 PromoPoints</strong> as a welcome bonus!</span>
+          <span>You'll get <strong style={{color:'#a8ffcc'}}>100 Promo Coins</strong> as a welcome bonus!</span>
         </div>
         <button className={`pg-btn${loading?' busy':''}`} onClick={handleRegister} disabled={loading||!form.name.trim()}>
-          {loading ? <><Dots/>&nbsp;Creating account…</> : 'Create Account & Claim 100 PP 🎉'}
+          {loading ? <><Dots/>&nbsp;Creating account…</> : 'Create Account & Claim 100 PC 🎉'}
         </button>
       </div>
     </Card>

@@ -225,7 +225,12 @@ body { background: #1a1a2e; }
   transform: translateX(0);
   transition: opacity 0.45s ease, transform 0.45s cubic-bezier(.34,1.4,.64,1), box-shadow 0.2s;
 }
-.lb-row:hover { transform: scale(1.025) translateX(2px); }
+.lb-row:hover {
+  transform: scale(1.04) translateX(4px);
+  box-shadow: 0 0 24px rgba(124,111,247,0.4);
+  z-index: 2;
+  position: relative;
+}
 .lb-row-top { animation: row-glow 2s ease-in-out infinite; }
 @keyframes row-glow {
   0%,100% { filter: brightness(1); }
@@ -490,7 +495,7 @@ export default function LeaderboardPage() {
                         <div className="row-coin-icon">$</div>
                         <div className="row-score">
                           <Counter
-                            target={entry.promo_points}
+                            target={entry.total_pc}
                             duration={900 + i * 80}
                           />
                         </div>
@@ -504,9 +509,9 @@ export default function LeaderboardPage() {
               </div>
             )}
 
-            {/* PP info strip */}
+            {/* PC info strip */}
             <div className="lb-info">
-              🎮 Each game = <span className="pp-hl">50 PP</span> · Play more, climb higher
+              🎮 Each game = <span className="pp-hl">50 PC</span> · Play more, climb higher
             </div>
 
           </div>

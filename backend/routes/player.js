@@ -154,16 +154,30 @@ router.get('/:gameName/:companyName', async (req, res) => {
 
 router.post('/session/start', async (req, res) => {
   const { game_id, player_data, source_type, promo_player_id } = req.body;
-  const src = ['direct', 'link'].includes(source_type) ? source_type : 'link';
+  const validSrc = ['direct', 'link', 'player'];
+  const src = validSrc.includes(source_type) ? source_type : 'link';
   try {
-    // Check if already played (spin once mode)
+    // ── Hardened uniqueness check ─────────────────────────────────────────────
     if (promo_player_id) {
       const [existing] = await db.query(
-        'SELECT * FROM player_sessions WHERE game_id = ? AND promo_player_id = ? AND completed = 1',
+        'SELECT id FROM player_sessions WHERE game_id = ? AND promo_player_id = ? AND completed = 1 LIMIT 1',
         [game_id, promo_player_id]
       );
       if (existing.length > 0) {
         return res.status(400).json({ success: false, already_played: true, message: 'You have already played this game' });
+      }
+    } else {
+      // Check by email from player_data for anonymous-turned-logged-in scenarios
+      const pd = player_data || {};
+      const emailKey = Object.keys(pd).find(k => ['email','emailaddress','e-mail','email address'].includes(k.toLowerCase().replace(/\s+/g, '')));
+      if (emailKey && pd[emailKey]) {
+        const [existing] = await db.query(
+          "SELECT id FROM player_sessions WHERE game_id = ? AND completed = 1 AND JSON_UNQUOTE(JSON_EXTRACT(player_data, '$.\"Email\"')) = ? LIMIT 1",
+          [game_id, pd[emailKey]]
+        );
+        if (existing.length > 0) {
+          return res.status(400).json({ success: false, already_played: true, message: 'You have already played this game' });
+        }
       }
     }
     const token = uuidv4();
@@ -343,8 +357,24 @@ router.post('/session/complete', async (req, res) => {
       console.warn('⚠️  Email enabled but no email found in player data:', JSON.stringify(playerData));
     }
 
+    // ── Award Promo Coins (PC) ────────────────────────────────────────────────
+    const game = games[0];
+    if (session.promo_player_id && !session.pc_awarded && game) {
+      const pcAmount = game.game_type === 'branded' ? 50 : 10;
+      await db.query(
+        'UPDATE promo_players SET pc_balance = pc_balance + ? WHERE id = ?',
+        [pcAmount, session.promo_player_id]
+      );
+      await db.query(
+        'INSERT INTO pc_transactions (player_id, type, points, game_id, note) VALUES (?, ?, ?, ?, ?)',
+        [session.promo_player_id, 'earn', pcAmount, session.game_id, `Game completed: ${game.name}`]
+      );
+      await db.query('UPDATE player_sessions SET pc_awarded = 1 WHERE id = ?', [session.id]);
+      console.log(`✅ Awarded ${pcAmount} PC to player ${session.promo_player_id} for game ${game.name}`);
+    }
+
     const [updatedSession] = await db.query('SELECT * FROM player_sessions WHERE id = ?', [session.id]);
-    res.json({ success: true, session: updatedSession[0], email_sent: emailSent, redirect_url: games[0]?.redirect_url || null });
+    res.json({ success: true, session: updatedSession[0], email_sent: emailSent, redirect_url: game?.redirect_url || null });
   } catch (err) {
     console.error('Complete session error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -391,5 +421,29 @@ router.get('/play-page-games', async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 });
+
+// ── GET dashboard games for player (active, grouped by type) ────────────
+router.get('/dashboard-games', async (req, res) => {
+  try {
+    const [games] = await db.query(`
+      SELECT g.id, g.name, g.slug, g.description, g.redirect_url, g.game_type,
+             g.category, g.logo_url, c.company_name, c.slug as client_slug, c.slug as brand
+      FROM games g
+      JOIN clients c ON g.client_id = c.id
+      WHERE g.is_active = 1
+      ORDER BY g.game_type, g.name
+    `)
+    const grouped = { promogames: [], branded: [] }
+    for (const g of games) {
+      const entry = { ...g }
+      if (g.game_type === 'branded') grouped.branded.push(entry)
+      else grouped.promogames.push(entry)
+    }
+    res.json({ success: true, games: grouped })
+  } catch (err) {
+    console.error('dashboard-games err', err)
+    res.status(500).json({ success: false, message: 'Failed to load games' })
+  }
+})
 
 module.exports = router;

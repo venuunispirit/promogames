@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 
 /* ── Sound engine (preserved exactly from original) ── */
 function createAudioCtx() {
@@ -81,7 +81,7 @@ const FOOTER_NAV = [
 ];
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Poppins:wght@600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@600;700;800;900&family=Poppins:wght@600;700;800;900&family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: #1a1a2e; }
@@ -94,33 +94,43 @@ body { background: #1a1a2e; }
   overflow-x: hidden;
 }
 
-/* ── Nav ── */
-.lb-nav {
-  position: sticky; top: 0; z-index: 100;
-  display: flex; align-items: center; gap: 12px;
-  padding: 14px 28px;
-  background: rgba(15, 10, 30, 0.92);
-  backdrop-filter: blur(20px);
-  border-bottom: 2px solid rgba(255,200,50,0.2);
-  box-shadow: 0 4px 24px rgba(0,0,0,0.5);
-}
-.lb-nav img { width: 32px; height: 32px; border-radius: 8px; }
-.lb-nav-back {
-  margin-left: auto;
-  font-size: 13px; font-weight: 800;
-  color: rgba(255,255,255,0.55);
-  text-decoration: none;
-  transition: color .2s;
-  letter-spacing: .3px;
-  background: rgba(255,255,255,0.07);
-  padding: 6px 14px;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.12);
-}
-.lb-nav-back:hover { color: #ffd700; border-color: rgba(255,215,0,0.3); }
+/* NAV (LandingPage pill style) */
+.nav-wrap{position:fixed;top:0;left:0;right:0;z-index:1000;padding:18px 0;pointer-events:none;display:flex;justify-content:center}
+.navbar{pointer-events:all;width:62%;max-width:700px;min-width:580px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:11px 20px 11px 18px;border-radius:100px;background:rgba(7,4,15,0.88);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(146,16,246,0.22);box-shadow:0 8px 48px rgba(0,0,0,0.60)}
+.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
+.logo-mark{width:auto;height:60px;border-radius:9px;flex-shrink:0;background:transparent;display:grid;place-items:center;font-family:var(--fb);font-weight:800;font-size:18px;margin-right:0}
+.logo-name{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:20px;color:#fff;white-space:nowrap;letter-spacing:2px}
+.nav-links{list-style:none;display:flex;gap:26px;align-items:center}
+.nav-links a{font-family:'DM Sans',sans-serif;font-size:14px;font-weight:600;color:rgba(255,255,255,0.52);text-decoration:none;position:relative;transition:color .22s}
+.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:linear-gradient(90deg,#610497,#9210f6);transition:width .25s}
+.nav-links a:hover{color:#fff}
+.nav-links a:hover::after{width:100%}
+.nav-btn-cta{position:relative;overflow:hidden;display:inline-flex;align-items:center;height:38px;padding:0 22px;border-radius:100px;border:none;background:linear-gradient(90deg,#610497,#9210f6);text-decoration:none;font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;color:#fff!important;transition:opacity .2s;margin-left:0}
+.nav-btn-cta:hover{opacity:.85;color:#fff!important}
+.nav-btn-cta::after{display:none!important}
+.ham{display:none;flex-direction:column;gap:5px;background:none;border:none;padding:4px}
+.ham span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:all .3s}
+.ham.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
+.ham.open span:nth-child(2){opacity:0}
+.ham.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
+.mob-overlay{display:none;position:fixed;inset:0;top:74px;background:rgba(7,4,15,0.97);backdrop-filter:blur(20px);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:30px}
+.mob-overlay.open{display:flex}
+.mob-overlay a{font-family:'Bebas Neue',sans-serif;font-size:26px;color:#fff;text-decoration:none;opacity:.80;transition:opacity .2s;letter-spacing:2px}
+.mob-overlay a:hover{opacity:1}
+.mob-cta{margin-top:8px;padding:14px 40px;border-radius:100px;background:linear-gradient(90deg,#610497,#9210f6);color:#fff;font-family:'DM Sans',sans-serif;font-size:17px;font-weight:700;text-decoration:none}
 
-/* ── Page wrapper ── */
-.lb-page { display: flex; flex-direction: column; align-items: center; padding: 40px 16px 80px; }
+@media(max-width:1100px){.navbar{width:78%}}
+@media(max-width:900px){
+  .nav-links,.nav-btn-cta{display:none}
+  .ham{display:flex}
+  .nav-wrap{padding:12px 20px;display:block}
+  .navbar{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}
+}
+@media(max-width:640px){
+  .nav-links{display:none}
+}
+
+.lb-page { display: flex; flex-direction: column; align-items: center; padding: 130px 16px 80px; }
 
 /* ── Outer board card (the navy bordered rounded rect from reference) ── */
 .lb-board {
@@ -384,18 +394,32 @@ export default function LeaderboardPage() {
   const [entries, setEntries] = useState([]);
   const [loading, setLoading] = useState(true);
   const [rowsReady, setRowsReady] = useState([]);
+  const [menuOpen, setMenuOpen] = useState(false);
+  const [entrancePlayed, setEntrancePlayed] = useState(false);
   const audioRef = useRef(null);
 
-  // Init audio
-  useEffect(() => {
-    audioRef.current = createAudioCtx();
-    const init = () => {
-      if (!audioRef.current || audioRef.current.state === "suspended") {
-        audioRef.current = createAudioCtx();
-      }
-    };
-    window.addEventListener("click", init, { once: true });
+  const initAudio = useCallback(() => {
+    const ctx = createAudioCtx();
+    audioRef.current = ctx;
+    return ctx;
   }, []);
+
+  const playHover = useCallback(() => {
+    let ctx = audioRef.current;
+    if (!ctx) ctx = initAudio();
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume();
+    playTone(ctx, 880, "sine", 0.06, 0.04);
+  }, [initAudio]);
+
+  const playEntrance = useCallback(() => {
+    let ctx = audioRef.current;
+    if (!ctx) ctx = initAudio();
+    if (!ctx) return;
+    if (ctx.state === "suspended") ctx.resume();
+    playGrandEntrance(ctx);
+    setEntrancePlayed(true);
+  }, [initAudio]);
 
   // Fetch leaderboard
   useEffect(() => {
@@ -418,7 +442,6 @@ export default function LeaderboardPage() {
         setRowsReady(prev => { const n = [...prev]; n[i] = true; return n; });
       }, 200 + i * 100);
     });
-    setTimeout(() => playGrandEntrance(audioRef.current), 200);
   }, [loading, entries.length]);
 
   return (
@@ -426,14 +449,53 @@ export default function LeaderboardPage() {
       <style>{CSS}</style>
       <div className="lb">
 
-        {/* Nav bar (preserved from original) */}
-        <nav className="lb-nav">
-          <a href="/"><img src="/favicon2.png" alt="Promogames" style={{ height: 60, width: 'auto', borderRadius: 8 }} /></a>
-          <a href="/" className="lb-nav-back">← Back to Home</a>
-        </nav>
+        {/* Nav (LandingPage pill style) */}
+        <div className="nav-wrap">
+          <nav className="navbar">
+            <a href="/" className="logo">
+              <img src="/favicon2.png" alt="Promogames" className="logo-mark"
+                style={{ borderRadius:'9px', objectFit:'cover' }} />
+            </a>
+            <ul className="nav-links" style={{ justifySelf:'center' }}>
+              <li><a href="/arcade">Play</a></li>
+            </ul>
+            <a href="/login" className="nav-btn-cta">Signup &amp; Play</a>
+            <button className={`ham${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(p => !p)}>
+              <span /><span /><span />
+            </button>
+          </nav>
+        </div>
+
+        <div className={`mob-overlay${menuOpen ? ' open' : ''}`}>
+          {[{label:"Play",href:"/arcade"},{label:"Leaderboard",href:"/leaderboard"}].map(n => (
+            <a key={n.label} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>
+          ))}
+          <a href="/login" className="mob-cta">Signup &amp; Play</a>
+        </div>
 
         <div className="lb-page">
           <div className="lb-board">
+
+            {/* Logo - click to play entrance melody */}
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
+              <img
+                src="/favicon.png"
+                alt="Promogames"
+                style={{
+                  width: 72,
+                  height: 72,
+                  borderRadius: 14,
+                  objectFit: 'cover',
+                  cursor: 'pointer',
+                  filter: 'drop-shadow(0 4px 16px rgba(146,16,246,0.5))',
+                  transition: 'transform 0.2s, filter 0.2s',
+                }}
+                onMouseEnter={e => { e.target.style.transform = 'scale(1.08)'; e.target.style.filter = 'drop-shadow(0 8px 24px rgba(146,16,246,0.7))'; }}
+                onMouseLeave={e => { e.target.style.transform = 'scale(1)'; e.target.style.filter = 'drop-shadow(0 4px 16px rgba(146,16,246,0.5))'; }}
+                onClick={playEntrance}
+                title={entrancePlayed ? "Promogames" : "Tap to play entrance melody"}
+              />
+            </div>
 
             {/* Red ribbon header */}
             <div className="lb-ribbon-wrap">
@@ -466,6 +528,7 @@ export default function LeaderboardPage() {
                     <div
                       key={entry.player_email || entry.player_name}
                       className={`lb-row${rowsReady[i] ? " visible" : ""}${isTop3 ? " lb-row-top" : ""}`}
+                      onMouseEnter={playHover}
                       style={{
                         background: style.bg,
                         boxShadow: style.shadow,

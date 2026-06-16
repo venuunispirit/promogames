@@ -7,48 +7,68 @@ const db = require('../config/db');
 // Optional query param: ?game_id=3
 router.get('/', async (req, res) => {
   try {
-    const { game_id } = req.query;
-
-    let query = `
+    const query = `
       SELECT 
-        pp.id as player_id,
-        pp.name as player_name,
-        pp.email as player_email,
-        COALESCE(SUM(pt.points), 0) as total_pc,
-        COUNT(pt.id) as play_count,
-        MAX(pt.created_at) as last_played
-      FROM promo_players pp
-      LEFT JOIN pc_transactions pt ON pt.player_id = pp.id AND pt.type = 'earn'
+        ps.id as serial_number,
+        ps.score as total_pc,
+        JSON_UNQUOTE(JSON_EXTRACT(ps.player_data, '$."Full Name"')) as player_name,
+        JSON_UNQUOTE(JSON_EXTRACT(ps.player_data, '$."Email Address"')) as player_email,
+        u.id IS NOT NULL as has_account
+      FROM player_sessions ps
+      LEFT JOIN users u ON u.email = JSON_UNQUOTE(JSON_EXTRACT(ps.player_data, '$."Email Address"'))
+      WHERE ps.completed = 1
+      ORDER BY ps.score DESC, ps.created_at DESC
     `;
 
-    const params = [];
+    const [rows] = await db.query(query);
 
-    if (game_id) {
-      query += ` AND pt.game_id = ?`;
-      params.push(game_id);
-    }
+    // Logic: Top 3 by score, then 5 most recent from the rest.
+    const top3 = rows.slice(0, 3);
+    const remainder = rows.slice(3);
+    const last5 = remainder.slice(-5).reverse();
 
-    query += `
-      GROUP BY pp.id, pp.name, pp.email
-      HAVING total_pc > 0
-      ORDER BY total_pc DESC, last_played ASC
-      LIMIT 100
-    `;
-
-    const [rows] = await db.query(query, params);
-
-    const entries = rows.map((row, i) => ({
+    const entries = [...top3, ...last5].map((row, i) => ({
+      ...row,
       rank: i + 1,
       player_name: row.player_name || 'Anonymous',
-      player_email: row.player_email,
-      total_plays: row.play_count,
-      total_pc: row.total_pc,
-      last_played: row.last_played,
     }));
 
     res.json({ success: true, entries });
   } catch (err) {
     console.error('Leaderboard error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/leaderboard/all - Get ALL completed player sessions (for landing page)
+router.get('/all', async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        ps.id as serial_number,
+        ps.score as total_pc,
+        JSON_UNQUOTE(JSON_EXTRACT(ps.player_data, '$."Full Name"')) as player_name,
+        JSON_UNQUOTE(JSON_EXTRACT(ps.player_data, '$."Email Address"')) as player_email,
+        ps.started_at,
+        ps.completed_at,
+        u.id IS NOT NULL as has_account
+      FROM player_sessions ps
+      LEFT JOIN users u ON u.email = JSON_UNQUOTE(JSON_EXTRACT(ps.player_data, '$."Email Address"'))
+      WHERE ps.completed = 1
+      ORDER BY ps.score DESC, ps.started_at DESC
+    `;
+
+    const [rows] = await db.query(query);
+
+    const entries = rows.map((row, i) => ({
+      ...row,
+      rank: i + 1,
+      player_name: row.player_name || 'Anonymous',
+    }));
+
+    res.json({ success: true, entries });
+  } catch (err) {
+    console.error('Leaderboard all error:', err);
     res.status(500).json({ success: false, message: err.message });
   }
 });

@@ -200,9 +200,20 @@ async function initPromo() {
     console.error("❌ player_sessions migration:", err.message);
   }
 
+  // ── 12. INTERNAL TEAM ──────────────────────────────────────────────────────
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS internal_team (
+      id           INT AUTO_INCREMENT PRIMARY KEY,
+      name         VARCHAR(100)  NOT NULL,
+      email        VARCHAR(150)  NOT NULL UNIQUE,
+      role         VARCHAR(50)   DEFAULT 'member',
+      created_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+    )
+  `, 'internal_team table');
+
   await connection.end();
   console.log('\n🎉 PromoPlayer migration completed successfully!');
-  console.log('Tables created: promo_players, otp_tokens, trusted_devices, pc_transactions, brand_rewards, redemptions');
+  console.log('Tables created: promo_players, otp_tokens, trusted_devices, pc_transactions, brand_rewards, redemptions, internal_team');
   console.log('Columns added: games.game_type, player_sessions.pc_awarded, player_sessions.promo_player_id');
 }
 

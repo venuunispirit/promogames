@@ -75,19 +75,29 @@ router.post('/check-email', async (req, res) => {
   if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
 
   try {
-    // Check admin/internal users table first
+    // 1. Check admin table (users)
     const [adminRows] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
     if (adminRows.length > 0) {
       return res.json({ success: true, type: 'admin' });
     }
 
-    // Check promo_players table
+    // 2. Check internal team table (gracefully skip if table doesn't exist)
+    try {
+      const [teamRows] = await db.query('SELECT id FROM internal_team WHERE email = ?', [email]);
+      if (teamRows.length > 0) {
+        return res.json({ success: true, type: 'internal_team' });
+      }
+    } catch {
+      // internal_team table may not exist yet — skip silently
+    }
+
+    // 3. Check promo_players table
     const [playerRows] = await db.query('SELECT id FROM promo_players WHERE email = ?', [email]);
     if (playerRows.length > 0) {
       return res.json({ success: true, type: 'player' });
     }
 
-    // Brand new user
+    // 4. Brand new user
     return res.json({ success: true, type: 'new' });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -151,7 +161,7 @@ router.post('/verify-otp', async (req, res) => {
     // Mark OTP as used
     await db.query('UPDATE otp_tokens SET used = 1 WHERE id = ?', [rows[0].id]);
 
-    // Check if player exists
+    // Check if player exists in promo_players
     const [playerRows] = await db.query('SELECT * FROM promo_players WHERE email = ?', [email]);
 
     if (playerRows.length > 0) {
@@ -170,6 +180,39 @@ router.post('/verify-otp', async (req, res) => {
           pc_balance: player.pc_balance, city: player.city,
         },
       });
+    }
+
+    // Check if email belongs to internal_team — auto-create promo_player
+    try {
+      const [teamRows] = await db.query('SELECT id, name FROM internal_team WHERE email = ?', [email]);
+      if (teamRows.length > 0) {
+        const teamMember = teamRows[0];
+        const [insertResult] = await db.query(
+          `INSERT INTO promo_players (name, email, pc_balance)
+           VALUES (?, ?, 100)
+           ON DUPLICATE KEY UPDATE name = VALUES(name)`,
+          [teamMember.name || email, email]
+        );
+        const playerId = insertResult.insertId;
+        const [newPlayer] = await db.query('SELECT * FROM promo_players WHERE id = ?', [playerId]);
+        const player = newPlayer[0];
+        const token = jwt.sign(
+          { id: player.id, email: player.email, name: player.name, role: 'player' },
+          process.env.JWT_SECRET || 'secret',
+          { expiresIn: '30d' }
+        );
+        return res.json({
+          success: true,
+          type: 'player',
+          token,
+          player: {
+            id: player.id, name: player.name, email: player.email,
+            pc_balance: player.pc_balance, city: player.city,
+          },
+        });
+      }
+    } catch {
+      // internal_team table may not exist yet — skip silently
     }
 
     // New user — return a short-lived temp token for registration step

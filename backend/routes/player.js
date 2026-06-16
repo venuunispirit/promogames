@@ -405,18 +405,34 @@ router.get('/hero-games', async (req, res) => {
 // GET /api/play/play-page-games
 router.get('/play-page-games', async (req, res) => {
   try {
-    const [games] = await db.query(`
-      SELECT g.id, g.name, g.slug, g.category,
-             c.slug as client_slug,
+    // Branded games → Featured row
+    const [branded] = await db.query(`
+      SELECT g.id, g.name, g.slug, g.category, g.game_type,
+             c.slug as client_slug, c.company_name,
              qs.game_logo_url, qs.bg_image_url,
              (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
       FROM games g
       JOIN clients c ON g.client_id = c.id
       LEFT JOIN quiz_settings qs ON qs.game_id = g.id
-      WHERE g.show_in_play_page = 1 AND g.is_active = 1
+      WHERE g.show_in_play_page = 1 AND g.is_active = 1 AND g.game_type = 'branded'
       ORDER BY play_count DESC
     `);
-    res.json({ success: true, games });
+
+    // PromoGames → PromoGames row
+    const [promoGames] = await db.query(`
+      SELECT g.id, g.name, g.slug, g.category, g.game_type,
+             c.slug as client_slug, c.company_name,
+             qs.game_logo_url, qs.bg_image_url,
+             (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
+      FROM games g
+      JOIN clients c ON g.client_id = c.id
+      LEFT JOIN quiz_settings qs ON qs.game_id = g.id
+      WHERE g.show_in_play_page = 1 AND g.is_active = 1 AND g.game_type = 'promogames'
+      ORDER BY play_count DESC
+    `);
+
+    const allGames = [...branded, ...promoGames];
+    res.json({ success: true, games: allGames, featured: branded, promogames: promoGames });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

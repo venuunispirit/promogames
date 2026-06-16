@@ -105,6 +105,19 @@ const LB_MOCK = [
   { initials: "KP", name: "Kiran P.",  score: "35,900", pct: 74  },
 ];
 
+const DUMMY_LEADERBOARD = [
+  { name: "Arjun K.",      score: 48200, has_account: true  },
+  { name: "Priya S.",      score: 44750, has_account: true  },
+  { name: "Rohit V.",      score: 41100, has_account: false },
+  { name: "Meera S.",      score: 38600, has_account: true  },
+  { name: "Kiran P.",      score: 35900, has_account: false },
+  { name: "Divya R.",      score: 32400, has_account: true  },
+  { name: "Aman S.",       score: 29800, has_account: false },
+  { name: "Neha G.",       score: 27100, has_account: true  },
+  { name: "Rajesh M.",     score: 24500, has_account: false },
+  { name: "Sneha T.",      score: 21800, has_account: true  },
+];
+
 /* ─── CSS ──────────────────────────────────────────── */
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -871,6 +884,8 @@ function AnimateBar({ pct, threshold = 0.3 }) {
 export default function PromoGamesHome() {
   const [fontIdx, setFontIdx] = useState(0);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [leaderboardEntries] = useState(DUMMY_LEADERBOARD);
+  const [leaderboardLoading] = useState(false);
   const dotRef  = useRef(null);
   const ringRef = useRef(null);
   const flyRef = useRef(null);
@@ -1129,20 +1144,47 @@ export default function PromoGamesHome() {
               <div className="lb-header-dot" style={{ background:'#22c55e' }} />
               <span className="lb-header-title">Top Scorers — this month</span>
             </div>
-            {LB_MOCK.map((p, i) => (
-              <div key={p.name} className="lb-row">
-                <span className={`lb-pos${i === 0 ? ' gold' : i === 1 ? ' silver' : i === 2 ? ' bronze' : ''}`}>
-                  {i + 1}
-                </span>
-                <div className="lb-avatar"
-                  style={{ background:`linear-gradient(135deg,${['#9210f6','#610497','#7C3AED','#4F46E5','#9210f6'][i]},${['#610497','#7C3AED','#4F46E5','#9210f6','#610497'][i]})` }}>
-                  {p.initials}
-                </div>
-                <span className="lb-name">{p.name}</span>
-                <CountUp as="span" className="lb-score" value={p.score} />
-                <AnimateBar pct={p.pct} />
+            {leaderboardLoading ? (
+              <div className="hg-loader">
+                <div className="hg-spinner" />Loading leaderboard…
               </div>
-            ))}
+            ) : leaderboardEntries.length === 0 ? (
+              <div style={{ padding: '32px 20px', textAlign: 'center', color: 'var(--muted)', fontFamily: 'var(--fb)', fontSize: 14 }}>
+                No scores yet — be the first to play!
+              </div>
+            ) : (
+              leaderboardEntries.map((p, i) => {
+                const initials = p.name
+                  .split(' ')
+                  .map(n => n[0])
+                  .join('')
+                  .toUpperCase()
+                  .slice(0, 2);
+                const colors = ['#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497','#7C3AED','#4F46E5'];
+                const c1 = colors[i % colors.length];
+                const c2 = colors[(i + 1) % colors.length];
+                const scoreNum = p.score;
+                const maxScore = leaderboardEntries[0]?.score || 1;
+                const pct = maxScore > 0 ? Math.round((scoreNum / maxScore) * 100) : 0;
+                return (
+                  <div key={i} className="lb-row">
+                    <span className={`lb-pos${i === 0 ? ' gold' : i === 1 ? ' silver' : i === 2 ? ' bronze' : ''}`}>
+                      {i + 1}
+                    </span>
+                    <div className="lb-avatar"
+                      style={{ background: `linear-gradient(135deg,${c1},${c2})` }}>
+                      {initials}
+                    </div>
+                    <span className="lb-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      {p.name}
+                      {p.has_account && <span className="account-badge" style={{ fontSize: 10, padding: '2px 6px', borderRadius: '100px', background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.4)', color: '#22c55e', fontFamily: 'var(--fm)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>✓ Account</span>}
+                    </span>
+                    <CountUp as="span" className="lb-score" value={scoreNum.toLocaleString()} />
+                    <AnimateBar pct={pct} />
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       </section>
@@ -1163,7 +1205,6 @@ export default function PromoGamesHome() {
       <section id="why">
         <div className="why-inner">
           <div>
-            <p className="section-kicker">Why Play</p>
             <h2 className="section-h2">Why Players<br />Love PromoGames</h2>
             <div className="why-points">
               {WHY_POINTS.map((pt, i) => (

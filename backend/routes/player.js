@@ -443,7 +443,7 @@ router.get('/dashboard-games', async (req, res) => {
   try {
     const [games] = await db.query(`
       SELECT g.id, g.name, g.slug, g.description, g.redirect_url, g.game_type,
-             g.category, g.logo_url, c.company_name, c.slug as client_slug, c.slug as brand
+             g.category, g.game_logo_url, c.company_name, c.slug as client_slug, c.slug as brand
       FROM games g
       JOIN clients c ON g.client_id = c.id
       WHERE g.is_active = 1

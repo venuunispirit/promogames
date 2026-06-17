@@ -39,7 +39,7 @@ router.get('/', auth, async (req, res) => {
       ORDER BY g.created_at DESC
     `);
     res.json({ success: true, games: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 router.get('/:id', auth, async (req, res) => {
@@ -57,7 +57,7 @@ router.get('/:id', auth, async (req, res) => {
       q.options = options;
     }
     res.json({ success: true, game: { ...game, settings: settings[0] || null, emailTemplate: emailTemplate[0] || null, formFields, questions, sounds } });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 router.post('/', auth, async (req, res) => {
@@ -70,8 +70,8 @@ router.post('/', auth, async (req, res) => {
     const [existing] = await db.query('SELECT id FROM games WHERE slug = ? AND client_id = ?', [slug, client_id]);
     if (existing.length > 0) slug = `${slug}-${Date.now()}`;
     const [result] = await db.query(
-      `INSERT INTO games (client_id, name, slug, category, description, redirect_url, created_by) VALUES (?, ?, ?, ?, ?, ?, ?)`,
-      [client_id, name, slug, category || 'quiz', description, redirect_url, req.user.id]
+      `INSERT INTO games (client_id, name, slug, category, description, redirect_url, game_logo_url, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [client_id, name, slug, category || 'quiz', description, redirect_url, null, req.user.id]
     );
     await db.query('INSERT INTO quiz_settings (game_id) VALUES (?)', [result.insertId]);
     const defaultFields = [['Full Name', 'text', 1, 0], ['Email Address', 'email', 1, 1], ['Phone Number', 'phone', 0, 2]];
@@ -80,7 +80,7 @@ router.post('/', auth, async (req, res) => {
     }
     const [newGame] = await db.query('SELECT g.*, c.company_name, c.slug as client_slug FROM games g LEFT JOIN clients c ON g.client_id = c.id WHERE g.id = ?', [result.insertId]);
     res.status(201).json({ success: true, game: newGame[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 router.put('/:id', auth, async (req, res) => {
@@ -100,7 +100,7 @@ router.put('/:id', auth, async (req, res) => {
     values.push(req.params.id);
     await db.query(`UPDATE games SET ${fields.join(', ')} WHERE id=?`, values);
     res.json({ success: true, message: 'Game updated' });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 // POST /api/games/:id/duplicate — clone a game with all settings, questions, options, form fields
@@ -267,7 +267,7 @@ router.delete('/:id', auth, async (req, res) => {
 
     console.log(`🗑️  Game ${gameId} and all associated files deleted.`);
     res.json({ success: true, message: 'Game deleted' });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 // PUT settings - with image upload support
@@ -340,7 +340,7 @@ router.put('/:id/settings', auth, upload.fields([
        randomize_questions !== undefined ? (randomize_questions ? 1 : 0) : 0]
     );
     res.json({ success: true, message: 'Settings saved' });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 // PUT email template - NO SMTP fields
@@ -356,7 +356,7 @@ router.put('/:id/email-template', auth, async (req, res) => {
       [req.params.id, sender_name, sender_email, subject, header_color, header_text, body_html, footer_text, is_enabled ? 1 : 0]
     );
     res.json({ success: true, message: 'Email template saved' });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 router.put('/:id/form-fields', auth, async (req, res) => {
@@ -371,7 +371,7 @@ router.put('/:id/form-fields', auth, async (req, res) => {
       );
     }
     res.json({ success: true, message: 'Form fields saved' });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 router.get('/:id/stats', auth, async (req, res) => {
@@ -379,7 +379,7 @@ router.get('/:id/stats', auth, async (req, res) => {
     const [sessions] = await db.query('SELECT COUNT(*) as total, SUM(completed) as completed, AVG(score) as avg_score FROM player_sessions WHERE game_id = ?', [req.params.id]);
     const [recent] = await db.query('SELECT player_data, score, total_scoreable, completed_at FROM player_sessions WHERE game_id = ? AND completed = 1 ORDER BY completed_at DESC LIMIT 20', [req.params.id]);
     res.json({ success: true, stats: sessions[0], recent });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 
@@ -407,7 +407,7 @@ router.get('/:id/responses', auth, async (req, res) => {
     }
 
     res.json({ success: true, sessions });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
 module.exports = router;

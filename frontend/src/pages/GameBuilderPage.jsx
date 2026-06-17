@@ -1003,7 +1003,7 @@ const [nameInput,     setNameInput]     = useState('')
         'heading_1','heading_2','intro_text','outro_text','win_sound_id','lose_sound_id',
         'sound_correct_id','sound_wrong_id',
         'terms_enabled','terms_text','terms_url','send_email','font_family',
-        'start_button_text','next_button_text','submit_button_text','continue_button_text',
+        'start_button_text','submit_button_text','continue_button_text',
         'meta_description',
         'heading_1_color','heading_2_color','intro_text_color',
         'thankyou_subtitle','outro_text_color','thankyou_subtitle_color',

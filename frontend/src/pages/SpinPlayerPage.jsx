@@ -266,8 +266,10 @@ export default function SpinPlayerPage({ gameData, sessionToken: initToken, sess
     let sid   = sessionId
     if (!token) {
       try {
-        const playerUser = JSON.parse(localStorage.getItem('playerUser') || '{}')
-        const src = new URLSearchParams(window.location.search).get('source') === 'direct' ? 'direct' : 'link'
+        const playerUser = JSON.parse(localStorage.getItem('playerUser') || sessionStorage.getItem('playerUser') || '{}')
+        const src = playerUser.id
+          ? 'player'
+          : new URLSearchParams(window.location.search).get('source') === 'direct' ? 'direct' : 'link'
         const res = await api.post('/play/session/start', {
           game_id: gameData.id,
           player_data: {},

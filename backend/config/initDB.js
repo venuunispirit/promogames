@@ -335,6 +335,7 @@ async function initDB() {
   await addColumn(connection, 'games', 'description', 'TEXT');
   await addColumn(connection, 'games', 'redirect_url', 'VARCHAR(500)');
   await addColumn(connection, 'games', 'is_active', 'TINYINT(1) DEFAULT 1');
+  await addColumn(connection, 'games', 'game_logo_url', 'VARCHAR(500)');
   await addColumn(connection, 'games', 'show_in_play_page', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'games', 'show_in_hero_page', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'games', 'created_by', 'INT');

@@ -37,6 +37,15 @@ app.use("/api/crossword", crosswordRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/players-admin", playersAdminRoutes);
 
+app.get("/api/check-code", (req, res) => {
+  res.json({ 
+    success: true, 
+    message: "LATEST_VERSION_V5_BACKEND", 
+    timestamp: new Date(),
+    file: __filename
+  });
+});
+
 app.get("/", (req, res) => {
   res.send("Backend Running");
 });

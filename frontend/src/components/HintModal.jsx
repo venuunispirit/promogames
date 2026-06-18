@@ -1,9 +1,7 @@
 import React from 'react';
 
-const HintModal = ({ isOpen, onClose, hint, cost, balance, onConfirm }) => {
+const HintModal = ({ isOpen, onClose, hint, onConfirm }) => {
   if (!isOpen) return null;
-
-  const canAfford = balance >= cost;
 
   return (
     <div style={{
@@ -17,48 +15,60 @@ const HintModal = ({ isOpen, onClose, hint, cost, balance, onConfirm }) => {
       padding: '20px',
       backdropFilter: 'blur(8px)',
     }}>
-      <div className="glass-card" style={{
+      <div style={{
         maxWidth: '340px',
         width: '100%',
         padding: '32px 24px',
         textAlign: 'center',
         animation: 'fadeIn 0.3s ease',
+        background: '#fff',
+        borderRadius: '20px',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
       }}>
         <div style={{ fontSize: '48px', marginBottom: '16px' }}>💡</div>
-        <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px' }}>Need a Hint?</h3>
-        <p style={{ fontSize: '14px', color: 'rgba(255,255,255,0.6)', marginBottom: '24px', lineHeight: 1.5 }}>
-          Get a hint for this word for <span style={{ color: 'var(--neon-purple)', fontWeight: 700 }}>{cost} PC</span>.
+        <h3 style={{ fontSize: '20px', fontWeight: 800, marginBottom: '8px', color: '#1a1a2e' }}>Need a Hint?</h3>
+        <p style={{ fontSize: '14px', color: '#666', marginBottom: '24px', lineHeight: 1.5 }}>
+          Reveal the clue for the selected word.
         </p>
 
         {hint ? (
           <div style={{
-            background: 'rgba(168, 85, 247, 0.1)',
-            border: '1px solid rgba(168, 85, 247, 0.3)',
+            background: '#f3e8ff',
+            border: '1px solid #c084fc',
             borderRadius: '16px',
             padding: '16px',
             marginBottom: '24px',
             fontSize: '16px',
             fontWeight: 700,
-            color: '#fff',
+            color: '#5b21b6',
           }}>
             {hint}
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
             <button
-              className="btn-premium"
               onClick={onConfirm}
-              disabled={!canAfford}
-              style={{ width: '100%', opacity: canAfford ? 1 : 0.5 }}
+              style={{
+                width: '100%',
+                padding: '14px 20px',
+                borderRadius: '14px',
+                border: 'none',
+                background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+                color: '#fff',
+                fontSize: '16px',
+                fontWeight: 700,
+                cursor: 'pointer',
+                boxShadow: '0 6px 24px rgba(124, 58, 237, 0.4)',
+              }}
             >
-              {canAfford ? `Unlock Hint (${cost} PC)` : 'Not enough PC'}
+              Reveal Hint
             </button>
             <button
               onClick={onClose}
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: 'rgba(255,255,255,0.5)',
+                color: '#999',
                 fontSize: '14px',
                 fontWeight: 600,
                 cursor: 'pointer',
@@ -70,7 +80,21 @@ const HintModal = ({ isOpen, onClose, hint, cost, balance, onConfirm }) => {
         )}
 
         {hint && (
-          <button className="btn-premium" onClick={onClose} style={{ width: '100%' }}>
+          <button
+            onClick={onClose}
+            style={{
+              width: '100%',
+              padding: '14px 20px',
+              borderRadius: '14px',
+              border: 'none',
+              background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+              color: '#fff',
+              fontSize: '16px',
+              fontWeight: 700,
+              cursor: 'pointer',
+              boxShadow: '0 6px 24px rgba(124, 58, 237, 0.4)',
+            }}
+          >
             Got it!
           </button>
         )}

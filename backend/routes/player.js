@@ -444,7 +444,7 @@ router.get('/dashboard-games', async (req, res) => {
     // Simplified query for initial testing, using LEFT JOINs safely
     const [games] = await db.query(`
       SELECT g.id, g.name, g.slug, g.game_type, g.category, 
-             g.redirect_url, g.description, g.game_logo_url,
+             g.redirect_url, g.description, g.game_logo_url, g.bg_image_url,
              c.company_name, c.slug as client_slug
       FROM games g
       JOIN clients c ON g.client_id = c.id
@@ -471,5 +471,15 @@ router.get('/dashboard-games', async (req, res) => {
     })
   }
 })
+
+// ── Lightweight play-count poll endpoint ─────────────────────────────────
+router.get('/game/:id/play-count', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT play_count FROM games WHERE id = ?', [req.params.id]);
+    res.json({ play_count: rows[0]?.play_count || 0 });
+  } catch (err) {
+    res.status(500).json({ play_count: 0 });
+  }
+});
 
 module.exports = router;

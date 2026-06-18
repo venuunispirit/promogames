@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api'
+import GameModal from '../components/GameModal'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getToken() {
@@ -61,17 +62,41 @@ const DASHBOARD_STYLES = `
     transform: scale(0.95);
   }
 
+  /* Capsule Nav Styles */
+  .capsule-nav-container {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 40px);
+    max-width: 400px;
+    height: 72px;
+    background: rgba(15, 7, 32, 0.3);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 100px;
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 0 10px;
+    z-index: 2000;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6), 0 0 20px rgba(168, 85, 247, 0.15);
+  }
+
   .nav-item {
     display: flex;
     flex-direction: column;
     align-items: center;
+    justify-content: center;
     gap: 4px;
-    color: rgba(255,255,255,0.4);
-    transition: all 0.3s ease;
+    color: rgba(255, 255, 255, 0.4);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     text-decoration: none;
     font-size: 10px;
-    font-weight: 600;
+    font-weight: 700;
     flex: 1;
+    cursor: pointer;
+    position: relative;
   }
 
   .nav-item.active {
@@ -80,8 +105,58 @@ const DASHBOARD_STYLES = `
 
   .nav-item.active .nav-icon {
     color: var(--neon-purple);
-    transform: translateY(-2px);
-    text-shadow: 0 0 12px var(--neon-purple);
+    transform: translateY(-4px);
+    filter: drop-shadow(0 0 8px var(--neon-purple));
+  }
+
+  .nav-item.active span {
+    color: #fff;
+    text-shadow: 0 0 10px rgba(168, 85, 247, 0.4);
+  }
+
+  .nav-item:not(.active):hover .nav-icon {
+    color: rgba(255, 255, 255, 0.8);
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 0 20px 24px;
+  }
+
+  @media (min-width: 1024px) {
+    .stats-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 20px;
+    }
+  }
+
+  @media (min-width: 1024px) {
+    .btn-desktop-auto {
+      width: auto !important;
+      min-width: 200px;
+      margin: 24px auto 0 !important;
+      padding: 12px 32px !important;
+    }
+  }
+
+  .challenges-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+  }
+
+  @media (min-width: 1024px) {
+    .challenges-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+      margin: 0 20px 24px;
+    }
+    .challenges-grid > div {
+      margin: 0 !important;
+    }
   }
 
   @keyframes float {
@@ -102,6 +177,207 @@ const DASHBOARD_STYLES = `
   .animate-float { animation: float 3s ease-in-out infinite; }
   .animate-pulse-glow { animation: pulse-glow 4s ease-in-out infinite; }
   .animate-rotate { animation: rotate-slow 20s linear infinite; }
+
+  /* Premium Game Card Styles */
+  .game-card-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    margin-bottom: 40px;
+  }
+
+  @media (min-width: 768px) {
+    .game-card-grid {
+      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      gap: 24px;
+    }
+  }
+
+  .premium-game-card {
+    width: 100%;
+    aspect-ratio: 280 / 420;
+    height: auto;
+    background: rgba(15, 7, 32, 0.6);
+    backdrop-filter: blur(20px);
+    border: 1px solid rgba(168, 85, 247, 0.3);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: pointer;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    display: flex;
+    flex-direction: column;
+  }
+
+  @media (min-width: 768px) {
+    .premium-game-card {
+      width: 280px;
+      height: 420px;
+      aspect-ratio: auto;
+      border-radius: 24px;
+    }
+  }
+
+  .premium-game-card:hover {
+    transform: translateY(-8px);
+    border-color: #a855f7;
+    box-shadow: 0 15px 45px rgba(139, 92, 246, 0.3), 0 0 20px rgba(168, 85, 247, 0.2);
+  }
+
+  .premium-game-card .image-container {
+    height: 65%;
+    width: 100%;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .premium-game-card .game-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.5s ease;
+  }
+
+  .premium-game-card:hover .game-image {
+    transform: scale(1.08);
+  }
+
+  .premium-game-card .card-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to bottom, transparent 20%, rgba(15, 7, 32, 0.95) 100%);
+  }
+
+  .premium-game-card .reward-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: rgba(34, 197, 94, 0.9);
+    color: #fff;
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 10px;
+    font-weight: 800;
+    backdrop-filter: blur(4px);
+    z-index: 2;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.3);
+  }
+
+  @media (min-width: 768px) {
+    .premium-game-card .reward-badge {
+      top: 16px;
+      right: 16px;
+      padding: 6px 12px;
+      border-radius: 12px;
+      font-size: 12px;
+    }
+  }
+
+  .premium-game-card .category-pill {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: rgba(168, 85, 247, 0.8);
+    color: #fff;
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 8px;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    z-index: 2;
+    backdrop-filter: blur(4px);
+  }
+
+  @media (min-width: 768px) {
+    .premium-game-card .category-pill {
+      top: 16px;
+      left: 16px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      font-size: 10px;
+      letter-spacing: 1px;
+    }
+  }
+
+  .premium-game-card .content {
+    padding: 12px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    position: relative;
+    z-index: 2;
+  }
+
+  @media (min-width: 768px) {
+    .premium-game-card .content {
+      padding: 20px;
+    }
+  }
+
+  .premium-game-card .game-title {
+    font-size: 14px;
+    font-weight: 800;
+    margin-bottom: 4px;
+    line-height: 1.2;
+    background: linear-gradient(to right, #fff, rgba(255,255,255,0.7));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  @media (min-width: 768px) {
+    .premium-game-card .game-title {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
+  }
+
+  .premium-game-card .metadata {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    font-size: 9px;
+    color: rgba(255,255,255,0.5);
+    font-weight: 600;
+  }
+
+  @media (min-width: 768px) {
+    .premium-game-card .metadata {
+      gap: 12px;
+      font-size: 11px;
+    }
+  }
+
+  .premium-game-card .meta-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .premium-game-card .card-index-number {
+    position: absolute;
+    bottom: -15px;
+    right: -5px;
+    font-size: 100px;
+    font-weight: 900;
+    line-height: 1;
+    color: rgba(255, 255, 255, 0.05);
+    z-index: 1;
+    pointer-events: none;
+    font-family: 'Outfit', sans-serif;
+    transition: all 0.4s ease;
+  }
+
+  .premium-game-card:hover .card-index-number {
+    color: rgba(168, 85, 247, 0.15);
+    transform: scale(1.1) translateX(-10px);
+  }
 
   /* Hide scrollbar for carousels */
   .no-scrollbar::-webkit-scrollbar { display: none; }
@@ -127,14 +403,27 @@ function ErrorUI({ message, onRetry }) {
 
 function Header({ name }) {
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '20px 20px', position: 'sticky', top: 0, zIndex: 1000, background: 'rgba(15, 7, 32, 0.7)', backdropFilter: 'blur(16px)', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+    <div style={{ 
+      display: 'flex', 
+      justifyContent: 'space-between', 
+      alignItems: 'center', 
+      padding: '16px 20px', 
+      position: 'sticky', 
+      top: 0, 
+      zIndex: 1500, 
+      background: 'rgba(15, 7, 32, 0.4)', 
+      backdropFilter: 'blur(12px)', 
+      WebkitBackdropFilter: 'blur(12px)',
+      borderBottom: '1px solid rgba(255,255,255,0.08)',
+      boxShadow: '0 4px 30px rgba(0, 0, 0, 0.1)'
+    }}>
       <div>
         <div style={{ fontSize: 18, fontWeight: 800, letterSpacing: -0.5 }}>Hi, {name.split(' ')[0]} 👋</div>
         <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>Welcome Back</div>
       </div>
       <div style={{ display: 'flex', gap: 10 }}>
-        <button className="glass-card" style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--glass-border)', cursor: 'pointer', background: 'var(--glass-bg)', fontSize: 18 }}>🔔</button>
-        <button className="glass-card" style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--glass-border)', cursor: 'pointer', background: 'var(--glass-bg)', fontSize: 18 }}>🎁</button>
+        <button className="glass-card" style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--glass-border)', cursor: 'pointer', background: 'var(--glass-bg)', fontSize: 18, borderRadius: '12px' }}>🔔</button>
+        <button className="glass-card" style={{ width: 40, height: 40, display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1px solid var(--glass-border)', cursor: 'pointer', background: 'var(--glass-bg)', fontSize: 18, borderRadius: '12px' }}>🎁</button>
       </div>
     </div>
   )
@@ -187,13 +476,13 @@ function WalletHero({ balance, city, onPlayMore }) {
           </div>
         </div>
       </div>
-      
-      <button className="btn-premium" style={{ width: '100%', marginTop: 24, fontSize: 14 }} onClick={onPlayMore}>
+
+      <button className="btn-premium btn-desktop-auto" style={{ width: '100%', marginTop: 24, fontSize: 14 }} onClick={onPlayMore}>
         🕹️ Play & Earn More
       </button>
-    </div>
-  )
-}
+      </div>
+      )
+      }
 
 function QuickStat({ icon, label, value }) {
   return (
@@ -327,17 +616,53 @@ function RewardCard({ brand, title, cost, logo, onClaim }) {
 
 function BottomNav({ activeTab, onTabChange }) {
   const items = [
-    { id: 'home', label: 'Home', icon: '🏠' },
-    { id: 'games', label: 'Games', icon: '🎮' },
-    { id: 'rewards', label: 'Rewards', icon: '🎁' },
-    { id: 'profile', label: 'Profile', icon: '👤' },
+    { 
+      id: 'home', 
+      label: 'Home', 
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>
+        </svg>
+      )
+    },
+    { 
+      id: 'games', 
+      label: 'Games', 
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <line x1="6" y1="12" x2="10" y2="12"/><line x1="8" y1="10" x2="8" y2="14"/><rect x="2" y="6" width="20" height="12" rx="2"/><line x1="15" y1="13" x2="15.01" y2="13"/><line x1="18" y1="11" x2="18.01" y2="11"/>
+        </svg>
+      )
+    },
+    { 
+      id: 'rewards', 
+      label: 'Rewards', 
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="20 12 20 22 4 22 4 12"/><rect x="2" y="7" width="20" height="5"/><line x1="12" y1="22" x2="12" y2="7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/>
+        </svg>
+      )
+    },
+    { 
+      id: 'profile', 
+      label: 'Profile', 
+      icon: (
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        </svg>
+      )
+    },
   ];
   return (
-    <div className="glass-card" style={{ position: 'fixed', bottom: 24, left: 24, right: 24, height: 72, display: 'flex', justifyContent: 'space-around', alignItems: 'center', zIndex: 2000, padding: '0 8px', border: '1px solid rgba(255,255,255,0.15)', boxShadow: '0 12px 40px rgba(0,0,0,0.5)' }}>
+    <div className="capsule-nav-container">
       {items.map(item => (
-        <div key={item.id} className={`nav-item ${activeTab === item.id ? 'active' : ''}`} onClick={() => onTabChange(item.id)}>
-          <div className="nav-icon" style={{ fontSize: 22, transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)' }}>{item.icon}</div>
-          <span style={{ letterSpacing: 0.2 }}>{item.label}</span>
+        <div 
+          key={item.id} 
+          className={`nav-item ${activeTab === item.id ? 'active' : ''}`} 
+          onClick={() => onTabChange(item.id)}
+        >
+          <div className="nav-icon" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{item.icon}</div>
+          <span>{item.label}</span>
         </div>
       ))}
     </div>
@@ -345,25 +670,30 @@ function BottomNav({ activeTab, onTabChange }) {
 }
 
 // ── Game Card (For Games Tab) ─────────────────────────────────────────────
-function RedesignGameCard({ game, onPlay, pcAmount }) {
+function RedesignGameCard({ game, onPlay, pcAmount, index }) {
+  const gameImg = game.game_logo_url || game.bg_image_url;
+
   return (
-    <div className="glass-card" style={{ padding: 20, marginBottom: 16 }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
-        <div style={{ width: 48, height: 48, background: 'rgba(168, 85, 247, 0.1)', borderRadius: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24 }}>
-          {game.category === 'crossword' ? '🧩' : '🕹️'}
-        </div>
-        <div style={{ flex: 1 }}>
-          <div style={{ fontSize: 16, fontWeight: 800 }}>{game.name}</div>
-          <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>{game.company_name}</div>
-        </div>
-        <div style={{ fontSize: 12, fontWeight: 800, color: '#22c55e', background: 'rgba(34, 197, 94, 0.1)', padding: '4px 10px', borderRadius: 10 }}>+{pcAmount} PC</div>
+    <div className="premium-game-card" onClick={() => onPlay(game)}>
+      <div className="card-index-number">{index + 1}</div>
+      <div className="reward-badge">+{pcAmount} PC</div>
+      <div className="category-pill">{game.category || 'Arcade'}</div>
+
+      <div className="image-container">
+        {gameImg ? (
+          <img src={gameImg} alt={game.name} className="game-image" />
+        ) : (
+          <div className="card-overlay" />
+        )}
       </div>
-      <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', lineHeight: 1.5, marginBottom: 18 }}>
-        {game.description || 'Challenge yourself and earn Promo Coins in this exciting game!'}
-      </p>
-      <button className="btn-premium" style={{ width: '100%', padding: 10, fontSize: 13 }} onClick={() => onPlay(game)}>
-        Play Now →
-      </button>
+
+      <div className="content">
+        <div className="game-title">{game.name}</div>
+        <div className="metadata">
+          <div className="meta-item"><span>💎</span> +{pcAmount} PC</div>
+          <div className="meta-item"><span>🎮</span> {game.category?.toUpperCase() || 'ARCADE'}</div>
+        </div>
+      </div>
     </div>
   )
 }
@@ -378,6 +708,7 @@ export default function PlayerDashboard() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [activeTab, setActiveTab] = useState('home')
+  const [activeGame, setActiveGame] = useState(null)
 
   useEffect(() => {
     const styleEl = document.createElement('style');
@@ -449,11 +780,16 @@ export default function PlayerDashboard() {
   }
 
   const playUpdate = (game) => {
-    const url = game.category === 'crossword'
-      ? `/play/${game.slug}/${game.client_slug}`
-      : game.redirect_url
-    if (url.startsWith('http')) window.location.href = url
-    else navigate(url)
+    setActiveGame(game)
+  }
+
+  const handleCloseGame = () => {
+    setActiveGame(null)
+    loadData()
+  }
+
+  const handleSwitchGame = (game) => {
+    setActiveGame(game)
   }
 
   if (loading) return (
@@ -483,16 +819,18 @@ export default function PlayerDashboard() {
         <div className="fade-in">
           <WalletHero balance={player.pc_balance} city={player.city} onPlayMore={() => setActiveTab('games')} />
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, margin: '0 20px 24px' }}>
+          <div className="stats-grid">
             <QuickStat icon="💎" label="Total PC" value={player.pc_balance.toLocaleString()} />
             <QuickStat icon="🎮" label="Games" value={txs.filter(t => t.type === 'earn' && t.game_id).length} />
             <QuickStat icon="🎁" label="Redeemed" value={txs.filter(t => t.type === 'spend').length} />
             <QuickStat icon="🏆" label="Rank" value="Silver" />
           </div>
 
-          <DailyStreak days={3} />
-          <WeeklyChallenge progress={2} total={5} reward={200} />
-          <RecentActivity txs={txs} onBrowseGames={() => setActiveTab('games')} />
+          <div className="challenges-grid">
+            <DailyStreak days={3} />
+            <WeeklyChallenge progress={2} total={5} reward={200} />
+            <RecentActivity txs={txs} onBrowseGames={() => setActiveTab('games')} />
+          </div>
 
           {/* Achievements Section */}
           <div style={{ margin: '0 0 24px' }}>
@@ -518,8 +856,13 @@ export default function PlayerDashboard() {
               <div style={{ width: 4, height: 16, background: 'var(--neon-purple)', borderRadius: 4 }} />
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Branded Challenges</h3>
             </div>
-            {games.branded.length === 0 && <div className="glass-card" style={{ padding: 24, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Coming soon...</div>}
-            {games.branded.map(g => <RedesignGameCard key={g.id} game={g} onPlay={playUpdate} pcAmount={50} />)}
+            {games.branded.length === 0 ? (
+              <div className="glass-card" style={{ padding: 24, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Coming soon...</div>
+            ) : (
+              <div className="game-card-grid">
+                {games.branded.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={playUpdate} pcAmount={50} index={i} />)}
+              </div>
+            )}
           </div>
 
           <div>
@@ -527,7 +870,9 @@ export default function PlayerDashboard() {
               <div style={{ width: 4, height: 16, background: 'var(--neon-purple)', borderRadius: 4 }} />
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Quick Games</h3>
             </div>
-            {games.promogames.map(g => <RedesignGameCard key={g.id} game={g} onPlay={playUpdate} pcAmount={10} />)}
+            <div className="game-card-grid">
+              {games.promogames.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={playUpdate} pcAmount={10} index={i} />)}
+            </div>
           </div>
         </div>
       )}
@@ -537,11 +882,15 @@ export default function PlayerDashboard() {
           <h2 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>Redeem Rewards</h2>
           <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: 14, marginBottom: 24, fontWeight: 500 }}>Turn your PC into real-world value</p>
           
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr', gap: 16 }}>
-            <RewardCard brand="Amazon" title="₹500 Gift Card" cost={5000} logo="📦" onClaim={() => alert('Claimed!')} />
-            <RewardCard brand="Swiggy" title="₹200 Voucher" cost={2000} logo="🍔" onClaim={() => alert('Claimed!')} />
-            <RewardCard brand="Zomato" title="₹150 Voucher" cost={1500} logo="🍕" onClaim={() => alert('Claimed!')} />
-            <RewardCard brand="Myntra" title="₹1000 Discount" cost={8000} logo="👗" onClaim={() => alert('Claimed!')} />
+          <div className="glass-card" style={{ padding: '60px 40px', textAlign: 'center', background: 'rgba(168, 85, 247, 0.03)' }}>
+            <div style={{ fontSize: 64, marginBottom: 24 }} className="animate-float">🎁</div>
+            <h3 style={{ fontSize: 24, fontWeight: 800, marginBottom: 12 }}>Rewards Store</h3>
+            <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 16, lineHeight: 1.6, maxWidth: 300, margin: '0 auto 32px' }}>
+              We're currently stocking up on exciting vouchers and gifts. Stay tuned!
+            </p>
+            <div style={{ display: 'inline-block', padding: '8px 20px', borderRadius: '100px', background: 'rgba(168, 85, 247, 0.1)', color: 'var(--neon-purple)', fontWeight: 800, fontSize: 12, letterSpacing: 1, textTransform: 'uppercase' }}>
+              Coming Soon
+            </div>
           </div>
         </div>
       )}
@@ -567,30 +916,23 @@ export default function PlayerDashboard() {
             </div>
           </div>
 
-          <div className="glass-card" style={{ padding: '8px', marginBottom: 24 }}>
-            {[
-              { label: 'Edit Profile', icon: '👤' },
-              { label: 'Wallet Settings', icon: '💳' },
-              { label: 'Notifications', icon: '🔔' },
-              { label: 'Privacy Policy', icon: '🔒' },
-            ].map((item, i) => (
-              <div key={item.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '16px', borderBottom: i === 3 ? 'none' : '1px solid rgba(255,255,255,0.05)' }}>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                  <span style={{ fontSize: 18 }}>{item.icon}</span>
-                  <span style={{ fontSize: 14, fontWeight: 600 }}>{item.label}</span>
-                </div>
-                <span style={{ color: 'rgba(255,255,255,0.2)' }}>→</span>
-              </div>
-            ))}
-          </div>
-
-          <button className="btn-premium" style={{ width: '100%', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#ef4444' }} onClick={handleLogout}>
+          <button className="btn-premium btn-desktop-auto" style={{ width: '100%', background: 'rgba(239, 68, 68, 0.1)', border: '1px solid rgba(255, 255, 255, 0.2)', color: '#ef4444' }} onClick={handleLogout}>
             Logout Account
           </button>
         </div>
       )}
 
       <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
+
+      {activeGame && (
+        <GameModal
+          game={activeGame}
+          allGames={[...(games.branded || []), ...(games.promogames || [])]}
+          onClose={handleCloseGame}
+          onSwitch={handleSwitchGame}
+          isLoggedIn={!!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))}
+        />
+      )}
     </div>
   )
 }

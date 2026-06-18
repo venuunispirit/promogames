@@ -472,8 +472,6 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
         isOpen={hintModalOpen} 
         onClose={() => { setHintModalOpen(false); setUnlockedHint(null); }} 
         hint={unlockedHint}
-        cost={10}
-        balance={100} // This should come from player profile
         onConfirm={handleUnlockHint}
       />
 
@@ -572,7 +570,18 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
         </div>
         
         {gameOver && (
-          <button onClick={completeGame} className="btn-premium" style={{ marginTop: 20, width: '300px' }}>
+          <button onClick={completeGame} style={{
+            marginTop: 20, width: '300px',
+            padding: '14px 20px',
+            borderRadius: '14px',
+            border: 'none',
+            background: 'linear-gradient(135deg, #7c3aed, #a855f7)',
+            color: '#fff',
+            fontSize: '17px',
+            fontWeight: 700,
+            cursor: 'pointer',
+            boxShadow: '0 6px 24px rgba(124, 58, 237, 0.4)',
+          }}>
             🎉 Complete Game
           </button>
         )}

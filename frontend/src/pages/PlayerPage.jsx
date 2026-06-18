@@ -1144,7 +1144,13 @@ const handleSubmitExplore = () => {
 
 const handleModalConfirm = () => {
   setShowSubmitModal(false)
-  if (redirectUrl) window.location.href = redirectUrl
+  if (redirectUrl) {
+    window.location.href = redirectUrl
+  } else if (playerProfile) {
+    window.location.href = '/player/dashboard'
+  } else {
+    window.location.href = `/play/${gameName}/${companyName}`
+  }
 }
 
     return (

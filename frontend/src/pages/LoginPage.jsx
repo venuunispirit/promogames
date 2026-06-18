@@ -437,6 +437,10 @@ export default function LoginPage() {
   const navigate  = useNavigate()
   const { login } = useAuth()
 
+  useEffect(() => {
+    // Auto-redirect removed to prevent loop on dashboard failure
+  }, [navigate])
+
   const [step,      setStep]      = useState(STEP_EMAIL)
   const [email,     setEmail]     = useState('')
   const [password,  setPassword]  = useState('')

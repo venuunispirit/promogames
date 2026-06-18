@@ -441,9 +441,11 @@ router.get('/play-page-games', async (req, res) => {
 // ── GET dashboard games for player (active, grouped by type) ────────────
 router.get('/dashboard-games', async (req, res) => {
   try {
-    const [games] = await db.query(`
-      SELECT g.id, g.name, g.slug, g.description, g.redirect_url, g.game_type,
-             g.category, g.game_logo_url, c.company_name, c.slug as client_slug, c.slug as brand
+    // Simplified query for initial testing, using LEFT JOINs safely
+const [games] = await db.query(`
+      SELECT g.id, g.name, g.slug, g.game_type, g.category, 
+             g.redirect_url, g.description, g.game_logo_url, g.bg_image_url,
+             c.company_name, c.slug as client_slug
       FROM games g
       JOIN clients c ON g.client_id = c.id
       WHERE g.is_active = 1
@@ -457,9 +459,27 @@ router.get('/dashboard-games', async (req, res) => {
     }
     res.json({ success: true, games: grouped })
   } catch (err) {
-    console.error('dashboard-games err', err)
-    res.status(500).json({ success: false, message: 'Failed to load games' })
+    console.error('DASHBOARD-GAMES FATAL ERROR:', err)
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error: ' + err.message,
+      debug: {
+        error: err.toString(),
+        stack: err.stack,
+        sql: err.sql
+      }
+    })
   }
 })
+
+// ── Lightweight play-count poll endpoint ─────────────────────────────────
+router.get('/game/:id/play-count', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT play_count FROM games WHERE id = ?', [req.params.id]);
+    res.json({ play_count: rows[0]?.play_count || 0 });
+  } catch (err) {
+    res.status(500).json({ play_count: 0 });
+  }
+});
 
 module.exports = router;

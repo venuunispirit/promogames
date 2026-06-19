@@ -1,25 +1,23 @@
 {
-  "name": "quiz-platform-backend",
+  "name": "promogames",
   "version": "1.0.0",
-  "description": "Quiz Platform Backend API",
-  "main": "backend/server.js",
+  "private": true,
+  "description": "PromoGames — quiz, crossword, spin wheel platform",
+  "workspaces": [
+    "apps/*",
+    "packages/*",
+    "features/*"
+  ],
   "scripts": {
-    "start": "node backend/server.js",
-    "dev": "nodemon backend/server.js",
-    "init-db": "node backend/config/initDB.js"
+    "dev:backend": "npm run dev -w apps/backend",
+    "dev:frontend": "npm run dev -w apps/frontend",
+    "dev": "npm run dev:backend & npm run dev:frontend",
+    "build:frontend": "npm run build -w apps/frontend",
+    "build": "npm run build:web",
+    "start": "node apps/backend/server.js",
+    "init-db": "node apps/backend/config/initDB.js"
   },
-  "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
-    "dotenv": "^16.3.1",
-    "express": "^4.18.2",
-    "jsonwebtoken": "^9.0.2",
-    "multer": "^1.4.5-lts.1",
-    "mysql2": "^3.6.5",
-    "nodemailer": "^6.9.8",
-    "uuid": "^9.0.0"
-  },
-  "devDependencies": {
-    "nodemon": "^3.0.2"
+  "engines": {
+    "node": ">=18"
   }
 }

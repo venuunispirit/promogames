@@ -1,0 +1,10 @@
+{
+  "name": "@promogames/feature-games",
+  "version": "1.0.0",
+  "private": true,
+  "main": "api/index.js",
+  "exports": {
+    ".": "./api/index.js",
+    "./ui": "./ui/index.js"
+  }
+}

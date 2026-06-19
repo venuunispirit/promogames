@@ -1,0 +1,9 @@
+{
+  "name": "@promogames/feature-upload",
+  "version": "1.0.0",
+  "private": true,
+  "main": "api/index.js",
+  "exports": {
+    ".": "./api/index.js"
+  }
+}

@@ -303,75 +303,109 @@ export default function PlayerPage() {
   }
 
   useEffect(() => {
-    // Check for logged-in player
-    const token = localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken')
+    const storedToken = localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken')
     const userData = localStorage.getItem('playerUser') || sessionStorage.getItem('playerUser')
-    let profilePromise = Promise.resolve(null)
-    if (token && userData) {
-      profilePromise = fetch('/api/pauth/me', { headers: { Authorization: `Bearer ${token}` } })
-        .then(r => r.json())
-        .then(d => d.success ? d.player : null)
-        .catch(() => null)
-    }
 
-    profilePromise.then(profile => {
+    ;(async () => {
+      let profile = null
+      if (storedToken && userData) {
+        try {
+          const r = await fetch('/api/pauth/me', { headers: { Authorization: `Bearer ${storedToken}` } })
+          const d = await r.json()
+          profile = d.success ? d.player : null
+        } catch {}
+      }
       setPlayerProfile(profile)
-      return api.get(`/play/${gameName}/${companyName}`)
-        .then(res => {
-          const g = res.data.game
-          setGame(g)
-          if (g.settings?.font_family) loadFont(g.settings.font_family)
 
-          // Determine if form can be skipped for logged-in players
-          const canSkipForm = () => {
-            if (!profile) return false
-            const fields = g.formFields || []
-            if (fields.length === 0) return true
-            return fields.every(f => {
-              const val = getPlayerField(profile, f.field_label)
-              if (f.is_required) return !!val
-              return true
-            })
-          }
+      try {
+        const res = await api.get(`/play/${gameName}/${companyName}`)
+        let g = res.data.game
+        setGame(g)
+        if (g.settings?.font_family) loadFont(g.settings.font_family)
 
-          if (g.category === 'crossword') {
-            const init = {}
-            for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-            setFormData(init)
-            setPhase(canSkipForm() ? 'crossword' : 'form')
-            return
+        const canSkipForm = () => {
+          if (!profile) return false
+          const fields = g.formFields || []
+          if (fields.length === 0) return true
+          return fields.every(f => {
+            const val = getPlayerField(profile, f.field_label)
+            if (f.is_required) return !!val
+            return true
+          })
+        }
+
+        const startSession = async (initData) => {
+          const payload = {
+            game_id: g.id,
+            player_data: initData,
+            source_type: searchParams.get('source') === 'direct' ? 'direct' : (profile ? 'player' : 'link'),
           }
-          if (g.category === 'spin') {
-            const hasForm = g.formFields && g.formFields.length > 0
-            if (!hasForm || canSkipForm()) {
-              setPhase('spin')
-              return
+          if (profile) payload.promo_player_id = profile.id
+          const sessRes = await api.post('/play/session/start', payload)
+          setSessionToken(sessRes.data.session_token)
+        }
+
+        if (g.category === 'crossword') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          if (canSkipForm()) {
+            try {
+              await startSession(init)
+            } catch (sessErr) {
+              const data = sessErr.response?.data
+              if (data?.already_played) { setPhase('already_played'); return }
+              console.error('Session start error:', sessErr)
             }
-            const init = {}
-            for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-            setFormData(init)
+            setPhase('crossword')
+          } else {
             setPhase('form')
-            return
           }
-          // Shuffle questions if randomize_questions is enabled
-          if (g.settings?.randomize_questions && g.questions?.length) {
-            const arr = [...g.questions]
-            for (let i = arr.length - 1; i > 0; i--) {
-              const j = Math.floor(Math.random() * (i + 1));
-              [arr[i], arr[j]] = [arr[j], arr[i]]
-            }
-            g.questions = arr
+          return
+        }
+
+        if (g.category === 'spin') {
+          const hasForm = g.formFields && g.formFields.length > 0
+          if (!hasForm || canSkipForm()) {
+            setPhase('spin')
+            return
           }
           const init = {}
-          for (const f of (g.formFields || [])) init[f.field_label] = getPlayerField(profile, f.field_label) || ''
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
           setFormData(init)
-          setPhase(canSkipForm() ? 'playing' : 'form')
-        })
-        .catch(err => {
-          setErrorMsg(err.response?.data?.message || 'Game not found')
-          setPhase('error')
-        })
-    })
+          setPhase('form')
+          return
+        }
+
+        // Shuffle questions if randomize_questions is enabled
+        if (g.settings?.randomize_questions && g.questions?.length) {
+          const arr = [...g.questions]
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]]
+          }
+          g.questions = arr
+        }
+        const init = {}
+        for (const f of (g.formFields || [])) init[f.field_label] = getPlayerField(profile, f.field_label) || ''
+        setFormData(init)
+        if (canSkipForm()) {
+          try {
+            await startSession(init)
+          } catch (sessErr) {
+            const data = sessErr.response?.data
+            if (data?.already_played) { setPhase('already_played'); return }
+            console.error('Session start error:', sessErr)
+          }
+          setPhase('playing')
+        } else {
+          setPhase('form')
+        }
+      } catch (err) {
+        setErrorMsg(err.response?.data?.message || 'Game not found')
+        setPhase('error')
+      }
+    })()
   }, [gameName, companyName])
 
   const resolveSound = useCallback((idOrUrl, soundMap) => {

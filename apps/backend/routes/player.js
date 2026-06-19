@@ -444,10 +444,11 @@ router.get('/dashboard-games', async (req, res) => {
     // Simplified query for initial testing, using LEFT JOINs safely
 const [games] = await db.query(`
       SELECT g.id, g.name, g.slug, g.game_type, g.category, 
-             g.redirect_url, g.description, g.game_logo_url, g.bg_image_url,
+             g.redirect_url, g.description, g.game_logo_url, qs.bg_image_url,
              c.company_name, c.slug as client_slug
       FROM games g
       JOIN clients c ON g.client_id = c.id
+      LEFT JOIN quiz_settings qs ON qs.game_id = g.id
       WHERE g.is_active = 1
       ORDER BY g.game_type, g.name
     `)

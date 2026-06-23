@@ -223,6 +223,227 @@ router.post('/:id/duplicate', auth, async (req, res) => {
       );
     }
 
+    // Clone memory_settings
+    const [memSettings] = await db.query('SELECT * FROM memory_settings WHERE game_id = ?', [gameId]);
+    if (memSettings[0]) {
+      const m = memSettings[0];
+      const { id, game_id, ...memData } = m;
+      const memKeys = Object.keys(memData);
+      await db.query(
+        `INSERT INTO memory_settings (game_id,${memKeys.join(',')}) VALUES (?,${
+          memKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(memData)]
+      );
+    }
+
+    // Clone memory_tiles
+    const [memTiles] = await db.query('SELECT * FROM memory_tiles WHERE game_id = ? ORDER BY tile_order', [gameId]);
+    for (const t of memTiles) {
+      const { id, game_id, ...tileData } = t;
+      const tileKeys = Object.keys(tileData);
+      await db.query(
+        `INSERT INTO memory_tiles (game_id,${tileKeys.join(',')}) VALUES (?,${
+          tileKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(tileData)]
+      );
+    }
+
+    // Clone jigsaw_settings
+    const [jigSettings] = await db.query('SELECT * FROM jigsaw_settings WHERE game_id = ?', [gameId]);
+    if (jigSettings[0]) {
+      const j = jigSettings[0];
+      const { id, game_id, created_at, updated_at, ...jigData } = j;
+      const jigKeys = Object.keys(jigData);
+      await db.query(
+        `INSERT INTO jigsaw_settings (game_id,${jigKeys.join(',')}) VALUES (?,${
+          jigKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(jigData)]
+      );
+    }
+
+    // Clone wordsearch_settings
+    const [wsSettings] = await db.query('SELECT * FROM wordsearch_settings WHERE game_id = ?', [gameId]);
+    if (wsSettings[0]) {
+      const ws = wsSettings[0];
+      const { id, game_id, created_at, updated_at, ...wsData } = ws;
+      const wsKeys = Object.keys(wsData);
+      await db.query(
+        `INSERT INTO wordsearch_settings (game_id,${wsKeys.join(',')}) VALUES (?,${
+          wsKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(wsData)]
+      );
+    }
+
+    // Clone wordsearch_words
+    const [wsWords] = await db.query('SELECT * FROM wordsearch_words WHERE game_id = ? ORDER BY word_order', [gameId]);
+    for (const w of wsWords) {
+      const { id, game_id, created_at, ...wData } = w;
+      const wKeys = Object.keys(wData);
+      await db.query(
+        `INSERT INTO wordsearch_words (game_id,${wKeys.join(',')}) VALUES (?,${
+          wKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(wData)]
+      );
+    }
+
+    // Clone typer_settings
+    const [typerSettings] = await db.query('SELECT * FROM typer_settings WHERE game_id = ?', [gameId]);
+    if (typerSettings[0]) {
+      const t = typerSettings[0];
+      const { id, game_id, created_at, updated_at, ...typerData } = t;
+      const typerKeys = Object.keys(typerData);
+      await db.query(
+        `INSERT INTO typer_settings (game_id,${typerKeys.join(',')}) VALUES (?,${
+          typerKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(typerData)]
+      );
+    }
+
+    // Clone typer_words
+    const [typerWords] = await db.query('SELECT * FROM typer_words WHERE game_id = ? ORDER BY word_order', [gameId]);
+    for (const w of typerWords) {
+      const { id, game_id, created_at, ...twData } = w;
+      const twKeys = Object.keys(twData);
+      await db.query(
+        `INSERT INTO typer_words (game_id,${twKeys.join(',')}) VALUES (?,${
+          twKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(twData)]
+      );
+    }
+
+    // Clone pouring_settings
+    const [pourSettings] = await db.query('SELECT * FROM pouring_settings WHERE game_id = ?', [gameId]);
+    if (pourSettings[0]) {
+      const p = pourSettings[0];
+      const { id, game_id, created_at, updated_at, ...pourData } = p;
+      const pourKeys = Object.keys(pourData);
+      await db.query(
+        `INSERT INTO pouring_settings (game_id,${pourKeys.join(',')}) VALUES (?,${
+          pourKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(pourData)]
+      );
+    }
+
+    // Clone screw_settings
+    const [screwSettings] = await db.query('SELECT * FROM screw_settings WHERE game_id = ?', [gameId]);
+    if (screwSettings[0]) {
+      const s = screwSettings[0];
+      const { id, game_id, created_at, updated_at, ...screwData } = s;
+      const screwKeys = Object.keys(screwData);
+      await db.query(
+        `INSERT INTO screw_settings (game_id,${screwKeys.join(',')}) VALUES (?,${
+          screwKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(screwData)]
+      );
+    }
+
+    // Clone math_settings
+    const [mathSettings] = await db.query('SELECT * FROM math_settings WHERE game_id = ?', [gameId]);
+    if (mathSettings[0]) {
+      const m = mathSettings[0];
+      const { id, game_id, created_at, updated_at, ...mathData } = m;
+      const mathKeys = Object.keys(mathData);
+      await db.query(
+        `INSERT INTO math_settings (game_id,${mathKeys.join(',')}) VALUES (?,${
+          mathKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(mathData)]
+      );
+    }
+
+    // Clone maze_settings
+    const [mazeSettings] = await db.query('SELECT * FROM maze_settings WHERE game_id = ?', [gameId]);
+    if (mazeSettings[0]) {
+      const mz = mazeSettings[0];
+      const { id, game_id, created_at, updated_at, ...mazeData } = mz;
+      const mazeKeys = Object.keys(mazeData);
+      await db.query(
+        `INSERT INTO maze_settings (game_id,${mazeKeys.join(',')}) VALUES (?,${
+          mazeKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(mazeData)]
+      );
+    }
+
+    // Clone game2048_settings
+    const [g2048Settings] = await db.query('SELECT * FROM game2048_settings WHERE game_id = ?', [gameId]);
+    if (g2048Settings[0]) {
+      const gs = g2048Settings[0];
+      const { id, game_id, created_at, updated_at, ...g2048Data } = gs;
+      const g2048Keys = Object.keys(g2048Data);
+      await db.query(
+        `INSERT INTO game2048_settings (game_id,${g2048Keys.join(',')}) VALUES (?,${
+          g2048Keys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(g2048Data)]
+      );
+    }
+
+    // Clone snake_settings
+    const [snakeSettings] = await db.query('SELECT * FROM snake_settings WHERE game_id = ?', [gameId]);
+    if (snakeSettings[0]) {
+      const ss = snakeSettings[0];
+      const { id, game_id, created_at, updated_at, ...snakeData } = ss;
+      const snakeKeys = Object.keys(snakeData);
+      await db.query(
+        `INSERT INTO snake_settings (game_id,${snakeKeys.join(',')}) VALUES (?,${
+          snakeKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(snakeData)]
+      );
+    }
+
+    // Clone catch_settings
+    const [catchSettings] = await db.query('SELECT * FROM catch_settings WHERE game_id = ?', [gameId]);
+    if (catchSettings[0]) {
+      const cs = catchSettings[0];
+      const { id, game_id, created_at, updated_at, ...catchData } = cs;
+      const catchKeys = Object.keys(catchData);
+      await db.query(
+        `INSERT INTO catch_settings (game_id,${catchKeys.join(',')}) VALUES (?,${
+          catchKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(catchData)]
+      );
+    }
+
+    // Clone reaction_settings
+    const [reactionSettings] = await db.query('SELECT * FROM reaction_settings WHERE game_id = ?', [gameId]);
+    if (reactionSettings[0]) {
+      const rs = reactionSettings[0];
+      const { id, game_id, created_at, updated_at, ...reactionData } = rs;
+      const reactionKeys = Object.keys(reactionData);
+      await db.query(
+        `INSERT INTO reaction_settings (game_id,${reactionKeys.join(',')}) VALUES (?,${
+          reactionKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(reactionData)]
+      );
+    }
+
+    // Clone simon_settings
+    const [simonSettings] = await db.query('SELECT * FROM simon_settings WHERE game_id = ?', [gameId]);
+    if (simonSettings[0]) {
+      const ss = simonSettings[0];
+      const { id, game_id, created_at, updated_at, ...simonData } = ss;
+      const simonKeys = Object.keys(simonData);
+      await db.query(
+        `INSERT INTO simon_settings (game_id,${simonKeys.join(',')}) VALUES (?,${
+          simonKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(simonData)]
+      );
+    }
+
     const [newGame] = await db.query('SELECT g.*, c.company_name, c.slug as client_slug FROM games g LEFT JOIN clients c ON g.client_id = c.id WHERE g.id = ?', [newId]);
     res.status(201).json({ success: true, game: newGame[0] });
   } catch (err) {
@@ -260,6 +481,16 @@ router.delete('/:id', auth, async (req, res) => {
     const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [gameId]);
     for (const s of sounds) {
       deleteUploadFile(s.url || s.file_url);
+    }
+
+    // 4. memory_tiles images
+    const [memTiles] = await db.query('SELECT * FROM memory_tiles WHERE game_id = ?', [gameId]);
+    for (const t of memTiles) deleteUploadFile(t.image_url);
+
+    // 5. memory_settings images
+    const [memSettings] = await db.query('SELECT * FROM memory_settings WHERE game_id = ?', [gameId]);
+    if (memSettings[0]) {
+      ['bg_image_url','thankyou_bg_image_url','game_logo_url','card_cover_image_url','overlay_image_url','submit_confirm_gif_url'].forEach(f => deleteUploadFile(memSettings[0][f]));
     }
 
     // ── Now delete the game (cascades to questions, options, settings, sounds, sessions) ──

@@ -23,6 +23,19 @@ const spinRoutes = require("./routes/spin");
 const crosswordRoutes = require("./routes/crossword");
 const leaderboardRoutes = require("./routes/leaderboard");
 const playersAdminRoutes = require("./routes/players-admin");
+const memoryRoutes = require("./routes/memory");
+const jigsawRoutes = require("./routes/jigsaw");
+const wordsearchRoutes = require("./routes/wordsearch");
+const pouringRoutes = require("./routes/pouring");
+const typerRoutes = require("./routes/typer");
+const screwRoutes = require("./routes/screw");
+const snakeRoutes = require("./routes/snake");
+const catchRoutes = require("./routes/catch");
+const reactionRoutes = require("./routes/reaction");
+const mathRoutes = require("./routes/math");
+const mazeRoutes = require("./routes/maze");
+const game2048Routes = require("./routes/2048");
+const simonRoutes = require("./routes/simon");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -36,6 +49,19 @@ app.use("/api/spin", spinRoutes);
 app.use("/api/crossword", crosswordRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
 app.use("/api/players-admin", playersAdminRoutes);
+app.use("/api/memory", memoryRoutes);
+app.use("/api/jigsaw", jigsawRoutes);
+app.use("/api/wordsearch", wordsearchRoutes);
+app.use("/api/pouring", pouringRoutes);
+app.use("/api/typer", typerRoutes);
+app.use("/api/screw", screwRoutes);
+app.use("/api/snake", snakeRoutes);
+app.use("/api/catch", catchRoutes);
+app.use("/api/reaction", reactionRoutes);
+app.use("/api/math", mathRoutes);
+app.use("/api/maze", mazeRoutes);
+app.use("/api/2048", game2048Routes);
+app.use("/api/simon", simonRoutes);
 
 app.get("/api/check-code", (req, res) => {
   res.json({ 

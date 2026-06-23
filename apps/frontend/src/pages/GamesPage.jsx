@@ -6,21 +6,24 @@ import api from '../api'
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
 const CATEGORY_META = {
-  quiz:   { label:'Quiz',   bg:' #EEF2FF', fg:' #4338CA', dot:' #818CF8' },
-  survey: { label:'Survey', bg:' #F0FDF4', fg:' #15803D', dot:' #4ADE80' },
-  poll:   { label:'Poll',   bg:' #FFF7ED', fg:' #C2410C', dot:' #FB923C' },
-  crossword: {
-    label:'Crossword',
-    bg:' #FDF2F8',
-    fg:' #BE185D',
-    dot:' #EC4899'
-  },
-  spin: {
-    label:'Spin Wheel',
-    bg:' #FFFBEB',
-    fg:' #B45309',
-    dot:' #F59E0B'
-  },
+  quiz:      { label:'Quiz',          bg:' #EEF2FF', fg:' #4338CA', dot:' #818CF8', icon:'🧠', desc:'Test knowledge with questions' },
+  survey:    { label:'Survey',        bg:' #F0FDF4', fg:' #15803D', dot:' #4ADE80', icon:'📋', desc:'Collect feedback & opinions' },
+  poll:      { label:'Poll',          bg:' #FFF7ED', fg:' #C2410C', dot:' #FB923C', icon:'📊', desc:'Quick audience polls' },
+  crossword: { label:'Crossword',     bg:' #FDF2F8', fg:' #BE185D', dot:' #EC4899', icon:'🔤', desc:'Word grid puzzle' },
+  spin:      { label:'Spin Wheel',    bg:' #FFFBEB', fg:' #B45309', dot:' #F59E0B', icon:'🎡', desc:'Spin to win prizes' },
+  memory:    { label:'Memory Match',  bg:' #F5F3FF', fg:' #6D28D9', dot:' #A78BFA', icon:'🃏', desc:'Match pairs of cards' },
+  jigsaw:    { label:'Jigsaw Puzzle', bg:' #FFF1F2', fg:' #BE123C', dot:' #FB7185', icon:'🧩', desc:'Drag-drop image puzzle' },
+  wordsearch:{ label:'Word Search',   bg:' #FEF3C7', fg:' #92400E', dot:' #F59E0B', icon:'🔍', desc:'Find hidden words in grid' },
+  pouring:   { label:'Pouring Water', bg:' #DBEAFE', fg:' #1E40AF', dot:' #3B82F6', icon:'💧', desc:'Pour exact amount challenge' },
+  typer:     { label:'Speed Typer',   bg:' #F0FDF4', fg:' #166534', dot:' #22C55E', icon:'⌨️', desc:'Type falling words fast' },
+  screw:     { label:'Screw & Reveal',bg:' #FEF3C7', fg:' #92400E', dot:' #D97706', icon:'🔩', desc:'Unscrew blocks to reveal' },
+  math:      { label:'Math Game',     bg:' #F0FDF4', fg:' #15803D', dot:' #22C55E', icon:'🔢', desc:'Solve math questions' },
+  maze:      { label:'Maze Game',     bg:' #EEF2FF', fg:' #4338CA', dot:' #6366F1', icon:'🌀', desc:'Navigate the maze' },
+  '2048':    { label:'2048',           bg:' #FFF7ED', fg:' #C2410C', dot:' #FB923C', icon:'🔢', desc:'Merge tiles to reach 2048' },
+  snake:     { label:'Snake',          bg:' #F0FDF4', fg:' #166534', dot:' #22C55E', icon:'🐍', desc:'Classic snake game' },
+  catch:     { label:'Catch',          bg:' #F5F3FF', fg:' #7C3AED', dot:' #A78BFA', icon:'🧺', desc:'Catch falling objects' },
+  reaction:  { label:'Reaction',       bg:' #FDF2F8', fg:' #BE185D', dot:' #EC4899', icon:'⚡', desc:'Test reaction speed' },
+  simon:     { label:'Simon Says',     bg:' #EEF2FF', fg:' #4338CA', dot:' #818CF8', icon:'🎯', desc:'Repeat the color sequence' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:' #F3F4F6', fg:' #374151', dot:' #9CA3AF' }
 
@@ -284,6 +287,32 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/crossword-builder`)
     } else if (game.category === 'spin') {
       navigate(`/dashboard/games/${game.id}/spin-builder`)
+    } else if (game.category === 'memory') {
+      navigate(`/dashboard/games/${game.id}/memory-builder`)
+    } else if (game.category === 'jigsaw') {
+      navigate(`/dashboard/games/${game.id}/jigsaw-builder`)
+    } else if (game.category === 'wordsearch') {
+      navigate(`/dashboard/games/${game.id}/wordsearch-builder`)
+    } else if (game.category === 'pouring') {
+      navigate(`/dashboard/games/${game.id}/pouring-builder`)
+    } else if (game.category === 'typer') {
+      navigate(`/dashboard/games/${game.id}/typer-builder`)
+    } else if (game.category === 'math') {
+      navigate(`/dashboard/games/${game.id}/math-builder`)
+    } else if (game.category === 'maze') {
+      navigate(`/dashboard/games/${game.id}/maze-builder`)
+    } else if (game.category === 'screw') {
+      navigate(`/dashboard/games/${game.id}/screw-builder`)
+    } else if (game.category === '2048') {
+      navigate(`/dashboard/games/${game.id}/2048-builder`)
+    } else if (game.category === 'snake') {
+      navigate(`/dashboard/games/${game.id}/snake-builder`)
+    } else if (game.category === 'catch') {
+      navigate(`/dashboard/games/${game.id}/catch-builder`)
+    } else if (game.category === 'reaction') {
+      navigate(`/dashboard/games/${game.id}/reaction-builder`)
+    } else if (game.category === 'simon') {
+      navigate(`/dashboard/games/${game.id}/simon-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }
@@ -295,77 +324,186 @@ const handleSubmit = async e => {
 }
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
-      <div style={{background:' #fff',borderRadius:20,width:'100%',maxWidth:640,maxHeight:'95vh',overflow:'visible',padding:'36px 34px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
-        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
-          <div>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:24,color:' #0D0D1A',letterSpacing:'-0.02em'}}>New Game</h2>
-            <p style={{color:' #9CA3AF',fontSize:14,marginTop:5}}>Configure the game — you'll build questions next.</p>
+    <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(15,23,42,.65)',backdropFilter:'blur(20px) saturate(1.3)',WebkitBackdropFilter:'blur(20px) saturate(1.3)',animation:'gpFadeIn .3s ease'}}>
+      {/* Decorative orbs */}
+      <div style={{position:'fixed',top:'15%',left:'10%',width:350,height:350,borderRadius:'50%',background:'radial-gradient(circle, rgba(255,255,255,.06) 0%, transparent 70%)',filter:'blur(70px)',pointerEvents:'none',animation:'gpOrbFloat 12s ease-in-out infinite'}} />
+      <div style={{position:'fixed',bottom:'5%',right:'8%',width:280,height:280,borderRadius:'50%',background:'radial-gradient(circle, rgba(255,255,255,.04) 0%, transparent 70%)',filter:'blur(60px)',pointerEvents:'none',animation:'gpOrbFloat 15s ease-in-out infinite reverse'}} />
+
+      {/* ── Glass Modal ── */}
+      <div className="gp-no-scrollbar" style={{
+        background:'#ffffff',
+        backdropFilter:'blur(40px) saturate(1.8)',
+        WebkitBackdropFilter:'blur(40px) saturate(1.8)',
+        borderRadius:28,width:'100%',maxWidth:580,maxHeight:'90vh',overflow:'auto',
+        padding:'0',
+        border:'1px solid rgba(0,0,0,0.06)',
+        boxShadow:'0 32px 80px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.06)',
+        animation:'gpModalIn .35s cubic-bezier(.34,1.56,.64,1)',fontFamily:"'DM Sans',sans-serif",
+        scrollbarWidth:'none',msOverflowStyle:'none',
+      }}>
+        {/* ── Header ── */}
+        <div style={{
+          padding:'28px 32px 18px',
+          background:'#ffffff',
+          borderBottom:'1px solid #F3F4F6',
+          position:'sticky',top:0,zIndex:10,
+        }}>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
+            <div style={{display:'flex',alignItems:'center',gap:14}}>
+              <span style={{fontSize:28}}>🎮</span>
+              <div>
+                <h2 style={{fontWeight:800,fontSize:22,color:'#111827',margin:0,lineHeight:1.2,letterSpacing:'-0.02em'}}>New Game</h2>
+                <p style={{color:'#9CA3AF',fontSize:13,marginTop:3}}>Choose a game type to get started</p>
+              </div>
+            </div>
+            <button onClick={onClose} style={{
+              width:36,height:36,borderRadius:10,
+              border:'1px solid #E5E7EB',background:'#F9FAFB',
+              display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
+              color:'#9CA3AF',fontSize:16,transition:'all .15s',flexShrink:0,
+            }} onMouseOver={e=>{e.currentTarget.style.background='#F3F4F6';e.currentTarget.style.color='#374151'}} onMouseOut={e=>{e.currentTarget.style.background='#F9FAFB';e.currentTarget.style.color='#9CA3AF'}}><Ico.close/></button>
           </div>
-          <button className="gp-icon-btn" onClick={onClose}><Ico.close/></button>
         </div>
 
-        <form onSubmit={handleSubmit}>
-          <div className="gp-field">
-            <label className="gp-label">Client <span style={{color:' #EF4444'}}>*</span></label>
+        {/* ── Form Body ── */}
+        <form onSubmit={handleSubmit} style={{padding:'24px 32px 28px'}}>
+
+          {/* Client */}
+          <div style={{marginBottom:20}}>
+            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:8}}>Client <span style={{color:'#EF4444'}}>*</span></label>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <div style={{position:'relative',flex:1}}>
-                <select className="gp-select" value={form.client_id} onChange={set('client_id')} required style={{padding:'10px 36px 10px 14px',fontSize:14,background:' #fff'}}>
+                <select value={form.client_id} onChange={set('client_id')} required style={{
+                  width:'100%',padding:'12px 40px 12px 14px',borderRadius:12,
+                  border:'1.5px solid #E5E7EB',
+                  background:'#F9FAFB',
+                  fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+                  appearance:'none',cursor:'pointer',transition:'all .2s',
+                }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='#fff'}} onBlur={e=>{e.target.style.borderColor='#E5E7EB';e.target.style.boxShadow='none';e.target.style.background='#F9FAFB'}}>
                   <option value="">Select a client…</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
                 </select>
-                <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:' #9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+                <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'#9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
               </div>
-              <button type="button" className="gp-ghost-btn" onClick={onAddClient} style={{padding:'10px 14px',whiteSpace:'nowrap',fontSize:13}}>
+              <button type="button" onClick={onAddClient} style={{
+                padding:'12px 16px',whiteSpace:'nowrap',fontSize:13,fontWeight:600,
+                borderRadius:12,border:'1.5px dashed #D1D5DB',background:'transparent',
+                color:'#8B5CF6',cursor:'pointer',transition:'all .15s',fontFamily:"'DM Sans',sans-serif",
+              }} onMouseOver={e=>{e.currentTarget.style.borderColor='#8B5CF6';e.currentTarget.style.background='#F5F3FF'}} onMouseOut={e=>{e.currentTarget.style.borderColor='#D1D5DB';e.currentTarget.style.background='transparent'}}>
                 + Add Client
               </button>
             </div>
           </div>
 
-          <div className="gp-field">
-            <label className="gp-label">Game Name <span style={{color:' #EF4444'}}>*</span></label>
-            <input className="gp-input" value={form.name} onChange={set('name')} placeholder="e.g. Product Knowledge Quiz" required style={{fontSize:14}} />
+          {/* Game Name */}
+          <div style={{marginBottom:20}}>
+            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:8}}>Game Name <span style={{color:'#EF4444'}}>*</span></label>
+            <input value={form.name} onChange={set('name')} placeholder="e.g. Product Knowledge Quiz" required style={{
+              width:'100%',padding:'12px 14px',borderRadius:12,
+              border:'1.5px solid #E5E7EB',
+              background:'#F9FAFB',
+              fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+              transition:'all .2s',
+            }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='#fff'}} onBlur={e=>{e.target.style.borderColor='#E5E7EB';e.target.style.boxShadow='none';e.target.style.background='#F9FAFB'}} />
           </div>
 
-          <div className="gp-field">
-            <label className="gp-label">Category</label>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:10}}>
-              {Object.entries(CATEGORY_META).map(([k,v]) => (
-                <button key={k} type="button"
-                  onClick={() => setForm(f=>({...f,category:k}))}
-                  style={{
-                    padding:'14px 10px',borderRadius:12,border:`2px solid ${form.category===k ? v.dot : ' #E5E7EB'}`,
-                    background: form.category===k ? v.bg : ' #FAFAFA',
-                    cursor:'pointer',transition:'all .14s',
-                    display:'flex',flexDirection:'column',alignItems:'center',gap:6,
-                  }}>
-                  <span style={{width:10,height:10,borderRadius:'50%',background:v.dot}} />
-                  <span style={{fontSize:14,fontWeight:600,color:form.category===k?v.fg:' #374151',fontFamily:"'DM Sans',sans-serif"}}>
-                    {v.label}
-                  </span>
-                </button>
-              ))}
+          {/* Category Grid */}
+          <div style={{marginBottom:20}}>
+            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:10}}>Choose Game Type</label>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+              {Object.entries(CATEGORY_META).map(([k,v]) => {
+                const selected = form.category === k
+                return (
+                  <button key={k} type="button"
+                    onClick={() => setForm(f=>({...f,category:k}))}
+                    onMouseOver={e=>{if(!selected){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,.08)'}}}
+                    onMouseOut={e=>{if(!selected){e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}}
+                    style={{
+                      padding:'14px 10px',borderRadius:14,
+                      border:selected ? '2px solid #8B5CF6' : '1.5px solid #E5E7EB',
+                      background: selected ? '#F5F3FF' : '#F9FAFB',
+                      cursor:'pointer',transition:'all .2s cubic-bezier(.34,1.56,.64,1)',
+                      display:'flex',flexDirection:'column',alignItems:'center',gap:5,
+                      position:'relative',overflow:'hidden',
+                      boxShadow: selected ? '0 0 12px rgba(139,92,246,0.2)' : 'none',
+                      transform: selected ? 'scale(1.02)' : 'scale(1)',
+                    }}>
+                    {selected && <div style={{
+                      position:'absolute',top:5,right:5,
+                      width:16,height:16,borderRadius:'50%',
+                      background:'#8B5CF6',color:'#fff',fontSize:9,fontWeight:800,
+                      display:'flex',alignItems:'center',justifyContent:'center',
+                      boxShadow:'0 2px 8px rgba(139,92,246,0.3)',
+                      animation:'gpBounceIn .3s ease',zIndex:2,
+                    }}>✓</div>}
+                    <span style={{fontSize:22,lineHeight:1}}>{v.icon}</span>
+                    <span style={{fontSize:11,fontWeight:700,color:selected?'#6D28D9':'#374151',lineHeight:1.2}}>
+                      {v.label}
+                    </span>
+                    <span style={{fontSize:9,color:selected?'#8B5CF6':'#9CA3AF',lineHeight:1.2,textAlign:'center'}}>
+                      {v.desc}
+                    </span>
+                  </button>
+                )
+              })}
             </div>
           </div>
 
-          <div className="gp-field">
-            <label className="gp-label">Description</label>
-            <textarea className="gp-input" rows={3} value={form.description} onChange={set('description')} style={{resize:'vertical',fontSize:14}} />
+          {/* Description */}
+          <div style={{marginBottom:20}}>
+            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:8}}>Description</label>
+            <textarea rows={2} value={form.description} onChange={set('description')} placeholder="Optional game description" style={{
+              width:'100%',padding:'12px 14px',borderRadius:12,
+              border:'1.5px solid #E5E7EB',
+              background:'#F9FAFB',
+              fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+              resize:'vertical',transition:'all .2s',
+            }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='#fff'}} onBlur={e=>{e.target.style.borderColor='#E5E7EB';e.target.style.boxShadow='none';e.target.style.background='#F9FAFB'}} />
           </div>
 
-          <div className="gp-field" style={{marginBottom:26}}>
-            <label className="gp-label">Redirect URL <span style={{color:' #9CA3AF',fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:11}}>(after game ends)</span></label>
-            <input className="gp-input" type="url" value={form.redirect_url} onChange={set('redirect_url')} placeholder="https://yoursite.com/thankyou" style={{fontSize:14}} />
+          {/* Redirect URL */}
+          <div style={{marginBottom:28}}>
+            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:8}}>
+              Redirect URL <span style={{color:'#9CA3AF',fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:11}}>(after game ends)</span>
+            </label>
+            <input type="url" value={form.redirect_url} onChange={set('redirect_url')} placeholder="https://yoursite.com/thankyou" style={{
+              width:'100%',padding:'12px 14px',borderRadius:12,
+              border:'1.5px solid #E5E7EB',
+              background:'#F9FAFB',
+              fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+              transition:'all .2s',
+            }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='#fff'}} onBlur={e=>{e.target.style.borderColor='#E5E7EB';e.target.style.boxShadow='none';e.target.style.background='#F9FAFB'}} />
           </div>
 
-          <div style={{display:'flex',gap:10}}>
-            <button type="button" className="gp-ghost-btn" onClick={onClose} style={{flex:1,justifyContent:'center',padding:'11px 0',fontSize:14}}>Cancel</button>
-            <button type="submit" className="gp-primary-btn" disabled={submitting} style={{flex:2,justifyContent:'center',padding:'12px 0',borderRadius:10,fontSize:14}}>
-              {submitting ? <><Ico.spin/> Creating…</> : 'Create & Open Builder →'}
+          {/* Actions */}
+          <div style={{display:'flex',gap:10,borderTop:'1px solid #F3F4F6',paddingTop:20}}>
+            <button type="button" onClick={onClose} style={{
+              flex:1,justifyContent:'center',padding:'13px 0',fontSize:14,fontWeight:600,
+              borderRadius:12,border:'1.5px solid #E5E7EB',background:'#fff',
+              color:'#6B7280',cursor:'pointer',transition:'all .15s',fontFamily:"'DM Sans',sans-serif",
+            }} onMouseOver={e=>{e.currentTarget.style.background='#F9FAFB';e.currentTarget.style.borderColor='#D1D5DB'}} onMouseOut={e=>{e.currentTarget.style.background='#fff';e.currentTarget.style.borderColor='#E5E7EB'}}>
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} style={{
+              flex:2,justifyContent:'center',padding:'13px 0',borderRadius:12,border:'none',
+              background:submitting ? '#D1D5DB' : 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+              color:submitting?'#9CA3AF':'#fff',fontSize:14,fontWeight:700,
+              cursor:submitting?'not-allowed':'pointer',
+              fontFamily:"'DM Sans',sans-serif",transition:'all .2s',
+              boxShadow:submitting?'none':'0 4px 16px rgba(139,92,246,0.3)',
+            }} onMouseOver={e=>{if(!submitting){e.currentTarget.style.transform='translateY(-1px)';e.currentTarget.style.boxShadow='0 6px 24px rgba(139,92,246,0.4)'}}} onMouseOut={e=>{if(!submitting){e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='0 4px 16px rgba(139,92,246,0.3)'}}}>
+              {submitting ? <><Ico.spin/> Creating…</> : '🚀 Create & Open Builder'}
             </button>
           </div>
         </form>
       </div>
+      <style>{`
+        @keyframes gpFadeIn{from{opacity:0}to{opacity:1}}
+        @keyframes gpBounceIn{0%{transform:scale(0)}50%{transform:scale(1.2)}100%{transform:scale(1)}}
+        @keyframes gpOrbFloat{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-20px)}}
+        .gp-no-scrollbar::-webkit-scrollbar{display:none}
+        .gp-no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
+      `}</style>
     </div>
   )
 }
@@ -663,6 +801,19 @@ export default function GamesPage() {
                               onClick={() => {
                                 if (game.category === 'crossword') navigate(`/dashboard/games/${game.id}/crossword-builder`)
                                 else if (game.category === 'spin') navigate(`/dashboard/games/${game.id}/spin-builder`)
+                                else if (game.category === 'memory') navigate(`/dashboard/games/${game.id}/memory-builder`)
+                                else if (game.category === 'jigsaw') navigate(`/dashboard/games/${game.id}/jigsaw-builder`)
+                                else if (game.category === 'wordsearch') navigate(`/dashboard/games/${game.id}/wordsearch-builder`)
+                                else if (game.category === 'pouring') navigate(`/dashboard/games/${game.id}/pouring-builder`)
+                                else if (game.category === 'typer') navigate(`/dashboard/games/${game.id}/typer-builder`)
+                                else if (game.category === 'screw') navigate(`/dashboard/games/${game.id}/screw-builder`)
+                                else if (game.category === 'math') navigate(`/dashboard/games/${game.id}/math-builder`)
+                                else if (game.category === 'maze') navigate(`/dashboard/games/${game.id}/maze-builder`)
+                                else if (game.category === '2048') navigate(`/dashboard/games/${game.id}/2048-builder`)
+                                else if (game.category === 'snake') navigate(`/dashboard/games/${game.id}/snake-builder`)
+                                else if (game.category === 'catch') navigate(`/dashboard/games/${game.id}/catch-builder`)
+                                else if (game.category === 'reaction') navigate(`/dashboard/games/${game.id}/reaction-builder`)
+                                else if (game.category === 'simon') navigate(`/dashboard/games/${game.id}/simon-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">
                               <Ico.wrench/> Builder

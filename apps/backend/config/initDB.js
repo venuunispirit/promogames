@@ -68,7 +68,7 @@ async function initDB() {
       id INT AUTO_INCREMENT PRIMARY KEY,
       name VARCHAR(255),
       company_name VARCHAR(255),
-      category VARCHAR(50),
+      category VARCHAR(50) DEFAULT 'quiz',
       game_logo_url VARCHAR(500),
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )
@@ -264,6 +264,665 @@ async function initDB() {
     )
   `, 'crossword_settings table');
 
+  /* ── MEMORY MATCH TABLES ── */
+  console.log('🧩 Creating memory match tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS memory_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      card_shape VARCHAR(50) DEFAULT 'rounded',
+      card_radius INT DEFAULT 8,
+      grid_cols INT DEFAULT 4,
+      grid_rows INT DEFAULT 4,
+      show_timer TINYINT(1) DEFAULT 1,
+      time_limit_seconds INT DEFAULT 0,
+      timer_position VARCHAR(20) DEFAULT 'top_center',
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_text TEXT,
+      description_color VARCHAR(20) DEFAULT '#888888',
+      intro_text TEXT,
+      outro_text TEXT,
+      bg_color VARCHAR(20) DEFAULT '#f8f8ff',
+      primary_color VARCHAR(20) DEFAULT '#7c6ff7',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      card_cover_image_url VARCHAR(500),
+      overlay_image_url VARCHAR(500),
+      overlay_animation_in VARCHAR(50) DEFAULT 'flyFromBottom',
+      overlay_animation_out VARCHAR(50) DEFAULT 'flyToTop',
+      overlay_idle_time INT DEFAULT 3,
+      overlay_duration INT DEFAULT 3,
+      submit_confirm_gif_url VARCHAR(500),
+      gif_url VARCHAR(500),
+      thankyou_subtitle VARCHAR(500),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_flip_id INT DEFAULT NULL,
+      sound_match_id INT DEFAULT NULL,
+      sound_nomatch_id INT DEFAULT NULL,
+      submit_button_text VARCHAR(500),
+      start_button_text VARCHAR(500),
+      start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      continue_button_bg_color VARCHAR(20),
+      next_button_text VARCHAR(100) DEFAULT 'Next',
+      next_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      next_button_bg_color VARCHAR(20),
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'memory_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS memory_tiles (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      image_url VARCHAR(500) NOT NULL,
+      tile_label VARCHAR(255),
+      pair_id INT DEFAULT NULL,
+      tile_order INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'memory_tiles table');
+
+  /* ── MATH TABLES ── */
+  console.log('🔢 Creating math tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS math_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      total_levels INT DEFAULT 100,
+      questions_per_level INT DEFAULT 5,
+      operations VARCHAR(100) DEFAULT '+,-,×',
+      number_range_start INT DEFAULT 1,
+      number_range_end INT DEFAULT 100,
+      allow_negative TINYINT(1) DEFAULT 0,
+      show_timer TINYINT(1) DEFAULT 1,
+      time_per_question INT DEFAULT 0,
+      pass_threshold INT DEFAULT 5,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_text TEXT,
+      description_color VARCHAR(20) DEFAULT '#888888',
+      intro_text TEXT,
+      outro_text TEXT,
+      bg_color VARCHAR(20) DEFAULT '#f0fdf4',
+      primary_color VARCHAR(20) DEFAULT '#22c55e',
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_correct_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL,
+      overlay_animation_in VARCHAR(50) DEFAULT 'flyFromBottom',
+      overlay_animation_out VARCHAR(50) DEFAULT 'flyToTop',
+      submit_button_text VARCHAR(500),
+      start_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'math_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS math_progress (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      session_token VARCHAR(255) NOT NULL,
+      current_level INT DEFAULT 1,
+      current_question INT DEFAULT 0,
+      total_correct INT DEFAULT 0,
+      completed_levels JSON,
+      last_played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+      UNIQUE KEY unique_game_session (game_id, session_token)
+    )
+  `, 'math_progress table');
+
+  /* ── MAZE TABLES ── */
+  console.log('🗺️ Creating maze tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS maze_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      total_levels INT DEFAULT 50,
+      grid_size_min INT DEFAULT 5,
+      grid_size_max INT DEFAULT 20,
+      show_timer TINYINT(1) DEFAULT 1,
+      time_limit_seconds INT DEFAULT 0,
+      collectible_count INT DEFAULT 3,
+      collectible_label VARCHAR(100) DEFAULT '★',
+      collectible_images JSON,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_text TEXT,
+      description_color VARCHAR(20) DEFAULT '#888888',
+      intro_text TEXT,
+      outro_text TEXT,
+      bg_color VARCHAR(20) DEFAULT '#0f172a',
+      primary_color VARCHAR(20) DEFAULT '#6366f1',
+      wall_color VARCHAR(20) DEFAULT '#1e293b',
+      path_color VARCHAR(20) DEFAULT '#ffffff',
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_collect_id INT DEFAULT NULL,
+      sound_complete_id INT DEFAULT NULL,
+      overlay_animation_in VARCHAR(50) DEFAULT 'flyFromBottom',
+      overlay_animation_out VARCHAR(50) DEFAULT 'flyToTop',
+      submit_button_text VARCHAR(500),
+      start_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'maze_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS maze_progress (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      session_token VARCHAR(255) NOT NULL,
+      current_level INT DEFAULT 1,
+      completed_levels JSON,
+      total_collectibles INT DEFAULT 0,
+      best_time INT DEFAULT NULL,
+      last_played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+      UNIQUE KEY unique_game_session (game_id, session_token)
+    )
+  `, 'maze_progress table');
+
+  /* ── MEMORY SETTINGS COLUMN MIGRATIONS (ensure ALL columns exist) ── */
+  const memCols = [
+    ['grid_rows', 'INT DEFAULT 4'],
+    ['heading_1_color', "VARCHAR(20) DEFAULT '#1a1a2e'"],
+    ['heading_2_color', "VARCHAR(20) DEFAULT '#666666'"],
+    ['heading_3_color', "VARCHAR(20) DEFAULT '#777777'"],
+    ['description_color', "VARCHAR(20) DEFAULT '#888888'"],
+    ['start_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
+    ['start_button_bg_color', 'VARCHAR(20)'],
+    ['submit_confirm_gif_url', 'VARCHAR(500)'],
+    ['continue_button_text', "VARCHAR(100) DEFAULT 'Continue Now →'"],
+    ['continue_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
+    ['continue_button_bg_color', 'VARCHAR(20)'],
+    ['next_button_text', "VARCHAR(100) DEFAULT 'Next'"],
+    ['next_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
+    ['next_button_bg_color', 'VARCHAR(20)'],
+    ['heading_3', 'VARCHAR(500)'],
+    ['overlay_duration', 'INT DEFAULT 3'],
+    ['intro_text', 'TEXT'],
+    ['outro_text', 'TEXT'],
+    ['submit_button_text', 'VARCHAR(500)'],
+    ['start_button_text', 'VARCHAR(500)'],
+    ['meta_description', 'TEXT'],
+    ['terms_enabled', 'TINYINT(1) DEFAULT 0'],
+    ['terms_text', 'TEXT'],
+    ['terms_url', 'VARCHAR(500)'],
+  ];
+  for (const [col, def] of memCols) {
+    await addColumn(connection, 'memory_settings', col, def);
+  }
+
+  /* ── JIGSAW PUZZLE TABLES ── */
+  console.log('🧩 Creating jigsaw puzzle tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS jigsaw_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      grid_cols INT DEFAULT 4,
+      grid_rows INT DEFAULT 4,
+      show_timer TINYINT(1) DEFAULT 1,
+      time_limit_seconds INT DEFAULT 0,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#f8f8ff',
+      primary_color VARCHAR(20) DEFAULT '#6366f1',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      puzzle_image_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_correct_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL,
+      intro_text TEXT,
+      outro_text TEXT,
+      submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      start_button_text VARCHAR(500),
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'jigsaw_settings table');
+
+  /* ── WORD SEARCH TABLES ── */
+  console.log('🔍 Creating word search tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS wordsearch_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      grid_rows INT DEFAULT 12,
+      grid_cols INT DEFAULT 12,
+      show_timer TINYINT(1) DEFAULT 1,
+      time_limit_seconds INT DEFAULT 0,
+      allow_hints TINYINT(1) DEFAULT 1,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#f8f8ff',
+      primary_color VARCHAR(20) DEFAULT '#6366f1',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_correct_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL,
+      intro_text TEXT,
+      outro_text TEXT,
+      submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      start_button_text VARCHAR(500),
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'wordsearch_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS wordsearch_words (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      word_text VARCHAR(255) NOT NULL,
+      clue_text TEXT,
+      word_order INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'wordsearch_words table');
+
+  /* ── POURING WATER TABLES ── */
+  console.log('💧 Creating pouring water tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS pouring_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      target_ml INT DEFAULT 50,
+      tolerance_ml INT DEFAULT 5,
+      max_ml INT DEFAULT 200,
+      pour_speed DECIMAL(3,2) DEFAULT 1.00,
+      viscosity DECIMAL(3,2) DEFAULT 1.00,
+      water_color VARCHAR(20) DEFAULT '#4da6ff',
+      show_timer TINYINT(1) DEFAULT 1,
+      time_limit_seconds INT DEFAULT 0,
+      allow_retries TINYINT(1) DEFAULT 1,
+      max_retries INT DEFAULT 3,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#f0f4ff',
+      primary_color VARCHAR(20) DEFAULT '#6366f1',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_correct_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL,
+      sound_pour_id INT DEFAULT NULL,
+      intro_text TEXT,
+      outro_text TEXT,
+      submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      start_button_text VARCHAR(500),
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'pouring_settings table');
+
+  /* ── SPEED TYPER TABLES ── */
+  console.log('⌨️ Creating speed typer tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS typer_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      fall_speed INT DEFAULT 2,
+      max_simultaneous INT DEFAULT 3,
+      difficulty_mode VARCHAR(20) DEFAULT 'progressive',
+      time_limit_seconds INT DEFAULT 60,
+      max_misses INT DEFAULT 5,
+      target_words INT DEFAULT 0,
+      word_category VARCHAR(50) DEFAULT 'mixed',
+      show_timer TINYINT(1) DEFAULT 1,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#0f172a',
+      primary_color VARCHAR(20) DEFAULT '#6366f1',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_correct_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL,
+      sound_combo_id INT DEFAULT NULL,
+      sound_gameover_id INT DEFAULT NULL,
+      intro_text TEXT,
+      outro_text TEXT,
+      submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      start_button_text VARCHAR(500),
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'typer_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS typer_words (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      word_text VARCHAR(255) NOT NULL,
+      difficulty VARCHAR(20) DEFAULT 'medium',
+      word_order INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'typer_words table');
+
+  /* ── SCREW & REVEAL TABLES ── */
+  console.log('🔩 Creating screw & reveal tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS screw_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      board_rows INT DEFAULT 6,
+      board_cols INT DEFAULT 6,
+      block_colors VARCHAR(500) DEFAULT '#c0392b,#2980b9,#27ae60,#f39c12,#8e44ad',
+      screws_per_block INT DEFAULT 2,
+      empty_holes INT DEFAULT 3,
+      difficulty VARCHAR(20) DEFAULT 'medium',
+      show_timer TINYINT(1) DEFAULT 1,
+      time_limit_seconds INT DEFAULT 120,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#f0e6d3',
+      primary_color VARCHAR(20) DEFAULT '#8B4513',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      reveal_image_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_screw_id INT DEFAULT NULL,
+      sound_fall_id INT DEFAULT NULL,
+      sound_reveal_id INT DEFAULT NULL,
+      intro_text TEXT,
+      outro_text TEXT,
+      submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      start_button_text VARCHAR(500),
+      reveal_text VARCHAR(500),
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'screw_settings table');
+
+  /* ── SNAKE TABLES ── */
+  console.log('🐍 Creating snake tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS snake_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      board_width INT DEFAULT 20, board_height INT DEFAULT 20, speed INT DEFAULT 5,
+      snake_color VARCHAR(20) DEFAULT '#22c55e', food_color VARCHAR(20) DEFAULT '#ef4444',
+      wall_mode VARCHAR(20) DEFAULT 'wall', show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#22c55e',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_eat_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
+      intro_text TEXT, outro_text TEXT, submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →', start_button_text VARCHAR(500),
+      reveal_text VARCHAR(500), terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
+      terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'snake_settings table');
+
+  /* ── CATCH FALLING OBJECTS TABLES ── */
+  console.log('🧺 Creating catch tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS catch_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      spawn_rate INT DEFAULT 1000, fall_speed INT DEFAULT 2, max_misses INT DEFAULT 5,
+      time_limit_seconds INT DEFAULT 60, item_type VARCHAR(50) DEFAULT 'emoji',
+      basket_color VARCHAR(20) DEFAULT '#8B5CF6',
+      show_timer TINYINT(1) DEFAULT 1,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#f8f8ff', primary_color VARCHAR(20) DEFAULT '#8B5CF6',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_catch_id INT DEFAULT NULL, sound_miss_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
+      intro_text TEXT, outro_text TEXT, submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →', start_button_text VARCHAR(500),
+      terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
+      terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'catch_settings table');
+
+  /* ── REACTION TIME TABLES ── */
+  console.log('⚡ Creating reaction tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS reaction_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      rounds INT DEFAULT 5, color_change_delay INT DEFAULT 2000,
+      target_color VARCHAR(20) DEFAULT '#22c55e', show_leaderboard TINYINT(1) DEFAULT 1,
+      show_timer TINYINT(1) DEFAULT 1,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#ef4444',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_correct_id INT DEFAULT NULL, sound_wrong_id INT DEFAULT NULL,
+      intro_text TEXT, outro_text TEXT, submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →', start_button_text VARCHAR(500),
+      terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
+      terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'reaction_settings table');
+
+  /* ── SIMON SAYS TABLES ── */
+  console.log('🎯 Creating simon tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS simon_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      num_rounds INT DEFAULT 8, num_colors INT DEFAULT 4, speed VARCHAR(20) DEFAULT 'medium',
+      color_1 VARCHAR(20) DEFAULT '#ef4444', color_2 VARCHAR(20) DEFAULT '#3b82f6',
+      color_3 VARCHAR(20) DEFAULT '#22c55e', color_4 VARCHAR(20) DEFAULT '#f59e0b',
+      color_5 VARCHAR(20) DEFAULT '#8b5cf6', color_6 VARCHAR(20) DEFAULT '#ec4899',
+      show_timer TINYINT(1) DEFAULT 0, time_limit_seconds INT DEFAULT 0,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#1a1a2e', primary_color VARCHAR(20) DEFAULT '#6366f1',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_correct_id INT DEFAULT NULL, sound_wrong_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
+      intro_text TEXT, outro_text TEXT, submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →', start_button_text VARCHAR(500),
+      terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
+      terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'simon_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS game2048_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      grid_size INT DEFAULT 4,
+      target_number INT DEFAULT 2048,
+      tile_colors JSON,
+      show_timer TINYINT(1) DEFAULT 0,
+      time_limit_seconds INT DEFAULT 0,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      heading_1_color VARCHAR(20) DEFAULT '#776e65',
+      heading_2_color VARCHAR(20) DEFAULT '#776e65',
+      heading_3_color VARCHAR(20) DEFAULT '#776e65',
+      description_text TEXT,
+      description_color VARCHAR(20) DEFAULT '#776e65',
+      bg_color VARCHAR(20) DEFAULT '#faf8ef',
+      primary_color VARCHAR(20) DEFAULT '#8f7a66',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_slide_id INT DEFAULT NULL,
+      sound_merge_id INT DEFAULT NULL,
+      sound_win_id INT DEFAULT NULL,
+      sound_lose_id INT DEFAULT NULL,
+      intro_text TEXT,
+      intro_text_color VARCHAR(20) DEFAULT '#776e65',
+      outro_text TEXT,
+      outro_text_color VARCHAR(20) DEFAULT '#776e65',
+      thankyou_subtitle TEXT,
+      thankyou_subtitle_color VARCHAR(20) DEFAULT '#444444',
+      submit_button_text VARCHAR(500),
+      submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      submit_button_bg_color VARCHAR(20),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      continue_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      continue_button_bg_color VARCHAR(20),
+      start_button_text VARCHAR(500),
+      start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20),
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'game2048_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS game2048_scores (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT,
+      session_token VARCHAR(255),
+      score INT DEFAULT 0,
+      best_score INT DEFAULT 0,
+      moves INT DEFAULT 0,
+      grid_state JSON,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY (game_id, session_token)
+    )
+  `, 'game2048_scores table');
+
   /* ── CROSSWORD SETTINGS COLOR MIGRATIONS ── */
   await addColumn(connection, 'crossword_settings', 'heading_1_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
   await addColumn(connection, 'crossword_settings', 'heading_2_color', "VARCHAR(20) DEFAULT '#666666'");
@@ -330,6 +989,10 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'randomize_questions', 'TINYINT(1) DEFAULT 0');
 
   /* GAMES */
+  await safeQuery(connection,
+    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon') DEFAULT 'quiz'`,
+    'games.category ENUM includes simon'
+  );
   await addColumn(connection, 'games', 'client_id', 'INT');
   await addColumn(connection, 'games', 'slug', 'VARCHAR(255)');
   await addColumn(connection, 'games', 'description', 'TEXT');

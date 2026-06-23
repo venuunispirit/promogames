@@ -3,6 +3,19 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import CrosswordPlayerPage from './CrosswordPlayerPage'
 import SpinPlayerPage      from './SpinPlayerPage'
+import MemoryPlayerPage    from './MemoryPlayerPage'
+import JigsawPlayerPage    from './JigsawPlayerPage'
+import WordSearchPlayerPage from './WordSearchPlayerPage'
+import PouringPlayerPage from './PouringPlayerPage'
+import TyperPlayerPage from './TyperPlayerPage'
+import MathPlayerPage from './MathPlayerPage'
+import MazePlayerPage from './MazePlayerPage'
+import ScrewPlayerPage from './ScrewPlayerPage'
+import Game2048PlayerPage from './Game2048PlayerPage'
+import SnakePlayerPage from './SnakePlayerPage'
+import CatchPlayerPage from './CatchPlayerPage'
+import ReactionPlayerPage from './ReactionPlayerPage'
+import SimonPlayerPage from './SimonPlayerPage'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -377,6 +390,62 @@ export default function PlayerPage() {
           return
         }
 
+        if (g.category === 'memory') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'jigsaw') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'wordsearch') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'pouring') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'typer') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'math') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'maze') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
         // Shuffle questions if randomize_questions is enabled
         if (g.settings?.randomize_questions && g.questions?.length) {
           const arr = [...g.questions]
@@ -469,6 +538,32 @@ export default function PlayerPage() {
       setSessionToken(res.data.session_token)
       if (game.category === 'crossword') {
         setPhase('crossword')
+      } else if (game.category === 'memory') {
+        setPhase('memory')
+      } else if (game.category === 'jigsaw') {
+        setPhase('jigsaw')
+      } else if (game.category === 'wordsearch') {
+        setPhase('wordsearch')
+      } else if (game.category === 'pouring') {
+        setPhase('pouring')
+      } else if (game.category === 'typer') {
+        setPhase('typer')
+      } else if (game.category === 'screw') {
+        setPhase('screw')
+      } else if (game.category === 'math') {
+        setPhase('math')
+      } else if (game.category === '2048') {
+        setPhase('2048')
+      } else if (game.category === 'snake') {
+        setPhase('snake')
+      } else if (game.category === 'catch') {
+        setPhase('catch')
+      } else if (game.category === 'reaction') {
+        setPhase('reaction')
+      } else if (game.category === 'simon') {
+        setPhase('simon')
+      } else if (game.category === 'maze') {
+        setPhase('maze')
       } else {
         setPhase('playing')
       }
@@ -1279,6 +1374,175 @@ const handleModalConfirm = () => {
             setScore(data.session.score || 0)
             setTotalScoreable(data.session.total_scoreable || 0)
           }
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'memory') {
+    return (
+      <MemoryPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'jigsaw') {
+    return (
+      <JigsawPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'wordsearch') {
+    return (
+      <WordSearchPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'pouring') {
+    return (
+      <PouringPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'typer') {
+    return (
+      <TyperPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'math') {
+    return (
+      <MathPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'maze') {
+    return (
+      <MazePlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'screw') {
+    return (
+      <ScrewPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === '2048') {
+    return (
+      <Game2048PlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'snake') {
+    return (
+      <SnakePlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'catch') {
+    return (
+      <CatchPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'reaction') {
+    return (
+      <ReactionPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'simon') {
+    return (
+      <SimonPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
           setRedirectUrl(data?.redirect_url || null)
           setPhase('thankyou')
         }}

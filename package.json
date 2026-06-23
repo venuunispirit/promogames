@@ -13,7 +13,7 @@
     "dev:frontend": "npm run dev -w apps/frontend",
     "dev": "npm run dev:backend & npm run dev:frontend",
     "build:frontend": "npm run build -w apps/frontend",
-    "build": "npm run build:web",
+    "build": "npm run build:frontend",
     "start": "node apps/backend/server.js",
     "init-db": "node apps/backend/config/initDB.js"
   },

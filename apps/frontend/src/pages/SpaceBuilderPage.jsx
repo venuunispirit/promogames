@@ -294,9 +294,12 @@ export default function SpaceBuilderPage() {
     <div className="sb-wrap" style={{ padding: '24px', maxWidth: '1400px', margin: '0 auto' }}>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-        <div>
-          <h1 style={{ fontSize: '24px', fontWeight: '800', color: 'var(--sb-text)', marginBottom: '4px' }}>{game.name}</h1>
-          <p style={{ fontSize: '14px', color: 'var(--sb-text2)' }}>ID: {game.id}</p>
+        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
+          <button onClick={() => navigate('/dashboard/games')} style={{ width:30, height:30, borderRadius:7, border:'1.5px solid #E5E7EB', background:'#F9FAFB', display:'inline-flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#374151', fontSize:16, lineHeight:1, marginTop:1, flexShrink:0 }}>←</button>
+          <div>
+            <div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div>
+            <div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Space Fighter Builder</div>
+          </div>
         </div>
         <div style={{ display: 'flex', gap: '12px' }}>
           <button

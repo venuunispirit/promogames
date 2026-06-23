@@ -345,10 +345,7 @@ export default function WordSearchBuilderPage() {
     <div className="ws-wrap">
       <style>{LIGHT}</style>
       <div className="ws-header">
-        <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-          <button className="ws-btn ws-btn-secondary ws-btn-sm" onClick={() => navigate('/dashboard/games')}>←</button>
-          <span style={{ fontWeight:700, fontSize:14, color:'#111827' }}>{game?.name}</span>
-        </div>
+        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}><button className="ws-icon-btn" onClick={() => navigate('/dashboard/games')} style={{ fontSize:16, lineHeight:1, marginTop:1 }}>←</button><div><div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div><div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Word Search Builder</div></div></div>
         <div className="ws-tabs">
           {TABS.map(t => <button key={t.id} className={`ws-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>)}
         </div>

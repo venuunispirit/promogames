@@ -738,8 +738,7 @@ export default function CrosswordBuilderPage() {
       {/* ─── Header with tabs ─── */}
       <div style={{ position:'sticky', top:0, zIndex:50, background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)', boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
         <div style={{ position:'relative', padding:'6px 20px', display:'flex', alignItems:'center', gap:6 }}>
-          <button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={() => navigate('/dashboard/games')} title="Back">←</button>
-          <div style={{ fontWeight:700, fontSize:13, color:'var(--gb-text)', whiteSpace:'nowrap', minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>{game?.name}</div>
+          <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}><button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={() => navigate('/dashboard/games')} style={{ fontSize:16, lineHeight:1, marginTop:1 }}>←</button><div><div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div><div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Crossword Builder</div></div></div>
           <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', display:'flex', gap:0, overflowX:'auto' }}>
             {TABS.map(t => {
               return (

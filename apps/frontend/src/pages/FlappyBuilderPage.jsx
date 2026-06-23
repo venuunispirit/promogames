@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import CanvaDesignButton from '../components/CanvaDesignButton'
 
 const LIGHT = `
 .gb-wrap{--gb-bg:#f4f6fb;--gb-surface:#ffffff;--gb-surface2:#f0f2f8;--gb-border:#e2e6f0;--gb-primary:#f59e0b;--gb-primary-d:#d97706;--gb-primary-g:rgba(245,158,11,0.15);--gb-success:#16a34a;--gb-danger:#dc2626;--gb-text:#1e1e2e;--gb-text2:#64657a;--gb-text3:#9899ae;--gb-shadow:0 2px 12px rgba(0,0,0,0.08);--gb-shadow-md:0 4px 24px rgba(0,0,0,0.10);--gb-radius:12px;--gb-radius-sm:8px;font-family:'DM Sans',sans-serif;background:var(--gb-bg);color:var(--gb-text);min-height:100vh}
@@ -341,12 +342,33 @@ export default function FlappyBuilderPage() {
               <div className="gb-card" style={{ marginBottom:16,padding:16 }}>
                 <div className="gb-section-title">🖼 Images</div>
                 <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16 }}>
-                  <ImageUpload label="Game Background" url={settings.bg_image_url}
-                    onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgFile:f}); r.readAsDataURL(f) }}
-                    onClear={() => setSettings({...settings,bg_image_url:'',_bgFile:null})} />
-                  <ImageUpload label="Game Logo" url={settings.game_logo_url}
-                    onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_logoFile:f}); r.readAsDataURL(f) }}
-                    onClear={() => setSettings({...settings,game_logo_url:'',_logoFile:null})} />
+                  <div>
+                    <ImageUpload label="Game Background" url={settings.bg_image_url}
+                      onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgFile:f}); r.readAsDataURL(f) }}
+                      onClear={() => setSettings({...settings,bg_image_url:'',_bgFile:null})} />
+                    <div style={{ marginTop:8 }}>
+                      <CanvaDesignButton
+                        gameId={id}
+                        imageType="background"
+                        onImageUploaded={(url) => setSettings({...settings, bg_image_url: url})}
+                        variant="small"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <ImageUpload label="Game Logo" url={settings.game_logo_url}
+                      onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_logoFile:f}); r.readAsDataURL(f) }}
+                      onClear={() => setSettings({...settings,game_logo_url:'',_logoFile:null})} />
+                    <div style={{ marginTop:8 }}>
+                      <CanvaDesignButton
+                        gameId={id}
+                        imageType="logo"
+                        onImageUploaded={(url) => setSettings({...settings, game_logo_url: url})}
+                        buttonText="Design Logo"
+                        variant="small"
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
 

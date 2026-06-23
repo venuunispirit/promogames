@@ -39,6 +39,7 @@ const game2048Routes = require("./routes/2048");
 const simonRoutes = require("./routes/simon");
 const bounceRoutes = require("./routes/bounce");
 const flappyRoutes = require("./routes/flappy");
+const canvaRoutes = require("./routes/canva");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -67,6 +68,7 @@ app.use("/api/2048", game2048Routes);
 app.use("/api/simon", simonRoutes);
 app.use("/api/bounce", bounceRoutes);
 app.use("/api/flappy", flappyRoutes);
+app.use("/api/canva", canvaRoutes);
 
 app.get("/api/check-code", (req, res) => {
   res.json({ 

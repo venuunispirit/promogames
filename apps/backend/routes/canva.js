@@ -142,9 +142,9 @@ router.get('/callback', async (req, res) => {
 
 // ── POST /api/canva/upload-design ────────────────────────────────────────────
 // Receive exported design from Canva (called by Canva app or manually)
-router.post('/upload-design', auth, async (req, res) => {
+router.post('/upload-design', async (req, res) => {
   try {
-    const { imageBase64, gameId, imageType, templateId } = req.body;
+    const { imageBase64, gameId, imageType, templateId, source } = req.body;
 
     if (!imageBase64) {
       return res.status(400).json({ success: false, message: 'No image data provided' });
@@ -167,6 +167,8 @@ router.post('/upload-design', auth, async (req, res) => {
     fs.writeFileSync(filepath, buffer);
 
     const imageUrl = `/uploads/images/${filename}`;
+
+    console.log(`✅ Canva design uploaded: ${filename} (${source || 'manual'})`);
 
     res.json({
       success: true,

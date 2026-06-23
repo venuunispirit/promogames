@@ -751,6 +751,16 @@ async function initDB() {
       terms_text TEXT,
       terms_url VARCHAR(500),
       meta_description TEXT,
+      start_button_text_color VARCHAR(20) DEFAULT NULL,
+      start_button_bg_color VARCHAR(20) DEFAULT NULL,
+      submit_button_text_color VARCHAR(20) DEFAULT NULL,
+      submit_button_bg_color VARCHAR(20) DEFAULT NULL,
+      continue_button_text_color VARCHAR(20) DEFAULT NULL,
+      continue_button_bg_color VARCHAR(20) DEFAULT NULL,
+      thankyou_subtitle VARCHAR(500) DEFAULT NULL,
+      thankyou_subtitle_color VARCHAR(20) DEFAULT NULL,
+      outro_text_color VARCHAR(20) DEFAULT NULL,
+      intro_text_color VARCHAR(20) DEFAULT NULL,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
@@ -855,6 +865,37 @@ async function initDB() {
       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
     )
   `, 'simon_settings table');
+
+  /* ── FLAPPY BIRD TABLES ── */
+  console.log('🐦 Creating flappy bird tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS flappy_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      gravity DECIMAL(3,2) DEFAULT 0.50, flap_strength DECIMAL(4,2) DEFAULT -8.00,
+      pipe_speed INT DEFAULT 3, pipe_gap INT DEFAULT 150, pipe_width INT DEFAULT 60,
+      bird_color VARCHAR(20) DEFAULT '#f59e0b', pipe_color VARCHAR(20) DEFAULT '#22c55e',
+      ground_color VARCHAR(20) DEFAULT '#8B4513', sky_color VARCHAR(20) DEFAULT '#87CEEB',
+      show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#87CEEB', primary_color VARCHAR(20) DEFAULT '#f59e0b',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_flap_id INT DEFAULT NULL, sound_score_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
+      intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
+      outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      start_button_text VARCHAR(500),
+      start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
+      submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
+      continue_button_text_color VARCHAR(20) DEFAULT NULL, continue_button_bg_color VARCHAR(20) DEFAULT NULL,
+      thankyou_subtitle VARCHAR(500) DEFAULT NULL, thankyou_subtitle_color VARCHAR(20) DEFAULT NULL,
+      terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT, terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'flappy_settings table');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS game2048_settings (
@@ -986,12 +1027,15 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'next_button_text', "VARCHAR(100) DEFAULT 'Next →'");
   await addColumn(connection, 'quiz_settings', 'next_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
   await addColumn(connection, 'quiz_settings', 'next_button_bg_color', 'VARCHAR(20)');
+  await addColumn(connection, 'quiz_settings', 'start_button_text', 'VARCHAR(500)');
+  await addColumn(connection, 'quiz_settings', 'submit_button_text', 'VARCHAR(500)');
+  await addColumn(connection, 'quiz_settings', 'continue_button_text', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'randomize_questions', 'TINYINT(1) DEFAULT 0');
 
   /* GAMES */
   await safeQuery(connection,
-    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon') DEFAULT 'quiz'`,
-    'games.category ENUM includes simon'
+    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce') DEFAULT 'quiz'`,
+    'games.category ENUM includes bounce'
   );
   await addColumn(connection, 'games', 'client_id', 'INT');
   await addColumn(connection, 'games', 'slug', 'VARCHAR(255)');
@@ -1009,9 +1053,190 @@ async function initDB() {
   await addColumn(connection, 'player_sessions', 'source_type', "VARCHAR(20) DEFAULT 'direct'");
   await addColumn(connection, 'player_sessions', 'completed_at', 'TIMESTAMP NULL');
   await addColumn(connection, 'player_sessions', 'email_sent', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'player_sessions', 'utm_source', 'VARCHAR(255)');
+  await addColumn(connection, 'player_sessions', 'utm_medium', 'VARCHAR(255)');
+  await addColumn(connection, 'player_sessions', 'utm_campaign', 'VARCHAR(255)');
+  await addColumn(connection, 'player_sessions', 'utm_term', 'VARCHAR(255)');
+  await addColumn(connection, 'player_sessions', 'utm_content', 'VARCHAR(255)');
+  await addColumn(connection, 'player_sessions', 'promo_player_id', 'INT');
 
   /* SOUNDS — url column used by sounds.js route */
   await addColumn(connection, 'sounds', 'url', 'VARCHAR(500)');
+
+  /* SCREW SETTINGS — missing fields */
+  await addColumn(connection, 'screw_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'screw_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'screw_settings', 'submit_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'screw_settings', 'submit_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'screw_settings', 'continue_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'screw_settings', 'continue_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'screw_settings', 'thankyou_subtitle', "VARCHAR(500) DEFAULT NULL");
+  await addColumn(connection, 'screw_settings', 'thankyou_subtitle_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'screw_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'screw_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
+
+  /* ── SIMON SETTINGS — missing button/thankyou color fields ── */
+  await addColumn(connection, 'simon_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'simon_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'simon_settings', 'thankyou_subtitle', "VARCHAR(500) DEFAULT NULL");
+  await addColumn(connection, 'simon_settings', 'thankyou_subtitle_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'simon_settings', 'submit_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'simon_settings', 'submit_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'simon_settings', 'continue_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'simon_settings', 'continue_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'simon_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'simon_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+
+  /* ── SNAKE SETTINGS — missing button/thankyou color fields + reveal_image_url ── */
+  await addColumn(connection, 'snake_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'thankyou_subtitle', "VARCHAR(500) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'thankyou_subtitle_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'submit_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'submit_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'continue_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'continue_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'snake_settings', 'reveal_image_url', "VARCHAR(500) DEFAULT NULL");
+
+  /* ── CATCH SETTINGS — missing button/thankyou color fields ── */
+  await addColumn(connection, 'catch_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'catch_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'catch_settings', 'thankyou_subtitle', "VARCHAR(500) DEFAULT NULL");
+  await addColumn(connection, 'catch_settings', 'thankyou_subtitle_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'catch_settings', 'submit_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'catch_settings', 'submit_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'catch_settings', 'continue_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'catch_settings', 'continue_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'catch_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'catch_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+
+  /* ── REACTION SETTINGS — missing button/thankyou color fields + time_limit_seconds ── */
+  await addColumn(connection, 'reaction_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'thankyou_subtitle', "VARCHAR(500) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'thankyou_subtitle_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'submit_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'submit_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'continue_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'continue_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
+  await addColumn(connection, 'reaction_settings', 'time_limit_seconds', "INT DEFAULT 0");
+
+  /* ── GAME2048 SETTINGS — missing fields read by player ── */
+  await addColumn(connection, 'game2048_settings', 'overlay_animation_in', "VARCHAR(50) DEFAULT 'flyFromBottom'");
+  await addColumn(connection, 'game2048_settings', 'keep_going_button_text', "VARCHAR(100) DEFAULT 'Keep Going'");
+  await addColumn(connection, 'game2048_settings', 'claim_prize_button_text', "VARCHAR(100) DEFAULT 'Claim Prize →'");
+  await addColumn(connection, 'game2048_settings', 'new_game_button_text', "VARCHAR(100) DEFAULT '↻ New Game'");
+
+  /* ── QUESTIONS — short answer support ── */
+  await addColumn(connection, 'questions', 'answer_text', "VARCHAR(500) DEFAULT NULL");
+  await addColumn(connection, 'questions', 'answer_is_number', "TINYINT(1) DEFAULT 0");
+  // Change question_type from ENUM to VARCHAR so it can hold 'short_answer'
+  await safeQuery(connection, `ALTER TABLE questions MODIFY COLUMN question_type VARCHAR(50) DEFAULT 'right_wrong'`, 'questions.question_type → VARCHAR(50)');
+
+  /* ── BOUNCE GAME TABLES ── */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS bounce_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      primary_color VARCHAR(20) DEFAULT '#e53935',
+      bg_color VARCHAR(20) DEFAULT '#f5f5f5',
+      bg_image_url VARCHAR(500),
+      ball_image_url VARCHAR(500),
+      ball_color VARCHAR(20) DEFAULT '#e53935',
+      ball_size INT DEFAULT 24,
+      gravity FLOAT DEFAULT 0.5,
+      jump_force FLOAT DEFAULT -12,
+      friction FLOAT DEFAULT 0.85,
+      max_speed FLOAT DEFAULT 8,
+      intro_text TEXT,
+      intro_text_color VARCHAR(20) DEFAULT '#1a1a2e',
+      outro_text TEXT,
+      outro_text_color VARCHAR(20) DEFAULT '#1a1a2e',
+      time_limit_seconds INT DEFAULT 0,
+      show_timer TINYINT(1) DEFAULT 1,
+      sound_jump_id INT DEFAULT NULL,
+      sound_coin_id INT DEFAULT NULL,
+      sound_hit_id INT DEFAULT NULL,
+      sound_win_id INT DEFAULT NULL,
+      sound_lose_id INT DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'bounce_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS bounce_levels (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      level_order INT DEFAULT 0,
+      level_name VARCHAR(100) DEFAULT 'Level',
+      width INT DEFAULT 3000,
+      height INT DEFAULT 600,
+      bg_color VARCHAR(20),
+      bg_image_url VARCHAR(500),
+      parallax_bg_url VARCHAR(500),
+      time_limit_seconds INT DEFAULT 0,
+      target_score INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'bounce_levels table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS bounce_objects (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      level_id INT NOT NULL,
+      type ENUM('platform','moving_platform','spike','spring','coin','goal','wall','death_zone') DEFAULT 'platform',
+      x INT DEFAULT 0,
+      y INT DEFAULT 0,
+      width INT DEFAULT 100,
+      height INT DEFAULT 20,
+      color VARCHAR(20) DEFAULT '#333',
+      image_url VARCHAR(500),
+      -- Moving platform properties
+      move_type ENUM('horizontal','vertical','none') DEFAULT 'none',
+      move_distance INT DEFAULT 200,
+      move_speed FLOAT DEFAULT 1,
+      move_start_offset INT DEFAULT 0,
+      -- Spring properties
+      spring_force FLOAT DEFAULT -18,
+      -- Coin properties
+      coin_value INT DEFAULT 10,
+      -- Goal properties
+      goal_text VARCHAR(50) DEFAULT 'FINISH',
+      -- Z-index for rendering order
+      z_index INT DEFAULT 0,
+      object_order INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (level_id) REFERENCES bounce_levels(id) ON DELETE CASCADE
+    )
+  `, 'bounce_objects table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS bounce_progress (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      session_id INT NOT NULL,
+      level_id INT NOT NULL,
+      score INT DEFAULT 0,
+      coins_collected INT DEFAULT 0,
+      time_elapsed INT DEFAULT 0,
+      completed TINYINT(1) DEFAULT 0,
+      deaths INT DEFAULT 0,
+      best_time INT DEFAULT NULL,
+      best_score INT DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES player_sessions(id) ON DELETE CASCADE,
+      FOREIGN KEY (level_id) REFERENCES bounce_levels(id) ON DELETE CASCADE,
+      UNIQUE KEY unique_session_level (session_id, level_id)
+    )
+  `, 'bounce_progress table');
 
   console.log('👤 Creating admin user...');
 
@@ -1035,9 +1260,15 @@ async function initDB() {
   console.log('✅ Migration completed successfully!');
 }
 
-/* ================= RUN ================= */
+/* ================= EXPORT ================= */
 
-initDB().catch(err => {
-  console.error('❌ Migration failed:', err);
-  process.exit(1);
-});
+module.exports = initDB;
+
+/* ================= RUN (when called directly) ================= */
+
+if (require.main === module) {
+  initDB().catch(err => {
+    console.error('❌ Migration failed:', err);
+    process.exit(1);
+  });
+}

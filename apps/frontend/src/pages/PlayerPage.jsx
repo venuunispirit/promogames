@@ -16,6 +16,8 @@ import SnakePlayerPage from './SnakePlayerPage'
 import CatchPlayerPage from './CatchPlayerPage'
 import ReactionPlayerPage from './ReactionPlayerPage'
 import SimonPlayerPage from './SimonPlayerPage'
+import FlappyPlayerPage from './FlappyPlayerPage'
+import BouncePlayerPage from './BouncePlayerPage'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -237,6 +239,7 @@ export default function PlayerPage() {
   const [sessionId,    setSessionId]    = useState(null)
   const [currentQ, setCurrentQ] = useState(0)
   const [selectedOpt, setSelectedOpt] = useState(null)
+  const [shortAnswerText, setShortAnswerText] = useState('')
   const [answered, setAnswered] = useState(false)
   const [score, setScore] = useState(0)
   const [totalScoreable, setTotalScoreable] = useState(0)
@@ -303,6 +306,11 @@ export default function PlayerPage() {
     whatsapp: ['whatsapp','whatsapp number','phone','phone number','mobile','mobile number','contact','contact number'],
     city: ['city','town','city/town','location'],
     pincode: ['pincode','pin code','zip','zip code','postal code','postalcode'],
+    state: ['state','province','region'],
+    country: ['country','nation'],
+    company: ['company','company name','organization','org','workplace'],
+    dob: ['dob','date of birth','birthday','birth date'],
+    gender: ['gender','sex'],
   }
 
   const getPlayerField = (profile, fieldLabel) => {
@@ -348,10 +356,20 @@ export default function PlayerPage() {
         }
 
         const startSession = async (initData) => {
+          const utmSource = searchParams.get('utm_source') || ''
+          const utmMedium = searchParams.get('utm_medium') || ''
+          const utmCampaign = searchParams.get('utm_campaign') || ''
+          const utmTerm = searchParams.get('utm_term') || ''
+          const utmContent = searchParams.get('utm_content') || ''
           const payload = {
             game_id: g.id,
             player_data: initData,
             source_type: searchParams.get('source') === 'direct' ? 'direct' : (profile ? 'player' : 'link'),
+            utm_source: utmSource,
+            utm_medium: utmMedium,
+            utm_campaign: utmCampaign,
+            utm_term: utmTerm,
+            utm_content: utmContent,
           }
           if (profile) payload.promo_player_id = profile.id
           const sessRes = await api.post('/play/session/start', payload)
@@ -446,6 +464,22 @@ export default function PlayerPage() {
           return
         }
 
+        if (g.category === 'flappy') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'bounce') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
         // Shuffle questions if randomize_questions is enabled
         if (g.settings?.randomize_questions && g.questions?.length) {
           const arr = [...g.questions]
@@ -528,10 +562,20 @@ export default function PlayerPage() {
     if (hasErrors) return
     setSubmitting(true)
     try {
+      const utmSource = searchParams.get('utm_source') || ''
+      const utmMedium = searchParams.get('utm_medium') || ''
+      const utmCampaign = searchParams.get('utm_campaign') || ''
+      const utmTerm = searchParams.get('utm_term') || ''
+      const utmContent = searchParams.get('utm_content') || ''
       const payload = {
         game_id: game.id,
         player_data: formData,
         source_type: searchParams.get('source') === 'direct' ? 'direct' : (playerProfile ? 'player' : 'link'),
+        utm_source: utmSource,
+        utm_medium: utmMedium,
+        utm_campaign: utmCampaign,
+        utm_term: utmTerm,
+        utm_content: utmContent,
       }
       if (playerProfile) payload.promo_player_id = playerProfile.id
       const res = await api.post('/play/session/start', payload)
@@ -564,6 +608,10 @@ export default function PlayerPage() {
         setPhase('simon')
       } else if (game.category === 'maze') {
         setPhase('maze')
+      } else if (game.category === 'flappy') {
+        setPhase('flappy')
+      } else if (game.category === 'bounce') {
+        setPhase('bounce')
       } else {
         setPhase('playing')
       }
@@ -618,6 +666,7 @@ export default function PlayerPage() {
     else {
       setCurrentQ(q => q + 1)
       setSelectedOpt(null)
+      setShortAnswerText('')
       setAnswered(false)
       setQuestionKey(k => k + 1)
     }
@@ -721,6 +770,37 @@ export default function PlayerPage() {
     }
   }
 }
+
+  const handleShortAnswerSubmit = async () => {
+    if (answered || !shortAnswerText.trim()) return
+    setAnswered(true)
+
+    const question = game.questions[currentQ]
+    const isLastQ = currentQ + 1 >= game.questions.length
+    const soundMap = game.soundMap || {}
+    const settingsObj = game.settings || {}
+    const playerAnswer = shortAnswerText.trim()
+
+    // Compare answer
+    let isCorrect = false
+    if (question.answer_is_number) {
+      isCorrect = parseFloat(playerAnswer) === parseFloat(question.answer_text)
+    } else {
+      isCorrect = playerAnswer.toLowerCase() === (question.answer_text || '').toLowerCase()
+    }
+
+    playSound(resolveSound(question.sound_neutral_id, soundMap))
+
+    try {
+      await api.post('/play/session/answer', {
+        session_token: sessionToken, question_id: question.id,
+        option_id: null, is_correct: isCorrect, question_type: question.question_type,
+        answer_text: playerAnswer
+      })
+    } catch {}
+
+    setTimeout(() => doAdvance(isLastQ, sessionToken), 1200)
+  }
 
   const s = game?.settings || {}
   const primaryColor = s.primary_color || '#7c6ff7'
@@ -1164,7 +1244,72 @@ export default function PlayerPage() {
                 flexDirection: 'column',
                 gap: 8,
               }}>
-                {(question.options || []).map((opt, optIdx) => {
+                {question.question_type === 'short_answer' ? (
+                  <div style={{ display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
+                    <input
+                      type={question.answer_is_number ? 'number' : 'text'}
+                      value={shortAnswerText}
+                      onChange={e => setShortAnswerText(e.target.value)}
+                      onKeyDown={e => { if (e.key === 'Enter') handleShortAnswerSubmit() }}
+                      placeholder={question.answer_is_number ? 'Enter a number…' : 'Type your answer…'}
+                      disabled={answered}
+                      style={{
+                        width: '100%',
+                        padding: '14px 18px',
+                        borderRadius: 14,
+                        border: answered ? '2px solid #22c55e' : `2px solid ${primaryColor}40`,
+                        background: answered ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.95)',
+                        fontSize: 'clamp(15px,4vw,18px)',
+                        fontWeight: 600,
+                        color: '#1a1a2e',
+                        textAlign: 'center',
+                        fontFamily: ff,
+                        outline: 'none',
+                        transition: 'all 0.25s ease',
+                        boxShadow: answered ? '0 4px 16px rgba(34,197,94,0.2)' : '0 2px 8px rgba(0,0,0,0.06)',
+                      }}
+                    />
+                    {!answered && (
+                      <button
+                        onClick={handleShortAnswerSubmit}
+                        disabled={!shortAnswerText.trim()}
+                        style={{
+                          background: shortAnswerText.trim() ? `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` : '#ccc',
+                          color: '#fff',
+                          border: 'none',
+                          borderRadius: 50,
+                          padding: '14px 40px',
+                          fontSize: 16,
+                          fontWeight: 700,
+                          cursor: shortAnswerText.trim() ? 'pointer' : 'not-allowed',
+                          fontFamily: ff,
+                          boxShadow: shortAnswerText.trim() ? `0 8px 24px ${primaryColor}66` : 'none',
+                          transition: 'all 0.25s ease',
+                          touchAction: 'manipulation',
+                          animation: 'questionEnter 0.4s 0.2s both ease',
+                        }}>
+                        Submit Answer →
+                      </button>
+                    )}
+                    {answered && (
+                      <div style={{
+                        marginTop: 8,
+                        padding: '10px 18px',
+                        borderRadius: 12,
+                        background: 'rgba(34,197,94,0.1)',
+                        border: '1.5px solid rgba(34,197,94,0.3)',
+                        color: '#16a34a',
+                        fontSize: 14,
+                        fontWeight: 600,
+                        fontFamily: ff,
+                        animation: 'questionEnter 0.3s ease',
+                      }}>
+                        ✓ Answer recorded
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                (question.options || []).map((opt, optIdx) => {
                   const os = getOptionStyle(opt, question, selectedOpt)
                   return (
                     <button
@@ -1209,7 +1354,8 @@ export default function PlayerPage() {
                       <span style={{ flex: 1, textAlign: 'center' }}>{opt.option_text}</span>
                     </button>
                   )
-                })}
+                })
+                )}
               </div>
 
               {/* ── NEW: Continue button for registration games (no overlay) ── */}
@@ -1540,6 +1686,32 @@ const handleModalConfirm = () => {
   if (phase === 'simon') {
     return (
       <SimonPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'flappy') {
+    return (
+      <FlappyPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'bounce') {
+    return (
+      <BouncePlayerPage
         gameData={game}
         sessionToken={sessionToken}
         onComplete={(data) => {

@@ -515,11 +515,11 @@ router.put('/:id/settings', auth, upload.fields([
     bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url,
     heading_1_color, heading_2_color, intro_text_color,
     thankyou_subtitle, outro_text_color, thankyou_subtitle_color,
-    start_button_text_color, start_button_bg_color,
-    submit_button_text_color, submit_button_bg_color,
-    continue_button_text_color, continue_button_bg_color,
+    start_button_text, start_button_text_color, start_button_bg_color,
+    submit_button_text, submit_button_text_color, submit_button_bg_color,
+    continue_button_text, continue_button_text_color, continue_button_bg_color,
     next_button_text, next_button_text_color, next_button_bg_color,
-    randomize_questions } = req.body;
+    randomize_questions, meta_description } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [req.params.id]);
     const bgImg   = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           || (existing[0]?.bg_image_url           || null));
@@ -528,8 +528,8 @@ router.put('/:id/settings', auth, upload.fields([
     const gifImg  = req.files?.submit_confirm_gif ? `/uploads/images/${req.files.submit_confirm_gif[0].filename}` : (submit_confirm_gif_url || (existing[0]?.submit_confirm_gif_url  || null));
 
     await db.query(
-      `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text_color, start_button_bg_color, submit_button_text_color, submit_button_bg_color, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
        ON DUPLICATE KEY UPDATE bg_color=VALUES(bg_color), primary_color=VALUES(primary_color),
        show_progress=VALUES(show_progress), allow_back=VALUES(allow_back),
        time_per_question=VALUES(time_per_question),
@@ -547,10 +547,13 @@ router.put('/:id/settings', auth, upload.fields([
        thankyou_subtitle=VALUES(thankyou_subtitle),
        outro_text_color=VALUES(outro_text_color),
        thankyou_subtitle_color=VALUES(thankyou_subtitle_color),
+       start_button_text=VALUES(start_button_text),
        start_button_text_color=VALUES(start_button_text_color),
        start_button_bg_color=VALUES(start_button_bg_color),
+       submit_button_text=VALUES(submit_button_text),
        submit_button_text_color=VALUES(submit_button_text_color),
        submit_button_bg_color=VALUES(submit_button_bg_color),
+       continue_button_text=VALUES(continue_button_text),
        continue_button_text_color=VALUES(continue_button_text_color),
        continue_button_bg_color=VALUES(continue_button_bg_color),
          next_button_text=VALUES(next_button_text),
@@ -564,12 +567,18 @@ router.put('/:id/settings', auth, upload.fields([
        logoImg || null, font_family || 'DM Sans', gifImg || null,
        heading_1_color || null, heading_2_color || null, intro_text_color || null,
        thankyou_subtitle || null, outro_text_color || null, thankyou_subtitle_color || null,
-       start_button_text_color || null, start_button_bg_color || null,
-       submit_button_text_color || null, submit_button_bg_color || null,
-       continue_button_text_color || null, continue_button_bg_color || null,
+       start_button_text || null, start_button_text_color || null, start_button_bg_color || null,
+       submit_button_text || null, submit_button_text_color || null, submit_button_bg_color || null,
+       continue_button_text || null, continue_button_text_color || null, continue_button_bg_color || null,
        next_button_text || null, next_button_text_color || null, next_button_bg_color || null,
        randomize_questions !== undefined ? (randomize_questions ? 1 : 0) : 0]
     );
+
+    // Save meta_description to games table (not quiz_settings)
+    if (meta_description !== undefined) {
+      await db.query('UPDATE games SET meta_description = ? WHERE id = ?', [meta_description || null, req.params.id]);
+    }
+
     res.json({ success: true, message: 'Settings saved' });
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
@@ -637,7 +646,11 @@ router.get('/:id/responses', auth, async (req, res) => {
       session.answers = answers;
     }
 
-    res.json({ success: true, sessions });
+    // Get game category for frontend to render appropriate view
+    const [gameRows] = await db.query('SELECT category FROM games WHERE id = ?', [req.params.id]);
+    const category = gameRows[0]?.category || 'quiz';
+
+    res.json({ success: true, sessions, category });
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 

@@ -626,7 +626,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
 });
 
 router.post('/session/start', async (req, res) => {
-  const { game_id, player_data, source_type, promo_player_id } = req.body;
+  const { game_id, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
   const validSrc = ['direct', 'link', 'player'];
   const src = validSrc.includes(source_type) ? source_type : 'link';
   try {
@@ -655,8 +655,10 @@ router.post('/session/start', async (req, res) => {
     }
     const token = uuidv4();
     const [result] = await db.query(
-      'INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id) VALUES (?, ?, ?, ?, ?)',
-      [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null]
+      `INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null,
+       utm_source || null, utm_medium || null, utm_campaign || null, utm_term || null, utm_content || null]
     );
     res.json({ success: true, session_token: token, session_id: result.insertId });
   } catch (err) {
@@ -667,14 +669,14 @@ router.post('/session/start', async (req, res) => {
 
 // ── Quiz / survey answer ──────────────────────────────────────────────────────
 router.post('/session/answer', async (req, res) => {
-  const { session_token, question_id, option_id, is_correct, question_type } = req.body;
+  const { session_token, question_id, option_id, is_correct, question_type, answer_text } = req.body;
   try {
     const [sessions] = await db.query('SELECT * FROM player_sessions WHERE session_token = ?', [session_token]);
     if (sessions.length === 0) return res.status(404).json({ success: false, message: 'Session not found' });
     const session = sessions[0];
     await db.query(
-      'INSERT INTO player_answers (session_id, question_id, option_id, is_correct) VALUES (?, ?, ?, ?)',
-      [session.id, question_id, option_id, is_correct === true ? 1 : 0]
+      'INSERT INTO player_answers (session_id, question_id, option_id, answer_text, is_correct, question_type) VALUES (?, ?, ?, ?, ?, ?)',
+      [session.id, question_id, option_id || null, answer_text || null, is_correct === true ? 1 : 0, question_type || null]
     );
     if (question_type === 'right_wrong' && is_correct) {
       await db.query('UPDATE player_sessions SET score = score + 1 WHERE id = ?', [session.id]);

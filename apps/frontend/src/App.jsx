@@ -8,6 +8,8 @@ import DashboardHome     from './pages/DashboardHome'
 import ClientsPage       from './pages/ClientsPage'
 import GamesPage         from './pages/GamesPage'
 import GameBuilderPage   from './pages/GameBuilderPage'
+import BounceBuilderPage from './pages/BounceBuilderPage'
+import BouncePlayerPage  from './pages/BouncePlayerPage'
 import PlayerPage        from './pages/PlayerPage'
 import LandingPage       from './pages/LandingPage'
 import GameResponsesPage from './pages/GameResponsesPage'
@@ -27,6 +29,7 @@ import SnakeBuilderPage from './pages/SnakeBuilderPage'
 import CatchBuilderPage from './pages/CatchBuilderPage'
 import ReactionBuilderPage from './pages/ReactionBuilderPage'
 import SimonBuilderPage from './pages/SimonBuilderPage'
+import FlappyBuilderPage from './pages/FlappyBuilderPage'
 import PlayerDashboard   from './pages/PlayerDashboard'
 import PlayersPage       from './pages/PlayersPage'
 import LeaderboardPage   from './pages/LeaderboardPage'
@@ -64,8 +67,8 @@ function AppRoutes() {
       <Route path="/leaderboard" element={<LeaderboardPage />} />
       <Route path="/business"    element={<Business />} />
 
-      {/* Player game route */}
-      <Route path="/play/:gameName/:companyName" element={<PlayerPage />} />
+      {/* Player game routes */}
+      <Route path="/play/:gameName/:companyName" element={<PlayerRoute><BouncePlayerPage /></PlayerRoute>} />
 
       {/* Player dashboard */}
       <Route path="/player/dashboard" element={<PlayerRoute><PlayerDashboard /></PlayerRoute>} />
@@ -76,7 +79,7 @@ function AppRoutes() {
         <Route path="clients"                         element={<ClientsPage />} />
         <Route path="games"                           element={<GamesPage />} />
         <Route path="games/:id/builder"               element={<GameBuilderPage />} />
-        <Route path="games/:id/crossword-builder"     element={<CrosswordBuilderPage />} />
+        <Route path="games/:id/bounce-builder"         element={<BounceBuilderPage />} />
         <Route path="games/:id/spin-builder"           element={<SpinBuilderTab />} />
         <Route path="games/:id/memory-builder"        element={<MemoryBuilderPage />} />
         <Route path="games/:id/jigsaw-builder"        element={<JigsawBuilderPage />} />
@@ -92,6 +95,7 @@ function AppRoutes() {
         <Route path="games/:id/catch-builder"           element={<CatchBuilderPage />} />
         <Route path="games/:id/reaction-builder"        element={<ReactionBuilderPage />} />
         <Route path="games/:id/simon-builder"           element={<SimonBuilderPage />} />
+        <Route path="games/:id/flappy-builder"          element={<FlappyBuilderPage />} />
         <Route path="players"                         element={<PlayersPage />} />
       </Route>
 

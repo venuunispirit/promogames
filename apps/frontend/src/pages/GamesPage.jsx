@@ -24,6 +24,8 @@ const CATEGORY_META = {
   catch:     { label:'Catch',          bg:' #F5F3FF', fg:' #7C3AED', dot:' #A78BFA', icon:'🧺', desc:'Catch falling objects' },
   reaction:  { label:'Reaction',       bg:' #FDF2F8', fg:' #BE185D', dot:' #EC4899', icon:'⚡', desc:'Test reaction speed' },
   simon:     { label:'Simon Says',     bg:' #EEF2FF', fg:' #4338CA', dot:' #818CF8', icon:'🎯', desc:'Repeat the color sequence' },
+  flappy:    { label:'Flappy Bird',    bg:' #FFFBEB', fg:' #B45309', dot:' #F59E0B', icon:'🐦', desc:'Fly through the pipes' },
+  bounce:    { label:'Bounce Ball',    bg:' #F0FDF4', fg:' #166534', dot:' #22C55E', icon:'🏀', desc:'Bounce ball through levels' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:' #F3F4F6', fg:' #374151', dot:' #9CA3AF' }
 
@@ -313,6 +315,10 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/reaction-builder`)
     } else if (game.category === 'simon') {
       navigate(`/dashboard/games/${game.id}/simon-builder`)
+    } else if (game.category === 'flappy') {
+      navigate(`/dashboard/games/${game.id}/flappy-builder`)
+    } else if (game.category === 'bounce') {
+      navigate(`/dashboard/games/${game.id}/bounce-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }
@@ -814,6 +820,8 @@ export default function GamesPage() {
                                 else if (game.category === 'catch') navigate(`/dashboard/games/${game.id}/catch-builder`)
                                 else if (game.category === 'reaction') navigate(`/dashboard/games/${game.id}/reaction-builder`)
                                 else if (game.category === 'simon') navigate(`/dashboard/games/${game.id}/simon-builder`)
+                                else if (game.category === 'flappy') navigate(`/dashboard/games/${game.id}/flappy-builder`)
+                                else if (game.category === 'bounce') navigate(`/dashboard/games/${game.id}/bounce-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">
                               <Ico.wrench/> Builder

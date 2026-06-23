@@ -395,7 +395,7 @@ export default function SpaceBuilderPage() {
                 <div>
                   <span className="sb-label">Accent Color</span>
                   <input
-                    type: "color"
+                    type="color"
                     value={settings?.accent_color || '#fbbf24'}
                     onChange={e => setSettings({ ...settings, accent_color: e.target.value })}
                   />
@@ -1506,5 +1506,3 @@ function LevelModal({ onClose, onSave }) {
     </div>
   );
 }
-
-export default SpaceBuilderPage;

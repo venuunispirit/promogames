@@ -192,6 +192,13 @@ const GAME_COLUMNS = {
       { key: 'score', label: 'Score', type: 'score' },
     ],
   },
+  space: {
+    label: 'Space Fighter',
+    getColumns: () => [
+      { key: 'enemies_destroyed', label: 'Enemies', type: 'stat' },
+      { key: 'score', label: 'Score', type: 'score' },
+    ],
+  },
 }
 
 // ── Extract game-specific stats from player_data ─────────────────────────────
@@ -255,6 +262,9 @@ function extractGameStats(playerData, category) {
       break
     case 'bounce':
       stats.level = pd.level || pd.current_level || pd.currentLevel || '—'
+      break
+    case 'space':
+      stats.enemies_destroyed = pd.enemies_destroyed || pd.enemiesDestroyed || pd.kills || '—'
       break
     default:
       break

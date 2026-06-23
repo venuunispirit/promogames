@@ -18,6 +18,7 @@ import ReactionPlayerPage from './ReactionPlayerPage'
 import SimonPlayerPage from './SimonPlayerPage'
 import FlappyPlayerPage from './FlappyPlayerPage'
 import BouncePlayerPage from './BouncePlayerPage'
+import SpacePlayerPage from './SpacePlayerPage'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -480,6 +481,14 @@ export default function PlayerPage() {
           return
         }
 
+        if (g.category === 'space') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
         // Shuffle questions if randomize_questions is enabled
         if (g.settings?.randomize_questions && g.questions?.length) {
           const arr = [...g.questions]
@@ -612,6 +621,8 @@ export default function PlayerPage() {
         setPhase('flappy')
       } else if (game.category === 'bounce') {
         setPhase('bounce')
+      } else if (game.category === 'space') {
+        setPhase('space')
       } else {
         setPhase('playing')
       }
@@ -1712,6 +1723,19 @@ const handleModalConfirm = () => {
   if (phase === 'bounce') {
     return (
       <BouncePlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'space') {
+    return (
+      <SpacePlayerPage
         gameData={game}
         sessionToken={sessionToken}
         onComplete={(data) => {

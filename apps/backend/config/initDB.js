@@ -1034,8 +1034,8 @@ async function initDB() {
 
   /* GAMES */
   await safeQuery(connection,
-    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce') DEFAULT 'quiz'`,
-    'games.category ENUM includes bounce'
+    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space') DEFAULT 'quiz'`,
+    'games.category ENUM includes space'
   );
   await addColumn(connection, 'games', 'client_id', 'INT');
   await addColumn(connection, 'games', 'slug', 'VARCHAR(255)');

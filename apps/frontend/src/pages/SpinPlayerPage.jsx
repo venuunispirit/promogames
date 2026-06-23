@@ -358,6 +358,10 @@ export default function SpinPlayerPage({ gameData, sessionToken: initToken, sess
     ? { backgroundImage: `url(${settings.bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: settings.bg_color || '#F8F8FF' }
 
+  const doneBgStyle = settings.thankyou_bg_image_url
+    ? { backgroundImage: `url(${settings.thankyou_bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : bgStyle
+
   const font = settings.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif"
 
   if (alreadyPlayed) {
@@ -385,7 +389,7 @@ export default function SpinPlayerPage({ gameData, sessionToken: initToken, sess
 
   if (phase === 'done') {
     return (
-      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', ...bgStyle, fontFamily: font }}>
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', ...doneBgStyle, fontFamily: font }}>
         <Confetti />
         <div style={{ background: '#fff', borderRadius: 20, padding: 40, textAlign: 'center', maxWidth: 360, position: 'relative', zIndex: 10 }}>
           <div style={{ fontSize: 64, marginBottom: 16 }}>🎊</div>

@@ -592,7 +592,7 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
     try { await onSave(q) } finally { setSaving(false) }
   }
 
-  const typeLabel = q.question_type === 'opinion' ? 'Opinion' : 'Right/Wrong'
+  const typeLabel = q.question_type === 'opinion' ? 'Opinion' : q.question_type === 'short_answer' ? 'Short Answer' : 'Right/Wrong'
   const correctCount = (q.options||[]).filter(o => Number(o.is_correct)===1).length
 
   return (
@@ -620,6 +620,7 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             style={{ fontSize:11, padding:'2px 6px', borderRadius:6, border:'1.5px solid var(--gb-border)', background:'var(--gb-surface)', color:'var(--gb-text)', fontWeight:600, cursor:'pointer', outline:'none' }}>
             <option value="right_wrong">Right / Wrong</option>
             <option value="opinion">Opinion</option>
+            <option value="short_answer">Short Answer</option>
           </select>
           <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" onClick={e => { e.stopPropagation(); onDelete(question) }}>🗑</button>
         </div>
@@ -678,7 +679,8 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             </div>
           </div>
 
-          {/* Options */}
+          {/* Options — hidden for short_answer type */}
+          {q.question_type !== 'short_answer' && (
           <div className="gb-section">
             <div className="gb-section-title" style={{ marginBottom:10 }}>🔘 Answer Options</div>
             {(q.options||[]).length === 0
@@ -695,6 +697,32 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
               <button className="gb-btn gb-btn-primary gb-btn-sm" onClick={addOption}>+ Add Option</button>
             </div>
           </div>
+          )}
+
+          {/* Short Answer config */}
+          {q.question_type === 'short_answer' && (
+          <div className="gb-section">
+            <div className="gb-section-title" style={{ marginBottom:10 }}>✏️ Short Answer Config</div>
+            <div style={{ display:'flex', gap:16, alignItems:'flex-end', flexWrap:'wrap' }}>
+              <div className="gb-fg" style={{ flex:1, minWidth:150 }}>
+                <span className="gb-label">Input Type</span>
+                <select value={q.answer_is_number ? 'number' : 'text'} onChange={e => setQ({ ...q, answer_is_number: e.target.value === 'number' ? 1 : 0 })}>
+                  <option value="text">Text</option>
+                  <option value="number">Number</option>
+                </select>
+              </div>
+              <div className="gb-fg" style={{ flex:2, minWidth:200 }}>
+                <span className="gb-label">{q.answer_is_number ? 'Correct Number' : 'Correct Answer (case-insensitive)'}</span>
+                <input
+                  type={q.answer_is_number ? 'number' : 'text'}
+                  value={q.answer_text || ''}
+                  onChange={e => setQ({ ...q, answer_text: e.target.value })}
+                  placeholder={q.answer_is_number ? 'e.g. 42' : 'e.g. Paris'}
+                />
+              </div>
+            </div>
+          </div>
+          )}
 
           {/* overlay animation */}
           <div className="gb-section">
@@ -863,6 +891,8 @@ const [nameInput,     setNameInput]     = useState('')
     fd.append('question_color', q.question_color||'#1a1a2e')
     fd.append('question_order', q.question_order??0)
     fd.append('num_options', q.num_options??0)
+    fd.append('answer_text', q.answer_text||'')
+    fd.append('answer_is_number', q.answer_is_number ? 1 : 0)
     fd.append('sound_correct',   q.sound_correct||'')
     fd.append('sound_wrong',     q.sound_wrong||'')
     fd.append('sound_neutral',   q.sound_neutral||'')

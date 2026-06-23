@@ -203,6 +203,9 @@ export default function MathBuilderPage() {
         heading_2_color: heading2Color,
         heading_3_color: heading3Color,
         description_color: descColor,
+        outro_text_color: settings.outro_text_color,
+        submit_button_text_color: settings.submit_button_text_color,
+        submit_button_bg_color: settings.submit_button_bg_color,
       }
       await api.put(`/math/${id}/settings`, body)
       showToast('Settings saved')

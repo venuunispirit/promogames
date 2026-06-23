@@ -239,7 +239,7 @@ export default function SimonPlayerPage({ gameData, sessionToken, onComplete }) 
               Play Again
             </button>
             <button onClick={() => onComplete?.({ redirect_url: settings.redirect_url })}
-              style={{ padding:'12px 24px', background:'rgba(255,255,255,0.1)', color:'#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer' }}>
+              style={{ padding:'12px 24px', background: settings.continue_button_bg_color || 'rgba(255,255,255,0.1)', color: settings.continue_button_text_color || '#fff', border:'1px solid rgba(255,255,255,0.2)', borderRadius:10, fontSize:14, fontWeight:700, cursor:'pointer' }}>
               {settings.continue_button_text || 'Continue →'}
             </button>
           </div>

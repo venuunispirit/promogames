@@ -177,6 +177,7 @@ export default function MazeBuilderPage() {
         bg_color: settings.bg_color, primary_color: settings.primary_color,
         wall_color: settings.wall_color, path_color: settings.path_color,
         heading_1_color: heading1Color, heading_2_color: heading2Color, description_color: descColor,
+        outro_text_color: settings.outro_text_color,
       }
       await api.put(`/maze/${id}/settings`, body)
       showToast('Settings saved')

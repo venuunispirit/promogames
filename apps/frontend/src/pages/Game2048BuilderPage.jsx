@@ -650,7 +650,7 @@ export default function Game2048BuilderPage() {
       else if (settings.submit_confirm_gif_url !== undefined) fd.append('submit_confirm_gif_url', settings.submit_confirm_gif_url||'')
       if (settings._gameLogoFile)   fd.append('game_logo',          settings._gameLogoFile)
       else if (settings.game_logo_url !== undefined) fd.append('game_logo_url', settings.game_logo_url||'')
-      await api.put(`/games/${id}/settings`, fd)
+      await api.put(`/2048/${id}/settings`, fd)
       await api.put(`/games/${id}`, { redirect_url: redirectUrl, slug: slugInput.trim() || undefined })
       showToast('Settings saved ✅')
     } catch (err) { showToast('Error: '+(err.response?.data?.message||err.message), 'error') }

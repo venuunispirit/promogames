@@ -258,6 +258,11 @@ export default function JigsawPlayerPage({ gameData, sessionToken, onComplete })
           {settings?.heading_3 && (
             <p style={{ fontSize:13, color: settings?.heading_3_color || '#888', marginBottom:16 }}>{settings.heading_3}</p>
           )}
+          {settings?.description_text && (
+            <p style={{ fontSize:13, color: settings?.description_color || '#888', textAlign:'center', margin:'0 0 16px', lineHeight:1.4 }}>
+              {settings.description_text}
+            </p>
+          )}
           {settings?.puzzle_image_url && (
             <div style={{ width:'100%', maxWidth:200, margin:'0 auto 20px', borderRadius:12, overflow:'hidden', border:`2px solid ${primaryColor}30` }}>
               <img src={settings.puzzle_image_url} alt="Preview" style={{ width:'100%', display:'block' }} />
@@ -268,6 +273,18 @@ export default function JigsawPlayerPage({ gameData, sessionToken, onComplete })
           </p>
           {settings?.show_timer === 1 && settings?.time_limit_seconds > 0 && (
             <p style={{ fontSize:12, color:'#999', marginBottom:16 }}>⏱ Time limit: {Math.floor(settings.time_limit_seconds/60)}m {settings.time_limit_seconds%60}s</p>
+          )}
+          {Number(settings?.terms_enabled) === 1 && (
+            <label style={{ display:'flex', alignItems:'center', gap:8, margin:'0 0 16px', cursor:'pointer', fontSize:13, textAlign:'left', justifyContent:'center' }}>
+              <input type="checkbox" style={{ width:16, height:16 }} />
+              <span>
+                I accept the{' '}
+                {settings?.terms_url
+                  ? <a href={settings.terms_url} target="_blank" style={{ color: primaryColor }}>{settings.terms_text || 'Terms & Conditions'}</a>
+                  : <strong>{settings.terms_text || 'Terms & Conditions'}</strong>
+                }
+              </span>
+            </label>
           )}
           <button onClick={handleStart} style={{
             background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
@@ -425,6 +442,11 @@ export default function JigsawPlayerPage({ gameData, sessionToken, onComplete })
             <p style={{ color:'#888', fontSize:13, marginBottom:24 }}>
               Completed in {timerDisplay}
             </p>
+            {settings?.outro_text && (
+              <p style={{ fontSize:13, color: settings?.description_color || '#888', margin:'0 0 16px', lineHeight:1.4 }}>
+                {settings.outro_text}
+              </p>
+            )}
             <button onClick={handleComplete} style={{
               background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
               color:'#fff', border:'none', borderRadius:50, padding:'14px 36px',

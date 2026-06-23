@@ -277,6 +277,11 @@ export default function MemoryPlayerPage({ gameData, sessionToken, onComplete })
                 {settings.heading_2}
               </p>
             )}
+            {settings.heading_3 && (
+              <p style={{ fontSize:13, color: settings.heading_3_color || '#888', textAlign:'center', margin:'4px 0 8px' }}>
+                {settings.heading_3}
+              </p>
+            )}
             {settings.description_text && (
               <p style={{ fontSize:13, color: settings.description_color || '#888', textAlign:'center', margin:'8px 0 16px', lineHeight:1.4 }}>
                 {settings.description_text}

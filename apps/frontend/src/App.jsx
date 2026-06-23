@@ -8,6 +8,8 @@ import DashboardHome     from './pages/DashboardHome'
 import ClientsPage       from './pages/ClientsPage'
 import GamesPage         from './pages/GamesPage'
 import GameBuilderPage   from './pages/GameBuilderPage'
+import SpaceBuilderPage  from './pages/SpaceBuilderPage'
+import SpacePlayerPage   from './pages/SpacePlayerPage'
 import BounceBuilderPage from './pages/BounceBuilderPage'
 import BouncePlayerPage  from './pages/BouncePlayerPage'
 import PlayerPage        from './pages/PlayerPage'
@@ -68,7 +70,7 @@ function AppRoutes() {
       <Route path="/business"    element={<Business />} />
 
       {/* Player game routes */}
-      <Route path="/play/:gameName/:companyName" element={<PlayerRoute><BouncePlayerPage /></PlayerRoute>} />
+      <Route path="/play/:gameName/:companyName" element={<PlayerRoute><SpacePlayerPage /></PlayerRoute>} />
 
       {/* Player dashboard */}
       <Route path="/player/dashboard" element={<PlayerRoute><PlayerDashboard /></PlayerRoute>} />
@@ -79,6 +81,7 @@ function AppRoutes() {
         <Route path="clients"                         element={<ClientsPage />} />
         <Route path="games"                           element={<GamesPage />} />
         <Route path="games/:id/builder"               element={<GameBuilderPage />} />
+        <Route path="games/:id/space-builder"          element={<SpaceBuilderPage />} />
         <Route path="games/:id/bounce-builder"         element={<BounceBuilderPage />} />
         <Route path="games/:id/spin-builder"           element={<SpinBuilderTab />} />
         <Route path="games/:id/memory-builder"        element={<MemoryBuilderPage />} />
@@ -87,14 +90,14 @@ function AppRoutes() {
         <Route path="games/:id/pouring-builder"       element={<PouringBuilderPage />} />
         <Route path="games/:id/typer-builder"          element={<TyperBuilderPage />} />
         <Route path="games/:id/math-builder"           element={<MathBuilderPage />} />
-        <Route path="games/:id/maze-builder"            element={<MazeBuilderPage />} />
-        <Route path="games/:id/screw-builder"           element={<ScrewBuilderPage />} />
+        <Route path="games/:id/maze-builder"           element={<MazeBuilderPage />} />
+        <Route path="games/:id/screw-builder"          element={<ScrewBuilderPage />} />
         <Route path="games/:id/responses"             element={<GameResponsesPage />} />
         <Route path="games/:id/2048-builder"           element={<Game2048BuilderPage />} />
-        <Route path="games/:id/snake-builder"           element={<SnakeBuilderPage />} />
-        <Route path="games/:id/catch-builder"           element={<CatchBuilderPage />} />
-        <Route path="games/:id/reaction-builder"        element={<ReactionBuilderPage />} />
-        <Route path="games/:id/simon-builder"           element={<SimonBuilderPage />} />
+        <Route path="games/:id/snake-builder"          element={<SnakeBuilderPage />} />
+        <Route path="games/:id/catch-builder"          element={<CatchBuilderPage />} />
+        <Route path="games/:id/reaction-builder"       element={<ReactionBuilderPage />} />
+        <Route path="games/:id/simon-builder"          element={<SimonBuilderPage />} />
         <Route path="games/:id/flappy-builder"          element={<FlappyBuilderPage />} />
         <Route path="players"                         element={<PlayersPage />} />
       </Route>

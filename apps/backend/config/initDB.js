@@ -1238,6 +1238,132 @@ async function initDB() {
     )
   `, 'bounce_progress table');
 
+  /* ── SPACE SHOOTER GAME TABLES ── */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS space_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      primary_color VARCHAR(20) DEFAULT '#3b82f6',
+      secondary_color VARCHAR(20) DEFAULT '#1e40af',
+      accent_color VARCHAR(20) DEFAULT '#fbbf24',
+      bg_color VARCHAR(20) DEFAULT '#0f172a',
+      bg_image_url VARCHAR(500),
+      star_density INT DEFAULT 50,
+      enemy_speed INT DEFAULT 2,
+      player_speed INT DEFAULT 4,
+      laser_speed INT DEFAULT 6,
+      intro_text TEXT,
+      intro_text_color VARCHAR(20) DEFAULT '#e2e8f0',
+      outro_text TEXT,
+      outro_text_color VARCHAR(20) DEFAULT '#e2e8f0',
+      time_limit_seconds INT DEFAULT 0,
+      show_timer TINYINT(1) DEFAULT 1,
+      sound_laser_id INT DEFAULT NULL,
+      sound_explosion_id INT DEFAULT NULL,
+      sound_hit_id INT DEFAULT NULL,
+      sound_powerup_id INT DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'space_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS space_ships (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      ship_name VARCHAR(100) NOT NULL,
+      image_url VARCHAR(500),
+      width INT DEFAULT 40,
+      height INT DEFAULT 40,
+      color VARCHAR(20) DEFAULT '#3b82f6',
+      speed INT DEFAULT 4,
+      laser_speed INT DEFAULT 6,
+      laser_width INT DEFAULT 4,
+      laser_damage INT DEFAULT 1,
+      shield_points INT DEFAULT 100,
+      is_default TINYINT(1) DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'space_ships table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS space_weapons (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      weapon_name VARCHAR(100) NOT NULL,
+      image_url VARCHAR(500),
+      laser_speed INT DEFAULT 6,
+      laser_width INT DEFAULT 4,
+      laser_damage INT DEFAULT 1,
+      fire_rate INT DEFAULT 200,
+      cost INT DEFAULT 0,
+      description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'space_weapons table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS space_enemies (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      enemy_name VARCHAR(100) NOT NULL,
+      image_url VARCHAR(500),
+      width INT DEFAULT 30,
+      height INT DEFAULT 30,
+      color VARCHAR(20) DEFAULT '#ef4444',
+      speed INT DEFAULT 2,
+      hp INT DEFAULT 1,
+      points_value INT DEFAULT 10,
+      attack_damage INT DEFAULT 1,
+      move_pattern ENUM('straight','zigzag','circle','sine','random') DEFAULT 'straight',
+      shoot_pattern ENUM('none','single','double','spread') DEFAULT 'none',
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'space_enemies table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS space_levels (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      level_order INT DEFAULT 0,
+      level_name VARCHAR(100) DEFAULT 'Level',
+      width INT DEFAULT 800,
+      height INT DEFAULT 600,
+      bg_color VARCHAR(20),
+      bg_image_url VARCHAR(500),
+      time_limit_seconds INT DEFAULT 0,
+      target_score INT DEFAULT 0,
+      enemy_spawn_rate INT DEFAULT 1000,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'space_levels table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS space_progress (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      session_id INT NOT NULL,
+      level_id INT NOT NULL,
+      score INT DEFAULT 0,
+      kills INT DEFAULT 0,
+      time_elapsed INT DEFAULT 0,
+      completed TINYINT(1) DEFAULT 0,
+      deaths INT DEFAULT 0,
+      best_time INT DEFAULT NULL,
+      best_score INT DEFAULT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES player_sessions(id) ON DELETE CASCADE,
+      FOREIGN KEY (level_id) REFERENCES space_levels(id) ON DELETE CASCADE,
+      UNIQUE KEY unique_session_level (session_id, level_id)
+    )
+  `, 'space_progress table');
+
   console.log('👤 Creating admin user...');
 
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@yourdomain.com';

@@ -293,7 +293,7 @@ export default function MathPlayerPage({ gameData, sessionToken, onComplete }) {
           <Confetti />
           <div style={{ textAlign:'center', maxWidth:340, animation:'slideUp .4s ease' }}>
             <div style={{ fontSize:64, marginBottom:12 }}>🏆</div>
-            <h2 style={{ fontSize:22, fontWeight:800, color: settings.heading_1_color || '#1a1a2e', margin:'0 0 6px' }}>
+            <h2 style={{ fontSize:22, fontWeight:800, color: settings.outro_text_color || settings.heading_1_color || '#1a1a2e', margin:'0 0 6px' }}>
               {settings.outro_text || 'All Levels Complete!'}
             </h2>
             <p style={{ fontSize:14, color: settings.heading_2_color || '#666', margin:'0 0 16px' }}>
@@ -436,11 +436,25 @@ export default function MathPlayerPage({ gameData, sessionToken, onComplete }) {
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:48, marginBottom:12 }}>🧮</div>
             <h2 style={{ fontSize:20, fontWeight:700, color: settings.heading_1_color || '#1a1a2e', marginBottom:8 }}>
-              Ready for Level {currentLevel}!
+              {settings.heading_1 || `Ready for Level ${currentLevel}!`}
             </h2>
+            {settings.description_text && (
+              <p style={{ fontSize:14, color: settings.description_color || '#666', marginBottom:16, whiteSpace:'pre-line' }}>
+                {settings.description_text}
+              </p>
+            )}
             <p style={{ fontSize:14, color:'#666', marginBottom:16 }}>
               {qPerLevel} questions to unlock Level {currentLevel + 1}
             </p>
+            {settings.terms_enabled && (
+              <label style={{ display:'flex', alignItems:'flex-start', gap:8, fontSize:13, color:'#666', marginBottom:16, textAlign:'left' }}>
+                <input type="checkbox" style={{ marginTop:3, accentColor: settings.primary_color || '#22c55e' }} />
+                <span>
+                  {settings.terms_text || 'I agree to the terms'}
+                  {settings.terms_url && <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: settings.primary_color || '#22c55e', textDecoration:'underline', marginLeft:4 }}>Terms</a>}
+                </span>
+              </label>
+            )}
             <button onClick={() => fetchQuestion(currentLevel, currentQ)}
               style={{
                 padding:'14px 36px', borderRadius:12, border:'none',

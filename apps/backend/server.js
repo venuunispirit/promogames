@@ -41,6 +41,7 @@ const bounceRoutes = require("./routes/bounce");
 const flappyRoutes = require("./routes/flappy");
 const canvaRoutes = require("./routes/canva");
 const connect4Routes = require("./routes/connect4");
+const brickImagesRoutes = require("./routes/brickImages");
 const spaceRoutes = require("./routes/space");
 
 app.use("/api/auth", authRoutes);
@@ -72,6 +73,7 @@ app.use("/api/bounce", bounceRoutes);
 app.use("/api/flappy", flappyRoutes);
 app.use("/api/canva", canvaRoutes);
 app.use("/api/connect4", connect4Routes);
+app.use("/api/brick-images", brickImagesRoutes);
 app.use("/api/space", spaceRoutes);
 
 app.get("/api/check-code", (req, res) => {

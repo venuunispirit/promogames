@@ -10,6 +10,7 @@ import GamesPage         from './pages/GamesPage'
 import GameBuilderPage   from './pages/GameBuilderPage'
 import SpaceBuilderPage from './pages/SpaceBuilderPage'
 import Connect4BuilderPage from './pages/Connect4BuilderPage'
+import BrickImagesPage from './pages/BrickImagesPage'
 import SpacePlayerPage   from './pages/SpacePlayerPage'
 import BounceBuilderPage from './pages/BounceBuilderPage'
 import BouncePlayerPage  from './pages/BouncePlayerPage'
@@ -84,6 +85,7 @@ function AppRoutes() {
         <Route path="games/:id/builder"               element={<GameBuilderPage />} />
         <Route path="games/:id/space-builder"          element={<SpaceBuilderPage />} />
         <Route path="games/:id/connect4-builder"       element={<Connect4BuilderPage />} />
+        <Route path="brick-images"                     element={<BrickImagesPage />} />
         <Route path="games/:id/bounce-builder"         element={<BounceBuilderPage />} />
         <Route path="games/:id/spin-builder"           element={<SpinBuilderTab />} />
         <Route path="games/:id/memory-builder"        element={<MemoryBuilderPage />} />

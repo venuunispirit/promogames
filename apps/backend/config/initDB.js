@@ -1392,6 +1392,20 @@ async function initDB() {
     )
   `, 'space_progress table');
 
+  /* ── BRICK IMAGES TABLE ── */
+  console.log('🧱 Creating brick images table...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS brick_images (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      image_url VARCHAR(500) NOT NULL,
+      name VARCHAR(255) DEFAULT 'Brick Image',
+      is_active TINYINT(1) DEFAULT 1,
+      sort_order INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `, 'brick_images table');
+
   console.log('👤 Creating admin user...');
 
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@yourdomain.com';

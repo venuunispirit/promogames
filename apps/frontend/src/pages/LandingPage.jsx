@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import CountUp from "../components/CountUp";
 import BreakoutGame from "../components/BreakoutGame";
+import { ScrollReveal, StaggerChildren, StaggerItem, SlideIn, ScaleOnScroll } from "../components/ScrollAnimations";
 
 /* ─── DATA ─────────────────────────────────────────── */
 const NAV = [
@@ -1052,28 +1053,40 @@ export default function PromoGamesHome() {
       <section id="home">
         <div className="hero-inner">
           <div className="hero-left">
-            <div className="hero-eyebrow">🎮 Gaming That Rewards You</div>
-            <h1 className="hero-h1">
-              <span style={{ fontFamily: QUICK_FONTS[fontIdx], transition: 'font-family 0.15s' }}>Quick Games.</span><br />
-              <span className="line-accent" data-text="Real Rewards.">Real Rewards.</span>
-            </h1>
-            <p className="hero-sub">
-              Play exciting quick games, climb the leaderboard, and unlock real-time rewards every day.
-            </p>
-            <div className="hero-actions">
-              <a href="/arcade" className="btn-primary">Start Playing <Arr /></a>
-              <a href="/leaderboard" className="btn-ghost">Join The Leaderboard</a>
-            </div>
-            <div className="hero-stats">
-              {STATS.map(({ val, label }) => (
-                <div className="hst" key={label}>
-                  <CountUp as="span" className="hst-n" value={val} />
-                  <span className="hst-l">{label}</span>
-                </div>
-              ))}
-            </div>
+            <ScrollReveal delay={0.1}>
+              <div className="hero-eyebrow">🎮 Gaming That Rewards You</div>
+            </ScrollReveal>
+            <ScrollReveal delay={0.2}>
+              <h1 className="hero-h1">
+                <span style={{ fontFamily: QUICK_FONTS[fontIdx], transition: 'font-family 0.15s' }}>Quick Games.</span><br />
+                <span className="line-accent" data-text="Real Rewards.">Real Rewards.</span>
+              </h1>
+            </ScrollReveal>
+            <ScrollReveal delay={0.3}>
+              <p className="hero-sub">
+                Play exciting quick games, climb the leaderboard, and unlock real-time rewards every day.
+              </p>
+            </ScrollReveal>
+            <ScrollReveal delay={0.4}>
+              <div className="hero-actions">
+                <a href="/arcade" className="btn-primary">Start Playing <Arr /></a>
+                <a href="/leaderboard" className="btn-ghost">Join The Leaderboard</a>
+              </div>
+            </ScrollReveal>
+            <ScrollReveal delay={0.5}>
+              <div className="hero-stats">
+                {STATS.map(({ val, label }) => (
+                  <div className="hst" key={label}>
+                    <CountUp as="span" className="hst-n" value={val} />
+                    <span className="hst-l">{label}</span>
+                  </div>
+                ))}
+              </div>
+            </ScrollReveal>
           </div>
-          <HeroGames />
+          <ScrollReveal delay={0.3} direction="right">
+            <HeroGames />
+          </ScrollReveal>
         </div>
       </section>
 
@@ -1082,62 +1095,73 @@ export default function PromoGamesHome() {
 
       {/* ── FEATURED GAMES ── */}
       <section id="featured">
-        <div className="featured-head">
-          <div>
-            <p className="section-kicker">Game Categories</p>
-            <h2 className="section-h2">Pick Your<br />Challenge</h2>
-          </div>
-          <p className="featured-head-sub">
-            From reflex games to lucky spins, every game gives you a chance to rise on the leaderboard and win exciting gifts.
-          </p>
-        </div>
-        <div className="game-grid">
-          {GAME_CATEGORIES.map((g, i) => (
-            <div key={g.label} className="game-cat-card" style={{ animationDelay:`${i * 70}ms` }}>
-              <span className="game-cat-icon">{g.icon}</span>
-              <div className="game-cat-label">{g.label}</div>
-              <div className="game-cat-sub">Jump in and start playing — leaderboard spots are waiting.</div>
-              <div className="game-cat-btn">Play Now <Arr size={13} /></div>
+        <ScrollReveal>
+          <div className="featured-head">
+            <div>
+              <p className="section-kicker">Game Categories</p>
+              <h2 className="section-h2">Pick Your<br />Challenge</h2>
             </div>
+            <p className="featured-head-sub">
+              From reflex games to lucky spins, every game gives you a chance to rise on the leaderboard and win exciting gifts.
+            </p>
+          </div>
+        </ScrollReveal>
+        <StaggerChildren className="game-grid">
+          {GAME_CATEGORIES.map((g, i) => (
+            <StaggerItem key={g.label}>
+              <div className="game-cat-card">
+                <span className="game-cat-icon">{g.icon}</span>
+                <div className="game-cat-label">{g.label}</div>
+                <div className="game-cat-sub">Jump in and start playing — leaderboard spots are waiting.</div>
+                <div className="game-cat-btn">Play Now <Arr size={13} /></div>
+              </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* ── HOW IT WORKS ── */}
       <section id="how">
         <div className="how-inner">
-          <div className="how-head">
-            <p className="section-kicker">How It Works</p>
-            <h2 className="section-h2">Play. Score. Win.</h2>
-            <p className="section-sub">Three simple steps stand between you and your next reward.</p>
-          </div>
-          <div className="how-steps">
+          <ScrollReveal>
+            <div className="how-head">
+              <p className="section-kicker">How It Works</p>
+              <h2 className="section-h2">Play. Score. Win.</h2>
+              <p className="section-sub">Three simple steps to start winning real rewards.</p>
+            </div>
+          </ScrollReveal>
+          <StaggerChildren className="how-steps">
             {HOW_STEPS.map(step => (
-              <div key={step.num} className="how-step">
-                <div className="how-num">{step.num}</div>
-                <div className="how-icon-wrap">{step.icon}</div>
-                <div className="how-title">{step.title}</div>
-                <div className="how-desc">{step.desc}</div>
-              </div>
+              <StaggerItem key={step.num}>
+                <div className="how-step">
+                  <div className="how-num">{step.num}</div>
+                  <div className="how-icon-wrap">{step.icon}</div>
+                  <div className="how-title">{step.title}</div>
+                  <div className="how-desc">{step.desc}</div>
+                </div>
+              </StaggerItem>
             ))}
-          </div>
+          </StaggerChildren>
         </div>
       </section>
 
       {/* ── LEADERBOARD ── */}
       <section id="leaderboard-section">
         <div className="lb-inner">
-          <div className="lb-left">
-            <p className="section-kicker">Leaderboard</p>
-            <h2 className="section-h2">Rise To<br />The Top</h2>
-            <p className="section-sub lb-left-sub">
-              Compete with players across the platform and secure your spot among the top scorers.
-            </p>
-            <p className="lb-tagline">The higher your score, the closer you get to exciting rewards.</p>
-            <div style={{ marginTop:32 }}>
-              <a href="/leaderboard" className="btn-primary">View Full Leaderboard <Arr /></a>
+          <SlideIn from="left">
+            <div className="lb-left">
+              <p className="section-kicker">Leaderboard</p>
+              <h2 className="section-h2">Rise To<br />The Top</h2>
+              <p className="section-sub lb-left-sub">
+                Compete with players across the platform and secure your spot among the top scorers.
+              </p>
+              <p className="lb-tagline">The higher your score, the closer you get to exciting rewards.</p>
+              <div style={{ marginTop:32 }}>
+                <a href="/leaderboard" className="btn-primary">View Full Leaderboard <Arr /></a>
+              </div>
             </div>
-          </div>
+          </SlideIn>
+          <SlideIn from="right" delay={0.2}>
           <div className="lb-board">
             <div className="lb-header">
               <div className="lb-header-dot" style={{ background:'#ef4444' }} />
@@ -1187,84 +1211,101 @@ export default function PromoGamesHome() {
               })
             )}
           </div>
+          </SlideIn>
         </div>
       </section>
 
       {/* ── REWARDS (carousel) ── */}
       <section id="rewards">
-        <div className="rewards-inner">
-          <p className="section-kicker">Rewards</p>
-          <h2 className="section-h2">Every Play Feels<br />Rewarding</h2>
-          <p className="section-sub">
-            Play games and unlock exciting gifts, cashback, coupons, exclusive offers, and surprise rewards.
-          </p>
-          <RewardsCarousel />
-        </div>
+        <ScrollReveal>
+          <div className="rewards-inner">
+            <p className="section-kicker">Rewards</p>
+            <h2 className="section-h2">Every Play Feels<br />Rewarding</h2>
+            <p className="section-sub">
+              Play games and unlock exciting gifts, cashback, coupons, exclusive offers, and surprise rewards.
+            </p>
+            <RewardsCarousel />
+          </div>
+        </ScrollReveal>
       </section>
 
       {/* ── WHY PLAY ── */}
       <section id="why">
         <div className="why-inner">
-          <div>
-            <h2 className="section-h2">Why Players<br />Love PromoGames</h2>
-            <div className="why-points">
-              {WHY_POINTS.map((pt, i) => (
-                <div key={i} className="why-point">
-                  <div className="why-check">✓</div>
-                  <span className="why-text">{pt}</span>
-                </div>
-              ))}
+          <SlideIn from="left">
+            <div>
+              <h2 className="section-h2">Why Players<br />Love PromoGames</h2>
+              <StaggerChildren className="why-points">
+                {WHY_POINTS.map((pt, i) => (
+                  <StaggerItem key={i}>
+                    <div className="why-point">
+                      <div className="why-check">✓</div>
+                      <span className="why-text">{pt}</span>
+                    </div>
+                  </StaggerItem>
+                ))}
+              </StaggerChildren>
             </div>
-          </div>
-          <div className="why-visual">
-            <ReelsCarousel />
-          </div>
+          </SlideIn>
+          <SlideIn from="right" delay={0.2}>
+            <div className="why-visual">
+              <ReelsCarousel />
+            </div>
+          </SlideIn>
         </div>
       </section>
 
       {/* ── TESTIMONIALS ── */}
       <section id="testimonials">
-        <div className="testimonials-inner">
-          <div className="testimonials-head">
-            <p className="section-kicker">Player Stories</p>
-            <h2 className="section-h2">Real Players.<br />Real Wins.</h2>
-            <p className="section-sub">
-              Don't just take our word for it — hear from players who've already started winning.
-            </p>
-          </div>
+        <ScrollReveal>
+          <div className="testimonials-inner">
+            <div className="testimonials-head">
+              <p className="section-kicker">Player Stories</p>
+              <h2 className="section-h2">Real Players.<br />Real Wins.</h2>
+              <p className="section-sub">
+                Don't just take our word for it — hear from players who've already started winning.
+              </p>
+            </div>
           <TestimonialsCarousel onIndexChange={idx => { testimonialIdxRef.current = idx; }} />
         </div>
+        </ScrollReveal>
       </section>
 
       {/* ── DAILY PLAY ── */}
       <section id="daily">
-        <div className="daily-inner">
-          <p className="section-kicker">Daily Play</p>
-          <h2 className="section-h2">A Treat You Can<br />Give Yourself</h2>
-          <p className="section-sub">
-            Take a quick break, play your favorite games, and make every moment more exciting with rewards waiting to be unlocked.
-          </p>
-          <a href="/arcade" className="btn-primary">Play Now <Arr /></a>
-        </div>
+        <ScrollReveal>
+          <div className="daily-inner">
+            <p className="section-kicker">Daily Play</p>
+            <h2 className="section-h2">A Treat You Can<br />Give Yourself</h2>
+            <p className="section-sub">
+              Take a quick break, play your favorite games, and make every moment more exciting with rewards waiting to be unlocked.
+            </p>
+            <a href="/arcade" className="btn-primary">Play Now <Arr /></a>
+          </div>
+        </ScrollReveal>
       </section>
 
       {/* ── COMMUNITY ── */}
       <section id="community">
-        <div className="community-inner">
-          <p className="section-kicker">Community</p>
-          <h2 className="section-h2" style={{ marginBottom:16 }}>Join The New Age<br />Of Reward Gaming</h2>
-          <p className="section-sub" style={{ marginBottom:64 }}>
-            Thousands of players are already competing, winning, and climbing the leaderboard every day.
-          </p>
-        </div>
-        <div className="stats-grid">
+        <ScrollReveal>
+          <div className="community-inner">
+            <p className="section-kicker">Community</p>
+            <h2 className="section-h2" style={{ marginBottom:16 }}>Join The New Age<br />Of Reward Gaming</h2>
+            <p className="section-sub" style={{ marginBottom:64 }}>
+              Thousands of players are already competing, winning, and climbing the leaderboard every day.
+            </p>
+          </div>
+        </ScrollReveal>
+        <StaggerChildren className="stats-grid">
           {STATS.map(({ val, label }) => (
-            <div key={label} className="stat-card">
-              <CountUp as="div" className="stat-val" value={val} />
-              <div className="stat-lbl">{label}</div>
-            </div>
+            <StaggerItem key={label}>
+              <div className="stat-card">
+                <CountUp as="div" className="stat-val" value={val} />
+                <div className="stat-lbl">{label}</div>
+              </div>
+            </StaggerItem>
           ))}
-        </div>
+        </StaggerChildren>
       </section>
 
       {/* ── FINAL CTA with Breakout Background ── */}
@@ -1274,16 +1315,18 @@ export default function PromoGamesHome() {
           <BreakoutGame />
         </div>
         {/* CTA content on top */}
-        <div style={{ position:'relative',zIndex:2,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:500,padding:'60px 20px',pointerEvents:'none' }}>
-          <div className="cta-final-h2" style={{ pointerEvents:'auto' }}>
-            Ready To<br /><span>Play &amp; Win?</span>
+        <ScrollReveal>
+          <div style={{ position:'relative',zIndex:2,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',minHeight:500,padding:'60px 20px 0',pointerEvents:'none' }}>
+            <div className="cta-final-h2" style={{ pointerEvents:'auto' }}>
+              Ready To<br /><span>Play &amp; Win?</span>
+            </div>
+            <p className="cta-final-sub" style={{ pointerEvents:'auto' }}>Your next reward could be just one game away.</p>
+            <div className="cta-final-actions" style={{ pointerEvents:'auto',marginTop:24 }}>
+              <a href="/arcade" className="btn-primary" style={{ height:58, fontSize:16, padding:'0 40px' }}>Play Now <Arr size={18} /></a>
+              <a href="/arcade" className="btn-ghost"   style={{ height:58, fontSize:16 }}>Start Winning</a>
+            </div>
           </div>
-          <p className="cta-final-sub" style={{ pointerEvents:'auto' }}>Your next reward could be just one game away.</p>
-          <div className="cta-final-actions" style={{ pointerEvents:'auto',marginTop:180 }}>
-            <a href="/arcade" className="btn-primary" style={{ height:58, fontSize:16, padding:'0 40px' }}>Play Now <Arr size={18} /></a>
-            <a href="/arcade" className="btn-ghost"   style={{ height:58, fontSize:16 }}>Start Winning</a>
-          </div>
-        </div>
+        </ScrollReveal>
       </section>
 
       {/* ── FOOTER ── */}

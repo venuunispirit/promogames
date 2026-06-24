@@ -4,15 +4,20 @@ import CountUp from "../components/CountUp";
 import BreakoutGame from "../components/BreakoutGame";
 import {
   ScrollProgress,
-  RevealOnScroll,
-  ParallaxSection,
+  SmoothReveal,
+  ParallaxContent,
+  ParallaxBg,
   StaggerContainer,
   StaggerItem,
   SlideIn,
-  ScaleOnScroll,
+  ScaleReveal,
   TextReveal,
+  CharReveal,
   MagneticElement,
   BlurReveal,
+  SectionDivider,
+  GradientShift,
+  StickySection,
 } from "../components/ScrollAnimations";
 
 /* ─── DATA ─────────────────────────────────────────── */
@@ -1064,7 +1069,19 @@ export default function PromoGamesHome() {
 
       {/* ── HERO ── */}
       <section id="home" style={{ position: 'relative', overflow: 'hidden' }}>
-        <div className="hero-inner">
+        {/* Parallax background gradient */}
+        <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden' }}>
+          <motion.div
+            style={{
+              position: 'absolute',
+              inset: '-20%',
+              background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(146,16,246,0.25) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 80% 60%, rgba(97,4,151,0.15) 0%, transparent 50%)',
+              y: useTransform(useScroll().scrollYProgress, [0, 1], [0, -100]),
+            }}
+          />
+        </div>
+
+        <div className="hero-inner" style={{ position: 'relative', zIndex: 1 }}>
           <div className="hero-left">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -1079,7 +1096,7 @@ export default function PromoGamesHome() {
               transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
             >
               <h1 className="hero-h1">
-                <span style={{ fontFamily: QUICK_FONTS[fontIdx], transition: 'font-family 0.15s' }}>Quick Games.</span><br />
+                <CharReveal text="Quick Games." style={{ fontFamily: QUICK_FONTS[fontIdx] }} /><br />
                 <span className="line-accent" data-text="Real Rewards.">Real Rewards.</span>
               </h1>
             </motion.div>
@@ -1119,74 +1136,82 @@ export default function PromoGamesHome() {
                   </div>
                 ))}
               </div>
-            </ScrollReveal>
+            </motion.div>
           </div>
-          <ScrollReveal delay={0.3} direction="right">
+          <SmoothReveal direction="right">
             <HeroGames />
-          </ScrollReveal>
+          </SmoothReveal>
         </div>
       </section>
 
       {/* ── MARQUEE ── */}
+      <SectionDivider />
       <MarqueeStrip />
+      <SectionDivider />
 
       {/* ── FEATURED GAMES ── */}
       <section id="featured" style={{ position: 'relative' }}>
-        <RevealOnScroll direction="up">
-          <div className="featured-head">
-            <div>
-              <p className="section-kicker">Game Categories</p>
-              <h2 className="section-h2">Pick Your<br />Challenge</h2>
+        <GradientShift>
+          <SmoothReveal direction="up">
+            <div className="featured-head">
+              <div>
+                <p className="section-kicker">Game Categories</p>
+                <TextReveal text="Pick Your Challenge" className="section-h2" />
+              </div>
+              <p className="featured-head-sub">
+                From reflex games to lucky spins, every game gives you a chance to rise on the leaderboard and win exciting gifts.
+              </p>
             </div>
-            <p className="featured-head-sub">
-              From reflex games to lucky spins, every game gives you a chance to rise on the leaderboard and win exciting gifts.
-            </p>
-          </div>
-        </RevealOnScroll>
-        <StaggerContainer className="game-grid" stagger={0.08}>
-          {GAME_CATEGORIES.map((g, i) => (
-            <StaggerItem key={g.label}>
-              <MagneticElement strength={0.15}>
-                <div className="game-cat-card">
-                  <span className="game-cat-icon">{g.icon}</span>
-                  <div className="game-cat-label">{g.label}</div>
-                  <div className="game-cat-sub">Jump in and start playing — leaderboard spots are waiting.</div>
-                  <div className="game-cat-btn">Play Now <Arr size={13} /></div>
-                </div>
-              </MagneticElement>
-            </StaggerItem>
-          ))}
-        </StaggerContainer>
-      </section>
-
-      {/* ── HOW IT WORKS ── */}
-      <section id="how">
-        <div className="how-inner">
-          <RevealOnScroll>
-            <div className="how-head">
-              <p className="section-kicker">How It Works</p>
-              <h2 className="section-h2">Play. Score. Win.</h2>
-              <p className="section-sub">Three simple steps to start winning real rewards.</p>
-            </div>
-          </RevealOnScroll>
-          <StaggerContainer className="how-steps" stagger={0.15}>
-            {HOW_STEPS.map(step => (
-              <StaggerItem key={step.num}>
-                <ScaleOnScroll>
-                  <div className="how-step">
-                    <div className="how-num">{step.num}</div>
-                    <div className="how-icon-wrap">{step.icon}</div>
-                    <div className="how-title">{step.title}</div>
-                    <div className="how-desc">{step.desc}</div>
+          </SmoothReveal>
+          <StaggerContainer className="game-grid" stagger={0.08}>
+            {GAME_CATEGORIES.map((g, i) => (
+              <StaggerItem key={g.label}>
+                <MagneticElement strength={0.15}>
+                  <div className="game-cat-card">
+                    <span className="game-cat-icon">{g.icon}</span>
+                    <div className="game-cat-label">{g.label}</div>
+                    <div className="game-cat-sub">Jump in and start playing — leaderboard spots are waiting.</div>
+                    <div className="game-cat-btn">Play Now <Arr size={13} /></div>
                   </div>
-                </ScaleOnScroll>
+                </MagneticElement>
               </StaggerItem>
             ))}
           </StaggerContainer>
-        </div>
+        </GradientShift>
+      </section>
+
+      {/* ── HOW IT WORKS ── */}
+      <SectionDivider />
+      <section id="how">
+        <ParallaxContent speed={0.1}>
+          <div className="how-inner">
+            <SmoothReveal>
+              <div className="how-head">
+                <p className="section-kicker">How It Works</p>
+                <TextReveal text="Play. Score. Win." className="section-h2" />
+                <p className="section-sub">Three simple steps to start winning real rewards.</p>
+              </div>
+            </SmoothReveal>
+            <StaggerContainer className="how-steps" stagger={0.15}>
+              {HOW_STEPS.map(step => (
+                <StaggerItem key={step.num}>
+                  <ScaleReveal>
+                    <div className="how-step">
+                      <div className="how-num">{step.num}</div>
+                      <div className="how-icon-wrap">{step.icon}</div>
+                      <div className="how-title">{step.title}</div>
+                      <div className="how-desc">{step.desc}</div>
+                    </div>
+                  </ScaleReveal>
+                </StaggerItem>
+              ))}
+            </StaggerContainer>
+          </div>
+        </ParallaxContent>
       </section>
 
       {/* ── LEADERBOARD ── */}
+      <SectionDivider />
       <section id="leaderboard-section">
         <div className="lb-inner">
           <SlideIn from="left">
@@ -1259,8 +1284,9 @@ export default function PromoGamesHome() {
       </section>
 
       {/* ── REWARDS (carousel) ── */}
+      <SectionDivider />
       <section id="rewards">
-        <RevealOnScroll>
+        <SmoothReveal>
           <div className="rewards-inner">
             <p className="section-kicker">Rewards</p>
             <h2 className="section-h2">Every Play Feels<br />Rewarding</h2>
@@ -1269,10 +1295,11 @@ export default function PromoGamesHome() {
             </p>
             <RewardsCarousel />
           </div>
-        </RevealOnScroll>
+        </SmoothReveal>
       </section>
 
       {/* ── WHY PLAY ── */}
+      <SectionDivider />
       <section id="why">
         <div className="why-inner">
           <SlideIn from="left">
@@ -1299,8 +1326,9 @@ export default function PromoGamesHome() {
       </section>
 
       {/* ── TESTIMONIALS ── */}
+      <SectionDivider />
       <section id="testimonials">
-        <RevealOnScroll>
+        <SmoothReveal>
           <div className="testimonials-inner">
             <div className="testimonials-head">
               <p className="section-kicker">Player Stories</p>
@@ -1311,12 +1339,13 @@ export default function PromoGamesHome() {
             </div>
           <TestimonialsCarousel onIndexChange={idx => { testimonialIdxRef.current = idx; }} />
         </div>
-        </RevealOnScroll>
+        </SmoothReveal>
       </section>
 
       {/* ── DAILY PLAY ── */}
+      <SectionDivider />
       <section id="daily">
-        <RevealOnScroll>
+        <SmoothReveal>
           <div className="daily-inner">
             <p className="section-kicker">Daily Play</p>
             <h2 className="section-h2">A Treat You Can<br />Give Yourself</h2>
@@ -1327,12 +1356,13 @@ export default function PromoGamesHome() {
               <a href="/arcade" className="btn-primary">Play Now <Arr /></a>
             </MagneticElement>
           </div>
-        </RevealOnScroll>
+        </SmoothReveal>
       </section>
 
       {/* ── COMMUNITY ── */}
+      <SectionDivider />
       <section id="community">
-        <RevealOnScroll>
+        <SmoothReveal>
           <div className="community-inner">
             <p className="section-kicker">Community</p>
             <h2 className="section-h2" style={{ marginBottom:16 }}>Join The New Age<br />Of Reward Gaming</h2>
@@ -1340,29 +1370,30 @@ export default function PromoGamesHome() {
               Thousands of players are already competing, winning, and climbing the leaderboard every day.
             </p>
           </div>
-        </RevealOnScroll>
+        </SmoothReveal>
         <StaggerContainer className="stats-grid" stagger={0.1}>
           {STATS.map(({ val, label }) => (
             <StaggerItem key={label}>
-              <ScaleOnScroll>
+              <ScaleReveal>
                 <div className="stat-card">
                   <CountUp as="div" className="stat-val" value={val} />
                   <div className="stat-lbl">{label}</div>
                 </div>
-              </ScaleOnScroll>
+              </ScaleReveal>
             </StaggerItem>
           ))}
         </StaggerContainer>
       </section>
 
       {/* ── FINAL CTA with Breakout Background ── */}
+      <SectionDivider />
       <section id="cta-final" style={{ position:'relative',background:'#0f172a',overflow:'hidden',minHeight:500 }}>
         {/* Breakout game as background */}
         <div style={{ position:'absolute',inset:0,zIndex:1 }}>
           <BreakoutGame />
         </div>
         {/* CTA content on top */}
-        <RevealOnScroll>
+        <SmoothReveal>
           <div style={{ position:'relative',zIndex:2,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',minHeight:500,padding:'60px 20px 0',pointerEvents:'none' }}>
             <div className="cta-final-h2" style={{ pointerEvents:'auto' }}>
               Ready To<br /><span>Play &amp; Win?</span>
@@ -1377,7 +1408,7 @@ export default function PromoGamesHome() {
               </MagneticElement>
             </div>
           </div>
-        </RevealOnScroll>
+        </SmoothReveal>
       </section>
 
       {/* ── FOOTER ── */}

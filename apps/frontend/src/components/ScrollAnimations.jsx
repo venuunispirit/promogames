@@ -1,61 +1,183 @@
-import { motion, useInView } from 'framer-motion'
+import { motion, useScroll, useTransform, useSpring, useInView } from 'framer-motion'
 import { useRef } from 'react'
 
-// Reusable scroll animation wrapper
-export function ScrollReveal({ children, delay = 0, direction = 'up', className = '', style = {} }) {
-  const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-80px' })
+// ─── Smooth Scroll Progress Bar ───
+export function ScrollProgress() {
+  const { scrollYProgress } = useScroll()
+  const scaleX = useSpring(scrollYProgress, { stiffness: 100, damping: 30, restDelta: 0.001 })
 
-  const variants = {
-    hidden: {
-      opacity: 0,
-      y: direction === 'up' ? 40 : direction === 'down' ? -40 : 0,
-      x: direction === 'left' ? 40 : direction === 'right' ? -40 : 0,
-      scale: direction === 'scale' ? 0.9 : 1,
-    },
-    visible: {
-      opacity: 1,
-      y: 0,
-      x: 0,
-      scale: 1,
-    },
-  }
+  return (
+    <motion.div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        height: 3,
+        background: 'linear-gradient(90deg, #9210f6, #c040ff, #f5c842)',
+        transformOrigin: '0%',
+        scaleX,
+        zIndex: 9999,
+      }}
+    />
+  )
+}
+
+// ─── Parallax Section ───
+export function ParallaxSection({ children, speed = 0.5, className = '', style = {} }) {
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start end', 'end start'],
+  })
+
+  const y = useTransform(scrollYProgress, [0, 1], [speed * 100, speed * -100])
+
+  return (
+    <div ref={ref} className={className} style={{ position: 'relative', overflow: 'hidden', ...style }}>
+      <motion.div style={{ y }}>
+        {children}
+      </motion.div>
+    </div>
+  )
+}
+
+// ─── Reveal on Scroll (smooth) ───
+export function RevealOnScroll({ children, direction = 'up', delay = 0, className = '', style = {} }) {
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start 0.9', 'start 0.4'],
+  })
+
+  const opacity = useTransform(scrollYProgress, [0, 1], [0, 1])
+  const y = useTransform(scrollYProgress, [0, 1],
+    direction === 'up' ? [80, 0] :
+    direction === 'down' ? [-80, 0] : [0, 0]
+  )
+  const x = useTransform(scrollYProgress, [0, 1],
+    direction === 'left' ? [80, 0] :
+    direction === 'right' ? [-80, 0] : [0, 0]
+  )
+  const scale = useTransform(scrollYProgress, [0, 1], [0.92, 1])
 
   return (
     <motion.div
       ref={ref}
-      initial="hidden"
-      animate={isInView ? 'visible' : 'hidden'}
-      variants={variants}
-      transition={{
-        duration: 0.6,
-        delay,
-        ease: [0.22, 1, 0.36, 1], // ease-out-expo
-      }}
+      style={{ opacity, y, x, scale, ...style }}
       className={className}
-      style={style}
     >
       {children}
     </motion.div>
   )
 }
 
-// Stagger children animation
-export function StaggerChildren({ children, className = '', style = {} }) {
+// ─── Text Reveal (character by character) ───
+export function TextReveal({ text, className = '', style = {}, delay = 0 }) {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-80px' })
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start 0.8', 'start 0.4'],
+  })
+
+  const words = text.split(' ')
+
+  return (
+    <div ref={ref} className={className} style={{ display: 'flex', flexWrap: 'wrap', gap: '0.3em', ...style }}>
+      {words.map((word, i) => (
+        <motion.span
+          key={i}
+          style={{
+            display: 'inline-block',
+            opacity: useTransform(scrollYProgress, [0, 1], [0, 1]),
+            y: useTransform(scrollYProgress, [0, 1], [20, 0]),
+          }}
+          transition={{ delay: delay + i * 0.05 }}
+        >
+          {word}
+        </motion.span>
+      ))}
+    </div>
+  )
+}
+
+// ─── Scale on Scroll ───
+export function ScaleOnScroll({ children, className = '', style = {} }) {
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start 0.9', 'start 0.3'],
+  })
+
+  const scale = useTransform(scrollYProgress, [0, 1], [0.8, 1])
+  const opacity = useTransform(scrollYProgress, [0, 1], [0, 1])
+
+  return (
+    <motion.div ref={ref} style={{ scale, opacity, ...style }} className={className}>
+      {children}
+    </motion.div>
+  )
+}
+
+// ─── Sticky Section ───
+export function StickySection({ children, className = '', style = {} }) {
+  return (
+    <div
+      className={className}
+      style={{
+        position: 'sticky',
+        top: 0,
+        height: '100vh',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        ...style,
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+// ─── Stagger Container ───
+export function StaggerContainer({ children, className = '', style = {}, stagger = 0.1 }) {
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start 0.8', 'start 0.3'],
+  })
 
   return (
     <motion.div
       ref={ref}
       initial="hidden"
-      animate={isInView ? 'visible' : 'hidden'}
+      style={{
+        opacity: useTransform(scrollYProgress, [0, 1], [0, 1]),
+        ...style,
+      }}
+      whileInView="visible"
+      viewport={{ once: true, amount: 0.2 }}
       variants={{
-        hidden: {},
+        visible: { transition: { staggerChildren: stagger } },
+      }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+// ─── Stagger Item ───
+export function StaggerItem({ children, className = '', style = {} }) {
+  return (
+    <motion.div
+      variants={{
+        hidden: { opacity: 0, y: 60, scale: 0.95 },
         visible: {
-          transition: {
-            staggerChildren: 0.1,
-          },
+          opacity: 1,
+          y: 0,
+          scale: 1,
+          transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] },
         },
       }}
       className={className}
@@ -66,78 +188,102 @@ export function StaggerChildren({ children, className = '', style = {} }) {
   )
 }
 
-// Stagger child item
-export function StaggerItem({ children, className = '', style = {} }) {
+// ─── Slide In ───
+export function SlideIn({ children, from = 'left', className = '', style = {} }) {
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start 0.85', 'start 0.35'],
+  })
+
+  const x = useTransform(scrollYProgress, [0, 1],
+    from === 'left' ? [-120, 0] :
+    from === 'right' ? [120, 0] : [0, 0]
+  )
+  const opacity = useTransform(scrollYProgress, [0, 1], [0, 1])
+
   return (
-    <motion.div
-      variants={{
-        hidden: { opacity: 0, y: 30 },
-        visible: { opacity: 1, y: 0 },
-      }}
-      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-      style={style}
-    >
+    <motion.div ref={ref} style={{ x, opacity, ...style }} className={className}>
       {children}
     </motion.div>
   )
 }
 
-// Parallax scroll effect
-export function Parallax({ children, speed = 0.5, className = '', style = {} }) {
-  const ref = useRef(null)
+// ─── Floating Element ───
+export function FloatingElement({ children, amplitude = 20, speed = 2, className = '', style = {} }) {
+  const { scrollYProgress } = useScroll()
+  const y = useTransform(scrollYProgress, [0, 1], [amplitude, -amplitude])
 
   return (
-    <motion.div
-      ref={ref}
-      style={{ ...style }}
-      className={className}
-      initial={{ y: 0 }}
-      whileInView={{ y: speed * -50 }}
-      viewport={{ once: false, margin: '-100px' }}
-      transition={{ duration: 0.8, ease: 'easeOut' }}
-    >
+    <motion.div style={{ y, ...style }} className={className}>
       {children}
     </motion.div>
   )
 }
 
-// Scale on scroll
-export function ScaleOnScroll({ children, className = '', style = {} }) {
+// ─── Count Up Animation ───
+export function CountUpOnScroll({ target, suffix = '', className = '', style = {} }) {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-100px' })
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start 0.8', 'start 0.4'],
+  })
+
+  const value = useTransform(scrollYProgress, [0, 1], [0, target])
 
   return (
-    <motion.div
-      ref={ref}
-      initial={{ scale: 0.85, opacity: 0 }}
-      animate={isInView ? { scale: 1, opacity: 1 } : { scale: 0.85, opacity: 0 }}
-      transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
-      className={className}
-      style={style}
-    >
-      {children}
-    </motion.div>
+    <motion.span ref={ref} className={className} style={style}>
+      <motion.span>{Math.round(target)}</motion.span>
+      {suffix}
+    </motion.span>
   )
 }
 
-// Slide in from side
-export function SlideIn({ children, from = 'left', delay = 0, className = '', style = {} }) {
+// ─── Magnetic Hover ───
+export function MagneticElement({ children, strength = 0.3, className = '', style = {} }) {
   const ref = useRef(null)
-  const isInView = useInView(ref, { once: true, margin: '-80px' })
 
-  const x = from === 'left' ? -60 : from === 'right' ? 60 : 0
-  const y = from === 'top' ? -60 : from === 'bottom' ? 60 : 0
+  const handleMouseMove = (e) => {
+    if (!ref.current) return
+    const rect = ref.current.getBoundingClientRect()
+    const x = (e.clientX - rect.left - rect.width / 2) * strength
+    const y = (e.clientY - rect.top - rect.height / 2) * strength
+    ref.current.style.transform = `translate(${x}px, ${y}px)`
+  }
+
+  const handleMouseLeave = () => {
+    if (ref.current) {
+      ref.current.style.transform = 'translate(0, 0)'
+    }
+  }
 
   return (
-    <motion.div
+    <div
       ref={ref}
-      initial={{ opacity: 0, x, y }}
-      animate={isInView ? { opacity: 1, x: 0, y: 0 } : { opacity: 0, x, y }}
-      transition={{ duration: 0.6, delay, ease: [0.22, 1, 0.36, 1] }}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
+      style={{ transition: 'transform 0.2s ease-out', ...style }}
       className={className}
-      style={style}
     >
+      {children}
+    </div>
+  )
+}
+
+// ─── Blur Reveal ───
+export function BlurReveal({ children, className = '', style = {} }) {
+  const ref = useRef(null)
+  const { scrollYProgress } = useScroll({
+    target: ref,
+    offset: ['start 0.85', 'start 0.4'],
+  })
+
+  const opacity = useTransform(scrollYProgress, [0, 1], [0, 1])
+  const filter = useTransform(scrollYProgress, [0, 1], ['blur(12px)', 'blur(0px)'])
+  const scale = useTransform(scrollYProgress, [0, 1], [0.95, 1])
+
+  return (
+    <motion.div ref={ref} style={{ opacity, filter, scale, ...style }} className={className}>
       {children}
     </motion.div>
   )

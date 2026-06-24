@@ -1,7 +1,19 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion, useScroll, useTransform } from "framer-motion";
 import CountUp from "../components/CountUp";
 import BreakoutGame from "../components/BreakoutGame";
-import { ScrollReveal, StaggerChildren, StaggerItem, SlideIn, ScaleOnScroll } from "../components/ScrollAnimations";
+import {
+  ScrollProgress,
+  RevealOnScroll,
+  ParallaxSection,
+  StaggerContainer,
+  StaggerItem,
+  SlideIn,
+  ScaleOnScroll,
+  TextReveal,
+  MagneticElement,
+  BlurReveal,
+} from "../components/ScrollAnimations";
 
 /* ─── DATA ─────────────────────────────────────────── */
 const NAV = [
@@ -205,8 +217,8 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 /* HERO */
 #home{width:100%;min-height:100svh;padding:120px 6% 70px;display:flex;align-items:center;position:relative;overflow:hidden;background:radial-gradient(ellipse 90% 60% at 50% -10%,rgba(146,16,246,0.22) 0%,transparent 65%),radial-gradient(ellipse 50% 40% at 85% 60%,rgba(97,4,151,0.14) 0%,transparent 60%),var(--bg)}
 .hero-inner{width:100%;max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1fr 480px;gap:60px;align-items:center}
-.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border-radius:100px;background:rgba(146,16,246,0.12);border:1px solid rgba(146,16,246,0.30);font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:24px;animation:fadeUp .6s ease both}
-.hero-h1{font-family:var(--fh);font-size:clamp(52px,7.5vw,110px);font-weight:400;letter-spacing:3px;line-height:.96;margin-bottom:22px;animation:fadeUp .6s .1s ease both}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border-radius:100px;background:rgba(146,16,246,0.12);border:1px solid rgba(146,16,246,0.30);font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:24px}
+.hero-h1{font-family:var(--fh);font-size:clamp(52px,7.5vw,110px);font-weight:400;letter-spacing:3px;line-height:.96;margin-bottom:22px}
 .hero-h1 .line-accent{display:block;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;animation:glitch 5s infinite}
 .hero-h1 .line-accent::before,.hero-h1 .line-accent::after{content:attr(data-text);position:absolute;inset:0;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;pointer-events:none}
 .hero-h1 .line-accent::before{animation:glitchTop 5s infinite;clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}
@@ -214,22 +226,22 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 @keyframes glitch{0%,5%,44%,49%,100%{transform:translate(0)}1%{transform:translate(-3px,2px)}2%{transform:translate(3px,-1px)}3%{transform:translate(-2px,-2px)}4%{transform:translate(0)}45%{transform:translate(4px,-2px)}46%{transform:translate(-4px,1px)}47%{transform:translate(2px,2px)}48%{transform:translate(0)}}
 @keyframes glitchTop{0%,5%,44%,49%,100%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}1%{transform:translate(-5px,4px);clip-path:polygon(0 0,100% 0,100% 45%,0 45%)}2%{transform:translate(5px,-3px);clip-path:polygon(0 0,100% 0,100% 20%,0 20%)}3%,4%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}45%{transform:translate(-6px,3px);clip-path:polygon(0 0,100% 0,100% 55%,0 55%)}46%{transform:translate(6px,-2px);clip-path:polygon(0 0,100% 0,100% 25%,0 25%)}47%,48%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}}
 @keyframes glitchBottom{0%,5%,44%,49%,100%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}1%{transform:translate(4px,-3px);clip-path:polygon(0 55%,100% 55%,100% 100%,0 100%)}2%{transform:translate(-5px,2px);clip-path:polygon(0 75%,100% 75%,100% 100%,0 100%)}3%,4%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}45%{transform:translate(5px,3px);clip-path:polygon(0 50%,100% 50%,100% 100%,0 100%)}46%{transform:translate(-4px,-3px);clip-path:polygon(0 80%,100% 80%,100% 100%,0 100%)}47%,48%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}}
-.hero-sub{font-family:var(--fb);font-size:17px;color:var(--muted);line-height:1.75;max-width:460px;margin-bottom:36px;animation:fadeUp .6s .18s ease both}
-.hero-actions{display:flex;align-items:center;gap:14px;margin-bottom:44px;flex-wrap:wrap;animation:fadeUp .6s .26s ease both}
-.hero-stats{display:flex;gap:0;animation:fadeUp .6s .34s ease both}
+.hero-sub{font-family:var(--fb);font-size:17px;color:var(--muted);line-height:1.75;max-width:460px;margin-bottom:36px}
+.hero-actions{display:flex;align-items:center;gap:14px;margin-bottom:44px;flex-wrap:wrap}
+.hero-stats{display:flex;gap:0}
 .hst{padding:0 28px;display:flex;flex-direction:column;gap:4px}
 .hst:not(:last-child){border-right:1px solid rgba(255,255,255,0.10)}
 .hst:first-child{padding-left:0}
 .hst-n{font-family:var(--fh);font-size:clamp(22px,2.4vw,32px);font-weight:400;letter-spacing:1px;line-height:1;background:linear-gradient(90deg,#fff,rgba(255,255,255,0.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hst-l{font-family:var(--fb);font-size:11px;color:var(--muted);letter-spacing:.3px}
-.hero-games{display:flex;flex-direction:column;gap:10px;animation:fadeUp .6s .2s ease both}
+.hero-games{display:flex;flex-direction:column;gap:10px}
 .hero-games-title{font-family:var(--fm);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:8px}
 .hero-games-title::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.08)}
 .hg-card{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);cursor:none;transition:background .22s,border-color .22s,transform .22s;text-decoration:none;color:#fff;position:relative;overflow:hidden}
 .hg-card::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(146,16,246,0.06) 100%);opacity:0;transition:opacity .25s}
 .hg-card:hover{background:rgba(255,255,255,0.07);border-color:rgba(146,16,246,0.35);transform:translateX(4px)}
 .hg-card:hover::before{opacity:1}
-.hg-rank{font-family:var(--fh);font-size:28px;letter-spacing:1px;color:rgba(255,255,255,0.15);width:36px;flex-shrink:0;line-height:1;animation:rankPop .5s cubic-bezier(.34,1.56,.64,1) both}
+.hg-rank{font-family:var(--fh);font-size:28px;letter-spacing:1px;color:rgba(255,255,255,0.15);width:36px;flex-shrink:0;line-height:1}
 .hg-rank.top{color:var(--gold)}
 .hg-thumb{width:52px;height:52px;border-radius:12px;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,rgba(146,16,246,0.3),rgba(97,4,151,0.2))}
 .hg-thumb-placeholder{width:52px;height:52px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,rgba(146,16,246,0.22),rgba(97,4,151,0.14));display:flex;align-items:center;justify-content:center;font-size:22px}
@@ -1016,6 +1028,7 @@ export default function PromoGamesHome() {
   return (
     <>
       <style>{CSS}</style>
+      <ScrollProgress />
       <div className="scroll-bar" />
       <div ref={dotRef}  className="cursor-dot"  />
       <div ref={ringRef} className="cursor-ring" />
@@ -1050,30 +1063,54 @@ export default function PromoGamesHome() {
       </div>
 
       {/* ── HERO ── */}
-      <section id="home">
+      <section id="home" style={{ position: 'relative', overflow: 'hidden' }}>
         <div className="hero-inner">
           <div className="hero-left">
-            <ScrollReveal delay={0.1}>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+            >
               <div className="hero-eyebrow">🎮 Gaming That Rewards You</div>
-            </ScrollReveal>
-            <ScrollReveal delay={0.2}>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 40 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            >
               <h1 className="hero-h1">
                 <span style={{ fontFamily: QUICK_FONTS[fontIdx], transition: 'font-family 0.15s' }}>Quick Games.</span><br />
                 <span className="line-accent" data-text="Real Rewards.">Real Rewards.</span>
               </h1>
-            </ScrollReveal>
-            <ScrollReveal delay={0.3}>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            >
               <p className="hero-sub">
                 Play exciting quick games, climb the leaderboard, and unlock real-time rewards every day.
               </p>
-            </ScrollReveal>
-            <ScrollReveal delay={0.4}>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.7, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            >
               <div className="hero-actions">
-                <a href="/arcade" className="btn-primary">Start Playing <Arr /></a>
-                <a href="/leaderboard" className="btn-ghost">Join The Leaderboard</a>
+                <MagneticElement strength={0.2}>
+                  <a href="/arcade" className="btn-primary">Start Playing <Arr /></a>
+                </MagneticElement>
+                <MagneticElement strength={0.2}>
+                  <a href="/leaderboard" className="btn-ghost">Join The Leaderboard</a>
+                </MagneticElement>
               </div>
-            </ScrollReveal>
-            <ScrollReveal delay={0.5}>
+            </motion.div>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.8, delay: 0.8 }}
+            >
               <div className="hero-stats">
                 {STATS.map(({ val, label }) => (
                   <div className="hst" key={label}>
@@ -1094,8 +1131,8 @@ export default function PromoGamesHome() {
       <MarqueeStrip />
 
       {/* ── FEATURED GAMES ── */}
-      <section id="featured">
-        <ScrollReveal>
+      <section id="featured" style={{ position: 'relative' }}>
+        <RevealOnScroll direction="up">
           <div className="featured-head">
             <div>
               <p className="section-kicker">Game Categories</p>
@@ -1105,43 +1142,47 @@ export default function PromoGamesHome() {
               From reflex games to lucky spins, every game gives you a chance to rise on the leaderboard and win exciting gifts.
             </p>
           </div>
-        </ScrollReveal>
-        <StaggerChildren className="game-grid">
+        </RevealOnScroll>
+        <StaggerContainer className="game-grid" stagger={0.08}>
           {GAME_CATEGORIES.map((g, i) => (
             <StaggerItem key={g.label}>
-              <div className="game-cat-card">
-                <span className="game-cat-icon">{g.icon}</span>
-                <div className="game-cat-label">{g.label}</div>
-                <div className="game-cat-sub">Jump in and start playing — leaderboard spots are waiting.</div>
-                <div className="game-cat-btn">Play Now <Arr size={13} /></div>
-              </div>
+              <MagneticElement strength={0.15}>
+                <div className="game-cat-card">
+                  <span className="game-cat-icon">{g.icon}</span>
+                  <div className="game-cat-label">{g.label}</div>
+                  <div className="game-cat-sub">Jump in and start playing — leaderboard spots are waiting.</div>
+                  <div className="game-cat-btn">Play Now <Arr size={13} /></div>
+                </div>
+              </MagneticElement>
             </StaggerItem>
           ))}
-        </StaggerChildren>
+        </StaggerContainer>
       </section>
 
       {/* ── HOW IT WORKS ── */}
       <section id="how">
         <div className="how-inner">
-          <ScrollReveal>
+          <RevealOnScroll>
             <div className="how-head">
               <p className="section-kicker">How It Works</p>
               <h2 className="section-h2">Play. Score. Win.</h2>
               <p className="section-sub">Three simple steps to start winning real rewards.</p>
             </div>
-          </ScrollReveal>
-          <StaggerChildren className="how-steps">
+          </RevealOnScroll>
+          <StaggerContainer className="how-steps" stagger={0.15}>
             {HOW_STEPS.map(step => (
               <StaggerItem key={step.num}>
-                <div className="how-step">
-                  <div className="how-num">{step.num}</div>
-                  <div className="how-icon-wrap">{step.icon}</div>
-                  <div className="how-title">{step.title}</div>
-                  <div className="how-desc">{step.desc}</div>
-                </div>
+                <ScaleOnScroll>
+                  <div className="how-step">
+                    <div className="how-num">{step.num}</div>
+                    <div className="how-icon-wrap">{step.icon}</div>
+                    <div className="how-title">{step.title}</div>
+                    <div className="how-desc">{step.desc}</div>
+                  </div>
+                </ScaleOnScroll>
               </StaggerItem>
             ))}
-          </StaggerChildren>
+          </StaggerContainer>
         </div>
       </section>
 
@@ -1157,12 +1198,14 @@ export default function PromoGamesHome() {
               </p>
               <p className="lb-tagline">The higher your score, the closer you get to exciting rewards.</p>
               <div style={{ marginTop:32 }}>
-                <a href="/leaderboard" className="btn-primary">View Full Leaderboard <Arr /></a>
+                <MagneticElement strength={0.2}>
+                  <a href="/leaderboard" className="btn-primary">View Full Leaderboard <Arr /></a>
+                </MagneticElement>
               </div>
             </div>
           </SlideIn>
-          <SlideIn from="right" delay={0.2}>
-          <div className="lb-board">
+          <SlideIn from="right">
+            <div className="lb-board">
             <div className="lb-header">
               <div className="lb-header-dot" style={{ background:'#ef4444' }} />
               <div className="lb-header-dot" style={{ background:'#f5c842' }} />
@@ -1211,13 +1254,13 @@ export default function PromoGamesHome() {
               })
             )}
           </div>
-          </SlideIn>
+        </SlideIn>
         </div>
       </section>
 
       {/* ── REWARDS (carousel) ── */}
       <section id="rewards">
-        <ScrollReveal>
+        <RevealOnScroll>
           <div className="rewards-inner">
             <p className="section-kicker">Rewards</p>
             <h2 className="section-h2">Every Play Feels<br />Rewarding</h2>
@@ -1226,7 +1269,7 @@ export default function PromoGamesHome() {
             </p>
             <RewardsCarousel />
           </div>
-        </ScrollReveal>
+        </RevealOnScroll>
       </section>
 
       {/* ── WHY PLAY ── */}
@@ -1235,7 +1278,7 @@ export default function PromoGamesHome() {
           <SlideIn from="left">
             <div>
               <h2 className="section-h2">Why Players<br />Love PromoGames</h2>
-              <StaggerChildren className="why-points">
+              <StaggerContainer className="why-points" stagger={0.1}>
                 {WHY_POINTS.map((pt, i) => (
                   <StaggerItem key={i}>
                     <div className="why-point">
@@ -1244,10 +1287,10 @@ export default function PromoGamesHome() {
                     </div>
                   </StaggerItem>
                 ))}
-              </StaggerChildren>
+              </StaggerContainer>
             </div>
           </SlideIn>
-          <SlideIn from="right" delay={0.2}>
+          <SlideIn from="right">
             <div className="why-visual">
               <ReelsCarousel />
             </div>
@@ -1257,7 +1300,7 @@ export default function PromoGamesHome() {
 
       {/* ── TESTIMONIALS ── */}
       <section id="testimonials">
-        <ScrollReveal>
+        <RevealOnScroll>
           <div className="testimonials-inner">
             <div className="testimonials-head">
               <p className="section-kicker">Player Stories</p>
@@ -1268,26 +1311,28 @@ export default function PromoGamesHome() {
             </div>
           <TestimonialsCarousel onIndexChange={idx => { testimonialIdxRef.current = idx; }} />
         </div>
-        </ScrollReveal>
+        </RevealOnScroll>
       </section>
 
       {/* ── DAILY PLAY ── */}
       <section id="daily">
-        <ScrollReveal>
+        <RevealOnScroll>
           <div className="daily-inner">
             <p className="section-kicker">Daily Play</p>
             <h2 className="section-h2">A Treat You Can<br />Give Yourself</h2>
             <p className="section-sub">
               Take a quick break, play your favorite games, and make every moment more exciting with rewards waiting to be unlocked.
             </p>
-            <a href="/arcade" className="btn-primary">Play Now <Arr /></a>
+            <MagneticElement strength={0.2}>
+              <a href="/arcade" className="btn-primary">Play Now <Arr /></a>
+            </MagneticElement>
           </div>
-        </ScrollReveal>
+        </RevealOnScroll>
       </section>
 
       {/* ── COMMUNITY ── */}
       <section id="community">
-        <ScrollReveal>
+        <RevealOnScroll>
           <div className="community-inner">
             <p className="section-kicker">Community</p>
             <h2 className="section-h2" style={{ marginBottom:16 }}>Join The New Age<br />Of Reward Gaming</h2>
@@ -1295,17 +1340,19 @@ export default function PromoGamesHome() {
               Thousands of players are already competing, winning, and climbing the leaderboard every day.
             </p>
           </div>
-        </ScrollReveal>
-        <StaggerChildren className="stats-grid">
+        </RevealOnScroll>
+        <StaggerContainer className="stats-grid" stagger={0.1}>
           {STATS.map(({ val, label }) => (
             <StaggerItem key={label}>
-              <div className="stat-card">
-                <CountUp as="div" className="stat-val" value={val} />
-                <div className="stat-lbl">{label}</div>
-              </div>
+              <ScaleOnScroll>
+                <div className="stat-card">
+                  <CountUp as="div" className="stat-val" value={val} />
+                  <div className="stat-lbl">{label}</div>
+                </div>
+              </ScaleOnScroll>
             </StaggerItem>
           ))}
-        </StaggerChildren>
+        </StaggerContainer>
       </section>
 
       {/* ── FINAL CTA with Breakout Background ── */}
@@ -1315,18 +1362,22 @@ export default function PromoGamesHome() {
           <BreakoutGame />
         </div>
         {/* CTA content on top */}
-        <ScrollReveal>
+        <RevealOnScroll>
           <div style={{ position:'relative',zIndex:2,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',minHeight:500,padding:'60px 20px 0',pointerEvents:'none' }}>
             <div className="cta-final-h2" style={{ pointerEvents:'auto' }}>
               Ready To<br /><span>Play &amp; Win?</span>
             </div>
             <p className="cta-final-sub" style={{ pointerEvents:'auto' }}>Your next reward could be just one game away.</p>
             <div className="cta-final-actions" style={{ pointerEvents:'auto',marginTop:24 }}>
-              <a href="/arcade" className="btn-primary" style={{ height:58, fontSize:16, padding:'0 40px' }}>Play Now <Arr size={18} /></a>
-              <a href="/arcade" className="btn-ghost"   style={{ height:58, fontSize:16 }}>Start Winning</a>
+              <MagneticElement strength={0.2}>
+                <a href="/arcade" className="btn-primary" style={{ height:58, fontSize:16, padding:'0 40px' }}>Play Now <Arr size={18} /></a>
+              </MagneticElement>
+              <MagneticElement strength={0.2}>
+                <a href="/arcade" className="btn-ghost"   style={{ height:58, fontSize:16 }}>Start Winning</a>
+              </MagneticElement>
             </div>
           </div>
-        </ScrollReveal>
+        </RevealOnScroll>
       </section>
 
       {/* ── FOOTER ── */}

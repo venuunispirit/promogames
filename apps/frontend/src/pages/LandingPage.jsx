@@ -1280,16 +1280,8 @@ export default function PromoGamesHome() {
       </section>
 
       {/* ── BREAKOUT GAME SECTION ── */}
-      <section className="section" style={{ background:'#0f172a', padding:'60px 20px' }}>
-        <div style={{ maxWidth:600,margin:'0 auto',textAlign:'center' }}>
-          <h2 style={{ fontFamily:"var(--fh)",fontWeight:600,fontSize:'clamp(24px,5vw,36px)',color:'#fff',marginBottom:8,letterSpacing:'-0.02em' }}>
-            🎮 Quick Break
-          </h2>
-          <p style={{ color:'rgba(255,255,255,0.5)',fontSize:14,marginBottom:24,maxWidth:400,margin:'0 auto 24px' }}>
-            Take a break and test your reflexes! Move the paddle, break the bricks.
-          </p>
-          <BreakoutGame />
-        </div>
+      <section style={{ position:'relative',background:'#0f172a',overflow:'hidden' }}>
+        <BreakoutGame />
       </section>
 
       {/* ── FOOTER ── */}

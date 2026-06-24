@@ -1267,21 +1267,23 @@ export default function PromoGamesHome() {
         </div>
       </section>
 
-      {/* ── FINAL CTA ── */}
-      <section id="cta-final">
-        <div className="cta-final-h2">
-          Ready To<br /><span>Play &amp; Win?</span>
+      {/* ── FINAL CTA with Breakout Background ── */}
+      <section id="cta-final" style={{ position:'relative',background:'#0f172a',overflow:'hidden',minHeight:500 }}>
+        {/* Breakout game as background */}
+        <div style={{ position:'absolute',inset:0,zIndex:1 }}>
+          <BreakoutGame />
         </div>
-        <p className="cta-final-sub">Your next reward could be just one game away.</p>
-        <div className="cta-final-actions">
-          <a href="/arcade" className="btn-primary" style={{ height:58, fontSize:16, padding:'0 40px' }}>Play Now <Arr size={18} /></a>
-          <a href="/arcade" className="btn-ghost"   style={{ height:58, fontSize:16 }}>Start Winning</a>
+        {/* CTA content on top */}
+        <div style={{ position:'relative',zIndex:2,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',minHeight:500,padding:'60px 20px',pointerEvents:'none' }}>
+          <div className="cta-final-h2" style={{ pointerEvents:'auto' }}>
+            Ready To<br /><span>Play &amp; Win?</span>
+          </div>
+          <p className="cta-final-sub" style={{ pointerEvents:'auto' }}>Your next reward could be just one game away.</p>
+          <div className="cta-final-actions" style={{ pointerEvents:'auto',marginTop:180 }}>
+            <a href="/arcade" className="btn-primary" style={{ height:58, fontSize:16, padding:'0 40px' }}>Play Now <Arr size={18} /></a>
+            <a href="/arcade" className="btn-ghost"   style={{ height:58, fontSize:16 }}>Start Winning</a>
+          </div>
         </div>
-      </section>
-
-      {/* ── BREAKOUT GAME SECTION ── */}
-      <section style={{ position:'relative',background:'#0f172a',overflow:'hidden' }}>
-        <BreakoutGame />
       </section>
 
       {/* ── FOOTER ── */}

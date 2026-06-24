@@ -7,8 +7,9 @@ const BRICK_H = 32
 const BRICK_GAP = 6
 const PADDLE_H = 14
 const BALL_R = 8
+const GAME_H = 500
 
-export default function BreakoutGame({ ctaTitle, ctaSubtitle, ctaButtons }) {
+export default function BreakoutGame() {
   const containerRef = useRef(null)
   const [containerWidth, setContainerWidth] = useState(1200)
   const [images, setImages] = useState([])
@@ -22,10 +23,10 @@ export default function BreakoutGame({ ctaTitle, ctaSubtitle, ctaButtons }) {
   const paddleRef = useRef({ x: 0 })
   const mouseRef = useRef({ x: 0 })
   const livesRef = useRef(3)
+  const scoreRef = useRef(0)
 
   const BRICK_W = (containerWidth - (BRICK_COLS + 1) * BRICK_GAP) / BRICK_COLS
   const PADDLE_W = Math.min(120, containerWidth * 0.1)
-  const GAME_H = 500
   const PADDLE_Y = GAME_H - 60
 
   useEffect(() => {
@@ -47,9 +48,7 @@ export default function BreakoutGame({ ctaTitle, ctaSubtitle, ctaButtons }) {
 
   useEffect(() => {
     const obs = new ResizeObserver(entries => {
-      for (const entry of entries) {
-        setContainerWidth(entry.contentRect.width)
-      }
+      for (const entry of entries) setContainerWidth(entry.contentRect.width)
     })
     if (containerRef.current) obs.observe(containerRef.current)
     return () => obs.disconnect()
@@ -74,12 +73,7 @@ export default function BreakoutGame({ ctaTitle, ctaSubtitle, ctaButtons }) {
 
   const startGame = useCallback(() => {
     initBricks()
-    ballRef.current = {
-      x: containerWidth / 2,
-      y: PADDLE_Y - 20,
-      dx: 4 * (Math.random() > 0.5 ? 1 : -1),
-      dy: -4,
-    }
+    ballRef.current = { x: containerWidth / 2, y: PADDLE_Y - 20, dx: 4 * (Math.random() > 0.5 ? 1 : -1), dy: -4 }
     paddleRef.current = { x: (containerWidth - PADDLE_W) / 2 }
     livesRef.current = 3
     scoreRef.current = 0
@@ -87,55 +81,35 @@ export default function BreakoutGame({ ctaTitle, ctaSubtitle, ctaButtons }) {
     setGameState('playing')
   }, [containerWidth, PADDLE_W, initBricks])
 
-  const scoreRef = useRef(0)
-
   const gameLoop = useCallback(() => {
-    const canvas = containerRef.current?.querySelector('.breakout-canvas')
+    const canvas = containerRef.current?.querySelector('canvas')
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     const ball = ballRef.current
     const paddle = paddleRef.current
     const bricks = bricksRef.current
 
-    // Move paddle
     const targetX = mouseRef.current.x - PADDLE_W / 2
     paddle.x += (targetX - paddle.x) * 0.12
     paddle.x = Math.max(0, Math.min(containerWidth - PADDLE_W, paddle.x))
 
-    // Move ball
     ball.x += ball.dx
     ball.y += ball.dy
 
-    // Walls
     if (ball.x - BALL_R < 0 || ball.x + BALL_R > containerWidth) {
       ball.dx *= -1
       ball.x = Math.max(BALL_R, Math.min(containerWidth - BALL_R, ball.x))
     }
-    if (ball.y - BALL_R < 0) {
-      ball.dy *= -1
-      ball.y = BALL_R
-    }
+    if (ball.y - BALL_R < 0) { ball.dy *= -1; ball.y = BALL_R }
 
-    // Bottom - lose life
     if (ball.y + BALL_R > GAME_H) {
       livesRef.current--
-      if (livesRef.current <= 0) {
-        setGameState('lost')
-        return
-      }
-      ball.x = paddle.x + PADDLE_W / 2
-      ball.y = PADDLE_Y - 20
-      ball.dy = -4
+      if (livesRef.current <= 0) { setGameState('lost'); return }
+      ball.x = paddle.x + PADDLE_W / 2; ball.y = PADDLE_Y - 20; ball.dy = -4
     }
 
-    // Paddle collision
-    if (
-      ball.dy > 0 &&
-      ball.y + BALL_R >= PADDLE_Y &&
-      ball.y + BALL_R <= PADDLE_Y + PADDLE_H + 6 &&
-      ball.x >= paddle.x &&
-      ball.x <= paddle.x + PADDLE_W
-    ) {
+    if (ball.dy > 0 && ball.y + BALL_R >= PADDLE_Y && ball.y + BALL_R <= PADDLE_Y + PADDLE_H + 6 &&
+        ball.x >= paddle.x && ball.x <= paddle.x + PADDLE_W) {
       const hitPos = (ball.x - paddle.x) / PADDLE_W
       const angle = (hitPos - 0.5) * Math.PI * 0.5
       const speed = Math.sqrt(ball.dx * ball.dx + ball.dy * ball.dy)
@@ -144,126 +118,75 @@ export default function BreakoutGame({ ctaTitle, ctaSubtitle, ctaButtons }) {
       ball.y = PADDLE_Y - BALL_R
     }
 
-    // Brick collision
     for (const brick of bricks) {
       if (!brick.alive) continue
-      if (
-        ball.x + BALL_R > brick.x &&
-        ball.x - BALL_R < brick.x + brick.w &&
-        ball.y + BALL_R > brick.y &&
-        ball.y - BALL_R < brick.y + brick.h
-      ) {
-        brick.alive = false
-        ball.dy *= -1
-        scoreRef.current += 10
-        setScore(scoreRef.current)
-        break
+      if (ball.x + BALL_R > brick.x && ball.x - BALL_R < brick.x + brick.w &&
+          ball.y + BALL_R > brick.y && ball.y - BALL_R < brick.y + brick.h) {
+        brick.alive = false; ball.dy *= -1; scoreRef.current += 10; setScore(scoreRef.current); break
       }
     }
 
-    // Win check
-    if (bricks.every(b => !b.alive)) {
-      setGameState('won')
-      return
-    }
+    if (bricks.every(b => !b.alive)) { setGameState('won'); return }
 
-    // Draw
     ctx.clearRect(0, 0, containerWidth, GAME_H)
 
-    // Draw bricks
     bricks.forEach(brick => {
       if (!brick.alive) return
       const img = loadedImages[brick.imageIndex]
       if (img) {
-        ctx.save()
-        ctx.beginPath()
-        ctx.roundRect(brick.x, brick.y, brick.w, brick.h, 4)
-        ctx.clip()
-        ctx.drawImage(img, brick.x, brick.y, brick.w, brick.h)
-        ctx.restore()
+        ctx.save(); ctx.beginPath(); ctx.roundRect(brick.x, brick.y, brick.w, brick.h, 4); ctx.clip()
+        ctx.drawImage(img, brick.x, brick.y, brick.w, brick.h); ctx.restore()
       } else {
         const colors = ['#8B5CF6','#6366F1','#3B82F6','#22C55E','#F59E0B']
         ctx.fillStyle = colors[brick.imageIndex % colors.length]
-        ctx.beginPath()
-        ctx.roundRect(brick.x, brick.y, brick.w, brick.h, 4)
-        ctx.fill()
+        ctx.beginPath(); ctx.roundRect(brick.x, brick.y, brick.w, brick.h, 4); ctx.fill()
       }
     })
 
-    // Draw paddle
     const paddleGrad = ctx.createLinearGradient(paddle.x, PADDLE_Y, paddle.x + PADDLE_W, PADDLE_Y)
-    paddleGrad.addColorStop(0, '#8B5CF6')
-    paddleGrad.addColorStop(1, '#6366F1')
-    ctx.fillStyle = paddleGrad
-    ctx.beginPath()
-    ctx.roundRect(paddle.x, PADDLE_Y, PADDLE_W, PADDLE_H, 7)
-    ctx.fill()
+    paddleGrad.addColorStop(0, '#8B5CF6'); paddleGrad.addColorStop(1, '#6366F1')
+    ctx.fillStyle = paddleGrad; ctx.beginPath(); ctx.roundRect(paddle.x, PADDLE_Y, PADDLE_W, PADDLE_H, 7); ctx.fill()
 
-    // Draw ball
-    ctx.fillStyle = '#fff'
-    ctx.beginPath()
-    ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2)
-    ctx.fill()
+    ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(ball.x, ball.y, BALL_R, 0, Math.PI * 2); ctx.fill()
 
-    // Draw lives
-    ctx.fillStyle = 'rgba(255,255,255,0.7)'
-    ctx.font = '12px DM Sans, sans-serif'
-    ctx.textAlign = 'left'
-    for (let i = 0; i < livesRef.current; i++) {
-      ctx.fillText('❤️', 10 + i * 20, 16)
-    }
-
-    // Draw score
-    ctx.textAlign = 'right'
-    ctx.fillText(`Score: ${scoreRef.current}`, containerWidth - 10, 16)
+    ctx.fillStyle = 'rgba(255,255,255,0.7)'; ctx.font = '12px DM Sans, sans-serif'; ctx.textAlign = 'left'
+    for (let i = 0; i < livesRef.current; i++) ctx.fillText('❤️', 10 + i * 20, 16)
+    ctx.textAlign = 'right'; ctx.fillText(`Score: ${scoreRef.current}`, containerWidth - 10, 16)
 
     animRef.current = requestAnimationFrame(gameLoop)
   }, [containerWidth, PADDLE_W, loadedImages])
 
   useEffect(() => {
-    if (gameState === 'playing') {
-      animRef.current = requestAnimationFrame(gameLoop)
-    }
+    if (gameState === 'playing') animRef.current = requestAnimationFrame(gameLoop)
     return () => { if (animRef.current) cancelAnimationFrame(animRef.current) }
   }, [gameState, gameLoop])
 
   const handleMouseMove = useCallback((e) => {
     const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    mouseRef.current.x = e.clientX - rect.left
+    if (rect) mouseRef.current.x = e.clientX - rect.left
   }, [])
 
   const handleTouchMove = useCallback((e) => {
     e.preventDefault()
     const rect = containerRef.current?.getBoundingClientRect()
-    if (!rect) return
-    mouseRef.current.x = e.touches[0].clientX - rect.left
+    if (rect) mouseRef.current.x = e.touches[0].clientX - rect.left
   }, [])
 
-  // Draw idle state
   useEffect(() => {
     if (gameState !== 'idle') return
-    const canvas = containerRef.current?.querySelector('.breakout-canvas')
+    const canvas = containerRef.current?.querySelector('canvas')
     if (!canvas) return
     const ctx = canvas.getContext('2d')
     ctx.clearRect(0, 0, containerWidth, GAME_H)
-
     for (let r = 0; r < BRICK_ROWS; r++) {
       for (let c = 0; c < BRICK_COLS; c++) {
         const colors = ['#8B5CF6','#6366F1','#3B82F6','#22C55E','#F59E0B']
-        ctx.fillStyle = colors[r % colors.length]
-        ctx.globalAlpha = 0.4
-        ctx.beginPath()
-        ctx.roundRect(BRICK_GAP + c * (BRICK_W + BRICK_GAP), 20 + r * (BRICK_H + BRICK_GAP), BRICK_W, BRICK_H, 4)
-        ctx.fill()
+        ctx.fillStyle = colors[r % colors.length]; ctx.globalAlpha = 0.4
+        ctx.beginPath(); ctx.roundRect(BRICK_GAP + c * (BRICK_W + BRICK_GAP), 20 + r * (BRICK_H + BRICK_GAP), BRICK_W, BRICK_H, 4); ctx.fill()
       }
     }
     ctx.globalAlpha = 1
-
-    ctx.fillStyle = '#6366F1'
-    ctx.beginPath()
-    ctx.roundRect((containerWidth - PADDLE_W) / 2, PADDLE_Y, PADDLE_W, PADDLE_H, 7)
-    ctx.fill()
+    ctx.fillStyle = '#6366F1'; ctx.beginPath(); ctx.roundRect((containerWidth - PADDLE_W) / 2, PADDLE_Y, PADDLE_W, PADDLE_H, 7); ctx.fill()
   }, [gameState, containerWidth, BRICK_W, PADDLE_W])
 
   return (
@@ -271,96 +194,21 @@ export default function BreakoutGame({ ctaTitle, ctaSubtitle, ctaButtons }) {
       ref={containerRef}
       onMouseMove={gameState === 'playing' ? handleMouseMove : undefined}
       onTouchMove={gameState === 'playing' ? handleTouchMove : undefined}
-      style={{ position:'relative',width:'100%',height:GAME_H,overflow:'hidden' }}
+      onClick={gameState === 'idle' ? startGame : undefined}
+      style={{ width:'100%',height:GAME_H,position:'relative',cursor:gameState === 'playing' ? 'none' : 'pointer' }}
     >
-      {/* Z-index 2: Canvas (ball + paddle + bricks visual) */}
       <canvas
-        className="breakout-canvas"
         width={containerWidth}
         height={GAME_H}
-        style={{
-          position:'absolute',inset:0,width:'100%',height:'100%',
-          zIndex:2,pointerEvents:'none',
-        }}
+        style={{ position:'absolute',inset:0,width:'100%',height:'100%',pointerEvents:'none' }}
       />
 
-      {/* Z-index 1: Bricks are drawn on canvas, this is just overlay pointer layer */}
-      <div style={{ position:'absolute',inset:0,zIndex:1,pointerEvents:'none' }} />
-
-      {/* Z-index 0: CTA Content */}
-      <div style={{
-        position:'absolute',inset:0,zIndex:3,
-        display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-        pointerEvents:'none',padding:'20px',
-      }}>
-        <div style={{ pointerEvents:'auto',textAlign:'center',maxWidth:600 }}>
-          <h2 style={{
-            fontFamily:"'Fraunces',serif",fontWeight:600,
-            fontSize:'clamp(28px,5vw,42px)',color:'#fff',
-            marginBottom:8,letterSpacing:'-0.02em',
-            textShadow:'0 2px 20px rgba(0,0,0,0.5)',
-          }}>
-            {ctaTitle || 'Ready To Play & Win?'}
-          </h2>
-          <p style={{
-            color:'rgba(255,255,255,0.7)',fontSize:16,marginBottom:0,
-            lineHeight:1.6,textShadow:'0 1px 10px rgba(0,0,0,0.5)',
-          }}>
-            {ctaSubtitle || 'Your next reward could be just one game away.'}
-          </p>
-        </div>
-      </div>
-
-      {/* Buttons below paddle */}
-      <div style={{
-        position:'absolute',bottom:16,left:0,right:0,zIndex:3,
-        display:'flex',gap:12,justifyContent:'center',pointerEvents:'auto',
-      }}>
-        {ctaButtons ? ctaButtons : (
-          <>
-            <a href="/arcade" style={{
-              background:'linear-gradient(135deg,#8B5CF6,#6366F1)',color:'#fff',
-              border:'none',borderRadius:50,padding:'14px 36px',fontSize:15,fontWeight:700,
-              cursor:'pointer',textDecoration:'none',fontFamily:"'DM Sans',sans-serif",
-              boxShadow:'0 6px 24px rgba(139,92,246,0.4)',transition:'transform .15s',
-            }}
-            onMouseOver={e => e.currentTarget.style.transform='translateY(-2px)'}
-            onMouseOut={e => e.currentTarget.style.transform='translateY(0)'}
-            >Play Now</a>
-            <a href="/arcade" style={{
-              background:'rgba(255,255,255,0.1)',color:'#fff',
-              border:'1.5px solid rgba(255,255,255,0.3)',borderRadius:50,padding:'14px 36px',
-              fontSize:15,fontWeight:700,cursor:'pointer',textDecoration:'none',
-              fontFamily:"'DM Sans',sans-serif",backdropFilter:'blur(8px)',transition:'all .15s',
-            }}
-            onMouseOver={e => { e.currentTarget.style.background='rgba(255,255,255,0.2)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.5)' }}
-            onMouseOut={e => { e.currentTarget.style.background='rgba(255,255,255,0.1)'; e.currentTarget.style.borderColor='rgba(255,255,255,0.3)' }}
-            >Start Winning</a>
-          </>
-        )}
-      </div>
-
-      {/* Game Over Overlay */}
       {(gameState === 'won' || gameState === 'lost') && (
-        <div style={{
-          position:'absolute',inset:0,zIndex:10,
-          display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',
-          background:'rgba(0,0,0,0.6)',backdropFilter:'blur(4px)',
-        }}>
-          <div style={{ fontSize:48,marginBottom:8 }}>{gameState === 'won' ? '🎉' : '💪'}</div>
-          <div style={{ fontSize:22,fontWeight:800,color:'#fff',marginBottom:4 }}>
-            {gameState === 'won' ? 'You Win!' : 'Nice Try!'}
-          </div>
-          <div style={{ fontSize:14,color:'rgba(255,255,255,0.7)',marginBottom:16 }}>
-            Score: {score}
-          </div>
-          <button onClick={startGame} style={{
-            background:'linear-gradient(135deg,#8B5CF6,#6366F1)',color:'#fff',
-            border:'none',borderRadius:50,padding:'12px 32px',fontSize:14,fontWeight:700,
-            cursor:'pointer',fontFamily:"'DM Sans',sans-serif",
-          }}>
-            Play Again
-          </button>
+        <div style={{ position:'absolute',inset:0,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.5)',zIndex:5 }}>
+          <div style={{ fontSize:40,marginBottom:6 }}>{gameState === 'won' ? '🎉' : '💪'}</div>
+          <div style={{ fontSize:18,fontWeight:800,color:'#fff',marginBottom:4 }}>{gameState === 'won' ? 'You Win!' : 'Nice Try!'}</div>
+          <div style={{ fontSize:13,color:'rgba(255,255,255,0.7)',marginBottom:12 }}>Score: {score}</div>
+          <button onClick={(e) => { e.stopPropagation(); startGame() }} style={{ background:'linear-gradient(135deg,#8B5CF6,#6366F1)',color:'#fff',border:'none',borderRadius:50,padding:'10px 28px',fontSize:13,fontWeight:700,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Play Again</button>
         </div>
       )}
     </div>

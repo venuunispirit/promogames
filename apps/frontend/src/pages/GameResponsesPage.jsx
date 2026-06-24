@@ -199,6 +199,14 @@ const GAME_COLUMNS = {
       { key: 'score', label: 'Score', type: 'score' },
     ],
   },
+  connect4: {
+    label: 'Connect 4',
+    getColumns: () => [
+      { key: 'result', label: 'Result', type: 'stat' },
+      { key: 'wins', label: 'Wins', type: 'stat' },
+      { key: 'score', label: 'Score', type: 'score' },
+    ],
+  },
 }
 
 // ── Extract game-specific stats from player_data ─────────────────────────────
@@ -265,6 +273,10 @@ function extractGameStats(playerData, category) {
       break
     case 'space':
       stats.enemies_destroyed = pd.enemies_destroyed || pd.enemiesDestroyed || pd.kills || '—'
+      break
+    case 'connect4':
+      stats.result = pd.result || '—'
+      stats.wins = pd.wins || '0'
       break
     default:
       break

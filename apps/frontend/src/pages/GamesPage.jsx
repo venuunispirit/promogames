@@ -27,6 +27,7 @@ const CATEGORY_META = {
   flappy:    { label:'Flappy Bird',    bg:' #FFFBEB', fg:' #B45309', dot:' #F59E0B', icon:'🐦', desc:'Fly through the pipes' },
   bounce:    { label:'Bounce Ball',    bg:' #F0FDF4', fg:' #166534', dot:' #22C55E', icon:'🏀', desc:'Bounce ball through levels' },
   space:     { label:'Space Fighter',  bg:' #0F172A', fg:' #38BDF8', dot:' #0EA5E9', icon:'🚀', desc:'Shoot enemies in space' },
+  connect4:  { label:'Connect 4',      bg:' #EFF6FF', fg:' #1D4ED8', dot:' #3B82F6', icon:'🔴', desc:'Connect 4 in a row to win' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:' #F3F4F6', fg:' #374151', dot:' #9CA3AF' }
 
@@ -322,6 +323,8 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/bounce-builder`)
     } else if (game.category === 'space') {
       navigate(`/dashboard/games/${game.id}/space-builder`)
+    } else if (game.category === 'connect4') {
+      navigate(`/dashboard/games/${game.id}/connect4-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }
@@ -826,6 +829,7 @@ export default function GamesPage() {
                                 else if (game.category === 'flappy') navigate(`/dashboard/games/${game.id}/flappy-builder`)
                                 else if (game.category === 'bounce') navigate(`/dashboard/games/${game.id}/bounce-builder`)
                                 else if (game.category === 'space') navigate(`/dashboard/games/${game.id}/space-builder`)
+                                else if (game.category === 'connect4') navigate(`/dashboard/games/${game.id}/connect4-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">
                               <Ico.wrench/> Builder

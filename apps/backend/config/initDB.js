@@ -866,8 +866,36 @@ async function initDB() {
     )
   `, 'simon_settings table');
 
-  /* ── FLAPPY BIRD TABLES ── */
-  console.log('🐦 Creating flappy bird tables...');
+  /* ── CONNECT 4 TABLES ── */
+  console.log('🔴 Creating connect 4 tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS connect4_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      board_rows INT DEFAULT 6, board_cols INT DEFAULT 7, win_count INT DEFAULT 4,
+      player_color VARCHAR(20) DEFAULT '#ef4444', ai_color VARCHAR(20) DEFAULT '#fbbf24',
+      board_color VARCHAR(20) DEFAULT '#3b82f6', difficulty VARCHAR(20) DEFAULT 'medium',
+      show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#3b82f6',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_drop_id INT DEFAULT NULL, sound_win_id INT DEFAULT NULL, sound_draw_id INT DEFAULT NULL,
+      intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
+      outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      start_button_text VARCHAR(500),
+      start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
+      submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
+      continue_button_text_color VARCHAR(20) DEFAULT NULL, continue_button_bg_color VARCHAR(20) DEFAULT NULL,
+      thankyou_subtitle VARCHAR(500) DEFAULT NULL, thankyou_subtitle_color VARCHAR(20) DEFAULT NULL,
+      terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT, terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'connect4_settings table');
+
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS flappy_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1034,8 +1062,8 @@ async function initDB() {
 
   /* GAMES */
   await safeQuery(connection,
-    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space') DEFAULT 'quiz'`,
-    'games.category ENUM includes space'
+    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4') DEFAULT 'quiz'`,
+    'games.category ENUM includes connect4'
   );
   await addColumn(connection, 'games', 'client_id', 'INT');
   await addColumn(connection, 'games', 'slug', 'VARCHAR(255)');

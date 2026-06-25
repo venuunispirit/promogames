@@ -922,7 +922,7 @@ export default function Game2048BuilderPage() {
                     <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
                       onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
+                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                     {settings.bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
                       <img src={settings.bg_image_url} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
                       <button
@@ -935,7 +935,7 @@ export default function Game2048BuilderPage() {
                     <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
                       onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
+                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                     {settings.game_logo_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
                       <img src={settings.game_logo_url} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#fff' }} />
                       <button
@@ -1081,7 +1081,7 @@ export default function Game2048BuilderPage() {
                     <input type="file" ref={tyBgImgRef} accept="image/png,image/jpeg,image/jpg"
                       onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => tyBgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
+                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => tyBgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                     {settings.thankyou_bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
                       <img src={settings.thankyou_bg_image_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
                       <button
@@ -1125,7 +1125,7 @@ export default function Game2048BuilderPage() {
                     <input type="file" id="submitGifInput" accept="image/gif,image/png,image/jpeg,image/webp"
                       onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83c\udfac Upload GIF / Image</button>
+                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>🎥 Upload GIF / Image</button>
                     {settings.submit_confirm_gif_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
                       <img src={settings.submit_confirm_gif_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
                       <button

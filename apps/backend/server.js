@@ -42,7 +42,15 @@ const flappyRoutes = require("./routes/flappy");
 const canvaRoutes = require("./routes/canva");
 const connect4Routes = require("./routes/connect4");
 const brickImagesRoutes = require("./routes/brickImages");
+const bowlingRoutes = require("./routes/bowling");
+const sudokuRoutes = require("./routes/sudoku");
+const minesweeperRoutes = require("./routes/minesweeper");
+const wordscrambleRoutes = require("./routes/wordscramble");
+const rpsRoutes = require("./routes/rps");
 const spaceRoutes = require("./routes/space");
+const bejeweledRoutes = require("./routes/bejeweled");
+const tetrisRoutes = require("./routes/tetris");
+const stackRoutes = require("./routes/stack");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -74,7 +82,15 @@ app.use("/api/flappy", flappyRoutes);
 app.use("/api/canva", canvaRoutes);
 app.use("/api/connect4", connect4Routes);
 app.use("/api/brick-images", brickImagesRoutes);
+app.use("/api/bowling", bowlingRoutes);
+app.use("/api/sudoku", sudokuRoutes);
+app.use("/api/minesweeper", minesweeperRoutes);
+app.use("/api/wordscramble", wordscrambleRoutes);
+app.use("/api/rps", rpsRoutes);
 app.use("/api/space", spaceRoutes);
+app.use("/api/bejeweled", bejeweledRoutes);
+app.use("/api/tetris", tetrisRoutes);
+app.use("/api/stack", stackRoutes);
 
 app.get("/api/check-code", (req, res) => {
   res.json({ 

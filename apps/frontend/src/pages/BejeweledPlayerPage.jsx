@@ -17,9 +17,10 @@ const DEFAULT_TILE_COLORS = {
   '4096': '#0f3d3f'
 }
 
-export default function BejeweledPlayerPage() {
-  const { id, slug } = useParams()
+export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete }) {
+  const params = useParams()
   const navigate = useNavigate()
+  const id = gameData?.id || params.id
 
   const [gameConfig, setGameConfig] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -41,8 +42,11 @@ export default function BejeweledPlayerPage() {
       try {
         setLoading(true)
 
-        // Load game config
-        const configResponse = await api.get(`/bejeweled/${id}/settings`)
+        // Use gameData.id when embedded via PlayerPage, or params.id for standalone
+        const gameId = gameData?.id || id
+
+        // Load game config from bejeweled API
+        const configResponse = await api.get(`/bejeweled/${gameId}/settings`)
         const config = configResponse.data.settings || configResponse.data
 
         if (!config || !config.is_active) {
@@ -53,7 +57,7 @@ export default function BejeweledPlayerPage() {
         setGameConfig(config)
 
         // Create or get session
-        const sessionResponse = await api.post(`/bejeweled/${id}/session`, {
+        const sessionResponse = await api.post(`/bejeweled/${gameId}/session`, {
           player_id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
         })
         const sessionId = sessionResponse.data.session_id
@@ -71,7 +75,8 @@ export default function BejeweledPlayerPage() {
     }
 
     loadGame()
-  }, [id])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id, gameData?.id])
 
   // Initialize game board with logo segments
   const initializeGameBoard = (config) => {
@@ -288,6 +293,7 @@ export default function BejeweledPlayerPage() {
         position_y: -1
       })
 
+      if (onComplete) onComplete({ score, moves })
     } catch (err) {
       console.error('Failed to save game result:', err)
     }
@@ -343,7 +349,7 @@ export default function BejeweledPlayerPage() {
         <div style={{ display: 'flex', gap: 12 }}>
           <button
             className="gb-btn gb-btn-ghost"
-            onClick={() => navigate(`/play/${slug}`)}
+            onClick={() => navigate('/arcade')}
             style={{ fontSize: 12 }}
           >
             ← Back to Games
@@ -445,7 +451,7 @@ export default function BejeweledPlayerPage() {
             </button>
             <button
               className="gb-btn gb-btn-ghost"
-              onClick={() => navigate(`/play/${slug}`)}
+              onClick={() => navigate('/arcade')}
             >
               Back to Games
             </button>

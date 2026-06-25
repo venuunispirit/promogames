@@ -11,9 +11,8 @@ import GameBuilderPage   from './pages/GameBuilderPage'
 import SpaceBuilderPage from './pages/SpaceBuilderPage'
 import Connect4BuilderPage from './pages/Connect4BuilderPage'
 import BrickImagesPage from './pages/BrickImagesPage'
-import SpacePlayerPage   from './pages/SpacePlayerPage'
+import { BowlingBuilderPage, SudokuBuilderPage, MinesweeperBuilderPage, WordScrambleBuilderPage, RpsBuilderPage } from './pages/GameBuilderPages'
 import BounceBuilderPage from './pages/BounceBuilderPage'
-import BouncePlayerPage  from './pages/BouncePlayerPage'
 import PlayerPage        from './pages/PlayerPage'
 import LandingPage       from './pages/LandingPage'
 import GameResponsesPage from './pages/GameResponsesPage'
@@ -34,6 +33,10 @@ import CatchBuilderPage from './pages/CatchBuilderPage'
 import ReactionBuilderPage from './pages/ReactionBuilderPage'
 import SimonBuilderPage from './pages/SimonBuilderPage'
 import FlappyBuilderPage from './pages/FlappyBuilderPage'
+import BejeweledBuilderPage from './pages/BejeweledBuilderPage'
+import BejeweledPlayerPage from './pages/BejeweledPlayerPage'
+import TetrisBuilderPage from './pages/TetrisBuilderPage'
+import StackBuilderPage from './pages/StackBuilderPage'
 import PlayerDashboard   from './pages/PlayerDashboard'
 import PlayersPage       from './pages/PlayersPage'
 import LeaderboardPage   from './pages/LeaderboardPage'
@@ -72,7 +75,8 @@ function AppRoutes() {
       <Route path="/business"    element={<Business />} />
 
       {/* Player game routes */}
-      <Route path="/play/:gameName/:companyName" element={<PlayerRoute><SpacePlayerPage /></PlayerRoute>} />
+      <Route path="/play/:gameName/:companyName" element={<PlayerPage />} />
+      <Route path="/play/bejeweled/:id" element={<BejeweledPlayerPage />} />
 
       {/* Player dashboard */}
       <Route path="/player/dashboard" element={<PlayerRoute><PlayerDashboard /></PlayerRoute>} />
@@ -85,6 +89,11 @@ function AppRoutes() {
         <Route path="games/:id/builder"               element={<GameBuilderPage />} />
         <Route path="games/:id/space-builder"          element={<SpaceBuilderPage />} />
         <Route path="games/:id/connect4-builder"       element={<Connect4BuilderPage />} />
+        <Route path="games/:id/bowling-builder"        element={<BowlingBuilderPage />} />
+        <Route path="games/:id/sudoku-builder"         element={<SudokuBuilderPage />} />
+        <Route path="games/:id/minesweeper-builder"    element={<MinesweeperBuilderPage />} />
+        <Route path="games/:id/wordscramble-builder"   element={<WordScrambleBuilderPage />} />
+        <Route path="games/:id/rps-builder"            element={<RpsBuilderPage />} />
         <Route path="brick-images"                     element={<BrickImagesPage />} />
         <Route path="games/:id/bounce-builder"         element={<BounceBuilderPage />} />
         <Route path="games/:id/spin-builder"           element={<SpinBuilderTab />} />
@@ -103,6 +112,9 @@ function AppRoutes() {
         <Route path="games/:id/reaction-builder"       element={<ReactionBuilderPage />} />
         <Route path="games/:id/simon-builder"          element={<SimonBuilderPage />} />
         <Route path="games/:id/flappy-builder"          element={<FlappyBuilderPage />} />
+        <Route path="games/:id/bejeweled-builder"      element={<BejeweledBuilderPage />} />
+        <Route path="games/:id/tetris-builder"        element={<TetrisBuilderPage />} />
+        <Route path="games/:id/stack-builder"         element={<StackBuilderPage />} />
         <Route path="players"                         element={<PlayersPage />} />
       </Route>
 

@@ -207,6 +207,44 @@ const GAME_COLUMNS = {
       { key: 'score', label: 'Score', type: 'score' },
     ],
   },
+  bowling: {
+    label: 'Bowling',
+    getColumns: () => [
+      { key: 'frames', label: 'Frames', type: 'stat' },
+      { key: 'score', label: 'Score', type: 'score' },
+    ],
+  },
+  sudoku: {
+    label: 'Sudoku',
+    getColumns: () => [
+      { key: 'time', label: 'Time', type: 'stat' },
+      { key: 'mistakes', label: 'Mistakes', type: 'stat' },
+      { key: 'score', label: 'Score', type: 'score' },
+    ],
+  },
+  minesweeper: {
+    label: 'Minesweeper',
+    getColumns: () => [
+      { key: 'time', label: 'Time', type: 'stat' },
+      { key: 'mines', label: 'Mines', type: 'stat' },
+      { key: 'score', label: 'Score', type: 'score' },
+    ],
+  },
+  wordscramble: {
+    label: 'Word Scramble',
+    getColumns: () => [
+      { key: 'words', label: 'Words', type: 'stat' },
+      { key: 'score', label: 'Score', type: 'score' },
+    ],
+  },
+  rps: {
+    label: 'Rock Paper Scissors',
+    getColumns: () => [
+      { key: 'wins', label: 'Wins', type: 'stat' },
+      { key: 'losses', label: 'Losses', type: 'stat' },
+      { key: 'score', label: 'Score', type: 'score' },
+    ],
+  },
 }
 
 // ── Extract game-specific stats from player_data ─────────────────────────────
@@ -277,6 +315,24 @@ function extractGameStats(playerData, category) {
     case 'connect4':
       stats.result = pd.result || '—'
       stats.wins = pd.wins || '0'
+      break
+    case 'bowling':
+      stats.frames = pd.frames || '—'
+      break
+    case 'sudoku':
+      stats.time = pd.time ? `${pd.time}s` : '—'
+      stats.mistakes = pd.mistakes || '0'
+      break
+    case 'minesweeper':
+      stats.time = pd.time ? `${pd.time}s` : '—'
+      stats.mines = pd.mines || '—'
+      break
+    case 'wordscramble':
+      stats.words = pd.words || '—'
+      break
+    case 'rps':
+      stats.wins = pd.wins || '0'
+      stats.losses = pd.losses || '0'
       break
     default:
       break

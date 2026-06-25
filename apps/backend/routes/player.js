@@ -581,6 +581,54 @@ router.get('/:gameName/:companyName', async (req, res) => {
       });
     }
 
+    // ── GAME-SPECIFIC SETTINGS BRANCHES ──────────────────────────────────────
+    const categorySettingsMap = {
+      connect4:   'connect4_settings',
+      flappy:     'flappy_settings',
+      bounce:     'bounce_settings',
+      '2048':     'game2048_settings',
+      maze:       'maze_settings',
+      screw:      'screw_settings',
+      typer:      'typer_settings',
+      pouring:    'pouring_settings',
+      wordsearch: 'wordsearch_settings',
+      jigsaw:     'jigsaw_settings',
+      memory:     'memory_settings',
+      crossword:  'crossword_settings',
+      spin:       'spin_settings',
+      math:       'math_settings',
+      space:      'space_settings',
+      bejeweled:  'bejeweled_settings',
+      tetris:     'tetris_settings',
+      stack:      'stack_settings',
+    };
+    const settingsTable = categorySettingsMap[game.category];
+
+    if (settingsTable) {
+      const [gameSettings] = await db.query(`SELECT * FROM ${settingsTable} WHERE game_id = ?`, [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo),
+          company_name: game.company_name,
+          settings, formFields, soundMap, questions: [],
+        },
+      });
+    }
+
     // ── QUIZ / SURVEY branch (unchanged) ─────────────────────────────────────
     const [settings]   = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [game.id]);
     const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);

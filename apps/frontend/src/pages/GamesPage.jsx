@@ -28,6 +28,13 @@ const CATEGORY_META = {
   bounce:    { label:'Bounce Ball',    bg:' #F0FDF4', fg:' #166534', dot:' #22C55E', icon:'🏀', desc:'Bounce ball through levels' },
   space:     { label:'Space Fighter',  bg:' #0F172A', fg:' #38BDF8', dot:' #0EA5E9', icon:'🚀', desc:'Shoot enemies in space' },
   connect4:  { label:'Connect 4',      bg:' #EFF6FF', fg:' #1D4ED8', dot:' #3B82F6', icon:'🔴', desc:'Connect 4 in a row to win' },
+  tetris:    { label:'Tetris',         bg:' #0F172A', fg:' #00f0f0', dot:' #00f0f0', icon:'🧱', desc:'Classic block-stacking puzzle' },
+  stack:     { label:'Stack',          bg:' #0F172A', fg:' #6366f1', dot:' #818CF8', icon:'📦', desc:'Stack blocks as high as you can' },
+  bowling:   { label:'Bowling',        bg:' #FEF3C7', fg:' #92400E', dot:' #F59E0B', icon:'🎳', desc:'Roll strikes and spares' },
+  sudoku:    { label:'Sudoku',         bg:' #EFF6FF', fg:' #1E40AF', dot:' #3B82F6', icon:'🔢', desc:'Fill the grid with numbers' },
+  minesweeper:{ label:'Minesweeper',   bg:' #F0FDF4', fg:' #166534', dot:' #22C55E', icon:'💣', desc:'Find all safe cells' },
+  wordscramble:{ label:'Word Scramble', bg:' #F5F3FF', fg:' #6D28D9', dot:' #8B5CF6', icon:'🔤', desc:'Unscramble the letters' },
+  rps:       { label:'Rock Paper Scissors', bg:' #FEE2E2', fg:' #991B1B', dot:' #EF4444', icon:'✊', desc:'Beat the AI in RPS' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:' #F3F4F6', fg:' #374151', dot:' #9CA3AF' }
 
@@ -325,6 +332,16 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/space-builder`)
     } else if (game.category === 'connect4') {
       navigate(`/dashboard/games/${game.id}/connect4-builder`)
+    } else if (game.category === 'bowling') {
+      navigate(`/dashboard/games/${game.id}/bowling-builder`)
+    } else if (game.category === 'sudoku') {
+      navigate(`/dashboard/games/${game.id}/sudoku-builder`)
+    } else if (game.category === 'minesweeper') {
+      navigate(`/dashboard/games/${game.id}/minesweeper-builder`)
+    } else if (game.category === 'wordscramble') {
+      navigate(`/dashboard/games/${game.id}/wordscramble-builder`)
+    } else if (game.category === 'rps') {
+      navigate(`/dashboard/games/${game.id}/rps-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }
@@ -343,21 +360,21 @@ const handleSubmit = async e => {
 
       {/* ── Glass Modal ── */}
       <div className="gp-no-scrollbar" style={{
-        background:'#ffffff',
-        backdropFilter:'blur(40px) saturate(1.8)',
-        WebkitBackdropFilter:'blur(40px) saturate(1.8)',
-        borderRadius:28,width:'100%',maxWidth:580,maxHeight:'90vh',overflow:'auto',
+        background:'rgba(255,255,255,0.78)',
+        backdropFilter:'blur(32px) saturate(1.5)',
+        WebkitBackdropFilter:'blur(32px) saturate(1.5)',
+        borderRadius:28,width:'85vw',maxWidth:1100,maxHeight:'92vh',overflow:'auto',
         padding:'0',
-        border:'1px solid rgba(0,0,0,0.06)',
-        boxShadow:'0 32px 80px rgba(0,0,0,.18), 0 2px 6px rgba(0,0,0,.06)',
+        border:'1px solid rgba(255,255,255,0.35)',
+        boxShadow:'0 32px 80px rgba(0,0,0,.28), 0 2px 6px rgba(0,0,0,.08), inset 0 1px 0 rgba(255,255,255,0.5)',
         animation:'gpModalIn .35s cubic-bezier(.34,1.56,.64,1)',fontFamily:"'DM Sans',sans-serif",
         scrollbarWidth:'none',msOverflowStyle:'none',
       }}>
         {/* ── Header ── */}
         <div style={{
-          padding:'28px 32px 18px',
-          background:'#ffffff',
-          borderBottom:'1px solid #F3F4F6',
+          padding:'28px 36px 18px',
+          background:'rgba(255,255,255,0.5)',
+          borderBottom:'1px solid rgba(0,0,0,0.06)',
           position:'sticky',top:0,zIndex:10,
         }}>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start'}}>
@@ -365,94 +382,94 @@ const handleSubmit = async e => {
               <span style={{fontSize:28}}>🎮</span>
               <div>
                 <h2 style={{fontWeight:800,fontSize:22,color:'#111827',margin:0,lineHeight:1.2,letterSpacing:'-0.02em'}}>New Game</h2>
-                <p style={{color:'#9CA3AF',fontSize:13,marginTop:3}}>Choose a game type to get started</p>
+                <p style={{color:'#6B7280',fontSize:13,marginTop:3}}>Choose a game type to get started</p>
               </div>
             </div>
             <button onClick={onClose} style={{
               width:36,height:36,borderRadius:10,
-              border:'1px solid #E5E7EB',background:'#F9FAFB',
+              border:'1px solid rgba(0,0,0,0.1)',background:'rgba(255,255,255,0.6)',
               display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
               color:'#9CA3AF',fontSize:16,transition:'all .15s',flexShrink:0,
-            }} onMouseOver={e=>{e.currentTarget.style.background='#F3F4F6';e.currentTarget.style.color='#374151'}} onMouseOut={e=>{e.currentTarget.style.background='#F9FAFB';e.currentTarget.style.color='#9CA3AF'}}><Ico.close/></button>
+            }} onMouseOver={e=>{e.currentTarget.style.background='rgba(255,255,255,0.9)';e.currentTarget.style.color='#374151'}} onMouseOut={e=>{e.currentTarget.style.background='rgba(255,255,255,0.6)';e.currentTarget.style.color='#9CA3AF'}}><Ico.close/></button>
           </div>
         </div>
 
         {/* ── Form Body ── */}
-        <form onSubmit={handleSubmit} style={{padding:'24px 32px 28px'}}>
+        <form onSubmit={handleSubmit} style={{padding:'24px 36px 32px'}}>
 
           {/* Client */}
-          <div style={{marginBottom:20}}>
-            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:8}}>Client <span style={{color:'#EF4444'}}>*</span></label>
+          <div style={{marginBottom:18}}>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>Client <span style={{color:'#EF4444'}}>*</span></label>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <div style={{position:'relative',flex:1}}>
                 <select value={form.client_id} onChange={set('client_id')} required style={{
-                  width:'100%',padding:'12px 40px 12px 14px',borderRadius:12,
-                  border:'1.5px solid #E5E7EB',
-                  background:'#F9FAFB',
+                  width:'100%',padding:'11px 40px 11px 14px',borderRadius:10,
+                  border:'1.5px solid rgba(0,0,0,0.08)',
+                  background:'rgba(255,255,255,0.6)',
                   fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
                   appearance:'none',cursor:'pointer',transition:'all .2s',
-                }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='#fff'}} onBlur={e=>{e.target.style.borderColor='#E5E7EB';e.target.style.boxShadow='none';e.target.style.background='#F9FAFB'}}>
+                }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}}>
                   <option value="">Select a client…</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
                 </select>
                 <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'#9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
               </div>
               <button type="button" onClick={onAddClient} style={{
-                padding:'12px 16px',whiteSpace:'nowrap',fontSize:13,fontWeight:600,
-                borderRadius:12,border:'1.5px dashed #D1D5DB',background:'transparent',
+                padding:'11px 14px',whiteSpace:'nowrap',fontSize:12,fontWeight:600,
+                borderRadius:10,border:'1.5px dashed rgba(0,0,0,0.12)',background:'rgba(255,255,255,0.4)',
                 color:'#8B5CF6',cursor:'pointer',transition:'all .15s',fontFamily:"'DM Sans',sans-serif",
-              }} onMouseOver={e=>{e.currentTarget.style.borderColor='#8B5CF6';e.currentTarget.style.background='#F5F3FF'}} onMouseOut={e=>{e.currentTarget.style.borderColor='#D1D5DB';e.currentTarget.style.background='transparent'}}>
+              }} onMouseOver={e=>{e.currentTarget.style.borderColor='#8B5CF6';e.currentTarget.style.background='rgba(139,92,246,0.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(0,0,0,0.12)';e.currentTarget.style.background='rgba(255,255,255,0.4)'}}>
                 + Add Client
               </button>
             </div>
           </div>
 
           {/* Game Name */}
-          <div style={{marginBottom:20}}>
-            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:8}}>Game Name <span style={{color:'#EF4444'}}>*</span></label>
+          <div style={{marginBottom:18}}>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>Game Name <span style={{color:'#EF4444'}}>*</span></label>
             <input value={form.name} onChange={set('name')} placeholder="e.g. Product Knowledge Quiz" required style={{
-              width:'100%',padding:'12px 14px',borderRadius:12,
-              border:'1.5px solid #E5E7EB',
-              background:'#F9FAFB',
+              width:'100%',padding:'11px 14px',borderRadius:10,
+              border:'1.5px solid rgba(0,0,0,0.08)',
+              background:'rgba(255,255,255,0.6)',
               fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
               transition:'all .2s',
-            }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='#fff'}} onBlur={e=>{e.target.style.borderColor='#E5E7EB';e.target.style.boxShadow='none';e.target.style.background='#F9FAFB'}} />
+            }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}} />
           </div>
 
           {/* Category Grid */}
           <div style={{marginBottom:20}}>
-            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:10}}>Choose Game Type</label>
-            <div style={{display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:8}}>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}>Choose Game Type</label>
+            <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(155px, 1fr))',gap:12}}>
               {Object.entries(CATEGORY_META).map(([k,v]) => {
                 const selected = form.category === k
                 return (
                   <button key={k} type="button"
                     onClick={() => setForm(f=>({...f,category:k}))}
-                    onMouseOver={e=>{if(!selected){e.currentTarget.style.transform='translateY(-2px)';e.currentTarget.style.boxShadow='0 4px 12px rgba(0,0,0,.08)'}}}
+                    onMouseOver={e=>{if(!selected){e.currentTarget.style.transform='translateY(-3px)';e.currentTarget.style.boxShadow='0 8px 24px rgba(0,0,0,.1)'}}}
                     onMouseOut={e=>{if(!selected){e.currentTarget.style.transform='translateY(0)';e.currentTarget.style.boxShadow='none'}}}
                     style={{
-                      padding:'14px 10px',borderRadius:14,
-                      border:selected ? '2px solid #8B5CF6' : '1.5px solid #E5E7EB',
-                      background: selected ? '#F5F3FF' : '#F9FAFB',
-                      cursor:'pointer',transition:'all .2s cubic-bezier(.34,1.56,.64,1)',
-                      display:'flex',flexDirection:'column',alignItems:'center',gap:5,
+                      padding:'22px 12px 18px',borderRadius:16,
+                      border:selected ? '2px solid #8B5CF6' : '1px solid rgba(0,0,0,0.06)',
+                      background: selected ? 'rgba(139,92,246,0.12)' : 'rgba(255,255,255,0.5)',
+                      cursor:'pointer',transition:'all .25s cubic-bezier(.34,1.56,.64,1)',
+                      display:'flex',flexDirection:'column',alignItems:'center',gap:6,
                       position:'relative',overflow:'hidden',
-                      boxShadow: selected ? '0 0 12px rgba(139,92,246,0.2)' : 'none',
-                      transform: selected ? 'scale(1.02)' : 'scale(1)',
+                      boxShadow: selected ? '0 4px 20px rgba(139,92,246,0.2), inset 0 0 0 1px rgba(139,92,246,0.15)' : '0 1px 3px rgba(0,0,0,0.04)',
+                      transform: selected ? 'scale(1.03)' : 'scale(1)',
                     }}>
                     {selected && <div style={{
-                      position:'absolute',top:5,right:5,
-                      width:16,height:16,borderRadius:'50%',
-                      background:'#8B5CF6',color:'#fff',fontSize:9,fontWeight:800,
+                      position:'absolute',top:6,right:6,
+                      width:18,height:18,borderRadius:'50%',
+                      background:'#8B5CF6',color:'#fff',fontSize:10,fontWeight:800,
                       display:'flex',alignItems:'center',justifyContent:'center',
-                      boxShadow:'0 2px 8px rgba(139,92,246,0.3)',
+                      boxShadow:'0 2px 8px rgba(139,92,246,0.4)',
                       animation:'gpBounceIn .3s ease',zIndex:2,
                     }}>✓</div>}
-                    <span style={{fontSize:22,lineHeight:1}}>{v.icon}</span>
-                    <span style={{fontSize:11,fontWeight:700,color:selected?'#6D28D9':'#374151',lineHeight:1.2}}>
+                    <span style={{fontSize:30,lineHeight:1}}>{v.icon}</span>
+                    <span style={{fontSize:12,fontWeight:700,color:selected?'#6D28D9':'#1F2937',lineHeight:1.2}}>
                       {v.label}
                     </span>
-                    <span style={{fontSize:9,color:selected?'#8B5CF6':'#9CA3AF',lineHeight:1.2,textAlign:'center'}}>
+                    <span style={{fontSize:9.5,color:selected?'#7C3AED':'#9CA3AF',lineHeight:1.3,textAlign:'center'}}>
                       {v.desc}
                     </span>
                   </button>
@@ -462,43 +479,43 @@ const handleSubmit = async e => {
           </div>
 
           {/* Description */}
-          <div style={{marginBottom:20}}>
-            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:8}}>Description</label>
+          <div style={{marginBottom:18}}>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>Description</label>
             <textarea rows={2} value={form.description} onChange={set('description')} placeholder="Optional game description" style={{
-              width:'100%',padding:'12px 14px',borderRadius:12,
-              border:'1.5px solid #E5E7EB',
-              background:'#F9FAFB',
+              width:'100%',padding:'11px 14px',borderRadius:10,
+              border:'1.5px solid rgba(0,0,0,0.08)',
+              background:'rgba(255,255,255,0.6)',
               fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
               resize:'vertical',transition:'all .2s',
-            }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='#fff'}} onBlur={e=>{e.target.style.borderColor='#E5E7EB';e.target.style.boxShadow='none';e.target.style.background='#F9FAFB'}} />
+            }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}} />
           </div>
 
           {/* Redirect URL */}
-          <div style={{marginBottom:28}}>
-            <label style={{display:'block',fontSize:12,fontWeight:700,color:'#374151',marginBottom:8}}>
-              Redirect URL <span style={{color:'#9CA3AF',fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:11}}>(after game ends)</span>
+          <div style={{marginBottom:24}}>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>
+              Redirect URL <span style={{color:'#9CA3AF',fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:10}}>(after game ends)</span>
             </label>
             <input type="url" value={form.redirect_url} onChange={set('redirect_url')} placeholder="https://yoursite.com/thankyou" style={{
-              width:'100%',padding:'12px 14px',borderRadius:12,
-              border:'1.5px solid #E5E7EB',
-              background:'#F9FAFB',
+              width:'100%',padding:'11px 14px',borderRadius:10,
+              border:'1.5px solid rgba(0,0,0,0.08)',
+              background:'rgba(255,255,255,0.6)',
               fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
               transition:'all .2s',
-            }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='#fff'}} onBlur={e=>{e.target.style.borderColor='#E5E7EB';e.target.style.boxShadow='none';e.target.style.background='#F9FAFB'}} />
+            }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}} />
           </div>
 
           {/* Actions */}
-          <div style={{display:'flex',gap:10,borderTop:'1px solid #F3F4F6',paddingTop:20}}>
+          <div style={{display:'flex',gap:10,borderTop:'1px solid rgba(0,0,0,0.06)',paddingTop:18}}>
             <button type="button" onClick={onClose} style={{
-              flex:1,justifyContent:'center',padding:'13px 0',fontSize:14,fontWeight:600,
-              borderRadius:12,border:'1.5px solid #E5E7EB',background:'#fff',
+              flex:1,justifyContent:'center',padding:'12px 0',fontSize:14,fontWeight:600,
+              borderRadius:10,border:'1.5px solid rgba(0,0,0,0.08)',background:'rgba(255,255,255,0.5)',
               color:'#6B7280',cursor:'pointer',transition:'all .15s',fontFamily:"'DM Sans',sans-serif",
-            }} onMouseOver={e=>{e.currentTarget.style.background='#F9FAFB';e.currentTarget.style.borderColor='#D1D5DB'}} onMouseOut={e=>{e.currentTarget.style.background='#fff';e.currentTarget.style.borderColor='#E5E7EB'}}>
+            }} onMouseOver={e=>{e.currentTarget.style.background='rgba(255,255,255,0.8)';e.currentTarget.style.borderColor='rgba(0,0,0,0.12)'}} onMouseOut={e=>{e.currentTarget.style.background='rgba(255,255,255,0.5)';e.currentTarget.style.borderColor='rgba(0,0,0,0.08)'}}>
               Cancel
             </button>
             <button type="submit" disabled={submitting} style={{
-              flex:2,justifyContent:'center',padding:'13px 0',borderRadius:12,border:'none',
-              background:submitting ? '#D1D5DB' : 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
+              flex:2,justifyContent:'center',padding:'12px 0',borderRadius:10,border:'none',
+              background:submitting ? 'rgba(0,0,0,0.15)' : 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
               color:submitting?'#9CA3AF':'#fff',fontSize:14,fontWeight:700,
               cursor:submitting?'not-allowed':'pointer',
               fontFamily:"'DM Sans',sans-serif",transition:'all .2s',
@@ -830,6 +847,14 @@ export default function GamesPage() {
                                 else if (game.category === 'bounce') navigate(`/dashboard/games/${game.id}/bounce-builder`)
                                 else if (game.category === 'space') navigate(`/dashboard/games/${game.id}/space-builder`)
                                 else if (game.category === 'connect4') navigate(`/dashboard/games/${game.id}/connect4-builder`)
+                                else if (game.category === 'bejeweled') navigate(`/dashboard/games/${game.id}/bejeweled-builder`)
+                                else if (game.category === 'tetris') navigate(`/dashboard/games/${game.id}/tetris-builder`)
+                                else if (game.category === 'stack') navigate(`/dashboard/games/${game.id}/stack-builder`)
+                                else if (game.category === 'bowling') navigate(`/dashboard/games/${game.id}/bowling-builder`)
+                                else if (game.category === 'sudoku') navigate(`/dashboard/games/${game.id}/sudoku-builder`)
+                                else if (game.category === 'minesweeper') navigate(`/dashboard/games/${game.id}/minesweeper-builder`)
+                                else if (game.category === 'wordscramble') navigate(`/dashboard/games/${game.id}/wordscramble-builder`)
+                                else if (game.category === 'rps') navigate(`/dashboard/games/${game.id}/rps-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">
                               <Ico.wrench/> Builder

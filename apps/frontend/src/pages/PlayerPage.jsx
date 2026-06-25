@@ -18,8 +18,16 @@ import ReactionPlayerPage from './ReactionPlayerPage'
 import SimonPlayerPage from './SimonPlayerPage'
 import FlappyPlayerPage from './FlappyPlayerPage'
 import BouncePlayerPage from './BouncePlayerPage'
+import BejeweledPlayerPage from './BejeweledPlayerPage'
 import SpacePlayerPage from './SpacePlayerPage'
 import Connect4PlayerPage from './Connect4PlayerPage'
+import BowlingPlayerPage from './BowlingPlayerPage'
+import SudokuPlayerPage from './SudokuPlayerPage'
+import MinesweeperPlayerPage from './MinesweeperPlayerPage'
+import WordScramblePlayerPage from './WordScramblePlayerPage'
+import RpsPlayerPage from './RpsPlayerPage'
+import TetrisPlayerPage from './TetrisPlayerPage'
+import StackPlayerPage from './StackPlayerPage'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -498,6 +506,46 @@ export default function PlayerPage() {
           return
         }
 
+        if (g.category === 'bowling') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'sudoku') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'minesweeper') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'wordscramble') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'rps') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
         // Shuffle questions if randomize_questions is enabled
         if (g.settings?.randomize_questions && g.questions?.length) {
           const arr = [...g.questions]
@@ -634,6 +682,16 @@ export default function PlayerPage() {
         setPhase('space')
       } else if (game.category === 'connect4') {
         setPhase('connect4')
+      } else if (game.category === 'bowling') {
+        setPhase('bowling')
+      } else if (game.category === 'sudoku') {
+        setPhase('sudoku')
+      } else if (game.category === 'minesweeper') {
+        setPhase('minesweeper')
+      } else if (game.category === 'wordscramble') {
+        setPhase('wordscramble')
+      } else if (game.category === 'rps') {
+        setPhase('rps')
       } else {
         setPhase('playing')
       }
@@ -1679,6 +1737,19 @@ const handleModalConfirm = () => {
     )
   }
 
+  if (phase === 'bejeweled') {
+    return (
+      <BejeweledPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => {
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
   if (phase === 'catch') {
     return (
       <CatchPlayerPage
@@ -1762,10 +1833,57 @@ const handleModalConfirm = () => {
       <Connect4PlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'bowling') {
+    return (
+      <BowlingPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'sudoku') {
+    return (
+      <SudokuPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'minesweeper') {
+    return (
+      <MinesweeperPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'wordscramble') {
+    return (
+      <WordScramblePlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'rps') {
+    return (
+      <RpsPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
       />
     )
   }

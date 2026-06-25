@@ -59,7 +59,6 @@ const SpacePlayerPage = () => {
       })
       .catch(err => {
         console.error('Error loading game:', err);
-        navigate('/login');
       });
   }, [gameName, companyName, navigate]);
   

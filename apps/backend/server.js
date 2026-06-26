@@ -47,10 +47,16 @@ const sudokuRoutes = require("./routes/sudoku");
 const minesweeperRoutes = require("./routes/minesweeper");
 const wordscrambleRoutes = require("./routes/wordscramble");
 const rpsRoutes = require("./routes/rps");
+const arrowescapeRoutes = require("./routes/arrowescape");
 const spaceRoutes = require("./routes/space");
 const bejeweledRoutes = require("./routes/bejeweled");
 const tetrisRoutes = require("./routes/tetris");
 const stackRoutes = require("./routes/stack");
+const whackamoleRoutes = require("./routes/whackamole");
+const hanoiRoutes = require("./routes/hanoi");
+const breakoutRoutes = require("./routes/breakout");
+const bubbleshooterRoutes = require("./routes/bubbleshooter");
+const carlaunchRoutes = require("./routes/carlaunch");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -87,10 +93,16 @@ app.use("/api/sudoku", sudokuRoutes);
 app.use("/api/minesweeper", minesweeperRoutes);
 app.use("/api/wordscramble", wordscrambleRoutes);
 app.use("/api/rps", rpsRoutes);
+app.use("/api/arrowescape", arrowescapeRoutes);
 app.use("/api/space", spaceRoutes);
 app.use("/api/bejeweled", bejeweledRoutes);
 app.use("/api/tetris", tetrisRoutes);
 app.use("/api/stack", stackRoutes);
+app.use("/api/whackamole", whackamoleRoutes);
+app.use("/api/hanoi", hanoiRoutes);
+app.use("/api/breakout", breakoutRoutes);
+app.use("/api/bubbleshooter", bubbleshooterRoutes);
+app.use("/api/carlaunch", carlaunchRoutes);
 
 app.get("/api/check-code", (req, res) => {
   res.json({ 

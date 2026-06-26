@@ -10,8 +10,13 @@ import GamesPage         from './pages/GamesPage'
 import GameBuilderPage   from './pages/GameBuilderPage'
 import SpaceBuilderPage from './pages/SpaceBuilderPage'
 import Connect4BuilderPage from './pages/Connect4BuilderPage'
+import ArrowEscapeBuilderPage from './pages/ArrowEscapeBuilderPage'
 import BrickImagesPage from './pages/BrickImagesPage'
-import { BowlingBuilderPage, SudokuBuilderPage, MinesweeperBuilderPage, WordScrambleBuilderPage, RpsBuilderPage } from './pages/GameBuilderPages'
+import BowlingBuilderPage from './pages/BowlingBuilderPage'
+import SudokuBuilderPage from './pages/SudokuBuilderPage'
+import MinesweeperBuilderPage from './pages/MinesweeperBuilderPage'
+import WordScrambleBuilderPage from './pages/WordScrambleBuilderPage'
+import RpsBuilderPage from './pages/RpsBuilderPage'
 import BounceBuilderPage from './pages/BounceBuilderPage'
 import PlayerPage        from './pages/PlayerPage'
 import LandingPage       from './pages/LandingPage'
@@ -37,6 +42,11 @@ import BejeweledBuilderPage from './pages/BejeweledBuilderPage'
 import BejeweledPlayerPage from './pages/BejeweledPlayerPage'
 import TetrisBuilderPage from './pages/TetrisBuilderPage'
 import StackBuilderPage from './pages/StackBuilderPage'
+import WhackAMoleBuilderPage from './pages/WhackAMoleBuilderPage'
+import HanoiBuilderPage from './pages/HanoiBuilderPage'
+import BreakoutBuilderPage from './pages/BreakoutBuilderPage'
+import BubbleShooterBuilderPage from './pages/BubbleShooterBuilderPage'
+import CarLaunchBuilderPage from './pages/CarLaunchBuilderPage'
 import PlayerDashboard   from './pages/PlayerDashboard'
 import PlayersPage       from './pages/PlayersPage'
 import LeaderboardPage   from './pages/LeaderboardPage'
@@ -94,6 +104,7 @@ function AppRoutes() {
         <Route path="games/:id/minesweeper-builder"    element={<MinesweeperBuilderPage />} />
         <Route path="games/:id/wordscramble-builder"   element={<WordScrambleBuilderPage />} />
         <Route path="games/:id/rps-builder"            element={<RpsBuilderPage />} />
+        <Route path="games/:id/arrowescape-builder"    element={<ArrowEscapeBuilderPage />} />
         <Route path="brick-images"                     element={<BrickImagesPage />} />
         <Route path="games/:id/bounce-builder"         element={<BounceBuilderPage />} />
         <Route path="games/:id/spin-builder"           element={<SpinBuilderTab />} />
@@ -115,6 +126,11 @@ function AppRoutes() {
         <Route path="games/:id/bejeweled-builder"      element={<BejeweledBuilderPage />} />
         <Route path="games/:id/tetris-builder"        element={<TetrisBuilderPage />} />
         <Route path="games/:id/stack-builder"         element={<StackBuilderPage />} />
+        <Route path="games/:id/whackamole-builder"    element={<WhackAMoleBuilderPage />} />
+        <Route path="games/:id/hanoi-builder"         element={<HanoiBuilderPage />} />
+        <Route path="games/:id/breakout-builder"      element={<BreakoutBuilderPage />} />
+        <Route path="games/:id/bubbleshooter-builder" element={<BubbleShooterBuilderPage />} />
+        <Route path="games/:id/carlaunch-builder"     element={<CarLaunchBuilderPage />} />
         <Route path="players"                         element={<PlayersPage />} />
       </Route>
 

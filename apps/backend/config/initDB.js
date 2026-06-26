@@ -1062,8 +1062,12 @@ async function initDB() {
 
   /* GAMES */
   await safeQuery(connection,
-    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps') DEFAULT 'quiz'`,
-    'games.category ENUM includes all games'
+    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','arrowescape') DEFAULT 'quiz'`,
+    'games.category ENUM includes arrowescape'
+  );
+  await safeQuery(connection,
+    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch') DEFAULT 'quiz'`,
+    'games.category ENUM includes new games'
   );
   await addColumn(connection, 'games', 'client_id', 'INT');
   await addColumn(connection, 'games', 'slug', 'VARCHAR(255)');
@@ -1544,6 +1548,54 @@ async function initDB() {
     )
   `, 'rps_settings table');
 
+  /* ── ARROW ESCAPE TABLES ── */
+  console.log(' arrow escape tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS arrowescape_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      grid_rows INT DEFAULT 8, grid_cols INT DEFAULT 8,
+      difficulty VARCHAR(20) DEFAULT 'medium',
+      show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#f59e0b',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_move_id INT DEFAULT NULL, sound_win_id INT DEFAULT NULL, sound_lose_id INT DEFAULT NULL,
+      intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
+      outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      start_button_text VARCHAR(500),
+      start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
+      submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
+      continue_button_text_color VARCHAR(20) DEFAULT NULL, continue_button_bg_color VARCHAR(20) DEFAULT NULL,
+      thankyou_subtitle VARCHAR(500) DEFAULT NULL, thankyou_subtitle_color VARCHAR(20) DEFAULT NULL,
+      terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT, terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'arrowescape_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS arrowescape_levels (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      level_name VARCHAR(255) DEFAULT 'Level 1',
+      level_order INT DEFAULT 1,
+      grid_rows INT DEFAULT 8,
+      grid_cols INT DEFAULT 8,
+      walls JSON DEFAULT '[]',
+      arrows JSON DEFAULT '[]',
+      exits JSON DEFAULT '[]',
+      obstacles JSON DEFAULT '[]',
+      is_active TINYINT(1) DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'arrowescape_levels table');
+
   /* ── BRICK IMAGES TABLE ── */
    console.log('🧱 Creating brick images table...');
    await safeQuery(connection, `
@@ -1674,6 +1726,195 @@ async function initDB() {
        FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
      )
    `, 'stack_settings table');
+
+   /* ── WHACK A MOLE TABLES ── */
+   console.log('🔨 Creating whack a mole tables...');
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS whackamole_settings (
+       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+       grid_size INT DEFAULT 3, mole_count INT DEFAULT 3,
+       mole_time_ms INT DEFAULT 1000, game_duration_sec INT DEFAULT 30,
+       difficulty VARCHAR(20) DEFAULT 'medium',
+       show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+       heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+       heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+       heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+       bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#f59e0b',
+       bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+       submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+       sound_whack_id INT DEFAULT NULL, sound_miss_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
+       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
+       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       start_button_text VARCHAR(500),
+       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
+       continue_button_text_color VARCHAR(20) DEFAULT NULL, continue_button_bg_color VARCHAR(20) DEFAULT NULL,
+       thankyou_subtitle VARCHAR(500) DEFAULT NULL, thankyou_subtitle_color VARCHAR(20) DEFAULT NULL,
+       terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT, terms_url VARCHAR(500), meta_description TEXT,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+     )
+   `, 'whackamole_settings table');
+
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS whackamole_scores (
+       id INT AUTO_INCREMENT PRIMARY KEY, settings_id INT NOT NULL,
+       player_id VARCHAR(100), score INT DEFAULT 0, moles_whacked INT DEFAULT 0,
+       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (settings_id) REFERENCES whackamole_settings(id) ON DELETE CASCADE
+     )
+   `, 'whackamole_scores table');
+
+   /* ── HANOI TOWER TABLES ── */
+   console.log('🗼 Creating hanoi tower tables...');
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS hanoi_settings (
+       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+       disks INT DEFAULT 4, difficulty VARCHAR(20) DEFAULT 'medium',
+       show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+       heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+       heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+       heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+       bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#6366f1',
+       bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+       submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+       sound_move_id INT DEFAULT NULL, sound_complete_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
+       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
+       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       start_button_text VARCHAR(500),
+       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
+       continue_button_text_color VARCHAR(20) DEFAULT NULL, continue_button_bg_color VARCHAR(20) DEFAULT NULL,
+       thankyou_subtitle VARCHAR(500) DEFAULT NULL, thankyou_subtitle_color VARCHAR(20) DEFAULT NULL,
+       terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT, terms_url VARCHAR(500), meta_description TEXT,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+     )
+   `, 'hanoi_settings table');
+
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS hanoi_scores (
+       id INT AUTO_INCREMENT PRIMARY KEY, settings_id INT NOT NULL,
+       player_id VARCHAR(100), score INT DEFAULT 0, moves INT DEFAULT 0, completed TINYINT(1) DEFAULT 0,
+       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (settings_id) REFERENCES hanoi_settings(id) ON DELETE CASCADE
+     )
+   `, 'hanoi_scores table');
+
+   /* ── BREAKOUT TABLES ── */
+   console.log('🧱 Creating breakout tables...');
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS breakout_settings (
+       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+       brick_rows INT DEFAULT 5, brick_cols INT DEFAULT 8,
+       ball_speed DECIMAL(4,2) DEFAULT 3.00, paddle_width INT DEFAULT 120,
+       lives INT DEFAULT 3, difficulty VARCHAR(20) DEFAULT 'medium',
+       show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+       heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+       heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+       heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+       bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#f43f5e',
+       bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+       submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+       sound_hit_id INT DEFAULT NULL, sound_brick_id INT DEFAULT NULL, sound_lose_id INT DEFAULT NULL, sound_win_id INT DEFAULT NULL,
+       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
+       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       start_button_text VARCHAR(500),
+       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
+       continue_button_text_color VARCHAR(20) DEFAULT NULL, continue_button_bg_color VARCHAR(20) DEFAULT NULL,
+       thankyou_subtitle VARCHAR(500) DEFAULT NULL, thankyou_subtitle_color VARCHAR(20) DEFAULT NULL,
+       terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT, terms_url VARCHAR(500), meta_description TEXT,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+     )
+   `, 'breakout_settings table');
+
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS breakout_scores (
+       id INT AUTO_INCREMENT PRIMARY KEY, settings_id INT NOT NULL,
+       player_id VARCHAR(100), score INT DEFAULT 0, bricks_destroyed INT DEFAULT 0, level INT DEFAULT 1,
+       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (settings_id) REFERENCES breakout_settings(id) ON DELETE CASCADE
+     )
+   `, 'breakout_scores table');
+
+   /* ── BUBBLE SHOOTER TABLES ── */
+   console.log('🫧 Creating bubble shooter tables...');
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS bubbleshooter_settings (
+       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+       grid_rows INT DEFAULT 8, grid_cols INT DEFAULT 8,
+       num_colors INT DEFAULT 5, difficulty VARCHAR(20) DEFAULT 'medium',
+       show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+       heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+       heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+       heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+       bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#06b6d4',
+       bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+       submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+       sound_shoot_id INT DEFAULT NULL, sound_pop_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
+       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
+       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       start_button_text VARCHAR(500),
+       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
+       continue_button_text_color VARCHAR(20) DEFAULT NULL, continue_button_bg_color VARCHAR(20) DEFAULT NULL,
+       thankyou_subtitle VARCHAR(500) DEFAULT NULL, thankyou_subtitle_color VARCHAR(20) DEFAULT NULL,
+       terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT, terms_url VARCHAR(500), meta_description TEXT,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+     )
+   `, 'bubbleshooter_settings table');
+
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS bubbleshooter_scores (
+       id INT AUTO_INCREMENT PRIMARY KEY, settings_id INT NOT NULL,
+       player_id VARCHAR(100), score INT DEFAULT 0,
+       timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (settings_id) REFERENCES bubbleshooter_settings(id) ON DELETE CASCADE
+     )
+   `, 'bubbleshooter_scores table');
+
+   /* ── CAR LAUNCH TABLES ── */
+   console.log('🏎️ Creating car launch tables...');
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS carlaunch_settings (
+       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+       car_make VARCHAR(100) DEFAULT '', car_model VARCHAR(100) DEFAULT '',
+       car_year INT DEFAULT 2024, car_trim VARCHAR(100) DEFAULT '',
+       engine_hp DECIMAL(7,2) DEFAULT 0, engine_torque DECIMAL(7,2) DEFAULT 0,
+       engine_cylinders INT DEFAULT 0, engine_displacement DECIMAL(5,2) DEFAULT 0,
+       weight_kg INT DEFAULT 1500, drivetrain VARCHAR(20) DEFAULT 'RWD',
+       transmission_type VARCHAR(20) DEFAULT 'Automatic', gears INT DEFAULT 8,
+       zero_to_60 DECIMAL(4,2) DEFAULT 0, quarter_mile DECIMAL(5,2) DEFAULT 0,
+       car_model_url VARCHAR(500) DEFAULT NULL,
+       color_options JSON DEFAULT NULL, default_color VARCHAR(20) DEFAULT '#ef4444',
+       heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+       heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+       heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+       bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#ef4444',
+       bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+       submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+        sound_start_id INT DEFAULT NULL, sound_shift_id INT DEFAULT NULL, sound_finish_id INT DEFAULT NULL,
+        show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+        intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
+       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       start_button_text VARCHAR(500),
+       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
+       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
+       continue_button_text_color VARCHAR(20) DEFAULT NULL, continue_button_bg_color VARCHAR(20) DEFAULT NULL,
+       thankyou_subtitle VARCHAR(500) DEFAULT NULL, thankyou_subtitle_color VARCHAR(20) DEFAULT NULL,
+       terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT, terms_url VARCHAR(500), meta_description TEXT,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+     )
+   `, 'carlaunch_settings table');
 
    console.log('👤 Creating admin user...');
 

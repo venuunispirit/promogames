@@ -35,6 +35,12 @@ const CATEGORY_META = {
   minesweeper:{ label:'Minesweeper',   bg:' #F0FDF4', fg:' #166534', dot:' #22C55E', icon:'💣', desc:'Find all safe cells' },
   wordscramble:{ label:'Word Scramble', bg:' #F5F3FF', fg:' #6D28D9', dot:' #8B5CF6', icon:'🔤', desc:'Unscramble the letters' },
   rps:       { label:'Rock Paper Scissors', bg:' #FEE2E2', fg:' #991B1B', dot:' #EF4444', icon:'✊', desc:'Beat the AI in RPS' },
+  whackamole:{ label:'Whack a Mole',       bg:' #FEF3C7', fg:' #B45309', dot:' #F59E0B', icon:'🔨', desc:'Whack moles in the grid' },
+  hanoi:     { label:'Hanoi Tower',        bg:' #F5F3FF', fg:' #6D28D9', dot:' #A78BFA', icon:'🗼', desc:'Move disks between pegs' },
+  breakout:  { label:'Breakout',           bg:' #0F172A', fg:' #f43f5e', dot:' #f43f5e', icon:'🧱', desc:'Break bricks with a ball' },
+  bubbleshooter:{ label:'Bubble Shooter',  bg:' #ECFEFF', fg:' #0E7490', dot:' #06B6D4', icon:'🫧', desc:'Pop matching bubbles' },
+  carlaunch:   { label:'Car Launch',       bg:' #0F172A', fg:' #ef4444', dot:' #ef4444', icon:'🏎️', desc:'3D car configurator + drag race' },
+  arrowescape:{ label:'Arrow Escape',    bg:' #FEF3C7', fg:' #92400E', dot:' #F59E0B', icon:'➡️', desc:'Guide arrows through mazes' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:' #F3F4F6', fg:' #374151', dot:' #9CA3AF' }
 
@@ -342,6 +348,8 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/wordscramble-builder`)
     } else if (game.category === 'rps') {
       navigate(`/dashboard/games/${game.id}/rps-builder`)
+    } else if (game.category === 'arrowescape') {
+      navigate(`/dashboard/games/${game.id}/arrowescape-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }
@@ -855,6 +863,12 @@ export default function GamesPage() {
                                 else if (game.category === 'minesweeper') navigate(`/dashboard/games/${game.id}/minesweeper-builder`)
                                 else if (game.category === 'wordscramble') navigate(`/dashboard/games/${game.id}/wordscramble-builder`)
                                 else if (game.category === 'rps') navigate(`/dashboard/games/${game.id}/rps-builder`)
+                                else if (game.category === 'whackamole') navigate(`/dashboard/games/${game.id}/whackamole-builder`)
+                                else if (game.category === 'hanoi') navigate(`/dashboard/games/${game.id}/hanoi-builder`)
+                                else if (game.category === 'breakout') navigate(`/dashboard/games/${game.id}/breakout-builder`)
+                                else if (game.category === 'bubbleshooter') navigate(`/dashboard/games/${game.id}/bubbleshooter-builder`)
+                                else if (game.category === 'carlaunch') navigate(`/dashboard/games/${game.id}/carlaunch-builder`)
+                                else if (game.category === 'arrowescape') navigate(`/dashboard/games/${game.id}/arrowescape-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">
                               <Ico.wrench/> Builder

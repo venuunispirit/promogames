@@ -4,7 +4,7 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 
-const SETTINGS_TABLE = 'minesweeper_settings';
+const SETTINGS_TABLE = 'breakout_settings';
 
 router.get('/:gameId/settings', auth, async (req, res) => {
   try {
@@ -17,10 +17,11 @@ router.put('/:gameId/settings', auth, upload.fields([
   { name: 'bg_image', maxCount: 1 }, { name: 'thankyou_bg_image', maxCount: 1 },
   { name: 'game_logo', maxCount: 1 }, { name: 'submit_confirm_gif', maxCount: 1 },
 ]), async (req, res) => {
-  const { grid_rows, grid_cols, mines, difficulty, heading_1, heading_2, heading_3, description_text,
+  const { brick_rows, brick_cols, ball_speed, paddle_width, lives, difficulty,
+    heading_1, heading_2, heading_3, description_text,
     heading_1_color, heading_2_color, heading_3_color, description_color,
     bg_color, primary_color, font_family, show_timer, time_limit_seconds,
-    sound_click_id, sound_explode_id, sound_win_id,
+    sound_hit_id, sound_brick_id, sound_lose_id, sound_win_id,
     intro_text, intro_text_color, outro_text, outro_text_color,
     submit_button_text, continue_button_text, start_button_text,
     terms_enabled, terms_text, terms_url, meta_description,
@@ -39,8 +40,9 @@ router.put('/:gameId/settings', auth, upload.fields([
       return req.body[urlKey] !== undefined ? req.body[urlKey] : (e[urlKey] || null);
     };
     const fields = {
-      grid_rows: n(grid_rows, e.grid_rows || 9), grid_cols: n(grid_cols, e.grid_cols || 9),
-      mines: n(mines, e.mines || 10), difficulty: difficulty || e.difficulty || 'medium',
+      brick_rows: n(brick_rows, e.brick_rows || 5), brick_cols: n(brick_cols, e.brick_cols || 8),
+      ball_speed: n(ball_speed, e.ball_speed || 3.00), paddle_width: n(paddle_width, e.paddle_width || 120),
+      lives: n(lives, e.lives || 3), difficulty: difficulty || e.difficulty || 'medium',
       heading_1: heading_1 !== undefined ? heading_1 : (e.heading_1 || null),
       heading_2: heading_2 !== undefined ? heading_2 : (e.heading_2 || null),
       heading_3: heading_3 !== undefined ? heading_3 : (e.heading_3 || null),
@@ -50,12 +52,12 @@ router.put('/:gameId/settings', auth, upload.fields([
       heading_3_color: heading_3_color || e.heading_3_color || '#777777',
       description_color: description_color || e.description_color || '#888888',
       bg_color: bg_color || e.bg_color || '#0f172a',
-      primary_color: primary_color || e.primary_color || '#22c55e',
+      primary_color: primary_color || e.primary_color || '#f43f5e',
       bg_image_url: img('bg_image', req.files), thankyou_bg_image_url: img('thankyou_bg_image', req.files),
       game_logo_url: img('game_logo', req.files), submit_confirm_gif_url: img('submit_confirm_gif', req.files),
       font_family: font_family || e.font_family || 'DM Sans',
-      sound_click_id: n(sound_click_id, e.sound_click_id), sound_explode_id: n(sound_explode_id, e.sound_explode_id),
-      sound_win_id: n(sound_win_id, e.sound_win_id),
+      sound_hit_id: n(sound_hit_id, e.sound_hit_id), sound_brick_id: n(sound_brick_id, e.sound_brick_id),
+      sound_lose_id: n(sound_lose_id, e.sound_lose_id), sound_win_id: n(sound_win_id, e.sound_win_id),
       show_timer: n(show_timer, e.show_timer ?? 1), time_limit_seconds: n(time_limit_seconds, e.time_limit_seconds || 0),
       intro_text: intro_text !== undefined ? intro_text : (e.intro_text || null),
       intro_text_color: intro_text_color || e.intro_text_color || null,

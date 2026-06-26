@@ -26,8 +26,14 @@ import SudokuPlayerPage from './SudokuPlayerPage'
 import MinesweeperPlayerPage from './MinesweeperPlayerPage'
 import WordScramblePlayerPage from './WordScramblePlayerPage'
 import RpsPlayerPage from './RpsPlayerPage'
+import ArrowEscapePlayerPage from './ArrowEscapePlayerPage'
 import TetrisPlayerPage from './TetrisPlayerPage'
 import StackPlayerPage from './StackPlayerPage'
+import WhackAMolePlayerPage from './WhackAMolePlayerPage'
+import HanoiPlayerPage from './HanoiPlayerPage'
+import BreakoutPlayerPage from './BreakoutPlayerPage'
+import BubbleShooterPlayerPage from './BubbleShooterPlayerPage'
+import CarLaunchPlayerPage from './CarLaunchPlayerPage'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -546,6 +552,14 @@ export default function PlayerPage() {
           return
         }
 
+        if (g.category === 'arrowescape') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
         // Shuffle questions if randomize_questions is enabled
         if (g.settings?.randomize_questions && g.questions?.length) {
           const arr = [...g.questions]
@@ -692,6 +706,10 @@ export default function PlayerPage() {
         setPhase('wordscramble')
       } else if (game.category === 'rps') {
         setPhase('rps')
+      } else if (game.category === 'arrowescape') {
+        setPhase('arrowescape')
+      } else if (game.category === 'carlaunch') {
+        setPhase('carlaunch')
       } else {
         setPhase('playing')
       }
@@ -1881,6 +1899,26 @@ const handleModalConfirm = () => {
   if (phase === 'rps') {
     return (
       <RpsPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'arrowescape') {
+    return (
+      <ArrowEscapePlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'carlaunch') {
+    return (
+      <CarLaunchPlayerPage
         gameData={game}
         sessionToken={sessionToken}
         onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}

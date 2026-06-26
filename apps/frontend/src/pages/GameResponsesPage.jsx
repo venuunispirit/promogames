@@ -245,6 +245,14 @@ const GAME_COLUMNS = {
       { key: 'score', label: 'Score', type: 'score' },
     ],
   },
+  arrowescape: {
+    label: 'Arrow Escape',
+    getColumns: () => [
+      { key: 'levels_completed', label: 'Levels', type: 'stat' },
+      { key: 'moves', label: 'Moves', type: 'stat' },
+      { key: 'score', label: 'Score', type: 'score' },
+    ],
+  },
 }
 
 // ── Extract game-specific stats from player_data ─────────────────────────────
@@ -333,6 +341,10 @@ function extractGameStats(playerData, category) {
     case 'rps':
       stats.wins = pd.wins || '0'
       stats.losses = pd.losses || '0'
+      break
+    case 'arrowescape':
+      stats.levels_completed = pd.levels_completed || '0'
+      stats.moves = pd.moves || '0'
       break
     default:
       break

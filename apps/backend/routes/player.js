@@ -601,6 +601,11 @@ router.get('/:gameName/:companyName', async (req, res) => {
       bejeweled:  'bejeweled_settings',
       tetris:     'tetris_settings',
       stack:      'stack_settings',
+      whackamole: 'whackamole_settings',
+      hanoi:      'hanoi_settings',
+      breakout:   'breakout_settings',
+      bubbleshooter: 'bubbleshooter_settings',
+      carlaunch:     'carlaunch_settings',
     };
     const settingsTable = categorySettingsMap[game.category];
 

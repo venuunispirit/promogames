@@ -19,16 +19,11 @@ router.put('/:gameId/settings', auth, upload.fields([
     rounds, color_change_delay, target_color, show_leaderboard,
     heading_1, heading_2, heading_3, description_text,
     heading_1_color, heading_2_color, heading_3_color, description_color,
-    bg_color, primary_color, font_family, show_timer, time_limit_seconds,
+    bg_color, primary_color, font_family, show_timer,
     sound_correct_id, sound_wrong_id, intro_text, outro_text,
     submit_button_text, continue_button_text, start_button_text,
     terms_enabled, terms_text, terms_url, meta_description,
     bg_image_url, thankyou_bg_image_url, game_logo_url, submit_confirm_gif_url,
-    intro_text_color, outro_text_color,
-    thankyou_subtitle, thankyou_subtitle_color,
-    submit_button_text_color, submit_button_bg_color,
-    continue_button_text_color, continue_button_bg_color,
-    start_button_text_color, start_button_bg_color,
   } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM reaction_settings WHERE game_id = ?', [req.params.gameId]);
@@ -57,7 +52,6 @@ router.put('/:gameId/settings', auth, upload.fields([
       sound_correct_id: sound_correct_id !== undefined && sound_correct_id !== '' ? Number(sound_correct_id) : (e.sound_correct_id || null),
       sound_wrong_id: sound_wrong_id !== undefined && sound_wrong_id !== '' ? Number(sound_wrong_id) : (e.sound_wrong_id || null),
       show_timer: n(show_timer, e.show_timer !== undefined ? e.show_timer : 1),
-      time_limit_seconds: n(time_limit_seconds, e.time_limit_seconds || 0),
       intro_text: intro_text !== undefined ? intro_text : (e.intro_text || null),
       outro_text: outro_text !== undefined ? outro_text : (e.outro_text || null),
       submit_button_text: submit_button_text !== undefined ? submit_button_text : (e.submit_button_text || null),
@@ -67,16 +61,6 @@ router.put('/:gameId/settings', auth, upload.fields([
       terms_text: terms_text !== undefined ? terms_text : (e.terms_text || null),
       terms_url: terms_url !== undefined ? terms_url : (e.terms_url || null),
       meta_description: meta_description !== undefined ? meta_description : (e.meta_description || null),
-      intro_text_color: intro_text_color || e.intro_text_color || null,
-      outro_text_color: outro_text_color || e.outro_text_color || null,
-      thankyou_subtitle: thankyou_subtitle !== undefined ? thankyou_subtitle : (e.thankyou_subtitle || null),
-      thankyou_subtitle_color: thankyou_subtitle_color || e.thankyou_subtitle_color || null,
-      submit_button_text_color: submit_button_text_color || e.submit_button_text_color || null,
-      submit_button_bg_color: submit_button_bg_color || e.submit_button_bg_color || null,
-      continue_button_text_color: continue_button_text_color || e.continue_button_text_color || null,
-      continue_button_bg_color: continue_button_bg_color || e.continue_button_bg_color || null,
-      start_button_text_color: start_button_text_color || e.start_button_text_color || null,
-      start_button_bg_color: start_button_bg_color || e.start_button_bg_color || null,
     };
     if (existing.length === 0) {
       const keys = Object.keys(fields);

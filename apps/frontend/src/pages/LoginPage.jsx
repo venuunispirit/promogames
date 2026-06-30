@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
+import { AvatarGrid, DEFAULT_AVATARS } from '../components/AvatarData'
 
 const STEP_EMAIL    = 'email'
 const STEP_PASSWORD = 'password'
@@ -450,7 +451,7 @@ export default function LoginPage() {
   const [error,     setError]     = useState('')
   const [resendCD,  setResendCD]  = useState(0)
   const [rememberMe, setRememberMe] = useState(true)
-  const [form, setForm] = useState({name:'',dob:'',whatsapp:'',city:'',pincode:''})
+  const [form, setForm] = useState({name:'',dob:'',whatsapp:'',city:'',pincode:'',avatar_id:DEFAULT_AVATARS[0].id})
 
   const setField = (k,v) => setForm(f=>({...f,[k]:v}))
   const storeAuth = (token, player) => {
@@ -470,8 +471,14 @@ export default function LoginPage() {
     clearErr(); setLoading(true)
     try {
       const { data } = await api.post('/pauth/check-email', { email })
-      if (data.type === 'admin') setStep(STEP_PASSWORD)
-      else { await api.post('/pauth/send-otp', { email }); startCountdown(); setStep(STEP_OTP) }
+      if (data.type === 'admin') {
+        setStep(STEP_PASSWORD)
+      } else {
+        // Send OTP email and move to OTP input step
+        await api.post('/pauth/send-otp', { email })
+        setStep(STEP_OTP)
+        startCountdown()
+      }
     } catch(err) { setError(err.response?.data?.message || 'Something went wrong.') }
     finally { setLoading(false) }
   }
@@ -490,8 +497,8 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/pauth/verify-otp', { email, otp })
       if (data.type === 'player') {
-        storeAuth(data.token, data.player)
-        navigate('/player/dashboard')
+      storeAuth(data.token, { ...data.player, avatar_id: form.avatar_id })
+        navigate('/')
       } else { setTempToken(data.tempToken); setStep(STEP_REGISTER) }
     } catch(err) { setError(err.response?.data?.message || 'Invalid or expired code.'); setOtp('') }
     finally { setLoading(false) }
@@ -506,8 +513,8 @@ export default function LoginPage() {
         dob: form.dob||null,
         whatsapp: form.whatsapp||null, city: form.city||null, pincode: form.pincode||null,
       })
-      storeAuth(data.token, data.player)
-      navigate('/player/dashboard')
+      storeAuth(data.token, { ...data.player, avatar_id: form.avatar_id })
+      navigate('/')
     } catch(err) { setError(err.response?.data?.message || 'Registration failed.') }
     finally { setLoading(false) }
   }
@@ -636,6 +643,10 @@ export default function LoginPage() {
         <div className="bonus">
           <span style={{fontSize:22}}>🎁</span>
           <span>You'll get <strong style={{color:'#a8ffcc'}}>100 Promo Coins</strong> as a welcome bonus!</span>
+        </div>
+        <div style={{marginBottom:16}}>
+          <label className="pg-lbl" style={{marginBottom:8,display:'block'}}>Choose Your Avatar</label>
+          <AvatarGrid selected={form.avatar_id} onSelect={id => setField('avatar_id', id)} size={68} />
         </div>
         <button className={`pg-btn${loading?' busy':''}`} onClick={handleRegister} disabled={loading||!form.name.trim()}>
           {loading ? <><Dots/>&nbsp;Creating account…</> : 'Create Account & Claim 100 PC 🎉'}

@@ -36,7 +36,6 @@ router.post('/games/:gameId/questions', auth, upload.fields([
   { name: 'question_bg_image', maxCount: 1 }
 ]), async (req, res) => {
   const { question_text, question_type, question_color, question_order, num_options,
-    answer_text, answer_is_number,
     sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id,
     overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out,
     question_image_animation } = req.body;
@@ -44,10 +43,9 @@ router.post('/games/:gameId/questions', auth, upload.fields([
     const img_url = req.files?.question_image ? `/uploads/images/${req.files.question_image[0].filename}` : null;
     const bg_url = req.files?.question_bg_image ? `/uploads/images/${req.files.question_bg_image[0].filename}` : null;
     const [result] = await db.query(
-      `INSERT INTO questions (game_id, question_text, question_image_url, question_bg_image_url, question_type, question_color, question_order, num_options, answer_text, answer_is_number, sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id, overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out, question_image_animation)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO questions (game_id, question_text, question_image_url, question_bg_image_url, question_type, question_color, question_order, num_options, sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id, overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out, question_image_animation)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [req.params.gameId, question_text, img_url, bg_url, question_type || 'right_wrong', question_color || '#1a1a2e', question_order || 0, num_options || 4,
-       answer_text || null, answer_is_number ? 1 : 0,
        sound_correct, sound_wrong, sound_neutral, sound_correct_id || null, sound_wrong_id || null, sound_neutral_id || null,
        overlay_duration || 3, overlay_idle_time || 3, overlay_animation_in || 'flyFromBottom', overlay_animation_out || 'flyToTop',
        question_image_animation || 'float']
@@ -62,7 +60,6 @@ router.put('/questions/:id', auth, upload.fields([
   { name: 'question_bg_image', maxCount: 1 }
 ]), async (req, res) => {
   const { question_text, question_type, question_color, question_order, num_options,
-    answer_text, answer_is_number,
     sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id,
     overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out,
     question_image_animation } = req.body;
@@ -89,12 +86,10 @@ router.put('/questions/:id', auth, upload.fields([
 
     await db.query(
       `UPDATE questions SET question_text=?, question_image_url=?, question_bg_image_url=?, question_type=?, question_color=?, question_order=?, num_options=?,
-       answer_text=?, answer_is_number=?,
        sound_correct=?, sound_wrong=?, sound_neutral=?, sound_correct_id=?, sound_wrong_id=?, sound_neutral_id=?,
        overlay_duration=?, overlay_idle_time=?, overlay_animation_in=?, overlay_animation_out=?,
        question_image_animation=? WHERE id=?`,
       [question_text, img_url, bg_url, question_type, question_color, question_order, num_options,
-       answer_text || null, answer_is_number ? 1 : 0,
        sound_correct, sound_wrong, sound_neutral, sound_correct_id || null, sound_wrong_id || null, sound_neutral_id || null,
        overlay_duration || 3, overlay_idle_time || 3, overlay_animation_in || 'flyFromBottom', overlay_animation_out || 'flyToTop',
        question_image_animation || 'float',
@@ -135,10 +130,9 @@ router.post('/questions/:id/duplicate', auth, async (req, res) => {
     await db.query('UPDATE questions SET question_order = question_order + 1 WHERE game_id = ? AND question_order > ?', [q.game_id, q.question_order]);
 
     const [qr] = await db.query(
-      `INSERT INTO questions (game_id, question_text, question_image_url, question_bg_image_url, question_type, question_color, question_order, num_options, answer_text, answer_is_number, sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id, overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out, question_image_animation)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO questions (game_id, question_text, question_image_url, question_bg_image_url, question_type, question_color, question_order, num_options, sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id, overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out, question_image_animation)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [q.game_id, q.question_text + ' (copy of)', q.question_image_url, q.question_bg_image_url, q.question_type, q.question_color, q.question_order + 1, q.num_options,
-       q.answer_text, q.answer_is_number,
        q.sound_correct, q.sound_wrong, q.sound_neutral, q.sound_correct_id, q.sound_wrong_id, q.sound_neutral_id,
        q.overlay_duration, q.overlay_idle_time, q.overlay_animation_in, q.overlay_animation_out, q.question_image_animation]
     );

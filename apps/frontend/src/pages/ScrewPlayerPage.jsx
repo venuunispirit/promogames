@@ -109,7 +109,6 @@ export default function ScrewPlayerPage({ gameData, sessionToken, onComplete }) 
   const [totalBlocks, setTotalBlocks] = useState(0)
   const [tappingScrew, setTappingScrew] = useState(null)
   const [showReveal, setShowReveal] = useState(false)
-  const [termsAccepted, setTermsAccepted] = useState(false)
 
   const bgStyle = settings?.bg_image_url
     ? { backgroundImage: `url(${settings.bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -243,8 +242,8 @@ export default function ScrewPlayerPage({ gameData, sessionToken, onComplete }) 
           {settings?.heading_2 && <p style={{ fontSize: 15, fontWeight: 600, color: settings?.heading_2_color || '#666', marginBottom: 8 }}>{settings.heading_2}</p>}
           {settings?.heading_3 && <p style={{ fontSize: 13, color: settings?.heading_3_color || '#888', marginBottom: 16 }}>{settings.heading_3}</p>}
           <div style={{ background: '#f5f0eb', borderRadius: 12, padding: 16, marginBottom: 20 }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: settings?.description_color || '#5D4037', marginBottom: 6 }}>{settings?.description_text || 'How to Play'}</p>
-            <p style={{ fontSize: 12, color: settings?.intro_text_color || '#8D6E63', lineHeight: 1.6 }}>{settings?.intro_text || 'Tap each screw to unscrew it. Keep tapping until it comes out! When all screws on a block are removed, the block falls away. Clear every block to reveal the hidden image.'}</p>
+            <p style={{ fontSize: 14, fontWeight: 700, color: '#5D4037', marginBottom: 6 }}>How to Play</p>
+            <p style={{ fontSize: 12, color: '#8D6E63', lineHeight: 1.6 }}>Tap each screw to unscrew it. Keep tapping until it comes out! When all screws on a block are removed, the block falls away. Clear every block to reveal the hidden image.</p>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
             <div style={{ background: 'rgba(139,69,19,0.08)', borderRadius: 10, padding: 10 }}>
@@ -266,25 +265,7 @@ export default function ScrewPlayerPage({ gameData, sessionToken, onComplete }) 
               <div style={{ fontSize: 16, fontWeight: 800, color: '#5D4037' }}>{timeLimit}s</div>
             </div>
           )}
-          {settings?.terms_enabled ? (
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 16, textAlign: 'left' }}>
-              <input
-                type="checkbox"
-                checked={termsAccepted}
-                onChange={e => setTermsAccepted(e.target.checked)}
-                style={{ marginTop: 3, width: 16, height: 16, accentColor: primaryColor }}
-              />
-              <span style={{ fontSize: 12, color: '#666', lineHeight: 1.5 }}>
-                {settings?.terms_text || 'I agree to the Terms & Conditions'}
-                {settings?.terms_url && (
-                  <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: primaryColor, textDecoration: 'underline', marginLeft: 4 }}>
-                    View Terms
-                  </a>
-                )}
-              </span>
-            </div>
-          ) : null}
-          <button onClick={handleStart} disabled={settings?.terms_enabled && !termsAccepted} style={{ background: settings?.start_button_bg_color ? `linear-gradient(135deg,${settings.start_button_bg_color},${settings.start_button_bg_color}cc)` : `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color: settings?.start_button_text_color || '#fff', border: 'none', borderRadius: 12, padding: '15px 36px', fontSize: 16, fontWeight: 700, cursor: settings?.terms_enabled && !termsAccepted ? 'not-allowed' : 'pointer', fontFamily: ff, boxShadow: `0 6px 20px ${primaryColor}44`, width: '100%', maxWidth: 280, opacity: settings?.terms_enabled && !termsAccepted ? 0.5 : 1 }}>
+          <button onClick={handleStart} style={{ background: `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 12, padding: '15px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 6px 20px ${primaryColor}44`, width: '100%', maxWidth: 280 }}>
             {settings?.start_button_text || 'Start Revealing'}
           </button>
         </div>
@@ -454,7 +435,7 @@ export default function ScrewPlayerPage({ gameData, sessionToken, onComplete }) 
             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 24 }}>
               {blocksCleared} blocks cleared | {screwsRemoved} screws removed
             </p>
-            <button onClick={handleComplete} style={{ background: settings?.continue_button_bg_color ? `linear-gradient(135deg,${settings.continue_button_bg_color},${settings.continue_button_bg_color}cc)` : `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color: settings?.continue_button_text_color || '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 8px 28px ${primaryColor}55`, width: '100%', maxWidth: 280 }}>
+            <button onClick={handleComplete} style={{ background: `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 8px 28px ${primaryColor}55`, width: '100%', maxWidth: 280 }}>
               {settings?.continue_button_text || 'Continue'}
             </button>
           </div>
@@ -469,7 +450,7 @@ export default function ScrewPlayerPage({ gameData, sessionToken, onComplete }) 
             <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 24 }}>
               Cleared {blocksCleared} of {totalBlocks} blocks · {screwsRemoved} screws removed
             </p>
-            <button onClick={handleComplete} style={{ background: settings?.continue_button_bg_color ? `linear-gradient(135deg,${settings.continue_button_bg_color},${settings.continue_button_bg_color}cc)` : `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color: settings?.continue_button_text_color || '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 8px 28px ${primaryColor}55`, width: '100%' }}>
+            <button onClick={handleComplete} style={{ background: `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 8px 28px ${primaryColor}55`, width: '100%' }}>
               {settings?.continue_button_text || 'Continue'}
             </button>
           </div>

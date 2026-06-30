@@ -220,7 +220,7 @@ export default function TyperBuilderPage() {
     <div className="tp-wrap">
       <style>{LIGHT}</style>
       <div className="tp-header">
-        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}><button className="tp-icon-btn" onClick={()=>navigate('/dashboard/games')} style={{ fontSize:16, lineHeight:1, marginTop:1 }}>←</button><div><div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div><div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Speed Typer Builder</div></div></div>
+        <div style={{ display:'flex',alignItems:'center',gap:8 }}><button className="tp-btn tp-btn-secondary tp-btn-sm" onClick={()=>navigate('/dashboard/games')}>←</button><span style={{ fontWeight:700,fontSize:14 }}>{game?.name}</span></div>
         <div className="tp-tabs">{TABS.map(t=><button key={t.id} className={`tp-tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}</div>
         <div style={{ display:'flex',gap:6,justifyContent:'flex-end' }}><button className="tp-btn tp-btn-secondary tp-btn-sm" onClick={()=>{navigator.clipboard.writeText(gameLink);showToast('Copied!')}}>🔗</button><a href={gameLink} target="_blank" rel="noreferrer" className="tp-btn tp-btn-secondary tp-btn-sm">👁</a></div>
       </div>

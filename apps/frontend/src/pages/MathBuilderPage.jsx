@@ -203,9 +203,6 @@ export default function MathBuilderPage() {
         heading_2_color: heading2Color,
         heading_3_color: heading3Color,
         description_color: descColor,
-        outro_text_color: settings.outro_text_color,
-        submit_button_text_color: settings.submit_button_text_color,
-        submit_button_bg_color: settings.submit_button_bg_color,
       }
       await api.put(`/math/${id}/settings`, body)
       showToast('Settings saved')
@@ -298,13 +295,7 @@ export default function MathBuilderPage() {
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
       <div className="mb-header">
-        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-          <button className="mb-icon-btn" onClick={handleBack} title="Back to games" style={{ fontSize:16, lineHeight:1, marginTop:1 }}>←</button>
-          <div>
-            <div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div>
-            <div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Math Builder</div>
-          </div>
-        </div>
+        <div><button className="mb-icon-btn" onClick={handleBack} title="Back to games" style={{ fontSize:16, lineHeight:1 }}>←</button></div>
         <div className="mb-tabs">
           {TABS.map(t => (
             <button key={t.id} className={`mb-tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>

@@ -70,6 +70,7 @@ export default function MathPlayerPage({ gameData, sessionToken, onComplete }) {
   const [overlayAnimOut, setOverlayAnimOut] = useState('')
   const [gameOver, setGameOver] = useState(false)
   const [completing, setCompleting] = useState(false)
+  const [showSavingPopup, setShowSavingPopup] = useState(false)
   const timerRef = useRef(null)
   const isCompleteRef = useRef(false)
   const completedRef = useRef(false)
@@ -171,7 +172,12 @@ export default function MathPlayerPage({ gameData, sessionToken, onComplete }) {
   const nextQuestionOrLevel = () => {
     const nextQ = currentQ + 1
     if (nextQ >= qPerLevel) {
-      setPhase('level_complete')
+      // Show saving popup before level complete screen
+      setShowSavingPopup(true)
+      setTimeout(() => {
+        setShowSavingPopup(false)
+        setPhase('level_complete')
+      }, 1500)
     } else {
       setCurrentQ(nextQ)
       setSelectedAnswer(null)
@@ -293,7 +299,7 @@ export default function MathPlayerPage({ gameData, sessionToken, onComplete }) {
           <Confetti />
           <div style={{ textAlign:'center', maxWidth:340, animation:'slideUp .4s ease' }}>
             <div style={{ fontSize:64, marginBottom:12 }}>🏆</div>
-            <h2 style={{ fontSize:22, fontWeight:800, color: settings.outro_text_color || settings.heading_1_color || '#1a1a2e', margin:'0 0 6px' }}>
+            <h2 style={{ fontSize:22, fontWeight:800, color: settings.heading_1_color || '#1a1a2e', margin:'0 0 6px' }}>
               {settings.outro_text || 'All Levels Complete!'}
             </h2>
             <p style={{ fontSize:14, color: settings.heading_2_color || '#666', margin:'0 0 16px' }}>
@@ -308,6 +314,40 @@ export default function MathPlayerPage({ gameData, sessionToken, onComplete }) {
               }}>
               {settings.continue_button_text || 'Continue →'}
             </button>
+          </div>
+        </div>
+      ) : showSavingPopup ? (
+        <div style={{
+          position:'fixed', inset:0, zIndex:200,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          background:'rgba(0,0,0,0.75)', backdropFilter:'blur(10px)',
+        }}>
+          <div style={{
+            background:'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            borderRadius:24, padding:'40px 48px',
+            textAlign:'center', maxWidth:360,
+            boxShadow:'0 25px 60px rgba(0,0,0,0.4)',
+            animation:'bounceIn .5s ease',
+          }}>
+            <div style={{
+              width:64, height:64, margin:'0 auto 20px',
+              border:'4px solid rgba(255,255,255,0.3)',
+              borderTopColor:'#fff', borderRadius:'50%',
+              animation:'spin 1s linear infinite',
+            }} />
+            <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+            <h3 style={{
+              fontSize:24, fontWeight:900, color:'#fff',
+              margin:'0 0 12px', letterSpacing:'-0.02em',
+            }}>
+              Saving Your Progress...
+            </h3>
+            <p style={{
+              fontSize:15, color:'rgba(255,255,255,0.9)',
+              margin:0, lineHeight:1.5,
+            }}>
+              Please wait while we save your results
+            </p>
           </div>
         </div>
       ) : phase === 'level_complete' && showOverlay ? (
@@ -436,25 +476,11 @@ export default function MathPlayerPage({ gameData, sessionToken, onComplete }) {
           <div style={{ textAlign:'center' }}>
             <div style={{ fontSize:48, marginBottom:12 }}>🧮</div>
             <h2 style={{ fontSize:20, fontWeight:700, color: settings.heading_1_color || '#1a1a2e', marginBottom:8 }}>
-              {settings.heading_1 || `Ready for Level ${currentLevel}!`}
+              Ready for Level {currentLevel}!
             </h2>
-            {settings.description_text && (
-              <p style={{ fontSize:14, color: settings.description_color || '#666', marginBottom:16, whiteSpace:'pre-line' }}>
-                {settings.description_text}
-              </p>
-            )}
             <p style={{ fontSize:14, color:'#666', marginBottom:16 }}>
               {qPerLevel} questions to unlock Level {currentLevel + 1}
             </p>
-            {settings.terms_enabled && (
-              <label style={{ display:'flex', alignItems:'flex-start', gap:8, fontSize:13, color:'#666', marginBottom:16, textAlign:'left' }}>
-                <input type="checkbox" style={{ marginTop:3, accentColor: settings.primary_color || '#22c55e' }} />
-                <span>
-                  {settings.terms_text || 'I agree to the terms'}
-                  {settings.terms_url && <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: settings.primary_color || '#22c55e', textDecoration:'underline', marginLeft:4 }}>Terms</a>}
-                </span>
-              </label>
-            )}
             <button onClick={() => fetchQuestion(currentLevel, currentQ)}
               style={{
                 padding:'14px 36px', borderRadius:12, border:'none',

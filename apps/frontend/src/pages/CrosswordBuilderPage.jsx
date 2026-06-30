@@ -290,7 +290,7 @@ function GridPreview({ words, rows, cols, blankCellImageUrl }) {
     }
   }
   return (
-    <div style={{ overflowX:'auto', marginTop:12 }}>
+    <div style={{ overflowX:'auto', marginTop:12, display:'flex', justifyContent:'center' }}>
       <div style={{ display:'inline-grid', gridTemplateColumns:`repeat(${cols}, ${cellSize}px)`, gap:1, background:'var(--gb-border)', border:'1px solid var(--gb-border)', borderRadius:4 }}>
         {Array.from({ length: rows }, (_, r) =>
           Array.from({ length: cols }, (_, c) => {
@@ -303,8 +303,8 @@ function GridPreview({ words, rows, cols, blankCellImageUrl }) {
                 background: letter
                   ? 'var(--gb-surface)'
                   : blankCellImageUrl
-                    ? `#1a1a2e url("${blankCellImageUrl}") center / contain no-repeat`
-                    : '#1a1a2e',
+                    ? `white url("${blankCellImageUrl}") center / contain no-repeat`
+                    : 'white',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: cellSize * 0.4, fontWeight: 700, color: 'var(--gb-text)', position: 'relative'
               }}>
@@ -597,24 +597,49 @@ export default function CrosswordBuilderPage() {
     setSaving(true)
     try {
       const fd = new FormData()
-      const fields = ['grid_rows','grid_cols','cell_size','show_timer','time_limit_seconds','allow_hints','auto_size',
-        'heading_1','heading_2','heading_3','description_text',
-        'heading_1_color','heading_2_color','heading_3_color','description_color',
-        'bg_color','primary_color','font_family','meta_description',
-        'sound_correct_id','sound_wrong_id',
-        'intro_text','outro_text','submit_button_text','continue_button_text','start_button_text',
-        'terms_enabled','terms_text','terms_url']
-      for (const f of fields) fd.append(f, settings[f]??'')
+      // Ensure we send ALL fields the backend expects, in the right order
+      fd.append('grid_rows', settings.grid_rows || 0)
+      fd.append('grid_cols', settings.grid_cols || 0)
+      fd.append('cell_size', settings.cell_size || 0)
+      fd.append('show_timer', settings.show_timer !== undefined ? Number(settings.show_timer) : 0)
+      fd.append('time_limit_seconds', settings.time_limit_seconds || 0)
+      fd.append('allow_hints', settings.allow_hints !== undefined ? Number(settings.allow_hints) : 0)
+      fd.append('auto_size', settings.auto_size !== undefined ? Number(settings.auto_size) : 0)
+      fd.append('heading_1', settings.heading_1 || '')
+      fd.append('heading_2', settings.heading_2 || '')
+      fd.append('heading_3', settings.heading_3 || '')
+      fd.append('description_text', settings.description_text || '')
+      fd.append('heading_1_color', settings.heading_1_color || '')
+      fd.append('heading_2_color', settings.heading_2_color || '')
+      fd.append('heading_3_color', settings.heading_3_color || '')
+      fd.append('description_color', settings.description_color || '')
+      fd.append('bg_color', settings.bg_color || '')
+      fd.append('primary_color', settings.primary_color || '')
+      fd.append('font_family', settings.font_family || '')
+      fd.append('sound_correct_id', settings.sound_correct_id || '')
+      fd.append('sound_wrong_id', settings.sound_wrong_id || '')
+      fd.append('intro_text', settings.intro_text || '')
+      fd.append('outro_text', settings.outro_text || '')
+      fd.append('submit_button_text', settings.submit_button_text || '')
+      fd.append('continue_button_text', settings.continue_button_text || '')
+      fd.append('start_button_text', settings.start_button_text || '')
+      fd.append('terms_enabled', settings.terms_enabled !== undefined ? Number(settings.terms_enabled) : 0)
+      fd.append('terms_text', settings.terms_text || '')
+      fd.append('terms_url', settings.terms_url || '')
+      fd.append('meta_description', settings.meta_description || '')
+      // Always send image URL fields (backend expects them even if uploading files)
+      fd.append('bg_image_url', settings.bg_image_url || '')
+      fd.append('thankyou_bg_image_url', settings.thankyou_bg_image_url || '')
+      fd.append('game_logo_url', settings.game_logo_url !== undefined ? settings.game_logo_url : '')
+      fd.append('submit_confirm_gif_url', settings.submit_confirm_gif_url || '')
+      fd.append('blank_cell_image_url', settings.blank_cell_image_url || '')
+      // Handle file uploads
       if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile)
-      else if (settings.bg_image_url) fd.append('bg_image_url', settings.bg_image_url)
       if (settings._tyBgImageFile) fd.append('thankyou_bg_image', settings._tyBgImageFile)
-      else if (settings.thankyou_bg_image_url) fd.append('thankyou_bg_image_url', settings.thankyou_bg_image_url)
       if (settings._gameLogoFile) fd.append('game_logo', settings._gameLogoFile)
-      else if (settings.game_logo_url !== undefined) fd.append('game_logo_url', settings.game_logo_url || '')
       if (settings._submitGifFile) fd.append('submit_confirm_gif', settings._submitGifFile)
-      else if (settings.submit_confirm_gif_url !== undefined) fd.append('submit_confirm_gif_url', settings.submit_confirm_gif_url || '')
       if (settings._blankCellImageFile) fd.append('blank_cell_image', settings._blankCellImageFile)
-      else if (settings.blank_cell_image_url !== undefined) fd.append('blank_cell_image_url', settings.blank_cell_image_url || '')
+      console.log('Sending FormData fields:', Array.from(fd.entries()).map(([k,v]) => `${k}: ${typeof v === 'object' ? '[File]' : v}`))
       await api.put(`/crossword/${id}/settings`, fd)
       showToast('Settings saved ✅')
     } catch (err) { showToast('Error saving settings: ' + (err.response?.data?.message || err.message), 'error') }
@@ -738,7 +763,8 @@ export default function CrosswordBuilderPage() {
       {/* ─── Header with tabs ─── */}
       <div style={{ position:'sticky', top:0, zIndex:50, background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)', boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
         <div style={{ position:'relative', padding:'6px 20px', display:'flex', alignItems:'center', gap:6 }}>
-          <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}><button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={() => navigate('/dashboard/games')} style={{ fontSize:16, lineHeight:1, marginTop:1 }}>←</button><div><div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div><div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Crossword Builder</div></div></div>
+          <button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={() => navigate('/dashboard/games')} title="Back">←</button>
+          <div style={{ fontWeight:700, fontSize:13, color:'var(--gb-text)', whiteSpace:'nowrap', minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>{game?.name}</div>
           <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', display:'flex', gap:0, overflowX:'auto' }}>
             {TABS.map(t => {
               return (

@@ -193,7 +193,8 @@ export default function JigsawBuilderPage() {
         'bg_color','primary_color','font_family','meta_description',
         'sound_correct_id','sound_wrong_id',
         'intro_text','outro_text','submit_button_text','continue_button_text','start_button_text',
-        'terms_enabled','terms_text','terms_url']
+        'terms_enabled','terms_text','terms_url',
+        'allow_difficulty_selection']
       for (const f of fields) fd.append(f, settings[f] ?? '')
       if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile)
       else if (settings.bg_image_url) fd.append('bg_image_url', settings.bg_image_url)
@@ -217,7 +218,8 @@ export default function JigsawBuilderPage() {
       const fd = new FormData()
       const sFields = ['heading_1','heading_2','heading_3','description_text','intro_text','meta_description','font_family',
         'bg_color','primary_color','show_timer','time_limit_seconds',
-        'sound_correct_id','sound_wrong_id','grid_rows','grid_cols']
+        'sound_correct_id','sound_wrong_id','grid_rows','grid_cols',
+        'allow_difficulty_selection']
       for (const f of sFields) fd.append(f, settings[f] ?? '')
       fd.append('heading_1_color', heading1Color)
       fd.append('heading_2_color', heading2Color)
@@ -278,9 +280,8 @@ export default function JigsawBuilderPage() {
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
 
   const TABS = [
-    { id:'display',   label:'🎨 Display' },
+    { id:'display',   label:'🎨 Setup' },
     { id:'sounds',    label:'🔊 Sounds' },
-    { id:'form',      label:'📋 Form' },
     { id:'thankyou',  label:'🙏 Thank You' },
     { id:'email',     label:'📧 Email' },
     { id:'settings',  label:'⚙️ Settings' },
@@ -318,56 +319,30 @@ export default function JigsawBuilderPage() {
     <div className="jb-wrap">
       <style>{LIGHT}</style>
 
-      <div className="jb-header">
-        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}><button className="jb-icon-btn" onClick={() => navigate('/dashboard/games')} style={{ fontSize:16, lineHeight:1, marginTop:1 }}>←</button><div><div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div><div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Jigsaw Puzzle Builder</div></div></div>
-        <div className="jb-tabs">
+      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', background:'#fff', borderBottom:'1.5px solid #EAECF0', padding:'10px 28px', gap:'4px 20px', alignItems:'center', position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
+        <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'start' }}>
+          <button className="jb-btn jb-btn-secondary jb-btn-sm" onClick={() => navigate('/dashboard/games')} style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }} title="Back">←</button>
+          <span style={{ fontWeight:700, fontSize:14, color:'#111827' }}>{game?.name}</span>
+        </div>
+        <div className="jb-tabs" style={{ marginBottom:0, borderBottom:'none', gap:4 }}>
           {TABS.map(t => (
-            <button key={t.id} className={`jb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>
+            <button key={t.id} className={`jb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)} style={{ padding:'8px 16px', fontSize:12.5 }}>{t.label}</button>
           ))}
         </div>
         <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
-          <button className="jb-btn jb-btn-secondary jb-btn-sm" onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }}>🔗</button>
-          <a href={gameLink} target="_blank" rel="noreferrer" className="jb-btn jb-btn-secondary jb-btn-sm">👁</a>
+          <button className="jb-btn jb-btn-secondary jb-btn-sm" onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }} style={{ padding:'6px 8px', fontSize:14 }}>🔗</button>
+          <a href={gameLink} target="_blank" rel="noreferrer" className="jb-btn jb-btn-secondary jb-btn-sm" style={{ padding:'6px 8px', fontSize:14 }}>👁</a>
         </div>
       </div>
 
-      <div className="jb-body">
+      <div style={{ maxWidth:1200, margin:'0 auto', padding:'24px 0 24px 20px', display:'grid', gridTemplateColumns:'1fr 320px', gap:24, alignItems:'start' }}>
         <div style={{ minWidth:0 }}>
           {tab === 'display' && (
             <div>
               <div className="jb-card" style={{ marginBottom:14 }}>
-                <div className="jb-card-title">🎮 Game Name</div>
-                <input className="jb-input" value={text1||''} onChange={e=>setText1(e.target.value)} placeholder="Jigsaw Puzzle" />
-              </div>
-
-              <div className="jb-card" style={{ marginBottom:14 }}>
-                <div className="jb-card-title">🧩 Puzzle Setup</div>
-                <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:12 }}>Upload the image that will be split into puzzle pieces.</p>
-                <div style={{ marginBottom:14 }}>
-                  <ImageUpload label="Puzzle Image" url={settings.puzzle_image_url} accept="image/png,image/jpeg,image/jpg,image/webp"
-                    onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,puzzle_image_url:e.target.result,_puzzleImageFile:f}); r.readAsDataURL(f) }}
-                    onClear={() => setSettings({...settings,puzzle_image_url:'',_puzzleImageFile:null})} />
-                </div>
+                <div className="jb-card-title">🎨 Visuals</div>
                 <div className="jb-2col">
-                  <div className="jb-fg">
-                    <span className="jb-label">Grid Rows (Difficulty)</span>
-                    <select className="jb-select" value={settings.grid_rows||4} onChange={e=>setSettings({...settings,grid_rows:parseInt(e.target.value)})}>
-                      {[2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n} rows ({n*n} pieces)</option>)}
-                    </select>
-                  </div>
-                  <div className="jb-fg">
-                    <span className="jb-label">Grid Columns</span>
-                    <select className="jb-select" value={settings.grid_cols||4} onChange={e=>setSettings({...settings,grid_cols:parseInt(e.target.value)})}>
-                      {[2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n} columns</option>)}
-                    </select>
-                  </div>
-                </div>
-              </div>
-
-              <div className="jb-card" style={{ marginBottom:14 }}>
-                <div className="jb-card-title">🖼️ Images</div>
-                <div className="jb-2col">
-                  <ImageUpload label="Background Image" url={settings.bg_image_url}
+                  <ImageUpload label="Game Background Image" url={settings.bg_image_url}
                     onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgImageFile:f}); r.readAsDataURL(f) }}
                     onClear={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})} />
                   <ImageUpload label="Game Logo" url={settings.game_logo_url}
@@ -377,81 +352,93 @@ export default function JigsawBuilderPage() {
               </div>
 
               <div className="jb-card" style={{ marginBottom:14 }}>
-                <div className="jb-card-title">📝 Headings & Description</div>
+                <div className="jb-card-title">📝 Game Texts</div>
                 <div className="jb-fg" style={{ marginBottom:10 }}>
-                  <span className="jb-label">Heading 1</span>
+                  <span className="jb-label">Heading 1 (Title – Text 1)</span>
                   <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                    <input className="jb-input" value={settings.heading_1||''} onChange={e=>setSettings({...settings,heading_1:e.target.value})} placeholder="Jigsaw Puzzle" style={{ flex:1 }} />
+                    <input className="jb-input" value={settings.heading_1||''} onChange={e=>setSettings({...settings,heading_1:e.target.value})} placeholder="Main title" style={{ flex:1 }} />
                     <ColorPicker value={heading1Color} onChange={setHeading1Color} label="Color" />
                   </div>
                 </div>
                 <div className="jb-fg" style={{ marginBottom:10 }}>
-                  <span className="jb-label">Heading 2</span>
+                  <span className="jb-label">Heading 2 (Subtitle – Text 2)</span>
                   <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                    <input className="jb-input" value={settings.heading_2||''} onChange={e=>setSettings({...settings,heading_2:e.target.value})} placeholder="Solve the puzzle!" style={{ flex:1 }} />
+                    <input className="jb-input" value={settings.heading_2||''} onChange={e=>setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" style={{ flex:1 }} />
                     <ColorPicker value={heading2Color} onChange={setHeading2Color} label="Color" />
                   </div>
                 </div>
                 <div className="jb-fg" style={{ marginBottom:10 }}>
-                  <span className="jb-label">Heading 3 / Instructions</span>
+                  <span className="jb-label">Intro Text (Body – Text 3, Shown Before Quiz)</span>
                   <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                    <input className="jb-input" value={settings.heading_3||''} onChange={e=>setSettings({...settings,heading_3:e.target.value})} placeholder="Drag pieces to their correct position" style={{ flex:1 }} />
+                    <textarea className="jb-input" rows={2} value={settings.heading_3||''} onChange={e=>setSettings({...settings,heading_3:e.target.value})} placeholder="Intro text" style={{ flex:1, resize:'vertical' }} />
                     <ColorPicker value={heading3Color} onChange={setHeading3Color} label="Color" />
                   </div>
                 </div>
-                <div className="jb-fg">
-                  <span className="jb-label">Description</span>
-                  <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
-                    <textarea className="jb-input" rows={2} value={settings.description_text||''} onChange={e=>setSettings({...settings,description_text:e.target.value})} placeholder="Optional description" style={{ flex:1, resize:'vertical' }} />
-                    <ColorPicker value={descColor} onChange={setDescColor} label="Color" />
+                <p style={{ color:'#9CA3AF', fontSize:12, marginTop:8 }}>These fields appear on the player registration screen before the puzzle starts.</p>
+              </div>
+
+              <div className="jb-card" style={{ marginBottom:14 }}>
+                <div className="jb-card-title">📋 Registration Fields</div>
+                {formFields.map((f,i) => (
+                  <div key={i} style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end', marginBottom:8, padding:'10px 12px', background:'#F9FAFB', borderRadius:8 }}>
+                    <div className="jb-fg" style={{ flex:2, minWidth:130 }}>
+                      <span className="jb-label">Label</span>
+                      <input className="jb-input" value={f.field_label} onChange={e=>updateFormField(i,'field_label',e.target.value)} />
+                    </div>
+                    <div className="jb-fg" style={{ flex:1, minWidth:110 }}>
+                      <span className="jb-label">Type</span>
+                      <select className="jb-select" value={f.field_type} onChange={e=>updateFormField(i,'field_type',e.target.value)}>
+                        <option value="text">Text</option>
+                        <option value="email">Email</option>
+                        <option value="phone">Phone</option>
+                        <option value="number">Number</option>
+                        <option value="textarea">Textarea</option>
+                      </select>
+                    </div>
+                    <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer', paddingBottom:2 }}>
+                      <input type="checkbox" checked={Number(f.is_required)===1} onChange={e=>updateFormField(i,'is_required',e.target.checked?1:0)} style={{ width:16,height:16 }} />
+                      Required
+                    </label>
+                    <button className="jb-icon-btn del" onClick={()=>removeFormField(i)}>✕</button>
                   </div>
+                ))}
+                <div style={{ textAlign:'center', marginTop:10 }}>
+                  <button className="jb-btn jb-btn-secondary" onClick={addFormField}>+ Add Field</button>
                 </div>
               </div>
 
               <div className="jb-card" style={{ marginBottom:14 }}>
-                <div className="jb-card-title">🎨 Colors & Fonts</div>
-                <div className="jb-2col" style={{ marginBottom:12 }}>
-                  <ColorPicker value={settings.bg_color||'#f8f8ff'} onChange={v=>setSettings({...settings,bg_color:v})} label="Background Color" />
-                  <ColorPicker value={settings.primary_color||'#6366f1'} onChange={v=>setSettings({...settings,primary_color:v})} label="Primary Color" />
-                </div>
-                <div className="jb-fg">
-                  <span className="jb-label">Font Family</span>
-                  <select className="jb-select" value={settings.font_family||'DM Sans'} onChange={e=>setSettings({...settings,font_family:e.target.value})}>
-                    {FONT_CATEGORIES.map(cat => (
-                      <optgroup key={cat.name} label={`${cat.icon} ${cat.name}`}>
-                        {cat.fonts.map(f => <option key={f} value={f}>{f}</option>)}
-                      </optgroup>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="jb-card" style={{ marginBottom:14 }}>
-                <div className="jb-card-title">⏱ Timer</div>
+                <div className="jb-card-title">☑️ Terms & Conditions</div>
                 <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-                  <input type="checkbox" id="showTimer" checked={Number(settings.show_timer)===1}
-                    onChange={e=>setSettings({...settings,show_timer:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                  <label htmlFor="showTimer" style={{ fontWeight:600, cursor:'pointer', fontSize:14 }}>Show Timer</label>
+                  <input type="checkbox" id="termsEnabled" checked={Number(settings.terms_enabled)===1}
+                    onChange={e=>setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                  <label htmlFor="termsEnabled" style={{ fontWeight:600, cursor:'pointer', fontSize:14 }}>Require acceptance</label>
                 </div>
-                {Number(settings.show_timer)===1 && (
-                  <div className="jb-fg" style={{ maxWidth:200 }}>
-                    <span className="jb-label">Time Limit (seconds, 0=unlimited)</span>
-                    <input className="jb-input" type="number" min="0" value={settings.time_limit_seconds||0} onChange={e=>setSettings({...settings,time_limit_seconds:parseInt(e.target.value)||0})} />
+                {Number(settings.terms_enabled)===1 && (
+                  <div className="jb-2col">
+                    <div className="jb-fg"><span className="jb-label">Label Text</span><input className="jb-input" value={settings.terms_text||''} onChange={e=>setSettings({...settings,terms_text:e.target.value})} placeholder="Terms & Conditions" /></div>
+                    <div className="jb-fg"><span className="jb-label">URL (optional)</span><input className="jb-input" value={settings.terms_url||''} onChange={e=>setSettings({...settings,terms_url:e.target.value})} placeholder="https://..." /></div>
                   </div>
                 )}
               </div>
 
               <div className="jb-card" style={{ marginBottom:14 }}>
                 <div className="jb-card-title">🎯 Start Button</div>
-                <div className="jb-fg" style={{ maxWidth:280 }}>
-                  <span className="jb-label">Button Text</span>
-                  <input className="jb-input" value={settings.start_button_text||''} onChange={e=>setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Puzzle →" />
+                <div className="jb-2col">
+                  <div className="jb-fg">
+                    <span className="jb-label">Button Text</span>
+                    <input className="jb-input" value={settings.start_button_text||''} onChange={e=>setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Puzzle →" />
+                  </div>
+                  <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                    <ColorPicker value={settings.start_button_text_color||'#ffffff'} onChange={v=>setSettings({...settings,start_button_text_color:v})} label="Text Color" />
+                    <ColorPicker value={settings.start_button_bg_color||'#6366f1'} onChange={v=>setSettings({...settings,start_button_bg_color:v})} label="Background" />
+                  </div>
                 </div>
               </div>
 
               <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 }}>
-                <button className="jb-btn" onClick={saveDisplaySettings} disabled={saving} style={{ padding:'10px 28px' }}>
-                  {saving ? '⏳ Saving…' : '💾 Save Display Settings'}
+                <button className="jb-btn" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                  {saving ? '⏳ Saving…' : '💾 Save Display'}
                 </button>
               </div>
             </div>
@@ -498,86 +485,84 @@ export default function JigsawBuilderPage() {
             </div>
           )}
 
-          {tab === 'form' && (
-            <div>
-              <div className="jb-card" style={{ marginBottom:14 }}>
-                <div className="jb-card-title">📋 Registration Fields</div>
-                <p style={{ color:'#9CA3AF', fontSize:12, marginBottom:12 }}>Fields shown before the puzzle starts.</p>
-                {formFields.map((f,i) => (
-                  <div key={i} style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end', marginBottom:8, padding:'10px 12px', background:'#F9FAFB', borderRadius:8 }}>
-                    <div className="jb-fg" style={{ flex:2, minWidth:130 }}>
-                      <span className="jb-label">Label</span>
-                      <input className="jb-input" value={f.field_label} onChange={e=>updateFormField(i,'field_label',e.target.value)} />
-                    </div>
-                    <div className="jb-fg" style={{ flex:1, minWidth:110 }}>
-                      <span className="jb-label">Type</span>
-                      <select className="jb-select" value={f.field_type} onChange={e=>updateFormField(i,'field_type',e.target.value)}>
-                        <option value="text">Text</option>
-                        <option value="email">Email</option>
-                        <option value="phone">Phone</option>
-                        <option value="number">Number</option>
-                        <option value="textarea">Textarea</option>
-                      </select>
-                    </div>
-                    <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13, cursor:'pointer', paddingBottom:2 }}>
-                      <input type="checkbox" checked={Number(f.is_required)===1} onChange={e=>updateFormField(i,'is_required',e.target.checked?1:0)} style={{ width:16,height:16 }} />
-                      Required
-                    </label>
-                    <button className="jb-icon-btn del" onClick={()=>removeFormField(i)}>✕</button>
-                  </div>
-                ))}
-                <div style={{ textAlign:'center', marginTop:10 }}>
-                  <button className="jb-btn jb-btn-secondary" onClick={addFormField}>+ Add Field</button>
-                </div>
-                <div style={{ display:'flex', justifyContent:'flex-end', marginTop:14 }}>
-                  <button className="jb-btn" onClick={saveFormFields} disabled={saving}>{saving?'⏳ Saving…':'💾 Save Fields'}</button>
-                </div>
-              </div>
 
-              <div className="jb-card">
-                <div className="jb-card-title">☑️ Terms & Conditions</div>
-                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
-                  <input type="checkbox" id="termsEnabled" checked={Number(settings.terms_enabled)===1}
-                    onChange={e=>setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
-                  <label htmlFor="termsEnabled" style={{ fontWeight:600, cursor:'pointer', fontSize:14 }}>Require Terms & Conditions</label>
-                </div>
-                {Number(settings.terms_enabled)===1 && (
-                  <div className="jb-2col">
-                    <div className="jb-fg"><span className="jb-label">Terms Label</span><input className="jb-input" value={settings.terms_text||''} onChange={e=>setSettings({...settings,terms_text:e.target.value})} placeholder="Terms & Conditions" /></div>
-                    <div className="jb-fg"><span className="jb-label">Terms URL</span><input className="jb-input" value={settings.terms_url||''} onChange={e=>setSettings({...settings,terms_url:e.target.value})} placeholder="https://..." /></div>
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
 
           {tab === 'thankyou' && (
             <div>
-              <div className="jb-card" style={{ marginBottom:14 }}>
-                <div className="jb-card-title">🙏 Thank You Page</div>
-                <div className="jb-2col" style={{ marginBottom:14 }}>
-                  <ImageUpload label="Thank You Background" url={settings.thankyou_bg_image_url}
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+                <div className="jb-card" style={{ padding:20 }}>
+                  <div className="jb-card-title">🎁 Thank You Page Background</div>
+                  <ImageUpload label="" url={settings.thankyou_bg_image_url}
                     onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgImageFile:f});r.readAsDataURL(f)}}
                     onClear={()=>setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})} />
-                  <ImageUpload label="Submit Confirm GIF" url={settings.submit_confirm_gif_url}
+                </div>
+
+                <div className="jb-card" style={{ padding:20 }}>
+                  <div className="jb-card-title">📝 Thank You Message</div>
+                  <div className="jb-fg" style={{ marginBottom:10 }}>
+                    <span className="jb-label">Heading Text</span>
+                    <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                      <input className="jb-input" value={settings.thankyou_heading_text||''} onChange={e=>setSettings({...settings,thankyou_heading_text:e.target.value})} placeholder="Yay! You completed the puzzle!" style={{ flex:1 }} />
+                      <ColorPicker value={settings.thankyou_heading_color||'#1a1a2e'} onChange={v=>setSettings({...settings,thankyou_heading_color:v})} label="Color" />
+                    </div>
+                  </div>
+                  <div className="jb-fg">
+                    <span className="jb-label">Subtitle Text</span>
+                    <div style={{ display:'flex', gap:8, alignItems:'flex-end' }}>
+                      <input className="jb-input" value={settings.thankyou_subtitle_text||''} onChange={e=>setSettings({...settings,thankyou_subtitle_text:e.target.value})} placeholder="Thank you for completing!" style={{ flex:1 }} />
+                      <ColorPicker value={settings.thankyou_subtitle_color||'#444444'} onChange={v=>setSettings({...settings,thankyou_subtitle_color:v})} label="Color" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="jb-card" style={{ padding:20, marginBottom:14 }}>
+                <div className="jb-card-title">🎯 Submit Button</div>
+                <div className="jb-fg" style={{ marginBottom:10 }}>
+                  <span className="jb-label">Text</span>
+                  <input className="jb-input" value={settings.submit_btn_text||''} onChange={e=>setSettings({...settings,submit_btn_text:e.target.value})} placeholder="Submit & Explore" />
+                </div>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                  <ColorPicker value={settings.submit_btn_text_color||'#ffffff'} onChange={v=>setSettings({...settings,submit_btn_text_color:v})} label="Text Color" />
+                  <ColorPicker value={settings.submit_btn_bg_color||'#6366f1'} onChange={v=>setSettings({...settings,submit_btn_bg_color:v})} label="Background" />
+                </div>
+              </div>
+
+              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:14, marginBottom:14 }}>
+                <div className="jb-card" style={{ padding:20 }}>
+                  <div className="jb-card-title">🎁 Submit Confirmation GIF</div>
+                  <ImageUpload label="" url={settings.submit_confirm_gif_url}
                     onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_submitGifFile:f});r.readAsDataURL(f)}}
-                    onClear={()=>setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})} />
+                    onClear={()=>setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})} accept="image/gif,image/png,image/jpeg,image/webp" />
                 </div>
-                <div className="jb-fg" style={{ marginBottom:10 }}>
-                  <span className="jb-label">Outro Text</span>
-                  <textarea className="jb-input" rows={2} value={settings.outro_text||''} onChange={e=>setSettings({...settings,outro_text:e.target.value})} placeholder="Congratulations!" style={{ resize:'vertical' }} />
+
+                <div className="jb-card" style={{ padding:20 }}>
+                  <div className="jb-card-title">🔗 Post-Game Redirect URL</div>
+                  <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:10 }}>Where should players be sent after completing? Leave blank to show default.</p>
+                  <input className="jb-input" value={redirectUrl||''} onChange={e=>setRedirectUrl(e.target.value)} placeholder="https://yourwebsite.com/thankyou" style={{ marginBottom:12 }} />
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <input type="checkbox" id="contBtn" checked={!!settings.continue_now_btn_text} onChange={e => setSettings({...settings,continue_now_btn_text: e.target.checked ? 'Continue Now' : ''})} style={{ width:16,height:16 }} />
+                    <label htmlFor="contBtn" style={{ fontWeight:600, cursor:'pointer', fontSize:13 }}>Continue Now Button</label>
+                  </div>
+                  {settings.continue_now_btn_text && (
+                    <div style={{ marginTop:12 }}>
+                      <div className="jb-fg" style={{ marginBottom:10 }}>
+                        <span className="jb-label">Text</span>
+                        <input className="jb-input" value={settings.continue_now_btn_text} onChange={e=>setSettings({...settings,continue_now_btn_text:e.target.value})} placeholder="Continue Now" />
+                      </div>
+                      <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
+                        <ColorPicker value={settings.continue_now_btn_text_color||'#ffffff'} onChange={v=>setSettings({...settings,continue_now_btn_text_color:v})} label="Text Color" />
+                        <ColorPicker value={settings.continue_now_btn_bg_color||'#6366f1'} onChange={v=>setSettings({...settings,continue_now_btn_bg_color:v})} label="Background" />
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <div className="jb-fg" style={{ marginBottom:10 }}>
-                  <span className="jb-label">Submit Button Text</span>
-                  <input className="jb-input" value={settings.submit_button_text||''} onChange={e=>setSettings({...settings,submit_button_text:e.target.value})} placeholder="Submit & Explore" />
-                </div>
-                <div className="jb-fg" style={{ marginBottom:10 }}>
-                  <span className="jb-label">Continue Button Text</span>
-                  <input className="jb-input" value={settings.continue_button_text||''} onChange={e=>setSettings({...settings,continue_button_text:e.target.value})} placeholder="Continue Now →" />
-                </div>
-                <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                  <button className="jb-btn" onClick={saveSettings} disabled={saving}>{saving?'⏳ Saving…':'💾 Save'}</button>
-                </div>
+              </div>
+
+              <div style={{ display:'flex', justifyContent:'center' }}>
+                <button className="jb-btn" onClick={saveSettings} disabled={saving} style={{ padding:'12px 40px' }}>
+                  {saving ? '⏳ Saving…' : '💾 Save Thank You Settings'}
+                </button>
               </div>
             </div>
           )}
@@ -615,51 +600,210 @@ export default function JigsawBuilderPage() {
           {tab === 'settings' && (
             <div>
               <div className="jb-card" style={{ marginBottom:14 }}>
-                <div className="jb-card-title">⚙️ Game Settings</div>
-                <div className="jb-fg" style={{ marginBottom:12 }}>
-                  <span className="jb-label">Redirect URL (after completion)</span>
-                  <input className="jb-input" type="url" value={redirectUrl} onChange={e=>setRedirectUrl(e.target.value)} placeholder="https://yoursite.com/thankyou" />
+                <div className="jb-card-title">🧩 Puzzle Setup</div>
+                <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:12 }}>Upload the image that will be split into puzzle pieces.</p>
+                <div style={{ marginBottom:14 }}>
+                  <ImageUpload label="Puzzle Image" url={settings.puzzle_image_url} accept="image/png,image/jpeg,image/jpg,image/webp"
+                    onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,puzzle_image_url:e.target.result,_puzzleImageFile:f}); r.readAsDataURL(f) }}
+                    onClear={() => setSettings({...settings,puzzle_image_url:'',_puzzleImageFile:null})} />
                 </div>
-                <div className="jb-fg" style={{ marginBottom:12 }}>
-                  <span className="jb-label">Meta Description</span>
-                  <textarea className="jb-input" rows={2} value={settings.meta_description||''} onChange={e=>setSettings({...settings,meta_description:e.target.value})} style={{ resize:'vertical' }} />
+                <div className="jb-2col">
+                  <div className="jb-fg">
+                    <span className="jb-label">Grid Rows (Difficulty)</span>
+                    <select className="jb-select" value={settings.grid_rows||4} onChange={e=>setSettings({...settings,grid_rows:parseInt(e.target.value)})}>
+                      {[2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n} rows ({n*n} pieces)</option>)}
+                    </select>
+                  </div>
+                  <div className="jb-fg">
+                    <span className="jb-label">Grid Columns</span>
+                    <select className="jb-select" value={settings.grid_cols||4} onChange={e=>setSettings({...settings,grid_cols:parseInt(e.target.value)})}>
+                      {[2,3,4,5,6,7,8].map(n=><option key={n} value={n}>{n} columns</option>)}
+                    </select>
+                  </div>
                 </div>
-                <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                  <button className="jb-btn" onClick={saveSettings} disabled={saving}>{saving?'⏳ Saving…':'💾 Save Settings'}</button>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginTop:12 }}>
+                  <input type="checkbox" id="allowDiffSel" checked={Number(settings.allow_difficulty_selection)===1}
+                    onChange={e=>setSettings({...settings,allow_difficulty_selection:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                  <label htmlFor="allowDiffSel" style={{ fontWeight:600, cursor:'pointer', fontSize:14 }}>Allow difficulty selection by player</label>
                 </div>
               </div>
-            </div>
-          )}
-        </div>
 
-        <div className="jb-phone">
-          <div className="jb-phone-notch" />
-          <div className="jb-phone-screen" style={{ background: settings.bg_color || '#f8f8ff', padding:12 }}>
-            {settings.game_logo_url && (
-              <img src={settings.game_logo_url} alt="Logo" style={{ width:'100%', maxHeight:40, objectFit:'contain', borderRadius:6, marginBottom:8 }} />
-            )}
-            <h2 style={{ fontSize:14, fontWeight:800, color: heading1Color, textAlign:'center', marginBottom:4, fontFamily: settings.font_family || 'DM Sans' }}>
-              {settings.heading_1 || 'Jigsaw Puzzle'}
-            </h2>
-            {settings.heading_2 && (
-              <p style={{ fontSize:11, color: heading2Color, textAlign:'center', marginBottom:6 }}>{settings.heading_2}</p>
-            )}
-            {settings.puzzle_image_url ? (
-              <div style={{ position:'relative', width:'100%', aspectRatio:'1', borderRadius:8, overflow:'hidden', marginBottom:8 }}>
-                <img src={settings.puzzle_image_url} alt="Puzzle" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
-                <div className="jb-grid-overlay" style={{ gridTemplateColumns:`repeat(${previewCols},1fr)`, gridTemplateRows:`repeat(${previewRows},1fr)` }}>
-                  {Array.from({length:previewRows*previewCols}).map((_,i)=>(
-                    <div key={i} className="jb-grid-line" />
+              <div className="jb-card" style={{ marginBottom:14 }}>
+                <div className="jb-card-title">⏱ Timer</div>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                  <input type="checkbox" id="showTimer" checked={Number(settings.show_timer)===1}
+                    onChange={e=>setSettings({...settings,show_timer:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                  <label htmlFor="showTimer" style={{ fontWeight:600, cursor:'pointer', fontSize:14 }}>Show Timer</label>
+                </div>
+                {Number(settings.show_timer)===1 && (
+                  <div className="jb-fg" style={{ maxWidth:200 }}>
+                    <span className="jb-label">Time Limit (seconds, 0=unlimited)</span>
+                    <input className="jb-input" type="number" min="0" value={settings.time_limit_seconds||0} onChange={e=>setSettings({...settings,time_limit_seconds:parseInt(e.target.value)||0})} />
+                  </div>
+                )}
+              </div>
+
+              <div className="jb-card" style={{ marginBottom:14 }}>
+                <div className="jb-card-title">🔤 Font Family</div>
+                <div style={{ display:'flex', flexDirection:'column', gap:10 }}>
+                  {FONT_CATEGORIES.map(cat => (
+                    <div key={cat.name}>
+                      <div style={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.05em', color:'#9CA3AF', marginBottom:6, display:'flex', alignItems:'center', gap:4 }}>
+                        {cat.icon} {cat.name}
+                      </div>
+                      <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fill,minmax(165px,1fr))', gap:6, padding:8, background:'#F0F2F8', borderRadius:10, border:'1px solid #E5E7EB' }}>
+                        {cat.fonts.map(font => (
+                          <div key={font} onClick={() => setSettings({...settings,font_family:font})}
+                            style={{ padding:'8px 10px', borderRadius:8, cursor:'pointer',
+                              border:`2px solid ${settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? '#6366f1' : 'transparent'}`,
+                              background: settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? '#EEF2FF' : '#fff',
+                              transition:'all .12s',
+                              boxShadow: settings.font_family===font ? '0 2px 8px rgba(99,102,241,0.15)' : 'none' }}>
+                            <div style={{ fontSize:13, fontFamily:`'${font}',sans-serif`, color:'#1e1e2e', fontWeight:700, lineHeight:1.2 }}>{font}</div>
+                            <div style={{ fontSize:11, fontFamily:`'${font}',sans-serif`, color:'#6B7280', lineHeight:1.3 }}>The quick brown fox</div>
+                            <style>{`@import url('https://fonts.googleapis.com/css2?family=${encodeURIComponent(font)}:wght@400;600;700&display=swap');`}</style>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
                   ))}
                 </div>
               </div>
-            ) : (
-              <div style={{ width:'100%', aspectRatio:'1', borderRadius:8, border:'2px dashed #E5E7EB', display:'flex', alignItems:'center', justifyContent:'center', color:'#9CA3AF', fontSize:12, marginBottom:8 }}>
-                Upload puzzle image
+
+              <div className="jb-card" style={{ marginBottom:14 }}>
+                <div className="jb-card-title">⏱ Timer</div>
+                <div style={{ display:'flex', alignItems:'center', gap:10, marginBottom:10 }}>
+                  <input type="checkbox" id="showTimer" checked={Number(settings.show_timer)===1}
+                    onChange={e=>setSettings({...settings,show_timer:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                  <label htmlFor="showTimer" style={{ fontWeight:600, cursor:'pointer', fontSize:14 }}>Show Timer</label>
+                </div>
+                {Number(settings.show_timer)===1 && (
+                  <div className="jb-fg" style={{ maxWidth:200 }}>
+                    <span className="jb-label">Time Limit (seconds, 0=unlimited)</span>
+                    <input className="jb-input" type="number" min="0" value={settings.time_limit_seconds||0} onChange={e=>setSettings({...settings,time_limit_seconds:parseInt(e.target.value)||0})} />
+                  </div>
+                )}
               </div>
-            )}
-            <div style={{ fontSize:10, color:'#9CA3AF', textAlign:'center' }}>
-              {previewRows}×{previewCols} grid ({previewRows*previewCols} pieces)
+
+              <div className="jb-card" style={{ marginBottom:14 }}>
+                <div className="jb-card-title">🌐 Social Share Preview</div>
+                <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:12 }}>Text shown when the game link is shared on WhatsApp, Facebook etc.</p>
+                <div className="jb-2col" style={{ marginBottom:14 }}>
+                  <div>
+                    <div className="jb-fg" style={{ marginBottom:0 }}>
+                      <span className="jb-label">Share Description</span>
+                      <input className="jb-input" value={settings.meta_description||''} onChange={e=>setSettings({...settings,meta_description:e.target.value})} placeholder="Play this puzzle and win!" maxLength={200} />
+                      <span style={{ fontSize:11, color:'#9CA3AF', marginTop:2, display:'block' }}>{(settings.meta_description||'').length}/200</span>
+                    </div>
+                  </div>
+                  <div style={{ border:'1px solid #E5E7EB', borderRadius:10, overflow:'hidden', background:'#fff', boxShadow:'0 2px 12px rgba(0,0,0,0.06)' }}>
+                    <div style={{ height:80, background: settings.bg_image_url ? `center/cover url(${settings.bg_image_url})` : (settings.bg_color||'#f8f8ff'), display:'flex', alignItems:'center', justifyContent:'center', color:'#666', fontSize:24, fontWeight:800 }}></div>
+                    <div style={{ padding:'10px 12px' }}>
+                      <div style={{ fontSize:9, fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', color:'#9CA3AF', marginBottom:2 }}>{window.location.hostname || 'yourdomain.com'}</div>
+                      <div style={{ fontSize:11, fontWeight:700, color:'#1e1e2e', marginBottom:2, lineHeight:1.3 }}>{game?.name || 'Jigsaw Puzzle'}</div>
+                      <div style={{ fontSize:10, color:'#666', lineHeight:1.3 }}>{settings.meta_description || 'Play this puzzle and win!'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div style={{ display:'flex', justifyContent:'flex-end', gap:10, marginTop:20 }}>
+                <button className="jb-btn" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                  {saving ? '⏳ Saving…' : '💾 Save Settings'}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>{/* ─ end left col ─ */}
+
+        {/* ─── RIGHT COL — Phone Mockup ─── */}
+        <div style={{ position:'sticky', top:80, width:320, flexShrink:0 }}>
+          <div className="jb-phone">
+            <div className="jb-phone-notch" />
+            <div className="jb-phone-screen" style={{ background: settings.bg_color || '#f8f8ff', padding:12 }}>
+
+              {/* Display Tab Preview */}
+              {tab === 'display' && (
+                <>
+                  {settings.game_logo_url && (
+                    <img src={settings.game_logo_url} alt="Logo" style={{ width:'100%', maxHeight:50, objectFit:'contain', borderRadius:8, marginBottom:12 }} />
+                  )}
+                  <div style={{ background:'rgba(255,255,255,0.6)', borderRadius:16, padding:16, marginBottom:12 }}>
+                    <h1 style={{ fontSize:18, fontWeight:800, color: heading1Color, textAlign:'center', marginBottom:2 }}>
+                      {settings.heading_1 || 'Untitled'}
+                    </h1>
+                  </div>
+                  {formFields.slice(0,3).map((f,i) => (
+                    <div key={i} style={{ marginBottom:10 }}>
+                      <div style={{ fontSize:9, fontWeight:700, color:'#9CA3AF', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.5px' }}>{f.field_label}{f.is_required ? '*' : ''}</div>
+                      <input style={{ width:'100%', padding:'8px 10px', fontSize:11, border:'1px solid #E5E7EB', borderRadius:8, background:'#fff' }} placeholder={f.field_label} />
+                    </div>
+                  ))}
+                  <button style={{ width:'100%', padding:'10px', marginTop:10, background:settings.start_button_bg_color||'#6366f1', color:settings.start_button_text_color||'#fff', border:'none', borderRadius:10, fontWeight:700, fontSize:13, cursor:'pointer' }}>
+                    {settings.start_button_text || 'Start Quiz →'}
+                  </button>
+                </>
+              )}
+
+              {/* Settings Tab Preview */}
+              {tab === 'settings' && (
+                <>
+                  {settings.game_logo_url && (
+                    <img src={settings.game_logo_url} alt="Logo" style={{ width:'100%', maxHeight:40, objectFit:'contain', borderRadius:6, marginBottom:8 }} />
+                  )}
+                  <h2 style={{ fontSize:14, fontWeight:800, color: heading1Color, textAlign:'center', marginBottom:4, fontFamily: settings.font_family || 'DM Sans' }}>
+                    {settings.heading_1 || 'Jigsaw Puzzle'}
+                  </h2>
+                  {settings.puzzle_image_url ? (
+                    <div style={{ position:'relative', width:'100%', aspectRatio:'1', borderRadius:8, overflow:'hidden', marginBottom:8 }}>
+                      <img src={settings.puzzle_image_url} alt="Puzzle" style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+                      <div className="jb-grid-overlay" style={{ gridTemplateColumns:`repeat(${previewCols},1fr)`, gridTemplateRows:`repeat(${previewRows},1fr)` }}>
+                        {Array.from({length:previewRows*previewCols}).map((_,i)=>(
+                          <div key={i} className="jb-grid-line" />
+                        ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div style={{ width:'100%', aspectRatio:'1', borderRadius:8, border:'2px dashed #E5E7EB', display:'flex', alignItems:'center', justifyContent:'center', color:'#9CA3AF', fontSize:12, marginBottom:8 }}>
+                      Upload puzzle image
+                    </div>
+                  )}
+                  <div style={{ fontSize:10, color:'#9CA3AF', textAlign:'center' }}>
+                    {previewRows}×{previewCols} grid ({previewRows*previewCols} pieces)
+                  </div>
+                </>
+              )}
+
+              {/* Thank You Tab Preview */}
+              {tab === 'thankyou' && (
+                <>
+                  <div style={{ textAlign:'center', marginTop:20 }}>
+                    <h3 style={{ fontSize:14, fontWeight:800, color: settings.thankyou_heading_color||'#1a1a2e', marginBottom:4 }}>
+                      {settings.thankyou_heading_text || 'Yay! You completed!'}
+                    </h3>
+                    <p style={{ fontSize:11, color: settings.thankyou_subtitle_color||'#444', marginBottom:12 }}>
+                      {settings.thankyou_subtitle_text || 'Thank you for completing!'}
+                    </p>
+                    <button style={{ width:'100%', padding:'8px', background:settings.submit_btn_bg_color||'#6366f1', color:settings.submit_btn_text_color||'#fff', border:'none', borderRadius:6, fontWeight:700, fontSize:12, cursor:'pointer' }}>
+                      {settings.submit_btn_text || 'Submit & Explore'}
+                    </button>
+                  </div>
+                </>
+              )}
+
+              {/* Sounds/Email/Other Tabs */}
+              {!['display','settings','thankyou'].includes(tab) && (
+                <>
+                  {settings.game_logo_url && (
+                    <img src={settings.game_logo_url} alt="Logo" style={{ width:'100%', maxHeight:40, objectFit:'contain', borderRadius:6, marginBottom:8 }} />
+                  )}
+                  <h2 style={{ fontSize:14, fontWeight:800, color: heading1Color, textAlign:'center', marginBottom:4, fontFamily: settings.font_family || 'DM Sans' }}>
+                    {settings.heading_1 || 'Jigsaw Puzzle'}
+                  </h2>
+                  <p style={{ fontSize:11, color:'#666', textAlign:'center', marginTop:20 }}>Preview for this tab</p>
+                </>
+              )}
+
             </div>
           </div>
         </div>

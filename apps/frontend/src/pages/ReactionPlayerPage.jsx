@@ -106,7 +106,7 @@ export default function ReactionPlayerPage({ gameData, sessionToken, onComplete 
           <div style={{ background:'#fef2f2',borderRadius:12,padding:16,marginBottom:20 }}>
             <p style={{ fontSize:13,color:'#991b1b',lineHeight:1.6 }}>⚡ Wait for the screen to turn green, then tap as fast as you can! {totalRounds} rounds.</p>
           </div>
-          <button onClick={handleStart} style={{ background: settings?.start_button_bg_color || `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color: settings?.start_button_text_color || '#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:ff,boxShadow:`0 6px 20px ${primaryColor}44`,width:'100%',maxWidth:280 }}>{settings?.start_button_text||'Start Test →'}</button>
+          <button onClick={handleStart} style={{ background:`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color:'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:ff,boxShadow:`0 6px 20px ${primaryColor}44`,width:'100%',maxWidth:280 }}>{settings?.start_button_text||'Start Test →'}</button>
         </div>
       </div>
     )

@@ -44,6 +44,7 @@ router.put('/:gameId/settings', auth, upload.fields([
     intro_text, outro_text, submit_button_text, continue_button_text, start_button_text,
     terms_enabled, terms_text, terms_url, meta_description,
     sound_correct_id, sound_wrong_id,
+    allow_difficulty_selection,
   } = req.body;
 
   try {
@@ -90,6 +91,7 @@ router.put('/:gameId/settings', auth, upload.fields([
       meta_description: meta_description !== undefined ? meta_description : (e.meta_description || null),
       sound_correct_id: sound_correct_id !== undefined && sound_correct_id !== '' ? Number(sound_correct_id) : (e.sound_correct_id || null),
       sound_wrong_id: sound_wrong_id !== undefined && sound_wrong_id !== '' ? Number(sound_wrong_id) : (e.sound_wrong_id || null),
+      allow_difficulty_selection: n(allow_difficulty_selection, e.allow_difficulty_selection || 0),
     };
 
     if (existing.length === 0) {

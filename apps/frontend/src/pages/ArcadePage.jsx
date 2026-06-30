@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import GameModal from '../components/GameModal'
+import PlayerNavbar from '../components/PlayerNavbar'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -208,7 +209,6 @@ export default function ArcadePage() {
   const [promogames, setPromogames] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeGame, setActiveGame] = useState(null)
-  const [menuOpen, setMenuOpen] = useState(false)
 
   useEffect(() => {
     fetch('/api/play/play-page-games')
@@ -244,27 +244,8 @@ export default function ArcadePage() {
       <style>{CSS}</style>
       <div className="arc-scroll-bar" />
 
-      {/* NAV (LandingPage style) */}
-      <div className="nav-wrap">
-        <nav className="navbar">
-          <a href="/" className="logo">
-            <img src="/favicon2.png" alt="Promogames" className="logo-mark"
-              style={{ borderRadius:'9px', objectFit:'cover' }} />
-          </a>
-          <ul className="nav-links" style={{ justifySelf:'center' }}>
-            {NAV.map(n => <li key={n.label}><a href={n.href}>{n.label}</a></li>)}
-          </ul>
-          <a href="/login" className="nav-btn-cta">Signup &amp; Play</a>
-          <button className={`ham${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(p => !p)}>
-            <span /><span /><span />
-          </button>
-        </nav>
-      </div>
-
-      <div className={`mob-overlay${menuOpen ? ' open' : ''}`}>
-        {[{label:"Play",href:"/arcade"},...NAV].map(n => <a key={n.label} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>)}
-        <a href="/login" className="mob-cta">Signup &amp; Play</a>
-      </div>
+      {/* NAV */}
+      <PlayerNavbar />
 
       {/* CONTENT */}
       <div className="arc-content">

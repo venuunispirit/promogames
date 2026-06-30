@@ -177,7 +177,6 @@ export default function MazeBuilderPage() {
         bg_color: settings.bg_color, primary_color: settings.primary_color,
         wall_color: settings.wall_color, path_color: settings.path_color,
         heading_1_color: heading1Color, heading_2_color: heading2Color, description_color: descColor,
-        outro_text_color: settings.outro_text_color,
       }
       await api.put(`/maze/${id}/settings`, body)
       showToast('Settings saved')
@@ -235,13 +234,7 @@ export default function MazeBuilderPage() {
       <style>{LIGHT}</style>
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
       <div className="mb-header">
-        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}>
-          <button className="mb-icon-btn" onClick={handleBack} style={{ fontSize:16, lineHeight:1, marginTop:1 }}>←</button>
-          <div>
-            <div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div>
-            <div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Maze Builder</div>
-          </div>
-        </div>
+        <div><button className="mb-icon-btn" onClick={handleBack} style={{ fontSize:16, lineHeight:1 }}>←</button></div>
         <div className="mb-tabs">{TABS.map(t => (<button key={t.id} className={`mb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>))}</div>
         <div style={{ textAlign:'right' }}><button className="mb-btn mb-btn-sm" onClick={saveSettings} disabled={saving}>{saving?'⏳ Saving…':'💾 Save'}</button></div>
       </div>

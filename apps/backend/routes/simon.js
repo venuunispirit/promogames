@@ -24,11 +24,6 @@ router.put('/:gameId/settings', auth, upload.fields([
     submit_button_text, continue_button_text, start_button_text,
     terms_enabled, terms_text, terms_url, meta_description,
     bg_image_url, thankyou_bg_image_url, game_logo_url, submit_confirm_gif_url,
-    intro_text_color, outro_text_color,
-    thankyou_subtitle, thankyou_subtitle_color,
-    submit_button_text_color, submit_button_bg_color,
-    continue_button_text_color, continue_button_bg_color,
-    start_button_text_color, start_button_bg_color,
   } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM simon_settings WHERE game_id = ?', [req.params.gameId]);
@@ -70,16 +65,6 @@ router.put('/:gameId/settings', auth, upload.fields([
       terms_text: terms_text !== undefined ? terms_text : (e.terms_text || null),
       terms_url: terms_url !== undefined ? terms_url : (e.terms_url || null),
       meta_description: meta_description !== undefined ? meta_description : (e.meta_description || null),
-      intro_text_color: intro_text_color || e.intro_text_color || null,
-      outro_text_color: outro_text_color || e.outro_text_color || null,
-      thankyou_subtitle: thankyou_subtitle !== undefined ? thankyou_subtitle : (e.thankyou_subtitle || null),
-      thankyou_subtitle_color: thankyou_subtitle_color || e.thankyou_subtitle_color || null,
-      submit_button_text_color: submit_button_text_color || e.submit_button_text_color || null,
-      submit_button_bg_color: submit_button_bg_color || e.submit_button_bg_color || null,
-      continue_button_text_color: continue_button_text_color || e.continue_button_text_color || null,
-      continue_button_bg_color: continue_button_bg_color || e.continue_button_bg_color || null,
-      start_button_text_color: start_button_text_color || e.start_button_text_color || null,
-      start_button_bg_color: start_button_bg_color || e.start_button_bg_color || null,
     };
     if (existing.length === 0) {
       const keys = Object.keys(fields);

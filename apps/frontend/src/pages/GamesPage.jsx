@@ -41,6 +41,9 @@ const CATEGORY_META = {
   bubbleshooter:{ label:'Bubble Shooter',  bg:' #ECFEFF', fg:' #0E7490', dot:' #06B6D4', icon:'🫧', desc:'Pop matching bubbles' },
   carlaunch:   { label:'Car Launch',       bg:' #0F172A', fg:' #ef4444', dot:' #ef4444', icon:'🏎️', desc:'3D car configurator + drag race' },
   arrowescape:{ label:'Arrow Escape',    bg:' #FEF3C7', fg:' #92400E', dot:' #F59E0B', icon:'➡️', desc:'Guide arrows through mazes' },
+  stressbuster:{ label:'Stress Buster',  bg:' #FEF2F2', fg:' #991B1B', dot:' #F87171', icon:'😤', desc:'Click-based stress relief game' },
+  soundify:    { label:'Soundify',       bg:' #F5F3FF', fg:' #6D28D9', dot:' #A78BFA', icon:'🔊', desc:'Sound-based interactive quiz' },
+  tictactoe:   { label:'Tic Tac Toe',    bg:' #EFF6FF', fg:' #1D4ED8', dot:' #3B82F6', icon:'❌', desc:'Classic noughts and crosses' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:' #F3F4F6', fg:' #374151', dot:' #9CA3AF' }
 
@@ -285,6 +288,7 @@ function QuickAddClientModal({ onClose, onCreated, onError }) {
 function CreateModal({ clients, onClose, onCreated, onError, onAddClient }) {
   const [form, setForm] = useState({client_id:'',name:'',category:'quiz',description:'',redirect_url:''})
   const [submitting, setSubmitting] = useState(false)
+  const [gameTypeSearch, setGameTypeSearch] = useState('')
   const navigate = useNavigate()
   const set = k => e => setForm(f => ({...f,[k]:e.target.value}))
 
@@ -350,6 +354,28 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/rps-builder`)
     } else if (game.category === 'arrowescape') {
       navigate(`/dashboard/games/${game.id}/arrowescape-builder`)
+    } else if (game.category === 'bejeweled') {
+      navigate(`/dashboard/games/${game.id}/bejeweled-builder`)
+    } else if (game.category === 'tetris') {
+      navigate(`/dashboard/games/${game.id}/tetris-builder`)
+    } else if (game.category === 'stack') {
+      navigate(`/dashboard/games/${game.id}/stack-builder`)
+    } else if (game.category === 'whackamole') {
+      navigate(`/dashboard/games/${game.id}/whackamole-builder`)
+    } else if (game.category === 'hanoi') {
+      navigate(`/dashboard/games/${game.id}/hanoi-builder`)
+    } else if (game.category === 'breakout') {
+      navigate(`/dashboard/games/${game.id}/breakout-builder`)
+    } else if (game.category === 'bubbleshooter') {
+      navigate(`/dashboard/games/${game.id}/bubbleshooter-builder`)
+    } else if (game.category === 'carlaunch') {
+      navigate(`/dashboard/games/${game.id}/carlaunch-builder`)
+    } else if (game.category === 'frustration' || game.category === 'stressbuster') {
+      navigate(`/dashboard/games/${game.id}/frustration-builder`)
+    } else if (game.category === 'soundify') {
+      navigate(`/dashboard/games/${game.id}/soundify-builder`)
+    } else if (game.category === 'tictactoe') {
+      navigate(`/dashboard/games/${game.id}/tictactoe-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }
@@ -411,10 +437,10 @@ const handleSubmit = async e => {
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <div style={{position:'relative',flex:1}}>
                 <select value={form.client_id} onChange={set('client_id')} required style={{
-                  width:'100%',padding:'11px 40px 11px 14px',borderRadius:10,
+                  width:'100%',padding:'9px 36px 9px 12px',borderRadius:8,
                   border:'1.5px solid rgba(0,0,0,0.08)',
                   background:'rgba(255,255,255,0.6)',
-                  fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+                  fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
                   appearance:'none',cursor:'pointer',transition:'all .2s',
                 }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}}>
                   <option value="">Select a client…</option>
@@ -423,8 +449,8 @@ const handleSubmit = async e => {
                 <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'#9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
               </div>
               <button type="button" onClick={onAddClient} style={{
-                padding:'11px 14px',whiteSpace:'nowrap',fontSize:12,fontWeight:600,
-                borderRadius:10,border:'1.5px dashed rgba(0,0,0,0.12)',background:'rgba(255,255,255,0.4)',
+                padding:'9px 12px',whiteSpace:'nowrap',fontSize:12,fontWeight:600,
+                borderRadius:8,border:'1.5px dashed rgba(0,0,0,0.12)',background:'rgba(255,255,255,0.4)',
                 color:'#8B5CF6',cursor:'pointer',transition:'all .15s',fontFamily:"'DM Sans',sans-serif",
               }} onMouseOver={e=>{e.currentTarget.style.borderColor='#8B5CF6';e.currentTarget.style.background='rgba(139,92,246,0.08)'}} onMouseOut={e=>{e.currentTarget.style.borderColor='rgba(0,0,0,0.12)';e.currentTarget.style.background='rgba(255,255,255,0.4)'}}>
                 + Add Client
@@ -447,8 +473,29 @@ const handleSubmit = async e => {
           {/* Category Grid */}
           <div style={{marginBottom:20}}>
             <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}>Choose Game Type</label>
+            <div style={{position:'relative',marginBottom:12}}>
+              <svg style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'#9CA3AF'}} width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <input
+                type="text"
+                placeholder="Search game types..."
+                value={gameTypeSearch}
+                onChange={e => setGameTypeSearch(e.target.value)}
+                style={{
+                  width:'100%',padding:'9px 12px 9px 36px',borderRadius:8,
+                  border:'1.5px solid rgba(0,0,0,0.08)',
+                  background:'rgba(255,255,255,0.6)',
+                  fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+                  transition:'all .2s',
+                }}
+                onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}}
+                onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}}
+              />
+              {gameTypeSearch && (
+                <button type="button" onClick={() => setGameTypeSearch('')} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#9CA3AF',padding:2,fontSize:14,lineHeight:1}}>×</button>
+              )}
+            </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(155px, 1fr))',gap:12}}>
-              {Object.entries(CATEGORY_META).map(([k,v]) => {
+              {Object.entries(CATEGORY_META).sort((a, b) => a[1].label.localeCompare(b[1].label)).filter(([k,v]) => !gameTypeSearch || v.label.toLowerCase().includes(gameTypeSearch.toLowerCase()) || v.desc.toLowerCase().includes(gameTypeSearch.toLowerCase())).map(([k,v]) => {
                 const selected = form.category === k
                 return (
                   <button key={k} type="button"
@@ -869,6 +916,9 @@ export default function GamesPage() {
                                 else if (game.category === 'bubbleshooter') navigate(`/dashboard/games/${game.id}/bubbleshooter-builder`)
                                 else if (game.category === 'carlaunch') navigate(`/dashboard/games/${game.id}/carlaunch-builder`)
                                 else if (game.category === 'arrowescape') navigate(`/dashboard/games/${game.id}/arrowescape-builder`)
+                                else if (game.category === 'frustration' || game.category === 'stressbuster') navigate(`/dashboard/games/${game.id}/frustration-builder`)
+                                else if (game.category === 'soundify') navigate(`/dashboard/games/${game.id}/soundify-builder`)
+                                else if (game.category === 'tictactoe') navigate(`/dashboard/games/${game.id}/tictactoe-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">
                               <Ico.wrench/> Builder

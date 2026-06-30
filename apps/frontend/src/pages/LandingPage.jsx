@@ -1,31 +1,10 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { motion, useScroll, useTransform } from "framer-motion";
 import CountUp from "../components/CountUp";
-import BreakoutGame from "../components/BreakoutGame";
-import {
-  ScrollProgress,
-  SmoothReveal,
-  ParallaxContent,
-  ParallaxBg,
-  StaggerContainer,
-  StaggerItem,
-  SlideIn,
-  ScaleReveal,
-  TextReveal,
-  CharReveal,
-  MagneticElement,
-  BlurReveal,
-  SectionDivider,
-  GradientShift,
-  StickySection,
-} from "../components/ScrollAnimations";
+import PlayerNavbar from "../components/PlayerNavbar";
+import WaveText from "../components/WaveText";
+import ArkanoidGame from "../components/ArkanoidGame";
 
 /* ─── DATA ─────────────────────────────────────────── */
-const NAV = [
-  { label: "Play",        href: "/arcade"      },
-  { label: "Leaderboard", href: "/leaderboard"  },
-];
-
 const MARQUEE_TEXTS = [
   "Play Fast. Win Big.",
   "Every Game Is A Chance To Win.",
@@ -173,33 +152,6 @@ body.cursor-hover .cursor-dot{width:14px;height:14px;background:#fff}
 body.cursor-hover .cursor-ring{width:52px;height:52px;border-color:rgba(192,64,255,0.9)}
 body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opacity:0}
 
-/* NAV */
-.nav-wrap{position:fixed;top:0;left:0;right:0;z-index:1000;padding:18px 0;pointer-events:none;display:flex;justify-content:center}
-.navbar{pointer-events:all;width:62%;max-width:700px;min-width:580px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:11px 20px 11px 18px;border-radius:100px;background:rgba(7,4,15,0.88);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(146,16,246,0.22);box-shadow:0 8px 48px rgba(0,0,0,0.60)}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-mark{width:auto;height:60px;border-radius:9px;flex-shrink:0;background:transparent;display:grid;place-items:center;font-family:var(--fb);font-weight:800;font-size:18px;margin-right:0}
-.logo-name{font-family:var(--fh);font-weight:400;font-size:20px;color:#fff;white-space:nowrap;letter-spacing:2px}
-.nav-links{list-style:none;display:flex;gap:26px;align-items:center}
-.nav-links a{font-family:var(--fb);font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;position:relative;transition:color .22s;cursor:none}
-.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--purple3));transition:width .25s}
-.nav-links a:hover{color:#fff}
-.nav-links a:hover::after{width:100%}
-.login-link{font-family:var(--fb);font-size:13.5px;font-weight:700;color:#fff!important;padding:7px 18px;border-radius:100px;border:1px solid rgba(146,16,246,0.45)!important;background:rgba(146,16,246,0.12);transition:background .2s,border-color .2s!important;cursor:none;margin-right:40px}
-.login-link:hover{background:rgba(146,16,246,0.28)!important;border-color:rgba(146,16,246,0.7)!important}
-.login-link::after{display:none!important}
-.nav-btn-cta{position:relative;overflow:hidden;display:inline-flex;align-items:center;height:38px;padding:0 22px;border-radius:100px;border:none;background:linear-gradient(90deg,var(--purple2),var(--purple));text-decoration:none;cursor:none;font-family:var(--fb);font-weight:700;font-size:13px;color:#fff;transition:opacity .2s;margin-left:0}
-.nav-btn-cta:hover{opacity:.85}
-.ham{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:none;padding:4px}
-.ham span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:all .3s}
-.ham.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-.ham.open span:nth-child(2){opacity:0}
-.ham.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-.mob-overlay{display:none;position:fixed;inset:0;top:74px;background:rgba(7,4,15,0.97);backdrop-filter:blur(20px);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:30px}
-.mob-overlay.open{display:flex}
-.mob-overlay a{font-family:var(--fh);font-size:26px;color:#fff;text-decoration:none;opacity:.80;transition:opacity .2s;letter-spacing:2px}
-.mob-overlay a:hover{opacity:1}
-.mob-cta{margin-top:8px;padding:14px 40px;border-radius:100px;background:linear-gradient(90deg,var(--purple2),var(--purple));color:#fff;font-family:var(--fb);font-size:17px;font-weight:700;text-decoration:none}
-
 /* BUTTONS */
 .btn-primary{display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 32px;border-radius:100px;background:linear-gradient(90deg,var(--purple2),var(--purple));color:#fff;font-family:var(--fb);font-weight:700;font-size:15px;text-decoration:none;cursor:none;border:none;transition:opacity .2s,transform .2s}
 .btn-primary:hover{opacity:.88;transform:translateY(-2px)}
@@ -222,31 +174,31 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 /* HERO */
 #home{width:100%;min-height:100svh;padding:120px 6% 70px;display:flex;align-items:center;position:relative;overflow:hidden;background:radial-gradient(ellipse 90% 60% at 50% -10%,rgba(146,16,246,0.22) 0%,transparent 65%),radial-gradient(ellipse 50% 40% at 85% 60%,rgba(97,4,151,0.14) 0%,transparent 60%),var(--bg)}
 .hero-inner{width:100%;max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1fr 480px;gap:60px;align-items:center}
-.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border-radius:100px;background:rgba(146,16,246,0.12);border:1px solid rgba(146,16,246,0.30);font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:24px}
-.hero-h1{font-family:var(--fh);font-size:clamp(52px,7.5vw,110px);font-weight:400;letter-spacing:3px;line-height:.96;margin-bottom:22px}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border-radius:100px;background:rgba(146,16,246,0.12);border:1px solid rgba(146,16,246,0.30);font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:24px;animation:fadeUp .6s ease both}
+.hero-h1{font-family:var(--fh);font-size:clamp(52px,7.5vw,110px);font-weight:400;letter-spacing:3px;line-height:1;margin-bottom:22px;animation:fadeUp .6s .1s ease both}
 .hero-h1 .line-accent{display:block;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;animation:glitch 5s infinite}
 .hero-h1 .line-accent::before,.hero-h1 .line-accent::after{content:attr(data-text);position:absolute;inset:0;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;pointer-events:none}
 .hero-h1 .line-accent::before{animation:glitchTop 5s infinite;clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}
 .hero-h1 .line-accent::after{animation:glitchBottom 5s infinite;clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}
-@keyframes glitch{0%,5%,44%,49%,100%{transform:translate(0)}1%{transform:translate(-3px,2px)}2%{transform:translate(3px,-1px)}3%{transform:translate(-2px,-2px)}4%{transform:translate(0)}45%{transform:translate(4px,-2px)}46%{transform:translate(-4px,1px)}47%{transform:translate(2px,2px)}48%{transform:translate(0)}}
-@keyframes glitchTop{0%,5%,44%,49%,100%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}1%{transform:translate(-5px,4px);clip-path:polygon(0 0,100% 0,100% 45%,0 45%)}2%{transform:translate(5px,-3px);clip-path:polygon(0 0,100% 0,100% 20%,0 20%)}3%,4%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}45%{transform:translate(-6px,3px);clip-path:polygon(0 0,100% 0,100% 55%,0 55%)}46%{transform:translate(6px,-2px);clip-path:polygon(0 0,100% 0,100% 25%,0 25%)}47%,48%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}}
-@keyframes glitchBottom{0%,5%,44%,49%,100%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}1%{transform:translate(4px,-3px);clip-path:polygon(0 55%,100% 55%,100% 100%,0 100%)}2%{transform:translate(-5px,2px);clip-path:polygon(0 75%,100% 75%,100% 100%,0 100%)}3%,4%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}45%{transform:translate(5px,3px);clip-path:polygon(0 50%,100% 50%,100% 100%,0 100%)}46%{transform:translate(-4px,-3px);clip-path:polygon(0 80%,100% 80%,100% 100%,0 100%)}47%,48%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}}
-.hero-sub{font-family:var(--fb);font-size:17px;color:var(--muted);line-height:1.75;max-width:460px;margin-bottom:36px}
-.hero-actions{display:flex;align-items:center;gap:14px;margin-bottom:44px;flex-wrap:wrap}
-.hero-stats{display:flex;gap:0}
+@keyframes glitch{0%,15%,35%,55%,100%{transform:translate(0)}3%{transform:translate(-3px,2px)}5%{transform:translate(3px,-1px)}7%{transform:translate(-2px,-2px)}9%{transform:translate(0)}38%{transform:translate(4px,-2px)}40%{transform:translate(-4px,1px)}42%{transform:translate(2px,2px)}44%,52%{transform:translate(0)}46%{transform:translate(-5px,3px)}48%{transform:translate(5px,-2px)}50%{transform:translate(-3px,1px)}}
+@keyframes glitchTop{0%,15%,35%,55%,100%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}3%{transform:translate(-5px,4px);clip-path:polygon(0 0,100% 0,100% 45%,0 45%)}5%{transform:translate(5px,-3px);clip-path:polygon(0 0,100% 0,100% 20%,0 20%)}7%,9%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}38%{transform:translate(-6px,3px);clip-path:polygon(0 0,100% 0,100% 55%,0 55%)}40%{transform:translate(6px,-2px);clip-path:polygon(0 0,100% 0,100% 25%,0 25%)}42%,44%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}46%{transform:translate(-4px,5px);clip-path:polygon(0 0,100% 0,100% 50%,0 50%)}48%{transform:translate(4px,-4px);clip-path:polygon(0 0,100% 0,100% 15%,0 15%)}50%,52%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}}
+@keyframes glitchBottom{0%,15%,35%,55%,100%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}3%{transform:translate(4px,-3px);clip-path:polygon(0 55%,100% 55%,100% 100%,0 100%)}5%{transform:translate(-5px,2px);clip-path:polygon(0 75%,100% 75%,100% 100%,0 100%)}7%,9%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}38%{transform:translate(5px,3px);clip-path:polygon(0 50%,100% 50%,100% 100%,0 100%)}40%{transform:translate(-5px,-3px);clip-path:polygon(0 80%,100% 80%,100% 100%,0 100%)}42%,44%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}46%{transform:translate(3px,-4px);clip-path:polygon(0 58%,100% 58%,100% 100%,0 100%)}48%{transform:translate(-3px,4px);clip-path:polygon(0 72%,100% 72%,100% 100%,0 100%)}50%,52%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}}
+.hero-sub{font-family:var(--fb);font-size:17px;color:var(--muted);line-height:1.75;max-width:460px;margin-bottom:36px;animation:fadeUp .6s .18s ease both}
+.hero-actions{display:flex;align-items:center;gap:14px;margin-bottom:44px;flex-wrap:wrap;animation:fadeUp .6s .26s ease both}
+.hero-stats{display:flex;gap:0;animation:fadeUp .6s .34s ease both}
 .hst{padding:0 28px;display:flex;flex-direction:column;gap:4px}
 .hst:not(:last-child){border-right:1px solid rgba(255,255,255,0.10)}
 .hst:first-child{padding-left:0}
 .hst-n{font-family:var(--fh);font-size:clamp(22px,2.4vw,32px);font-weight:400;letter-spacing:1px;line-height:1;background:linear-gradient(90deg,#fff,rgba(255,255,255,0.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hst-l{font-family:var(--fb);font-size:11px;color:var(--muted);letter-spacing:.3px}
-.hero-games{display:flex;flex-direction:column;gap:10px}
+.hero-games{display:flex;flex-direction:column;gap:10px;animation:fadeUp .6s .2s ease both}
 .hero-games-title{font-family:var(--fm);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:8px}
 .hero-games-title::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.08)}
 .hg-card{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);cursor:none;transition:background .22s,border-color .22s,transform .22s;text-decoration:none;color:#fff;position:relative;overflow:hidden}
 .hg-card::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(146,16,246,0.06) 100%);opacity:0;transition:opacity .25s}
 .hg-card:hover{background:rgba(255,255,255,0.07);border-color:rgba(146,16,246,0.35);transform:translateX(4px)}
 .hg-card:hover::before{opacity:1}
-.hg-rank{font-family:var(--fh);font-size:28px;letter-spacing:1px;color:rgba(255,255,255,0.15);width:36px;flex-shrink:0;line-height:1}
+.hg-rank{font-family:var(--fh);font-size:28px;letter-spacing:1px;color:rgba(255,255,255,0.15);width:36px;flex-shrink:0;line-height:1;animation:rankPop .5s cubic-bezier(.34,1.56,.64,1) both}
 .hg-rank.top{color:var(--gold)}
 .hg-thumb{width:52px;height:52px;border-radius:12px;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,rgba(146,16,246,0.3),rgba(97,4,151,0.2))}
 .hg-thumb-placeholder{width:52px;height:52px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,rgba(146,16,246,0.22),rgba(97,4,151,0.14));display:flex;align-items:center;justify-content:center;font-size:22px}
@@ -459,7 +411,7 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .stat-lbl{font-family:var(--fb);font-size:13px;color:var(--muted);font-weight:500;letter-spacing:.3px}
 
 /* FINAL CTA */
-#cta-final{padding:120px 6%;text-align:center;position:relative;overflow:hidden;background:radial-gradient(ellipse 70% 90% at 50% 50%,rgba(146,16,246,0.14) 0%,transparent 70%)}
+#cta-final{padding:0;text-align:center;position:relative;overflow:hidden;background:transparent;min-height:80vh;display:flex;flex-direction:column;justify-content:stretch}
 #cta-final::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(146,16,246,0.4),transparent)}
 .cta-final-h2{font-family:var(--fh);font-size:clamp(52px,8vw,120px);letter-spacing:3px;line-height:.95;margin-bottom:20px}
 .cta-final-h2 span{display:block;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -494,12 +446,7 @@ section::before,section::after,.marquee-strip::before,.marquee-strip::after,foot
 .footer-bar a:hover{color:#fff}
 
 /* RESPONSIVE */
-@media(max-width:1100px){.navbar{width:78%}}
 @media(max-width:900px){
-  .nav-links,.nav-btn-cta{display:none}
-  .ham{display:flex}
-  .nav-wrap{padding:12px 20px;display:block}
-  .navbar{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}
   .hero-inner{grid-template-columns:1fr;gap:40px}
   .lb-inner,.why-inner{grid-template-columns:1fr}
   .why-visual{display:none}
@@ -858,28 +805,6 @@ function TestimonialsCarousel({ onIndexChange }) {
 }
 
 /* ─── MAIN COMPONENT ────────────────────────────────── */
-const QUICK_FONTS = [
-  "'Poppins',sans-serif",
-  "'Inter',sans-serif",
-  "'Playfair Display',serif",
-  "'Monoton',cursive",
-  "'Bangers',cursive",
-  "'Orbitron',sans-serif",
-  "'Space Grotesk',sans-serif",
-  "'Cinzel',serif",
-  "'Unbounded',sans-serif",
-  "'Abril Fatface',cursive",
-  "'Great Vibes',cursive",
-  "'Pacifico',cursive",
-  "'Caveat',cursive",
-  "'Dancing Script',cursive",
-  "'Bodoni Moda',serif",
-  "'Cormorant Garamond',serif",
-  "'Anton',sans-serif",
-  "'Righteous',cursive",
-  "'Old Standard TT',serif",
-  "'Prata',serif",
-];
 
 function AnimateBar({ pct, threshold = 0.3 }) {
   const ref = useRef(null);
@@ -901,8 +826,6 @@ function AnimateBar({ pct, threshold = 0.3 }) {
 }
 
 export default function PromoGamesHome() {
-  const [fontIdx, setFontIdx] = useState(0);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [leaderboardEntries] = useState(DUMMY_LEADERBOARD);
   const [leaderboardLoading] = useState(false);
   const dotRef  = useRef(null);
@@ -914,8 +837,7 @@ export default function PromoGamesHome() {
 
   useEffect(() => {
     const move  = e => { mx.current = e.clientX; my.current = e.clientY; document.body.classList.add('cursor-visible'); };
-    const enter = () => document.body.classList.add('cursor-hover');
-    const leave = () => document.body.classList.remove('cursor-hover');
+    const enter = () => document.body.classList.add('cursor-hover');    const leave = () => document.body.classList.remove('cursor-hover');
     document.addEventListener('mousemove', move);
     document.querySelectorAll('a,button').forEach(el => {
       el.addEventListener('mouseenter', enter);
@@ -930,11 +852,6 @@ export default function PromoGamesHome() {
     };
     rafRef.current = requestAnimationFrame(loop);
     return () => { document.removeEventListener('mousemove', move); cancelAnimationFrame(rafRef.current); };
-  }, []);
-
-  useEffect(() => {
-    const id = setInterval(() => setFontIdx(i => (i + 1) % QUICK_FONTS.length), 200);
-    return () => clearInterval(id);
   }, []);
 
   const flyModeRef = useRef('path');
@@ -1033,7 +950,6 @@ export default function PromoGamesHome() {
   return (
     <>
       <style>{CSS}</style>
-      <ScrollProgress />
       <div className="scroll-bar" />
       <div ref={dotRef}  className="cursor-dot"  />
       <div ref={ringRef} className="cursor-ring" />
@@ -1046,191 +962,99 @@ export default function PromoGamesHome() {
         }} />
 
       {/* ── NAV ── */}
-      <div className="nav-wrap">
-        <nav className="navbar">
-          <a href="#home" className="logo">
-            <img src="/favicon2.png" alt="Promogames" className="logo-mark"
-              style={{ borderRadius:'9px', objectFit:'cover' }} />
-          </a>
-          <ul className="nav-links" style={{ justifySelf:'center' }}>
-            {NAV.map(n => <li key={n.label}><a href={n.href}>{n.label}</a></li>)}
-          </ul>
-          <a href="/login" className="nav-btn-cta">Signup &amp; Play</a>
-          <button className={`ham${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(p => !p)}>
-            <span /><span /><span />
-          </button>
-        </nav>
-      </div>
-
-      <div className={`mob-overlay${menuOpen ? ' open' : ''}`}>
-        {NAV.map(n => <a key={n.label} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>)}
-        <a href="/login" className="mob-cta">Signup &amp; Play</a>
-      </div>
+      <PlayerNavbar />
 
       {/* ── HERO ── */}
-      <section id="home" style={{ position: 'relative', overflow: 'hidden' }}>
-        {/* Parallax background gradient */}
-        <div style={{ position: 'absolute', inset: 0, zIndex: 0, overflow: 'hidden' }}>
-          <motion.div
-            style={{
-              position: 'absolute',
-              inset: '-20%',
-              background: 'radial-gradient(ellipse 80% 50% at 50% 0%, rgba(146,16,246,0.25) 0%, transparent 60%), radial-gradient(ellipse 50% 40% at 80% 60%, rgba(97,4,151,0.15) 0%, transparent 50%)',
-              y: useTransform(useScroll().scrollYProgress, [0, 1], [0, -100]),
-            }}
-          />
-        </div>
-
-        <div className="hero-inner" style={{ position: 'relative', zIndex: 1 }}>
+      <section id="home">
+        <div className="hero-inner">
           <div className="hero-left">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="hero-eyebrow">🎮 Gaming That Rewards You</div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 40 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.9, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <h1 className="hero-h1">
-                <CharReveal text="Quick Games." style={{ fontFamily: QUICK_FONTS[fontIdx] }} /><br />
-                <span className="line-accent" data-text="Real Rewards.">Real Rewards.</span>
-              </h1>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8, delay: 0.5, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <p className="hero-sub">
-                Play exciting quick games, climb the leaderboard, and unlock real-time rewards every day.
-              </p>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.7, delay: 0.6, ease: [0.22, 1, 0.36, 1] }}
-            >
-              <div className="hero-actions">
-                <MagneticElement strength={0.2}>
-                  <a href="/arcade" className="btn-primary">Start Playing <Arr /></a>
-                </MagneticElement>
-                <MagneticElement strength={0.2}>
-                  <a href="/leaderboard" className="btn-ghost">Join The Leaderboard</a>
-                </MagneticElement>
-              </div>
-            </motion.div>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.8 }}
-            >
-              <div className="hero-stats">
-                {STATS.map(({ val, label }) => (
-                  <div className="hst" key={label}>
-                    <CountUp as="span" className="hst-n" value={val} />
-                    <span className="hst-l">{label}</span>
-                  </div>
-                ))}
-              </div>
-            </motion.div>
+            <div className="hero-eyebrow">🎮 Gaming That Rewards You</div>
+            <h1 className="hero-h1">
+              <WaveText text="Quick Games." fontSize="clamp(52px,7.5vw,110px)" /><br />
+              <span className="line-accent" data-text="Real Rewards.">Real Rewards.</span>
+            </h1>
+            <p className="hero-sub">
+              Play exciting quick games, climb the leaderboard, and unlock real-time rewards every day.
+            </p>
+            <div className="hero-actions">
+              <a href="/arcade" className="btn-primary">Start Playing <Arr /></a>
+              <a href="/leaderboard" className="btn-ghost">Join The Leaderboard</a>
+            </div>
+            <div className="hero-stats">
+              {STATS.map(({ val, label }) => (
+                <div className="hst" key={label}>
+                  <CountUp as="span" className="hst-n" value={val} />
+                  <span className="hst-l">{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
-          <SmoothReveal direction="right">
-            <HeroGames />
-          </SmoothReveal>
+          <HeroGames />
         </div>
       </section>
 
       {/* ── MARQUEE ── */}
-      <SectionDivider />
       <MarqueeStrip />
-      <SectionDivider />
 
       {/* ── FEATURED GAMES ── */}
-      <section id="featured" style={{ position: 'relative' }}>
-        <GradientShift>
-          <SmoothReveal direction="up">
-            <div className="featured-head">
-              <div>
-                <p className="section-kicker">Game Categories</p>
-                <TextReveal text="Pick Your Challenge" className="section-h2" />
-              </div>
-              <p className="featured-head-sub">
-                From reflex games to lucky spins, every game gives you a chance to rise on the leaderboard and win exciting gifts.
-              </p>
+      <section id="featured">
+        <div className="featured-head">
+          <div>
+            <p className="section-kicker">Game Categories</p>
+            <h2 className="section-h2">Pick Your<br />Challenge</h2>
+          </div>
+          <p className="featured-head-sub">
+            From reflex games to lucky spins, every game gives you a chance to rise on the leaderboard and win exciting gifts.
+          </p>
+        </div>
+        <div className="game-grid">
+          {GAME_CATEGORIES.map((g, i) => (
+            <div key={g.label} className="game-cat-card" style={{ animationDelay:`${i * 70}ms` }}>
+              <span className="game-cat-icon">{g.icon}</span>
+              <div className="game-cat-label">{g.label}</div>
+              <div className="game-cat-sub">Jump in and start playing — leaderboard spots are waiting.</div>
+              <div className="game-cat-btn">Play Now <Arr size={13} /></div>
             </div>
-          </SmoothReveal>
-          <StaggerContainer className="game-grid" stagger={0.08}>
-            {GAME_CATEGORIES.map((g, i) => (
-              <StaggerItem key={g.label}>
-                <MagneticElement strength={0.15}>
-                  <div className="game-cat-card">
-                    <span className="game-cat-icon">{g.icon}</span>
-                    <div className="game-cat-label">{g.label}</div>
-                    <div className="game-cat-sub">Jump in and start playing — leaderboard spots are waiting.</div>
-                    <div className="game-cat-btn">Play Now <Arr size={13} /></div>
-                  </div>
-                </MagneticElement>
-              </StaggerItem>
-            ))}
-          </StaggerContainer>
-        </GradientShift>
+          ))}
+        </div>
       </section>
 
       {/* ── HOW IT WORKS ── */}
-      <SectionDivider />
       <section id="how">
-        <ParallaxContent speed={0.1}>
-          <div className="how-inner">
-            <SmoothReveal>
-              <div className="how-head">
-                <p className="section-kicker">How It Works</p>
-                <TextReveal text="Play. Score. Win." className="section-h2" />
-                <p className="section-sub">Three simple steps to start winning real rewards.</p>
-              </div>
-            </SmoothReveal>
-            <StaggerContainer className="how-steps" stagger={0.15}>
-              {HOW_STEPS.map(step => (
-                <StaggerItem key={step.num}>
-                  <ScaleReveal>
-                    <div className="how-step">
-                      <div className="how-num">{step.num}</div>
-                      <div className="how-icon-wrap">{step.icon}</div>
-                      <div className="how-title">{step.title}</div>
-                      <div className="how-desc">{step.desc}</div>
-                    </div>
-                  </ScaleReveal>
-                </StaggerItem>
-              ))}
-            </StaggerContainer>
+        <div className="how-inner">
+          <div className="how-head">
+            <p className="section-kicker">How It Works</p>
+            <h2 className="section-h2">Play. Score. Win.</h2>
+            <p className="section-sub">Three simple steps stand between you and your next reward.</p>
           </div>
-        </ParallaxContent>
+          <div className="how-steps">
+            {HOW_STEPS.map(step => (
+              <div key={step.num} className="how-step">
+                <div className="how-num">{step.num}</div>
+                <div className="how-icon-wrap">{step.icon}</div>
+                <div className="how-title">{step.title}</div>
+                <div className="how-desc">{step.desc}</div>
+              </div>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* ── LEADERBOARD ── */}
-      <SectionDivider />
       <section id="leaderboard-section">
         <div className="lb-inner">
-          <SlideIn from="left">
-            <div className="lb-left">
-              <p className="section-kicker">Leaderboard</p>
-              <h2 className="section-h2">Rise To<br />The Top</h2>
-              <p className="section-sub lb-left-sub">
-                Compete with players across the platform and secure your spot among the top scorers.
-              </p>
-              <p className="lb-tagline">The higher your score, the closer you get to exciting rewards.</p>
-              <div style={{ marginTop:32 }}>
-                <MagneticElement strength={0.2}>
-                  <a href="/leaderboard" className="btn-primary">View Full Leaderboard <Arr /></a>
-                </MagneticElement>
-              </div>
+          <div className="lb-left">
+            <p className="section-kicker">Leaderboard</p>
+            <h2 className="section-h2">Rise To<br />The Top</h2>
+            <p className="section-sub lb-left-sub">
+              Compete with players across the platform and secure your spot among the top scorers.
+            </p>
+            <p className="lb-tagline">The higher your score, the closer you get to exciting rewards.</p>
+            <div style={{ marginTop:32 }}>
+              <a href="/leaderboard" className="btn-primary">View Full Leaderboard <Arr /></a>
             </div>
-          </SlideIn>
-          <SlideIn from="right">
-            <div className="lb-board">
+          </div>
+          <div className="lb-board">
             <div className="lb-header">
               <div className="lb-header-dot" style={{ background:'#ef4444' }} />
               <div className="lb-header-dot" style={{ background:'#f5c842' }} />
@@ -1279,136 +1103,89 @@ export default function PromoGamesHome() {
               })
             )}
           </div>
-        </SlideIn>
         </div>
       </section>
 
       {/* ── REWARDS (carousel) ── */}
-      <SectionDivider />
       <section id="rewards">
-        <SmoothReveal>
-          <div className="rewards-inner">
-            <p className="section-kicker">Rewards</p>
-            <h2 className="section-h2">Every Play Feels<br />Rewarding</h2>
-            <p className="section-sub">
-              Play games and unlock exciting gifts, cashback, coupons, exclusive offers, and surprise rewards.
-            </p>
-            <RewardsCarousel />
-          </div>
-        </SmoothReveal>
+        <div className="rewards-inner">
+          <p className="section-kicker">Rewards</p>
+          <h2 className="section-h2">Every Play Feels<br />Rewarding</h2>
+          <p className="section-sub">
+            Play games and unlock exciting gifts, cashback, coupons, exclusive offers, and surprise rewards.
+          </p>
+          <RewardsCarousel />
+        </div>
       </section>
 
       {/* ── WHY PLAY ── */}
-      <SectionDivider />
       <section id="why">
         <div className="why-inner">
-          <SlideIn from="left">
-            <div>
-              <h2 className="section-h2">Why Players<br />Love PromoGames</h2>
-              <StaggerContainer className="why-points" stagger={0.1}>
-                {WHY_POINTS.map((pt, i) => (
-                  <StaggerItem key={i}>
-                    <div className="why-point">
-                      <div className="why-check">✓</div>
-                      <span className="why-text">{pt}</span>
-                    </div>
-                  </StaggerItem>
-                ))}
-              </StaggerContainer>
+          <div>
+            <h2 className="section-h2">Why Players<br />Love PromoGames</h2>
+            <div className="why-points">
+              {WHY_POINTS.map((pt, i) => (
+                <div key={i} className="why-point">
+                  <div className="why-check">✓</div>
+                  <span className="why-text">{pt}</span>
+                </div>
+              ))}
             </div>
-          </SlideIn>
-          <SlideIn from="right">
-            <div className="why-visual">
-              <ReelsCarousel />
-            </div>
-          </SlideIn>
+          </div>
+          <div className="why-visual">
+            <ReelsCarousel />
+          </div>
         </div>
       </section>
 
       {/* ── TESTIMONIALS ── */}
-      <SectionDivider />
       <section id="testimonials">
-        <SmoothReveal>
-          <div className="testimonials-inner">
-            <div className="testimonials-head">
-              <p className="section-kicker">Player Stories</p>
-              <h2 className="section-h2">Real Players.<br />Real Wins.</h2>
-              <p className="section-sub">
-                Don't just take our word for it — hear from players who've already started winning.
-              </p>
-            </div>
+        <div className="testimonials-inner">
+          <div className="testimonials-head">
+            <p className="section-kicker">Player Stories</p>
+            <h2 className="section-h2">Real Players.<br />Real Wins.</h2>
+            <p className="section-sub">
+              Don't just take our word for it — hear from players who've already started winning.
+            </p>
+          </div>
           <TestimonialsCarousel onIndexChange={idx => { testimonialIdxRef.current = idx; }} />
         </div>
-        </SmoothReveal>
       </section>
 
       {/* ── DAILY PLAY ── */}
-      <SectionDivider />
       <section id="daily">
-        <SmoothReveal>
-          <div className="daily-inner">
-            <p className="section-kicker">Daily Play</p>
-            <h2 className="section-h2">A Treat You Can<br />Give Yourself</h2>
-            <p className="section-sub">
-              Take a quick break, play your favorite games, and make every moment more exciting with rewards waiting to be unlocked.
-            </p>
-            <MagneticElement strength={0.2}>
-              <a href="/arcade" className="btn-primary">Play Now <Arr /></a>
-            </MagneticElement>
-          </div>
-        </SmoothReveal>
+        <div className="daily-inner">
+          <p className="section-kicker">Daily Play</p>
+          <h2 className="section-h2">A Treat You Can<br />Give Yourself</h2>
+          <p className="section-sub">
+            Take a quick break, play your favorite games, and make every moment more exciting with rewards waiting to be unlocked.
+          </p>
+          <a href="/arcade" className="btn-primary">Play Now <Arr /></a>
+        </div>
       </section>
 
       {/* ── COMMUNITY ── */}
-      <SectionDivider />
       <section id="community">
-        <SmoothReveal>
-          <div className="community-inner">
-            <p className="section-kicker">Community</p>
-            <h2 className="section-h2" style={{ marginBottom:16 }}>Join The New Age<br />Of Reward Gaming</h2>
-            <p className="section-sub" style={{ marginBottom:64 }}>
-              Thousands of players are already competing, winning, and climbing the leaderboard every day.
-            </p>
-          </div>
-        </SmoothReveal>
-        <StaggerContainer className="stats-grid" stagger={0.1}>
+        <div className="community-inner">
+          <p className="section-kicker">Community</p>
+          <h2 className="section-h2" style={{ marginBottom:16 }}>Join The New Age<br />Of Reward Gaming</h2>
+          <p className="section-sub" style={{ marginBottom:64 }}>
+            Thousands of players are already competing, winning, and climbing the leaderboard every day.
+          </p>
+        </div>
+        <div className="stats-grid">
           {STATS.map(({ val, label }) => (
-            <StaggerItem key={label}>
-              <ScaleReveal>
-                <div className="stat-card">
-                  <CountUp as="div" className="stat-val" value={val} />
-                  <div className="stat-lbl">{label}</div>
-                </div>
-              </ScaleReveal>
-            </StaggerItem>
+            <div key={label} className="stat-card">
+              <CountUp as="div" className="stat-val" value={val} />
+              <div className="stat-lbl">{label}</div>
+            </div>
           ))}
-        </StaggerContainer>
+        </div>
       </section>
 
-      {/* ── FINAL CTA with Breakout Background ── */}
-      <SectionDivider />
-      <section id="cta-final" style={{ position:'relative',background:'#0f172a',overflow:'hidden',minHeight:500 }}>
-        {/* Breakout game as background */}
-        <div style={{ position:'absolute',inset:0,zIndex:1 }}>
-          <BreakoutGame />
-        </div>
-        {/* CTA content on top */}
-        <SmoothReveal>
-          <div style={{ position:'relative',zIndex:2,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'flex-start',minHeight:500,padding:'60px 20px 0',pointerEvents:'none' }}>
-            <div className="cta-final-h2" style={{ pointerEvents:'auto' }}>
-              Ready To<br /><span>Play &amp; Win?</span>
-            </div>
-            <p className="cta-final-sub" style={{ pointerEvents:'auto' }}>Your next reward could be just one game away.</p>
-            <div className="cta-final-actions" style={{ pointerEvents:'auto',marginTop:24 }}>
-              <MagneticElement strength={0.2}>
-                <a href="/arcade" className="btn-primary" style={{ height:58, fontSize:16, padding:'0 40px' }}>Play Now <Arr size={18} /></a>
-              </MagneticElement>
-              <MagneticElement strength={0.2}>
-                <a href="/arcade" className="btn-ghost"   style={{ height:58, fontSize:16 }}>Start Winning</a>
-              </MagneticElement>
-            </div>
-          </div>
-        </SmoothReveal>
+      {/* ── FINAL CTA ── */}
+      <section id="cta-final">
+        <ArkanoidGame />
       </section>
 
       {/* ── FOOTER ── */}

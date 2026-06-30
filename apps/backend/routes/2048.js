@@ -68,10 +68,6 @@ router.put('/:gameId/settings', auth, async (req, res) => {
       terms_url: s.terms_url || '',
       meta_description: s.meta_description || '',
       submit_confirm_gif_url: s.submit_confirm_gif_url || '',
-      overlay_animation_in: s.overlay_animation_in || 'flyFromBottom',
-      keep_going_button_text: s.keep_going_button_text || 'Keep Going',
-      claim_prize_button_text: s.claim_prize_button_text || 'Claim Prize →',
-      new_game_button_text: s.new_game_button_text || '↻ New Game',
     };
 
     if (existing.length > 0) {

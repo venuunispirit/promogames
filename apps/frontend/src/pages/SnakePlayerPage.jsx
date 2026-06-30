@@ -167,7 +167,7 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
           <div style={{ background:'#f0fdf4',borderRadius:12,padding:16,marginBottom:20 }}>
             <p style={{ fontSize:13,color:'#166534',lineHeight:1.6 }}>🐍 Use arrow keys or WASD to move. Eat food to grow. Don't hit walls or yourself!</p>
           </div>
-          <button onClick={handleStart} style={{ background: settings?.start_button_bg_color || `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color: settings?.start_button_text_color || '#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:ff,boxShadow:`0 6px 20px ${primaryColor}44`,width:'100%',maxWidth:280 }}>{settings?.start_button_text||'Start Playing →'}</button>
+          <button onClick={handleStart} style={{ background:`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color:'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:ff,boxShadow:`0 6px 20px ${primaryColor}44`,width:'100%',maxWidth:280 }}>{settings?.start_button_text||'Start Playing →'}</button>
         </div>
       </div>
     )
@@ -205,7 +205,7 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
             <h2 style={{ fontSize:22,fontWeight:800,color:'#1a1a2e',marginBottom:8 }}>Game Over!</h2>
             <p style={{ color:'#666',fontSize:16,marginBottom:8 }}>Score: <strong>{score}</strong></p>
             <p style={{ color:'#999',fontSize:13,marginBottom:20 }}>Best: {highScore}</p>
-            <button onClick={handleComplete} style={{ background: settings?.continue_button_bg_color || primaryColor,color: settings?.continue_button_text_color || '#fff',border:'none',borderRadius:50,padding:'14px 36px',fontSize:16,fontWeight:700,cursor:'pointer',width:'100%' }}>
+            <button onClick={handleComplete} style={{ background:primaryColor,color:'#fff',border:'none',borderRadius:50,padding:'14px 36px',fontSize:16,fontWeight:700,cursor:'pointer',width:'100%' }}>
               {settings?.continue_button_text||'Continue →'}
             </button>
           </div>

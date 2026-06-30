@@ -13,6 +13,12 @@ const router     = express.Router();
 const db         = require('../config/db');
 const jwt        = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+
+(async () => {
+  try {
+    await db.query(`ALTER TABLE promo_players ADD COLUMN IF NOT EXISTS avatar_id VARCHAR(20) DEFAULT 'av-1'`);
+  } catch {}
+})();
 require('dotenv').config();
 
 // ── Email transporter (uses your existing Gmail SMTP from .env) ────────────
@@ -126,6 +132,12 @@ router.post('/send-otp', async (req, res) => {
       [email, otp, expiresAt]
     );
 
+    // In development, skip email and log OTP to console
+    if (process.env.NODE_ENV === 'development') {
+      console.log(`[DEV] OTP for ${email}: ${otp} (use 0000 as dummy)`);
+      return res.json({ success: true, message: `OTP sent to ${email}` });
+    }
+
     // Send email
     await sendOTPEmail(email, otp);
 
@@ -146,20 +158,24 @@ router.post('/verify-otp', async (req, res) => {
   if (!email || !otp) return res.status(400).json({ success: false, message: 'Email and OTP are required' });
 
   try {
-    // Find latest unused, non-expired OTP for this email
-    const [rows] = await db.query(
-      `SELECT * FROM otp_tokens
-       WHERE email = ? AND otp_code = ? AND used = 0 AND expires_at > NOW()
-       ORDER BY created_at DESC LIMIT 1`,
-      [email, otp]
-    );
-
-    if (rows.length === 0) {
-      return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+    // Dev bypass: accept "0000" as dummy OTP in development mode
+    let otpRow = null;
+    if (otp === '0000' && process.env.NODE_ENV === 'development') {
+      otpRow = { id: 0, email };
+    } else {
+      // Find latest unused, non-expired OTP for this email
+      const [rows] = await db.query(
+        `SELECT * FROM otp_tokens
+         WHERE email = ? AND otp_code = ? AND used = 0 AND expires_at > NOW()
+         ORDER BY created_at DESC LIMIT 1`,
+        [email, otp]
+      );
+      if (rows.length === 0) {
+        return res.status(400).json({ success: false, message: 'Invalid or expired OTP' });
+      }
+      otpRow = rows[0];
+      await db.query('UPDATE otp_tokens SET used = 1 WHERE id = ?', [otpRow.id]);
     }
-
-    // Mark OTP as used
-    await db.query('UPDATE otp_tokens SET used = 1 WHERE id = ?', [rows[0].id]);
 
     // Check if player exists in promo_players
     const [playerRows] = await db.query('SELECT * FROM promo_players WHERE email = ?', [email]);
@@ -296,12 +312,39 @@ router.post('/register', async (req, res) => {
 router.get('/me', playerAuth, async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT id, name, dob, email, whatsapp, city, pincode, pc_balance, created_at,
+      `SELECT id, name, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, created_at,
               TIMESTAMPDIFF(YEAR, dob, CURDATE()) as age
        FROM promo_players WHERE id = ?`,
       [req.player.id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Player not found' });
+    res.json({ success: true, player: rows[0] });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// PATCH /api/pauth/me
+// Update player profile fields (e.g. avatar_id)
+// ─────────────────────────────────────────────────────────────────────────────
+router.patch('/me', playerAuth, async (req, res) => {
+  try {
+    const fields = [];
+    const values = [];
+    if (req.body.avatar_id !== undefined) {
+      fields.push('avatar_id = ?');
+      values.push(req.body.avatar_id);
+    }
+    if (fields.length === 0) return res.status(400).json({ success: false, message: 'No fields to update' });
+    values.push(req.player.id);
+    await db.query(`UPDATE promo_players SET ${fields.join(', ')} WHERE id = ?`, values);
+    const [rows] = await db.query(
+      `SELECT id, name, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, created_at,
+              TIMESTAMPDIFF(YEAR, dob, CURDATE()) as age
+       FROM promo_players WHERE id = ?`,
+      [req.player.id]
+    );
     res.json({ success: true, player: rows[0] });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

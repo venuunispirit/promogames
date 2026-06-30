@@ -34,6 +34,9 @@ import HanoiPlayerPage from './HanoiPlayerPage'
 import BreakoutPlayerPage from './BreakoutPlayerPage'
 import BubbleShooterPlayerPage from './BubbleShooterPlayerPage'
 import CarLaunchPlayerPage from './CarLaunchPlayerPage'
+import SoundifyPlayerPage from './soundifyplayerpage'
+import StressBusterPlayerPage from './frustrationplayerpage'
+import TicTacToePlayerPage from './tictactoeplayer'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -221,7 +224,7 @@ function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm, gameCategory,
         ) : (
           <div style={{ fontSize: 68, marginBottom: 16, animation: 'bounce 0.6s ease both' }}>🎉</div>
         )}
-        <h2 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.25 }}>{gameCategory === 'quiz' ? 'Quiz' : gameCategory === 'registration' ? 'Registration' : 'Survey'} Submitted!</h2>
+        <h2 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.25 }}>{gameCategory === 'quiz' ? 'Quiz' : gameCategory === 'registration' ? 'Registration' : 'Game'} Completed!</h2>
         <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>Your responses have been recorded.<br />Redirecting you now…</p>
         <div style={{ height: 5, background: `${primaryColor}22`, borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
           <div style={{ height: '100%', background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`, borderRadius: 10, animation: 'redirectBar 3s linear forwards' }} />
@@ -560,6 +563,99 @@ export default function PlayerPage() {
           return
         }
 
+        if (g.category === 'tetris') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'stack') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'whackamole') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'hanoi') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'breakout') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'bubbleshooter') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'soundify') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          if (canSkipForm()) {
+            try { await startSession(init) } catch (sessErr) {
+              const data = sessErr.response?.data
+              if (data?.already_played) { setPhase('already_played'); return }
+              console.error('Session start error:', sessErr)
+            }
+            setPhase('soundify')
+          } else { setPhase('form') }
+          return
+        }
+
+        if (g.category === 'stressbuster' || g.category === 'frustration') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          if (canSkipForm()) {
+            try { await startSession(init) } catch (sessErr) {
+              const data = sessErr.response?.data
+              if (data?.already_played) { setPhase('already_played'); return }
+              console.error('Session start error:', sessErr)
+            }
+            setPhase('stressbuster')
+          } else { setPhase('form') }
+          return
+        }
+
+        if (g.category === 'tictactoe') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          if (canSkipForm()) {
+            try { await startSession(init) } catch (sessErr) {
+              const data = sessErr.response?.data
+              if (data?.already_played) { setPhase('already_played'); return }
+              console.error('Session start error:', sessErr)
+            }
+            setPhase('tictactoe')
+          } else { setPhase('form') }
+          return
+        }
+
         // Shuffle questions if randomize_questions is enabled
         if (g.settings?.randomize_questions && g.questions?.length) {
           const arr = [...g.questions]
@@ -662,6 +758,8 @@ export default function PlayerPage() {
       setSessionToken(res.data.session_token)
       if (game.category === 'crossword') {
         setPhase('crossword')
+      } else if (game.category === 'spin') {
+        setPhase('spin')
       } else if (game.category === 'memory') {
         setPhase('memory')
       } else if (game.category === 'jigsaw') {
@@ -708,8 +806,26 @@ export default function PlayerPage() {
         setPhase('rps')
       } else if (game.category === 'arrowescape') {
         setPhase('arrowescape')
+      } else if (game.category === 'tetris') {
+        setPhase('tetris')
+      } else if (game.category === 'stack') {
+        setPhase('stack')
+      } else if (game.category === 'whackamole') {
+        setPhase('whackamole')
+      } else if (game.category === 'hanoi') {
+        setPhase('hanoi')
+      } else if (game.category === 'breakout') {
+        setPhase('breakout')
+      } else if (game.category === 'bubbleshooter') {
+        setPhase('bubbleshooter')
       } else if (game.category === 'carlaunch') {
         setPhase('carlaunch')
+      } else if (game.category === 'soundify') {
+        setPhase('soundify')
+      } else if (game.category === 'stressbuster' || game.category === 'frustration') {
+        setPhase('stressbuster')
+      } else if (game.category === 'tictactoe') {
+        setPhase('tictactoe')
       } else {
         setPhase('playing')
       }
@@ -1068,6 +1184,17 @@ export default function PlayerPage() {
   /* ── PLAYING ── */
   if (phase === 'playing') {
     const question = game.questions[currentQ]
+    if (!question || !game.questions.length) {
+      return (
+        <div style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f4f4ff', fontFamily:'DM Sans, sans-serif' }}>
+          <div style={{ textAlign:'center', padding:40 }}>
+            <div style={{ fontSize:48, marginBottom:12 }}>😕</div>
+            <h2 style={{ color:'#1a1a2e', fontSize:22, marginBottom:8 }}>No questions available</h2>
+            <p style={{ color:'#666', fontSize:14 }}>This game doesn't have any questions configured.</p>
+          </div>
+        </div>
+      )
+    }
     const progress = (currentQ / game.questions.length) * 100
     const qBg = question.question_bg_image_url
     const gameBg = s.bg_image_url
@@ -1916,12 +2043,120 @@ const handleModalConfirm = () => {
     )
   }
 
+  if (phase === 'tetris') {
+    return (
+      <TetrisPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'stack') {
+    return (
+      <StackPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'whackamole') {
+    return (
+      <WhackAMolePlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'hanoi') {
+    return (
+      <HanoiPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'breakout') {
+    return (
+      <BreakoutPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'bubbleshooter') {
+    return (
+      <BubbleShooterPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
   if (phase === 'carlaunch') {
     return (
       <CarLaunchPlayerPage
         gameData={game}
         sessionToken={sessionToken}
         onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
+      />
+    )
+  }
+
+  if (phase === 'soundify') {
+    return (
+      <SoundifyPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        sessionId={sessionId}
+        onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
+        onComplete={(data) => {
+          if (data?.session) { setScore(data.session.score || 0) }
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'stressbuster') {
+    return (
+      <StressBusterPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        sessionId={sessionId}
+        onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
+        onComplete={(data) => {
+          if (data?.session) { setScore(data.session.score || 0) }
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
+      />
+    )
+  }
+
+  if (phase === 'tictactoe') {
+    return (
+      <TicTacToePlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        sessionId={sessionId}
+        onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
+        onComplete={(data) => {
+          if (data?.session) { setScore(data.session.score || 0) }
+          setRedirectUrl(data?.redirect_url || null)
+          setPhase('thankyou')
+        }}
       />
     )
   }

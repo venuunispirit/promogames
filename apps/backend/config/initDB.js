@@ -257,7 +257,7 @@ async function initDB() {
       game_logo_url VARCHAR(500),
       font_family VARCHAR(100) DEFAULT 'DM Sans',
       sound_correct_id INT DEFAULT NULL,
-      sound_wrong_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL, 
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
@@ -1062,12 +1062,8 @@ async function initDB() {
 
   /* GAMES */
   await safeQuery(connection,
-    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','arrowescape') DEFAULT 'quiz'`,
-    'games.category ENUM includes arrowescape'
-  );
-  await safeQuery(connection,
-    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch') DEFAULT 'quiz'`,
-    'games.category ENUM includes new games'
+    `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape') DEFAULT 'quiz'`,
+    'games.category ENUM includes all game types'
   );
   await addColumn(connection, 'games', 'client_id', 'INT');
   await addColumn(connection, 'games', 'slug', 'VARCHAR(255)');
@@ -1585,10 +1581,10 @@ async function initDB() {
       level_order INT DEFAULT 1,
       grid_rows INT DEFAULT 8,
       grid_cols INT DEFAULT 8,
-      walls JSON DEFAULT '[]',
-      arrows JSON DEFAULT '[]',
-      exits JSON DEFAULT '[]',
-      obstacles JSON DEFAULT '[]',
+      walls JSON,
+      arrows JSON,
+      exits JSON,
+      obstacles JSON,
       is_active TINYINT(1) DEFAULT 1,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1915,6 +1911,150 @@ async function initDB() {
        FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
      )
    `, 'carlaunch_settings table');
+
+  /* STRESSBUSTER (FRUSTRATION) SETTINGS */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS stressbuster_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_3_color VARCHAR(20) DEFAULT '#444444',
+      description_color VARCHAR(20) DEFAULT '#666666',
+      custom_win_msg VARCHAR(500),
+      try_again_btn_text VARCHAR(100),
+      try_again_text_color VARCHAR(20) DEFAULT '#ffffff',
+      try_again_bg_color VARCHAR(20),
+      continue_btn_text VARCHAR(100),
+      continue_btn_text_color VARCHAR(20) DEFAULT '#ffffff',
+      continue_btn_bg_color VARCHAR(20),
+      bg_color VARCHAR(20) DEFAULT '#f4f6fb',
+      primary_color VARCHAR(20) DEFAULT '#9333ea',
+      board_cell_color VARCHAR(20),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      meta_description TEXT,
+      sound_correct_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL,
+      win_sound_id INT DEFAULT NULL,
+      lose_sound_id INT DEFAULT NULL,
+      game_mode VARCHAR(50),
+      difficulty VARCHAR(50),
+      target_count INT DEFAULT 20,
+      time_limit INT DEFAULT 0,
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text VARCHAR(255),
+      terms_url VARCHAR(500),
+      start_button_text VARCHAR(100),
+      start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20),
+      thankyou_heading_text VARCHAR(500),
+      thankyou_heading_color VARCHAR(20),
+      thankyou_subtitle_text VARCHAR(500),
+      thankyou_subtitle_color VARCHAR(20),
+      submit_btn_text VARCHAR(100),
+      submit_btn_text_color VARCHAR(20) DEFAULT '#ffffff',
+      submit_btn_bg_color VARCHAR(20),
+      redirect_url VARCHAR(500),
+      continue_now_btn_text VARCHAR(100),
+      continue_now_btn_text_color VARCHAR(20) DEFAULT '#ffffff',
+      continue_now_btn_bg_color VARCHAR(20),
+      click_limit INT DEFAULT 21,
+      timer_enabled TINYINT(1) DEFAULT 0,
+      show_click_count TINYINT(1) DEFAULT 1,
+      click_mode VARCHAR(50),
+      frustration_enabled TINYINT(1) DEFAULT 0,
+      show_click_speed TINYINT(1) DEFAULT 0,
+      show_frustration_result TINYINT(1) DEFAULT 0,
+      cat_health INT DEFAULT 20,
+      millisecond_display TINYINT(1) DEFAULT 0,
+      frustration_mode TINYINT(1) DEFAULT 0,
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500),
+      o_image_url VARCHAR(500),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `, 'stressbuster_settings table');
+
+  /* SOUNDIFY SETTINGS */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS soundify_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_3_color VARCHAR(20) DEFAULT '#444444',
+      description_color VARCHAR(20) DEFAULT '#666666',
+      custom_win_msg VARCHAR(500),
+      custom_lose_msg VARCHAR(500),
+      try_again_btn_text VARCHAR(100),
+      try_again_text_color VARCHAR(20) DEFAULT '#ffffff',
+      try_again_bg_color VARCHAR(20),
+      continue_btn_text VARCHAR(100),
+      continue_btn_text_color VARCHAR(20) DEFAULT '#ffffff',
+      continue_btn_bg_color VARCHAR(20),
+      bg_color VARCHAR(20) DEFAULT '#1a1a2e',
+      primary_color VARCHAR(20) DEFAULT '#8b5cf6',
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      meta_description TEXT,
+      sound_correct_id INT DEFAULT NULL,
+      sound_wrong_id INT DEFAULT NULL,
+      win_sound_id INT DEFAULT NULL,
+      lose_sound_id INT DEFAULT NULL,
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text VARCHAR(255),
+      terms_url VARCHAR(500),
+      start_button_text VARCHAR(100),
+      start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20),
+      thankyou_heading_text VARCHAR(500),
+      thankyou_heading_color VARCHAR(20),
+      thankyou_subtitle_text VARCHAR(500),
+      thankyou_subtitle_color VARCHAR(20),
+      submit_btn_text VARCHAR(100),
+      submit_btn_text_color VARCHAR(20) DEFAULT '#ffffff',
+      submit_btn_bg_color VARCHAR(20),
+      redirect_url VARCHAR(500),
+      continue_now_btn_text VARCHAR(100),
+      continue_now_btn_text_color VARCHAR(20) DEFAULT '#ffffff',
+      continue_now_btn_bg_color VARCHAR(20),
+      time_per_question INT DEFAULT 30,
+      max_sound_replays INT DEFAULT 1,
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )
+  `, 'soundify_settings table');
+
+  /* SOUNDIFY SONGS */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS soundify_songs (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      song_title VARCHAR(500),
+      song_url VARCHAR(500),
+      option_1 VARCHAR(500),
+      option_2 VARCHAR(500),
+      option_3 VARCHAR(500),
+      option_4 VARCHAR(500),
+      correct_option INT DEFAULT 1,
+      song_order INT DEFAULT 0,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `, 'soundify_songs table');
 
    console.log('👤 Creating admin user...');
 

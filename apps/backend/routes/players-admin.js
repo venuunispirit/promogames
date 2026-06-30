@@ -13,7 +13,7 @@ router.get('/', async (req, res) => {
     // All players
     const [players] = await db.query(`
       SELECT
-        id, name, email, whatsapp, city, pincode,
+        id, name, username, email, whatsapp, city, pincode,
         pc_balance, dob, created_at
       FROM promo_players
       ORDER BY created_at DESC

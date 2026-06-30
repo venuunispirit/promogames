@@ -493,7 +493,6 @@ export default function DashboardLayout() {
     { to:'/dashboard/clients', label:'Clients',   icon:'🏢' },
     { to:'/dashboard/games',   label:'Games',     icon:'🎮' },
     { to:'/dashboard/players', label:'Players',   icon:'👥' },
-    { to:'/dashboard/brick-images', label:'Brick Images', icon:'🧱' },
   ]
 
   const isActive = link => link.exact ? location.pathname === link.to : location.pathname.startsWith(link.to)

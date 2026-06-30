@@ -16,7 +16,12 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (!allRows[0].is_active) return res.status(403).json({ success: false, message: 'This game is currently inactive' });
 
     const game = allRows[0];
-    const toAbs = (url) => url || null;
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const toAbs = (url) => {
+      if (!url) return null;
+      if (url.startsWith('http')) return url;
+      return `${baseUrl}${url}`;
+    };
 
     // ── CROSSWORD branch ──────────────────────────────────────────────────────
     if (game.category === 'crossword') {
@@ -37,6 +42,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
 
       const settings = cwSettings[0] ? { ...cwSettings[0] } : {};
+      // Default allow_hints to 1 if not set
+      if (settings.allow_hints === undefined || settings.allow_hints === null) {
+        settings.allow_hints = 1;
+      }
       // normalise image urls
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -139,6 +148,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
+          game_logo_url: toAbs(game.game_logo_url),
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           settings,
@@ -606,6 +616,16 @@ router.get('/:gameName/:companyName', async (req, res) => {
       breakout:   'breakout_settings',
       bubbleshooter: 'bubbleshooter_settings',
       carlaunch:     'carlaunch_settings',
+      tictactoe:     'tictactoe_settings',
+      stressbuster:  'stressbuster_settings',
+      soundify:      'soundify_settings',
+      arrowescape:   'arrowescape_settings',
+      bowling:       'bowling_settings',
+      sudoku:        'sudoku_settings',
+      minesweeper:   'minesweeper_settings',
+      wordscramble:  'wordscramble_settings',
+      rps:           'rps_settings',
+      bounce:        'bounce_settings',
     };
     const settingsTable = categorySettingsMap[game.category];
 
@@ -618,7 +638,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
-      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url', 'o_image_url', 'puzzle_image_url', 'reveal_image_url', 'overlay_image_url', 'card_cover_image_url', 'gif_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
       }
 

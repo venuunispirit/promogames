@@ -671,6 +671,7 @@ function BottomNav({ activeTab, onTabChange }) {
 
 // ── Game Card (For Games Tab) ─────────────────────────────────────────────
 function RedesignGameCard({ game, onPlay, pcAmount, index }) {
+  const hasLogo = Boolean(game.game_logo_url);
   const gameImg = game.game_logo_url || game.bg_image_url;
 
   return (
@@ -679,9 +680,9 @@ function RedesignGameCard({ game, onPlay, pcAmount, index }) {
       <div className="reward-badge">+{pcAmount} PC</div>
       <div className="category-pill">{game.category || 'Arcade'}</div>
 
-      <div className="image-container">
+      <div className={`image-container${hasLogo ? ' logo-container' : ''}`}>
         {gameImg ? (
-          <img src={gameImg} alt={game.name} className="game-image" />
+          <img src={gameImg} alt={game.name} className={`game-image${hasLogo ? ' logo-image' : ''}`} />
         ) : (
           <div className="card-overlay" />
         )}

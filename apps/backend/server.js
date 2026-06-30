@@ -57,6 +57,9 @@ const hanoiRoutes = require("./routes/hanoi");
 const breakoutRoutes = require("./routes/breakout");
 const bubbleshooterRoutes = require("./routes/bubbleshooter");
 const carlaunchRoutes = require("./routes/carlaunch");
+const stressbusterRoutes = require("./routes/stressbuster");
+const soundifyRoutes = require("./routes/soundify");
+const tictactoeRoutes = require("./routes/tictactoe");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -103,6 +106,9 @@ app.use("/api/hanoi", hanoiRoutes);
 app.use("/api/breakout", breakoutRoutes);
 app.use("/api/bubbleshooter", bubbleshooterRoutes);
 app.use("/api/carlaunch", carlaunchRoutes);
+app.use("/api/stressbuster", stressbusterRoutes);
+app.use("/api/soundify", soundifyRoutes);
+app.use("/api/tictactoe", tictactoeRoutes);
 
 app.get("/api/check-code", (req, res) => {
   res.json({ 
@@ -162,9 +168,12 @@ app.get('/play/:gameSlug/:clientSlug', async (req, res) => {
     try {
       const db = require('./config/db');
       const [rows] = await db.query(`
-        SELECT g.name, g.slug, g.description, g.meta_description, g.game_logo_url,
+        SELECT g.name, g.slug, g.description, g.meta_description, g.game_logo_url as g_logo,
+               COALESCE(qs.game_logo_url, g.game_logo_url) as game_logo_url,
+               qs.bg_image_url,
                c.company_name, c.slug as client_slug
         FROM games g JOIN clients c ON g.client_id = c.id
+        LEFT JOIN quiz_settings qs ON qs.game_id = g.id
         WHERE g.slug = ? AND c.slug = ?
       `, [req.params.gameSlug, req.params.clientSlug]);
 

@@ -276,25 +276,8 @@ export default function WordSearchPlayerPage({ gameData, sessionToken, onComplet
           <h1 style={{ fontSize:'clamp(22px,6vw,30px)', fontWeight:800, color: settings?.heading_1_color || '#1a1a2e', marginBottom:8, fontFamily:ff }}>{settings?.heading_1 || 'Word Search'}</h1>
           {settings?.heading_2 && <p style={{ fontSize:15, fontWeight:600, color: settings?.heading_2_color || '#666', marginBottom:8 }}>{settings.heading_2}</p>}
           {settings?.heading_3 && <p style={{ fontSize:13, color: settings?.heading_3_color || '#888', marginBottom:16 }}>{settings.heading_3}</p>}
-          {settings?.description_text && (
-            <p style={{ fontSize:13, color: settings?.description_color || '#888', textAlign:'center', margin:'0 0 8px', lineHeight:1.4 }}>
-              {settings.description_text}
-            </p>
-          )}
           <p style={{ fontSize:13, color:'#888', marginBottom:8 }}>{words?.length || 0} words hidden in a {rows}×{cols} grid</p>
           {settings?.show_timer === 1 && settings?.time_limit_seconds > 0 && <p style={{ fontSize:12, color:'#999', marginBottom:16 }}>⏱ {Math.floor(settings.time_limit_seconds/60)}m {settings.time_limit_seconds%60}s limit</p>}
-          {Number(settings?.terms_enabled) === 1 && (
-            <label style={{ display:'flex', alignItems:'center', gap:8, margin:'0 0 16px', cursor:'pointer', fontSize:13, textAlign:'left', justifyContent:'center' }}>
-              <input type="checkbox" style={{ width:16, height:16 }} />
-              <span>
-                I accept the{' '}
-                {settings?.terms_url
-                  ? <a href={settings.terms_url} target="_blank" style={{ color: primaryColor }}>{settings.terms_text || 'Terms & Conditions'}</a>
-                  : <strong>{settings.terms_text || 'Terms & Conditions'}</strong>
-                }
-              </span>
-            </label>
-          )}
           <button onClick={handleStart} style={{ background:`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color:'#fff', border:'none', borderRadius:12, padding:'15px 36px', fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:ff, boxShadow:`0 6px 20px ${primaryColor}44`, width:'100%', maxWidth:280 }}>{settings?.start_button_text || 'Start →'}</button>
         </div>
       </div>
@@ -381,11 +364,6 @@ export default function WordSearchPlayerPage({ gameData, sessionToken, onComplet
             <div style={{ fontSize:64, marginBottom:16 }}>{foundWords.size >= placements.length ? '🏆' : '⏰'}</div>
             <h2 style={{ fontSize:22, fontWeight:800, color:'#1a1a2e', marginBottom:8 }}>{foundWords.size >= placements.length ? 'All Words Found!' : 'Time\'s Up!'}</h2>
             <p style={{ color:'#666', fontSize:14, marginBottom:24 }}>{foundWords.size} of {placements.length} words found in {timerDisplay}</p>
-            {settings?.outro_text && (
-              <p style={{ fontSize:13, color: settings?.description_color || '#888', margin:'0 0 16px', lineHeight:1.4 }}>
-                {settings.outro_text}
-              </p>
-            )}
             <button onClick={handleComplete} style={{ background:`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color:'#fff', border:'none', borderRadius:50, padding:'14px 36px', fontSize:16, fontWeight:700, cursor:'pointer', fontFamily:ff, boxShadow:`0 8px 28px ${primaryColor}55`, width:'100%' }}>{settings?.continue_button_text || 'Continue →'}</button>
           </div>
         </div>

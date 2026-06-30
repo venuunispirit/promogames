@@ -50,7 +50,7 @@ function GridPreview({ words, rows, cols }) {
   }
 
   return (
-    <div style={{ overflowX: 'auto', marginTop: 12 }}>
+    <div style={{ overflowX: 'auto', marginTop: 12, display: 'flex', justifyContent: 'center' }}>
       <div style={{ display: 'inline-grid', gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`, gap: 1, background: 'var(--border)', border: '1px solid var(--border)', borderRadius: 4 }}>
         {Array.from({ length: rows }, (_, r) =>
           Array.from({ length: cols }, (_, c) => {
@@ -59,7 +59,7 @@ function GridPreview({ words, rows, cols }) {
             const num = numberMap[key]
             return (
               <div key={key} style={{
-                width: cellSize, height: cellSize, background: letter ? 'var(--surface)' : '#1a1a2e',
+                width: cellSize, height: cellSize, background: letter ? 'var(--surface)' : 'white',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 fontSize: cellSize * 0.4, fontWeight: 700, color: 'var(--text)', position: 'relative'
               }}>

@@ -692,7 +692,7 @@ export default function CatchBuilderPage() {
                 {game?.name} <span style={{ fontSize:10, color:'var(--gb-text3)', fontWeight:400 }}>✎</span>
               </div>
             )}
-            <div style={{ fontSize:9.5, fontWeight:600, color:'var(--gb-text3)', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Catch Builder</div>
+            <div style={{ fontSize:9.5, fontWeight:600, color:'var(--gb-text3)', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Builder</div>
           </div>
         </div>
 

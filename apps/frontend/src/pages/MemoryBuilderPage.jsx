@@ -234,13 +234,6 @@ export default function MemoryBuilderPage() {
       fd.append('heading_2_color', heading2Color)
       fd.append('heading_3_color', heading3Color)
       fd.append('description_color', descColor)
-      fd.append('start_button_text_color', settings.start_button_text_color || '#ffffff')
-      fd.append('start_button_bg_color', settings.start_button_bg_color || settings.primary_color || '#6366f1')
-      fd.append('outro_text_color', settings.outro_text_color || '#1a1a2e')
-      fd.append('submit_button_text_color', settings.submit_button_text_color || '#ffffff')
-      fd.append('submit_button_bg_color', settings.submit_button_bg_color || settings.primary_color || '#6366f1')
-      fd.append('continue_button_text_color', settings.continue_button_text_color || '#ffffff')
-      fd.append('continue_button_bg_color', settings.continue_button_bg_color || settings.primary_color || '#6366f1')
       if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile)
       else fd.append('bg_image_url', settings.bg_image_url || '')
       if (settings._tyBgImageFile) fd.append('thankyou_bg_image', settings._tyBgImageFile)
@@ -290,11 +283,16 @@ export default function MemoryBuilderPage() {
   }
 
   const handleCreatePairs = async () => {
+    if (creatingPairs) return
     setCreatingPairs(true)
     try {
       const res = await api.post(`/memory/games/${id}/tiles/create-pairs`)
       setTiles(res.data.tiles)
-      showToast('Pairs created! Each tile now has a matching pair.')
+      if (res.data.pairsCreated === 0) {
+        showToast('All tiles already have pairs!')
+      } else {
+        showToast(`${res.data.pairsCreated} pair(s) created!`)
+      }
     } catch (err) {
       showToast('Error creating pairs: ' + (err.response?.data?.message || err.message), 'error')
     }
@@ -403,7 +401,7 @@ export default function MemoryBuilderPage() {
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
 
       <div className="mb-header">
-        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}><button className="mb-icon-btn" onClick={handleBack} style={{ fontSize:16, lineHeight:1, marginTop:1 }}>←</button><div><div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div><div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Memory Match Builder</div></div></div>
+        <div><button className="mb-icon-btn" onClick={handleBack} title="Back to games" style={{ fontSize:16, lineHeight:1 }}>←</button></div>
         <div className="mb-tabs">
           {TABS.map(t => (
             <button key={t.id} className={`mb-tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
@@ -586,7 +584,8 @@ export default function MemoryBuilderPage() {
                 <div className="mb-grid">
                   {tiles.map(tile => (
                     <div key={tile.id} className="mb-tile-card" style={cardShape}>
-                      <img src={tile.image_url} alt="" />
+                      <img src={tile.image_url} alt="" onError={e => { e.target.style.display='none' }} />
+                      <span style={{position:'absolute',fontSize:28,opacity:.3,pointerEvents:'none'}}>🖼️</span>
                       <button className="mb-tile-del" onClick={() => handleDeleteTile(tile.id)}>✕</button>
                       {tile.tile_label && <div style={{ position:'absolute', bottom:0, left:0, right:0, background:'rgba(0,0,0,.6)', color:'#fff', fontSize:9, textAlign:'center', padding:'2px 4px' }}>{tile.tile_label}</div>}
                     </div>

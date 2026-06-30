@@ -21,8 +21,8 @@ router.post('/games/:gameId/sounds', auth, upload.single('file'), async (req, re
   try {
     const url = `/uploads/sounds/${req.file.filename}`;
     const [result] = await db.query(
-      'INSERT INTO sounds (game_id, name, url, sound_type) VALUES (?, ?, ?, ?)',
-      [req.params.gameId, name || req.file.originalname, url, sound_type || 'custom']
+      'INSERT INTO sounds (game_id, name, url, file_url, sound_type) VALUES (?, ?, ?, ?, ?)',
+      [req.params.gameId, name || req.file.originalname, url, url, sound_type || 'custom']
     );
     const [s] = await db.query('SELECT * FROM sounds WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, sound: s[0] });

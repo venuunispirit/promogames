@@ -7,11 +7,14 @@ const db = require('../config/db');
 router.get('/', async (req, res) => {
   try {
     const query = `
-      SELECT 
+      SELECT
         pp.id,
         pp.name   as player_name,
-        pp.email  as player_email,
-        pp.pc_balance as total_pc
+        pp.username as player_username,
+        pp.email,
+        pp.avatar_id,
+        pp.pc_balance as total_pc,
+        pp.created_at
       FROM promo_players pp
       ORDER BY pp.pc_balance DESC
       LIMIT 50
@@ -22,7 +25,9 @@ router.get('/', async (req, res) => {
     const entries = rows.map((row, i) => ({
       ...row,
       rank: i + 1,
-      player_name: row.player_name || 'Anonymous',
+      games_played: 0,
+      last_played_at: null,
+      player_name: row.player_username || row.player_name || 'Anonymous',
     }));
 
     res.json({ success: true, entries });
@@ -36,10 +41,12 @@ router.get('/', async (req, res) => {
 router.get('/all', async (req, res) => {
   try {
     const query = `
-      SELECT 
+      SELECT
         pp.id,
         pp.name   as player_name,
-        pp.email  as player_email,
+        pp.username as player_username,
+        pp.email,
+        pp.avatar_id,
         pp.pc_balance as total_pc,
         pp.created_at
       FROM promo_players pp
@@ -51,7 +58,9 @@ router.get('/all', async (req, res) => {
     const entries = rows.map((row, i) => ({
       ...row,
       rank: i + 1,
-      player_name: row.player_name || 'Anonymous',
+      games_played: 0,
+      last_played_at: null,
+      player_name: row.player_username || row.player_name || 'Anonymous',
     }));
 
     res.json({ success: true, entries });

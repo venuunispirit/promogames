@@ -30,6 +30,8 @@ async function initPromo() {
     CREATE TABLE IF NOT EXISTS promo_players (
       id           INT AUTO_INCREMENT PRIMARY KEY,
       name         VARCHAR(100)  NOT NULL,
+      username     VARCHAR(50)   DEFAULT NULL UNIQUE,
+      username_changed_at DATETIME DEFAULT NULL,
       age          INT,
       dob          DATE,
       email        VARCHAR(150)  NOT NULL UNIQUE,
@@ -41,6 +43,30 @@ async function initPromo() {
       updated_at   TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
     )
   `, 'promo_players table');
+
+  // Migration: add username columns to existing databases
+  // Use separate queries to avoid issues with UNIQUE constraint
+  try {
+    await connection.query(`ALTER TABLE promo_players ADD COLUMN username VARCHAR(50) DEFAULT NULL`);
+    console.log('✅ Added username column');
+  } catch (e) {
+    if (e.message.includes('Duplicate column')) console.log('ℹ️ username column already exists');
+    else console.error('❌ username migration:', e.message);
+  }
+  try {
+    await connection.query(`ALTER TABLE promo_players ADD COLUMN username_changed_at DATETIME DEFAULT NULL`);
+    console.log('✅ Added username_changed_at column');
+  } catch (e) {
+    if (e.message.includes('Duplicate column')) console.log('ℹ️ username_changed_at column already exists');
+    else console.error('❌ username_changed_at migration:', e.message);
+  }
+  try {
+    await connection.query(`ALTER TABLE promo_players ADD UNIQUE INDEX idx_username (username)`);
+    console.log('✅ Added username unique index');
+  } catch (e) {
+    if (e.message.includes('Duplicate key') || e.message.includes('Duplicate')) console.log('ℹ️ username index already exists');
+    else console.error('❌ username index migration:', e.message);
+  }
 
   // ── 2. OTP TOKENS ─────────────────────────────────────────────────────────
   await safeQuery(connection, `

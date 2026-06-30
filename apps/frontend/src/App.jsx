@@ -47,7 +47,14 @@ import HanoiBuilderPage from './pages/HanoiBuilderPage'
 import BreakoutBuilderPage from './pages/BreakoutBuilderPage'
 import BubbleShooterBuilderPage from './pages/BubbleShooterBuilderPage'
 import CarLaunchBuilderPage from './pages/CarLaunchBuilderPage'
-import PlayerDashboard   from './pages/PlayerDashboard'
+import StressBusterBuilderPage from './pages/frustrationbuildertab'
+import SoundifyBuilderPage from './pages/soundifybuilderpage'
+import TicTacToeBuilderPage from './pages/tictactoebuilder'
+import PlayerLayout      from './pages/PlayerLayout'
+import PlayerDashboardPage from './pages/PlayerDashboardPage'
+import PlayerGamesPage   from './pages/PlayerGamesPage'
+import PlayerRewardsPage from './pages/PlayerRewardsPage'
+import PlayerProfilePage from './pages/PlayerProfilePage'
 import PlayersPage       from './pages/PlayersPage'
 import LeaderboardPage   from './pages/LeaderboardPage'
 import Business          from './pages/Business'
@@ -89,13 +96,19 @@ function AppRoutes() {
       <Route path="/play/bejeweled/:id" element={<BejeweledPlayerPage />} />
 
       {/* Player dashboard */}
-      <Route path="/player/dashboard" element={<PlayerRoute><PlayerDashboard /></PlayerRoute>} />
+      <Route path="/player" element={<PlayerRoute><PlayerLayout /></PlayerRoute>}>
+        <Route path="dashboard" element={<PlayerDashboardPage />} />
+        <Route path="dashboard/games" element={<PlayerGamesPage />} />
+        <Route path="rewards" element={<PlayerRewardsPage />} />
+        <Route path="profile" element={<PlayerProfilePage />} />
+      </Route>
 
       {/* Admin dashboard */}
       <Route path="/dashboard" element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
         <Route index                                  element={<DashboardHome />} />
         <Route path="clients"                         element={<ClientsPage />} />
         <Route path="games"                           element={<GamesPage />} />
+        <Route path="games/:id/crossword-builder"     element={<CrosswordBuilderPage />} />
         <Route path="games/:id/builder"               element={<GameBuilderPage />} />
         <Route path="games/:id/space-builder"          element={<SpaceBuilderPage />} />
         <Route path="games/:id/connect4-builder"       element={<Connect4BuilderPage />} />
@@ -131,6 +144,9 @@ function AppRoutes() {
         <Route path="games/:id/breakout-builder"      element={<BreakoutBuilderPage />} />
         <Route path="games/:id/bubbleshooter-builder" element={<BubbleShooterBuilderPage />} />
         <Route path="games/:id/carlaunch-builder"     element={<CarLaunchBuilderPage />} />
+        <Route path="games/:id/frustration-builder"   element={<StressBusterBuilderPage />} />
+        <Route path="games/:id/soundify-builder"      element={<SoundifyBuilderPage />} />
+        <Route path="games/:id/tictactoe-builder"     element={<TicTacToeBuilderPage />} />
         <Route path="players"                         element={<PlayersPage />} />
       </Route>
 

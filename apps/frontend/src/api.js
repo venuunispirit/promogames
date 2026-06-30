@@ -34,10 +34,8 @@ api.interceptors.response.use(
     // Don't redirect if we are already on the login page or trying to login
     const isLoginPath = window.location.pathname.includes('/login');
     const isVerifyOtp = err.config?.url?.includes('verify-otp');
-    // Don't redirect for player/game API routes — anonymous players need them
-    const isPlayerApiRoute = /pauth|play|bejeweled|space|bounce|2048|snake|catch|reaction|simon|flappy|connect4|tetris|stack|bowling|sudoku|minesweeper|wordscramble|rps|whackamole|hanoi|breakout|bubbleshooter|carlaunch/.test(err.config?.url || '');
 
-    if (isAuthError && !isLoginPath && !isVerifyOtp && !isPlayerApiRoute) {
+    if (isAuthError && !isLoginPath && !isVerifyOtp) {
       console.error(`AUTH FAILURE: [${status}] URL: ${err.config?.url}`);
       
       // Clear all auth-related keys

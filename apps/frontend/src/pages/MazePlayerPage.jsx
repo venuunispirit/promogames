@@ -38,7 +38,6 @@ export default function MazePlayerPage({ gameData, sessionToken, onComplete }) {
   const timerRef = useRef(null)
   const isCompleteRef = useRef(false)
   const mazeRef = useRef(null)
-  const [showIntro, setShowIntro] = useState(true)
 
   const totalLevels = parseInt(settings.total_levels) || 50
 
@@ -48,7 +47,7 @@ export default function MazePlayerPage({ gameData, sessionToken, onComplete }) {
   }, [size])
 
   useEffect(() => {
-    if (!sessionToken) { setShowIntro(true); return }
+    if (!sessionToken) { loadMaze(1); return }
     api.get(`/maze/${game.id}/progress`, { params: { session_token: sessionToken } })
       .then(res => {
         const p = res.data.progress
@@ -56,13 +55,12 @@ export default function MazePlayerPage({ gameData, sessionToken, onComplete }) {
           const lvl = p.current_level || 1
           setCurrentLevel(lvl)
           setTotalCollectibles(p.total_collectibles || 0)
-          setShowIntro(false)
           loadMaze(lvl)
         } else {
-          setShowIntro(true)
+          loadMaze(1)
         }
       })
-      .catch(() => setShowIntro(true))
+      .catch(() => loadMaze(1))
   }, [sessionToken, game.id])
 
   const loadMaze = async (level) => {
@@ -211,38 +209,6 @@ export default function MazePlayerPage({ gameData, sessionToken, onComplete }) {
     </div>
   )
 
-  if (showIntro && !gameOver) return (
-    <div style={{ minHeight:'100vh', display:'flex', flexDirection:'column', background: settings.bg_color || '#0f172a', fontFamily: `"${settings.font_family || 'DM Sans'}", sans-serif` }}>
-      <style>{STYLES}</style>
-      <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
-        <div style={{ textAlign:'center' }}>
-          <div style={{ fontSize:48, marginBottom:12 }}>🧩</div>
-          <h2 style={{ fontSize:20, fontWeight:700, color: settings.heading_1_color || '#fff', marginBottom:8 }}>
-            {settings.heading_1 || `Maze Level ${currentLevel}`}
-          </h2>
-          {settings.description_text && (
-            <p style={{ fontSize:14, color: settings.description_color || '#94a3b8', marginBottom:16, whiteSpace:'pre-line' }}>
-              {settings.description_text}
-            </p>
-          )}
-          {settings.terms_enabled && (
-            <label style={{ display:'flex', alignItems:'flex-start', gap:8, fontSize:13, color:'#94a3b8', marginBottom:16, textAlign:'left', justifyContent:'center' }}>
-              <input type="checkbox" style={{ marginTop:3, accentColor: settings.primary_color || '#6366f1' }} />
-              <span>
-                {settings.terms_text || 'I agree to the terms'}
-                {settings.terms_url && <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: settings.primary_color || '#6366f1', textDecoration:'underline', marginLeft:4 }}>Terms</a>}
-              </span>
-            </label>
-          )}
-          <button onClick={() => { setShowIntro(false); loadMaze(currentLevel) }}
-            style={{ padding:'14px 36px', borderRadius:12, border:'none', background: settings.primary_color || '#6366f1', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
-            {settings.start_button_text || 'Start Maze →'}
-          </button>
-        </div>
-      </div>
-    </div>
-  )
-
   const timeColor = timeLeft <= 10 ? '#ef4444' : '#94a3b8'
 
   return (
@@ -263,7 +229,7 @@ export default function MazePlayerPage({ gameData, sessionToken, onComplete }) {
         <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
           <div style={{ textAlign:'center', animation:'slideUp .4s ease' }}>
             <div style={{ fontSize:64, marginBottom:12 }}>🏆</div>
-            <h2 style={{ fontSize:20, fontWeight:800, color: settings.outro_text_color || '#fff', margin:'0 0 6px' }}>{settings.outro_text || 'All Mazes Complete!'}</h2>
+            <h2 style={{ fontSize:20, fontWeight:800, color:'#fff', margin:'0 0 6px' }}>{settings.outro_text || 'All Mazes Complete!'}</h2>
             <p style={{ fontSize:14, color:'#94a3b8', margin:'0 0 16px' }}>You conquered {totalLevels} mazes!</p>
             <button onClick={handleGameOver} style={{ padding:'14px 36px', borderRadius:12, border:'none', background: settings.primary_color || '#6366f1', color:'#fff', fontSize:15, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
               {settings.continue_button_text || 'Continue →'}

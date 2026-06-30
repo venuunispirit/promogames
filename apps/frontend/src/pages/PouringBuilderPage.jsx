@@ -237,7 +237,7 @@ export default function PouringBuilderPage() {
     <div className="pw-wrap">
       <style>{LIGHT}</style>
       <div className="pw-header">
-        <div style={{ display:'flex', gap:10, alignItems:'flex-start' }}><button className="pw-icon-btn" onClick={()=>navigate('/dashboard/games')} style={{ fontSize:16, lineHeight:1, marginTop:1 }}>←</button><div><div style={{ fontWeight:700, fontSize:14, color:'#1e1e2e', lineHeight:1.3 }}>{game?.name || 'Untitled'}</div><div style={{ fontSize:9.5, fontWeight:600, color:'#9899b8', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Pouring Water Builder</div></div></div>
+        <div style={{ display:'flex',alignItems:'center',gap:8 }}><button className="pw-btn pw-btn-secondary pw-btn-sm" onClick={()=>navigate('/dashboard/games')}>←</button><span style={{ fontWeight:700,fontSize:14 }}>{game?.name}</span></div>
         <div className="pw-tabs">{TABS.map(t=><button key={t.id} className={`pw-tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}</div>
         <div style={{ display:'flex',gap:6,justifyContent:'flex-end' }}><button className="pw-btn pw-btn-secondary pw-btn-sm" onClick={()=>{navigator.clipboard.writeText(gameLink);showToast('Copied!')}}>🔗</button><a href={gameLink} target="_blank" rel="noreferrer" className="pw-btn pw-btn-secondary pw-btn-sm">👁</a></div>
       </div>

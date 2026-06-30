@@ -126,7 +126,7 @@ router.put('/:gameId/settings', auth, upload.fields([
   { name: 'blank_cell_image', maxCount: 1 }
 ]), async (req, res) => {
   const {
-    grid_rows, grid_cols, cell_size, show_timer, time_limit_seconds, allow_hints,
+    grid_rows, grid_cols, cell_size, show_timer, time_limit_seconds, allow_hints, auto_size,
     heading_1, heading_2, heading_3, description_text,
     heading_1_color, heading_2_color, heading_3_color, description_color,
     bg_color, primary_color, bg_image_url, thankyou_bg_image_url, game_logo_url,
@@ -134,6 +134,18 @@ router.put('/:gameId/settings', auth, upload.fields([
 intro_text, outro_text, submit_button_text, continue_button_text, start_button_text,
     terms_enabled, terms_text, terms_url, meta_description, submit_confirm_gif_url, blank_cell_image_url
   } = req.body;
+
+  console.log('🔍 Crossword settings received:', Object.keys(req.body));
+  
+  // Handle undefined/empty values with proper defaults
+  const gridRows = grid_rows !== undefined && grid_rows !== '' ? Number(grid_rows) : 10;
+  const gridCols = grid_cols !== undefined && grid_cols !== '' ? Number(grid_cols) : 10;
+  const cellSize = cell_size !== undefined && cell_size !== '' ? Number(cell_size) : 40;
+  const showTimer = show_timer !== undefined && show_timer !== '' ? Number(show_timer) : 1;
+  const timeLimitSecs = time_limit_seconds !== undefined && time_limit_seconds !== '' ? Number(time_limit_seconds) : 0;
+  const allowHints = allow_hints !== undefined && allow_hints !== '' ? Number(allow_hints) : 1;
+  const autoSize = auto_size !== undefined && auto_size !== '' ? Number(auto_size) : 0;
+  const termsEnabled = terms_enabled !== undefined && terms_enabled !== '' ? Number(terms_enabled) : 0;
 
   try {
     const [existing] = await db.query('SELECT * FROM crossword_settings WHERE game_id = ?', [req.params.gameId]);
@@ -146,36 +158,33 @@ intro_text, outro_text, submit_button_text, continue_button_text, start_button_t
 
     if (existing.length === 0) {
 await db.query(
-        `INSERT INTO crossword_settings (game_id, grid_rows, grid_cols, cell_size, show_timer, time_limit_seconds, allow_hints,
+        `INSERT INTO crossword_settings (game_id, grid_rows, grid_cols, cell_size, show_timer, time_limit_seconds, allow_hints, auto_size,
          heading_1, heading_2, heading_3, description_text,
          heading_1_color, heading_2_color, heading_3_color, description_color,
          bg_color, primary_color, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, sound_correct_id, sound_wrong_id,
          intro_text, outro_text, submit_button_text, continue_button_text, start_button_text,
          terms_enabled, terms_text, terms_url, meta_description, submit_confirm_gif_url, blank_cell_image_url)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [req.params.gameId, grid_rows || 10, grid_cols || 10, cell_size || 40,
-          show_timer !== undefined ? Number(show_timer) : 1, time_limit_seconds || 0, allow_hints !== undefined ? Number(allow_hints) : 1,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [req.params.gameId, gridRows, gridCols, cellSize,
+          showTimer, timeLimitSecs, allowHints, autoSize,
           heading_1 || null, heading_2 || null, heading_3 || null, description_text || null,
           heading_1_color || '#1a1a2e', heading_2_color || '#666666', heading_3_color || '#777777', description_color || '#888888',
           bg_color || '#f8f8ff', primary_color || '#7c6ff7', bgImg, tyImg, logoImg,
           font_family || 'DM Sans', sound_correct_id || null, sound_wrong_id || null,
           intro_text || null, outro_text || null, submit_button_text || null, continue_button_text || null, start_button_text || null,
-          terms_enabled !== undefined ? Number(terms_enabled) : 0, terms_text || null, terms_url || null, meta_description || null, gifImg || null, blankImg || null]
+          termsEnabled, terms_text || null, terms_url || null, meta_description || null, gifImg || null, blankImg || null]
       );
     } else {
       const e = existing[0];
       await db.query(
-        `UPDATE crossword_settings SET grid_rows=?, grid_cols=?, cell_size=?, show_timer=?, time_limit_seconds=?, allow_hints=?,
+        `UPDATE crossword_settings SET grid_rows=?, grid_cols=?, cell_size=?, show_timer=?, time_limit_seconds=?, allow_hints=?, auto_size=?,
          heading_1=?, heading_2=?, heading_3=?, description_text=?,
          heading_1_color=?, heading_2_color=?, heading_3_color=?, description_color=?,
          bg_color=?, primary_color=?, bg_image_url=?, thankyou_bg_image_url=?, game_logo_url=?,
          font_family=?, sound_correct_id=?, sound_wrong_id=?,
          intro_text=?, outro_text=?, submit_button_text=?, continue_button_text=?, start_button_text=?,
          terms_enabled=?, terms_text=?, terms_url=?, meta_description=?, submit_confirm_gif_url=?, blank_cell_image_url=? WHERE game_id=?`,
-        [grid_rows || e.grid_rows, grid_cols || e.grid_cols, cell_size || e.cell_size,
-         show_timer !== undefined ? Number(show_timer) : e.show_timer,
-         time_limit_seconds !== undefined ? time_limit_seconds : e.time_limit_seconds,
-         allow_hints !== undefined ? Number(allow_hints) : e.allow_hints,
+        [gridRows, gridCols, cellSize, showTimer, timeLimitSecs, allowHints, autoSize,
          heading_1 !== undefined ? heading_1 : e.heading_1,
          heading_2 !== undefined ? heading_2 : e.heading_2,
          heading_3 !== undefined ? heading_3 : e.heading_3,
@@ -194,7 +203,7 @@ await db.query(
          submit_button_text !== undefined ? submit_button_text : e.submit_button_text,
          continue_button_text !== undefined ? continue_button_text : e.continue_button_text,
          start_button_text !== undefined ? start_button_text : e.start_button_text,
-         terms_enabled !== undefined ? Number(terms_enabled) : e.terms_enabled,
+         terms_enabled !== undefined ? termsEnabled : e.terms_enabled,
          terms_text !== undefined ? terms_text : e.terms_text,
          terms_url !== undefined ? terms_url : e.terms_url,
          meta_description !== undefined ? meta_description : e.meta_description,

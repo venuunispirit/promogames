@@ -10,6 +10,19 @@ async function safeQuery(conn, sql, label) {
   }
 }
 
+async function addColumn(conn, table, column, definition) {
+  try {
+    await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+    console.log(`✅ Added column ${table}.${column}`);
+  } catch (err) {
+    if (err.message.includes('Duplicate column')) {
+      console.log(`ℹ️  Column ${table}.${column} already exists`);
+    } else {
+      console.error(`❌ Failed to add ${table}.${column}:`, err.message);
+    }
+  }
+}
+
 async function initSpin() {
   const connection = await mysql.createConnection({
     host: process.env.DB_HOST || 'localhost',
@@ -49,6 +62,31 @@ async function initSpin() {
       sound_spin_id        INT DEFAULT NULL,
       sound_win_id         INT DEFAULT NULL,
       sound_lose_id        INT DEFAULT NULL,
+      center_image_url     VARCHAR(500),
+      meta_description     TEXT,
+      outro_text           TEXT,
+      outro_text_color     VARCHAR(20) DEFAULT '#1a1a2e',
+      thankyou_subtitle    TEXT,
+      thankyou_subtitle_color VARCHAR(20) DEFAULT '#444444',
+      submit_button_text   VARCHAR(500),
+      submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      submit_button_bg_color VARCHAR(20),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      continue_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      continue_button_bg_color VARCHAR(20),
+      start_button_text    VARCHAR(500),
+      start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20),
+      redirect_url         VARCHAR(500),
+      redirect_delay       INT DEFAULT 3,
+      redirect_open_new_tab TINYINT(1) DEFAULT 0,
+      terms_enabled        TINYINT(1) DEFAULT 0,
+      terms_text           TEXT,
+      terms_url            VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500),
+      heading_1_color      VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color      VARCHAR(20) DEFAULT '#1a1a2e',
+      description_color    VARCHAR(20) DEFAULT '#666666',
       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
     )
   `, 'spin_settings table');
@@ -92,6 +130,33 @@ async function initSpin() {
   } catch (err) {
     console.error('❌ games.category enum update:', err.message);
   }
+
+  // ── 4. Add missing columns to existing spin_settings ──
+  await addColumn(connection, 'spin_settings', 'center_image_url', 'VARCHAR(500)');
+  await addColumn(connection, 'spin_settings', 'meta_description', 'TEXT');
+  await addColumn(connection, 'spin_settings', 'outro_text', 'TEXT');
+  await addColumn(connection, 'spin_settings', 'outro_text_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
+  await addColumn(connection, 'spin_settings', 'thankyou_subtitle', 'TEXT');
+  await addColumn(connection, 'spin_settings', 'thankyou_subtitle_color', "VARCHAR(20) DEFAULT '#444444'");
+  await addColumn(connection, 'spin_settings', 'submit_button_text', 'VARCHAR(500)');
+  await addColumn(connection, 'spin_settings', 'submit_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
+  await addColumn(connection, 'spin_settings', 'submit_button_bg_color', 'VARCHAR(20)');
+  await addColumn(connection, 'spin_settings', 'continue_button_text', "VARCHAR(100) DEFAULT 'Continue →'");
+  await addColumn(connection, 'spin_settings', 'continue_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
+  await addColumn(connection, 'spin_settings', 'continue_button_bg_color', 'VARCHAR(20)');
+  await addColumn(connection, 'spin_settings', 'start_button_text', 'VARCHAR(500)');
+  await addColumn(connection, 'spin_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
+  await addColumn(connection, 'spin_settings', 'start_button_bg_color', 'VARCHAR(20)');
+  await addColumn(connection, 'spin_settings', 'redirect_url', 'VARCHAR(500)');
+  await addColumn(connection, 'spin_settings', 'redirect_delay', 'INT DEFAULT 3');
+  await addColumn(connection, 'spin_settings', 'redirect_open_new_tab', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'spin_settings', 'terms_enabled', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'spin_settings', 'terms_text', 'TEXT');
+  await addColumn(connection, 'spin_settings', 'terms_url', 'VARCHAR(500)');
+  await addColumn(connection, 'spin_settings', 'submit_confirm_gif_url', 'VARCHAR(500)');
+  await addColumn(connection, 'spin_settings', 'heading_1_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
+  await addColumn(connection, 'spin_settings', 'heading_2_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
+  await addColumn(connection, 'spin_settings', 'description_color', "VARCHAR(20) DEFAULT '#666666'");
 
   await connection.end();
   console.log('\n🎉 Spin-the-Wheel migration completed!');

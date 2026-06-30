@@ -187,21 +187,39 @@ router.delete('/tiles/:id', auth, async (req, res) => {
 
 router.post('/games/:gameId/tiles/create-pairs', auth, async (req, res) => {
   try {
-    const [singles] = await db.query(
-      'SELECT * FROM memory_tiles WHERE game_id = ? AND (pair_id IS NULL OR pair_id = id)',
+    const [allTiles] = await db.query(
+      'SELECT * FROM memory_tiles WHERE game_id = ? ORDER BY tile_order',
       [req.params.gameId]
     );
+
+    // Count how many tiles share each image_url
+    const imgCounts = {};
+    for (const t of allTiles) {
+      imgCounts[t.image_url] = (imgCounts[t.image_url] || 0) + 1;
+    }
+
+    // Only tiles whose image appears exactly once need a partner
+    const needsPair = allTiles.filter(t => imgCounts[t.image_url] === 1);
+
+    if (needsPair.length === 0) {
+      return res.json({ success: true, tiles: allTiles, pairsCreated: 0 });
+    }
+
     const [maxOrder] = await db.query('SELECT MAX(tile_order) as m FROM memory_tiles WHERE game_id = ?', [req.params.gameId]);
     let order = (maxOrder[0]?.m || 0) + 1;
-    for (const tile of singles) {
-      const [result] = await db.query(
+    for (const tile of needsPair) {
+      await db.query(
         'INSERT INTO memory_tiles (game_id, image_url, tile_label, pair_id, tile_order) VALUES (?, ?, ?, ?, ?)',
         [req.params.gameId, tile.image_url, tile.tile_label, tile.id, order++]
       );
       await db.query('UPDATE memory_tiles SET pair_id = ? WHERE id = ?', [tile.id, tile.id]);
     }
-    const [allTiles] = await db.query('SELECT * FROM memory_tiles WHERE game_id = ? ORDER BY tile_order', [req.params.gameId]);
-    res.json({ success: true, tiles: allTiles, pairsCreated: singles.length });
+
+    const [updatedTiles] = await db.query(
+      'SELECT * FROM memory_tiles WHERE game_id = ? ORDER BY tile_order',
+      [req.params.gameId]
+    );
+    res.json({ success: true, tiles: updatedTiles, pairsCreated: needsPair.length });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }

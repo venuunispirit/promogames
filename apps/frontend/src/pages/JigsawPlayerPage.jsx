@@ -640,9 +640,7 @@ export default function JigsawSurprise({ gameData, sessionToken, onComplete }) {
   const heading2Color = settings.heading_2_color || '#7eb8cc';
   const heading3Color = settings.heading_3_color || '#f5c842';
   const descriptionColor = settings.description_color || '#5a8a9a';
-  const fontFamily = settings.font_family || "'Nunito || "'Nunito','Segoe UI',sans-serif";
-
-  const textColor = getContrastColor(bgColor);
+  const fontFamily = settings.font_family || "'Nunito','Segoe UI',sans-serif";
 
   const textColor = getContrastColor(bgColor);
 

@@ -1,0 +1,9 @@
+{
+  "name": "@promogames/feature-theme",
+  "version": "1.0.0",
+  "private": true,
+  "main": "ui/index.js",
+  "exports": {
+    ".": "./ui/index.js"
+  }
+}

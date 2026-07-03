@@ -903,8 +903,9 @@ export default function CrosswordBuilderPage() {
                   <button className="cb-btn cb-btn-danger cb-btn-sm" onClick={() => removeFormField(i)}>✕</button>
                 </div>
               ))}
-              <div style={{ textAlign:'center', marginTop:6 }}>
+              <div style={{ textAlign:'center', marginTop:6, display:'flex', gap:8, justifyContent:'center' }}>
                 <button className="cb-btn cb-btn-primary" onClick={addFormField}>+ Add Field</button>
+                <button className="cb-btn cb-btn-primary" onClick={saveFormFields} disabled={saving}>{saving?'⏳ Saving…':'💾 Save Fields'}</button>
               </div>
             </div>
 

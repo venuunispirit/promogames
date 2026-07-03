@@ -406,8 +406,9 @@ export default function JigsawBuilderPage() {
                     <button className="jb-icon-btn del" onClick={()=>removeFormField(i)}>✕</button>
                   </div>
                 ))}
-                <div style={{ textAlign:'center', marginTop:10 }}>
+                <div style={{ textAlign:'center', marginTop:10, display:'flex', gap:8, justifyContent:'center' }}>
                   <button className="jb-btn jb-btn-secondary" onClick={addFormField}>+ Add Field</button>
+                  <button className="jb-btn" onClick={saveFormFields} disabled={saving}>{saving?'⏳ Saving…':'💾 Save Fields'}</button>
                 </div>
               </div>
 

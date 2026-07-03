@@ -42,8 +42,8 @@ function playSound(url) {
   if (!url) return
   try {
     const a = new Audio(url)
-    a.play().catch(() => {})
-  } catch {}
+    a.play().catch(e => console.warn('Sound play failed:', url, e.message))
+  } catch (e) { console.warn('Sound error:', e.message) }
 }
 
 /* ─── timer ─────────────────────────────────────────────── */

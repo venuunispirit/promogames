@@ -530,10 +530,23 @@ function TrayPiece({ piece, psize, isDragging, onDragStart }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // WIN ANIMATION OVERLAY — pieces assemble, puzzle "clicks", then result
 // ─────────────────────────────────────────────────────────────────────────────
-function WinOverlay({ seconds, onMenu, onPlayAgain, sceneCanvas, onComplete, redirectUrl }) {
+function WinOverlay({ seconds, onMenu, onPlayAgain, sceneCanvas, onComplete, redirectUrl, bgColor, primaryColor, heading2Color, heading3Color }) {
   const [phase, setPhase] = useState("lock"); // lock | result
   const [scale, setScale] = useState(0);
   const [glow, setGlow] = useState(false);
+
+  function hexToRgba(hex, alpha) {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  }
+  function adjustBrightness(hex, percent) {
+    const r = Math.max(0, Math.min(255, parseInt(hex.slice(1, 3), 16) + Math.round(2.55 * percent)));
+    const g = Math.max(0, Math.min(255, parseInt(hex.slice(3, 5), 16) + Math.round(2.55 * percent)));
+    const b = Math.max(0, Math.min(255, parseInt(hex.slice(5, 7), 16) + Math.round(2.55 * percent)));
+    return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+  }
 
   useEffect(() => {
     playWin();
@@ -1032,6 +1045,10 @@ export default function JigsawSurprise({ gameData, sessionToken, onComplete }) {
           onPlayAgain={()=>{ setShowWin(false); startGame(); }}
           onComplete={onComplete}
           redirectUrl={gameData?.redirect_url}
+          bgColor={bgColor}
+          primaryColor={primaryColor}
+          heading2Color={heading2Color}
+          heading3Color={heading3Color}
         />
       )}
     </div>

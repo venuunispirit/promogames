@@ -208,6 +208,7 @@ export default function JigsawBuilderPage() {
       else if (settings.puzzle_image_url !== undefined) fd.append('puzzle_image_url', settings.puzzle_image_url || '')
       if (settings._submitGifFile) fd.append('submit_confirm_gif', settings._submitGifFile)
       else if (settings.submit_confirm_gif_url !== undefined) fd.append('submit_confirm_gif_url', settings.submit_confirm_gif_url || '')
+      fd.append('redirect_url', redirectUrl || '')
       await api.put(`/jigsaw/${id}/settings`, fd)
       showToast('Settings saved ✅')
     } catch (err) { showToast('Error: ' + (err.response?.data?.message || err.message), 'error') }

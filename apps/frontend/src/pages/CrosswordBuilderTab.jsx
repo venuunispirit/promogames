@@ -168,9 +168,9 @@ function CrosswordSettingsPanel({ gameId, settings, setSettings, sounds, showToa
         'sound_correct_id','sound_wrong_id']
       for (const f of fields) fd.append(f, settings[f] ?? '')
       if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile)
-      else if (settings.bg_image_url) fd.append('bg_image_url', settings.bg_image_url)
+      else if (settings.bg_image_url !== undefined) fd.append('bg_image_url', settings.bg_image_url)
       if (settings._tyBgImageFile) fd.append('thankyou_bg_image', settings._tyBgImageFile)
-      else if (settings.thankyou_bg_image_url) fd.append('thankyou_bg_image_url', settings.thankyou_bg_image_url)
+      else if (settings.thankyou_bg_image_url !== undefined) fd.append('thankyou_bg_image_url', settings.thankyou_bg_image_url)
       if (settings._gameLogoFile) fd.append('game_logo', settings._gameLogoFile)
       else if (settings.game_logo_url !== undefined) fd.append('game_logo_url', settings.game_logo_url || '')
       await api.put(`/crossword/${gameId}/settings`, fd)

@@ -154,8 +154,8 @@ intro_text, outro_text, submit_button_text, continue_button_text, start_button_t
     const bgImg  = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           !== undefined ? bg_image_url           : (existing[0]?.bg_image_url           || null));
     const tyImg  = req.files?.thankyou_bg_image  ? `/uploads/images/${req.files.thankyou_bg_image[0].filename}`  : (thankyou_bg_image_url  !== undefined ? thankyou_bg_image_url  : (existing[0]?.thankyou_bg_image_url  || null));
     const logoImg = req.files?.game_logo         ? `/uploads/images/${req.files.game_logo[0].filename}`          : (game_logo_url !== undefined ? game_logo_url : (existing[0]?.game_logo_url || null));
-    const gifImg  = req.files?.submit_confirm_gif  ? `/uploads/images/${req.files.submit_confirm_gif[0].filename}`  : (submit_confirm_gif_url  || (existing[0]?.submit_confirm_gif_url  || null));
-    const blankImg = req.files?.blank_cell_image   ? `/uploads/images/${req.files.blank_cell_image[0].filename}`   : (blank_cell_image_url    || (existing[0]?.blank_cell_image_url    || null));
+    const gifImg  = req.files?.submit_confirm_gif  ? `/uploads/images/${req.files.submit_confirm_gif[0].filename}`  : (submit_confirm_gif_url  !== undefined ? submit_confirm_gif_url  : (existing[0]?.submit_confirm_gif_url  || null));
+    const blankImg = req.files?.blank_cell_image   ? `/uploads/images/${req.files.blank_cell_image[0].filename}`   : (blank_cell_image_url    !== undefined ? blank_cell_image_url    : (existing[0]?.blank_cell_image_url    || null));
 
     if (existing.length === 0) {
 await db.query(

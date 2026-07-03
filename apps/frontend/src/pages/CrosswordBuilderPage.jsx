@@ -654,18 +654,20 @@ export default function CrosswordBuilderPage() {
       const fd = new FormData()
       const sFields = ['heading_1','heading_2','heading_3','description_text','intro_text','meta_description','font_family',
         'bg_color','primary_color','show_timer','allow_hints','auto_size','time_limit_seconds',
-        'sound_correct_id','sound_wrong_id']
+        'sound_correct_id','sound_wrong_id','start_button_text',
+        'terms_enabled','terms_text','terms_url']
       for (const f of sFields) fd.append(f, settings[f]??'')
       fd.append('heading_1_color', heading1Color)
       fd.append('heading_2_color', heading2Color)
       fd.append('heading_3_color', heading3Color)
       fd.append('description_color', descColor)
       if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile)
-      else if (settings.bg_image_url) fd.append('bg_image_url', settings.bg_image_url)
+      else if (settings.bg_image_url !== undefined) fd.append('bg_image_url', settings.bg_image_url || '')
       if (settings._gameLogoFile) fd.append('game_logo', settings._gameLogoFile)
       else if (settings.game_logo_url !== undefined) fd.append('game_logo_url', settings.game_logo_url||'')
       await api.put(`/crossword/${id}/settings`, fd)
       await api.put(`/games/${id}`, { text1, text2 })
+      await api.put(`/games/${id}/form-fields`, { fields: formFields })
       setGame(prev => ({ ...prev, text1, text2 }))
       showToast('Display settings saved ✅')
     } catch (err) { showToast('Error: '+(err.response?.data?.message||err.message), 'error') }

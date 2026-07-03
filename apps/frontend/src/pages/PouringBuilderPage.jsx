@@ -186,8 +186,8 @@ export default function PouringBuilderPage() {
         'intro_text','outro_text','submit_button_text','continue_button_text','start_button_text',
         'terms_enabled','terms_text','terms_url']
       for (const f of fields) fd.append(f, settings[f]??'')
-      if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile); else if (settings.bg_image_url) fd.append('bg_image_url', settings.bg_image_url)
-      if (settings._tyBgImageFile) fd.append('thankyou_bg_image', settings._tyBgImageFile); else if (settings.thankyou_bg_image_url) fd.append('thankyou_bg_image_url', settings.thankyou_bg_image_url)
+      if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile); else if (settings.bg_image_url !== undefined) fd.append('bg_image_url', settings.bg_image_url)
+      if (settings._tyBgImageFile) fd.append('thankyou_bg_image', settings._tyBgImageFile); else if (settings.thankyou_bg_image_url !== undefined) fd.append('thankyou_bg_image_url', settings.thankyou_bg_image_url)
       if (settings._gameLogoFile) fd.append('game_logo', settings._gameLogoFile); else if (settings.game_logo_url !== undefined) fd.append('game_logo_url', settings.game_logo_url||'')
       if (settings._submitGifFile) fd.append('submit_confirm_gif', settings._submitGifFile); else if (settings.submit_confirm_gif_url !== undefined) fd.append('submit_confirm_gif_url', settings.submit_confirm_gif_url||'')
       await api.put(`/pouring/${id}/settings`, fd)
@@ -207,7 +207,7 @@ export default function PouringBuilderPage() {
       for (const f of sFields) fd.append(f, settings[f]??'')
       fd.append('heading_1_color', heading1Color); fd.append('heading_2_color', heading2Color)
       fd.append('heading_3_color', heading3Color); fd.append('description_color', descColor)
-      if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile); else if (settings.bg_image_url) fd.append('bg_image_url', settings.bg_image_url)
+      if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile); else if (settings.bg_image_url !== undefined) fd.append('bg_image_url', settings.bg_image_url)
       if (settings._gameLogoFile) fd.append('game_logo', settings._gameLogoFile); else if (settings.game_logo_url !== undefined) fd.append('game_logo_url', settings.game_logo_url||'')
       await api.put(`/pouring/${id}/settings`, fd)
       await api.put(`/games/${id}`, { name: text1 || game?.name })

@@ -474,6 +474,8 @@ async function initDB() {
     ['description_color', "VARCHAR(20) DEFAULT '#888888'"],
     ['start_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
     ['start_button_bg_color', 'VARCHAR(20)'],
+    ['submit_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
+    ['submit_button_bg_color', 'VARCHAR(20)'],
     ['submit_confirm_gif_url', 'VARCHAR(500)'],
     ['continue_button_text', "VARCHAR(100) DEFAULT 'Continue Now →'"],
     ['continue_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],

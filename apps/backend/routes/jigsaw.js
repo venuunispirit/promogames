@@ -48,7 +48,7 @@ router.put('/:gameId/settings', auth, upload.fields([
     start_button_text_color, start_button_bg_color,
     submit_button_text_color, submit_button_bg_color, outro_text_color,
     continue_button_text_color, continue_button_bg_color,
-    thankyou_heading_text, thankyou_heading_color, thanyou_subtitle_text, thanyou_subtitle_color,
+    thankyou_heading_text, thankyou_heading_color, thankyou_subtitle_text, thankyou_subtitle_color,
     submit_btn_text, submit_btn_text_color, submit_btn_bg_color, continue_now_btn_text, continue_now_btn_text_color, continue_now_btn_bg_color,
   } = req.body;
 
@@ -106,8 +106,8 @@ router.put('/:gameId/settings', auth, upload.fields([
     continue_button_bg_color: continue_button_bg_color || e.continue_button_bg_color || null,
     thankyou_heading_text: thankyou_heading_text !== undefined ? thankyou_heading_text : (e.thankyou_heading_text || null),
     thankyou_heading_color: thankyou_heading_color || e.thankyou_heading_color || '#1a1a2e',
-    thanyou_subtitle_text: thanyou_subtitle_text !== undefined ? thanyou_subtitle_text : (e.thankyou_subtitle_text || null),
-    thanyou_subtitle_color: thanyou_subtitle_color || e.thankyou_subtitle_color || '#444444',
+    thankyou_subtitle_text: thankyou_subtitle_text !== undefined ? thankyou_subtitle_text : (e.thankyou_subtitle_text || null),
+    thankyou_subtitle_color: thankyou_subtitle_color || e.thankyou_subtitle_color || '#444444',
     submit_btn_text: submit_btn_text !== undefined ? submit_btn_text : (e.submit_button_text || null),
     submit_btn_text_color: submit_btn_text_color || e.submit_button_text_color || '#ffffff',
     submit_btn_bg_color: submit_btn_bg_color || e.submit_button_bg_color || null,

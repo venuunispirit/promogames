@@ -384,7 +384,10 @@ export default function MemoryPlayerPage({ gameData, sessionToken: initToken, on
     if (timerRef.current) clearInterval(timerRef.current)
     setGameOver(true)
     playSound(soundMap, settings.win_sound_id)
-    if (!sessionToken) return
+    if (!sessionToken) {
+      onComplete?.({ redirect_url: settings.redirect_url || game.redirect_url })
+      return
+    }
     try {
       const res = await api.post('/play/session/complete', { session_token: sessionToken, score: moves, player_data: { total_moves: moves, total_pairs: totalPairs, time_taken: settings.time_limit_seconds ? settings.time_limit_seconds - timeLeft : 0 } })
       onComplete?.({ ...res.data, redirect_url: res.data.redirect_url || settings.redirect_url || game.redirect_url })
@@ -664,7 +667,7 @@ export default function MemoryPlayerPage({ gameData, sessionToken: initToken, on
                 {settings.outro_text && (
                   <p style={{ fontSize:13, color: settings.description_color || '#888', margin:'0 0 16px', lineHeight:1.4 }}>{settings.outro_text}</p>
                 )}
-                <button className="mem-overlay-btn" onClick={() => onComplete?.({ redirect_url: game.redirect_url })}
+                <button className="mem-overlay-btn" onClick={() => onComplete?.({ redirect_url: settings.redirect_url || game.redirect_url })}
                   style={{ background: settings.primary_color || '#6366f1', color:'#fff', marginBottom:10 }}>
                   {settings.continue_button_text || 'Continue →'}
                 </button>

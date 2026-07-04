@@ -531,7 +531,7 @@ function TrayPiece({ piece, psize, isDragging, onDragStart }) {
 // ─────────────────────────────────────────────────────────────────────────────
 // WIN ANIMATION OVERLAY — pieces assemble, puzzle "clicks", then result
 // ─────────────────────────────────────────────────────────────────────────────
-function WinOverlay({ seconds, onMenu, onPlayAgain, sceneCanvas, onComplete, redirectUrl, bgColor, primaryColor, heading2Color, heading3Color }) {
+function WinOverlay({ seconds, onMenu, onPlayAgain, sceneCanvas, onComplete, redirectUrl, bgColor, primaryColor, heading2Color, heading3Color, settings }) {
   const [phase, setPhase] = useState("lock"); // lock | result
   const [scale, setScale] = useState(0);
   const [glow, setGlow] = useState(false);
@@ -609,7 +609,7 @@ return (
       {phase === "result" && (
         <div style={{display:"flex",flexDirection:"column",alignItems:"center",gap:12,animation:"slideUp .4s ease"}}>
           <div style={{fontSize:"3rem"}}>🎉</div>
-          <div style={{fontSize:"2rem",fontWeight:900,color:heading3Color,textShadow:`0 0 20px ${hexToRgba(heading3Color, 0.5)}`}}>Puzzle Complete!</div>
+          <div style={{fontSize:"2rem",fontWeight:900,color:heading3Color,textShadow:`0 0 20px ${hexToRgba(heading3Color, 0.5)}`}}>{settings?.outro_text || "Puzzle Complete!"}</div>
           <div style={{color:heading2Color,fontSize:"0.9rem"}}>Finished in</div>
           <div style={{fontSize:"2rem",fontWeight:800,color:primaryColor}}>{fmtTime(seconds)}</div>
           <div style={{borderRadius:16,overflow:"hidden",boxShadow:`0 8px 40px rgba(0,0,0,0.6),0 0 0 3px ${hexToRgba(heading3Color, 0.4)}`,margin:"8px 0"}}>
@@ -619,7 +619,7 @@ return (
             <button style={{padding:"12px 28px",borderRadius:50,border:`2px solid rgba(255,255,255,0.2)`,fontFamily:"inherit",fontSize:"0.98rem",fontWeight:800,cursor:"pointer",background:"transparent",color:heading2Color,transition:"all .2s"}}
               onClick={onMenu}>Menu</button>
             <button style={{padding:"12px 28px",borderRadius:50,border:"none",fontFamily:"inherit",fontSize:"0.98rem",fontWeight:800,cursor:"pointer",background:`linear-gradient(135deg, ${primaryColor}, ${adjustBrightness(primaryColor, -15)})`,color:"#ffffff",boxShadow:`0 4px 16px ${hexToRgba(primaryColor, 0.4)}`,transition:"all .2s"}}
-              onClick={onPlayAgain}>Play Again</button>
+              onClick={onPlayAgain}>{settings?.submit_button_text || "Play Again"}</button>
           </div>
         </div>
       )}
@@ -1050,6 +1050,7 @@ export default function JigsawSurprise({ gameData, sessionToken, onComplete }) {
           primaryColor={primaryColor}
           heading2Color={heading2Color}
           heading3Color={heading3Color}
+          settings={settings}
         />
       )}
     </div>

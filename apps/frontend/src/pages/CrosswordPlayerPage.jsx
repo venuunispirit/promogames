@@ -193,7 +193,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
   const resolveSound = useCallback((id) => {
     if (!id) return null
     const n = parseInt(id)
-    return isNaN(n) ? null : (soundMapRef.current[n] || null)
+    return isNaN(n) ? id : (soundMapRef.current[n] || null)
   }, [])
 
   // Injection of global styles for the new design
@@ -332,6 +332,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
     if (words.length > 0 && words.every(w => correct[w.id])) {
       setGameOver(true)
       setShowCompletionPopup(true)
+      playSound(resolveSound(settings?.win_sound_id))
     }
   }, [correct])
 

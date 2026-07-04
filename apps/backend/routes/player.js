@@ -180,6 +180,16 @@ router.get('/:gameName/:companyName', async (req, res) => {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
       }
 
+      // Normalize jigsaw thank-you fields to match what the shared Thank You page reads
+      if (!settings.outro_text && settings.thankyou_heading_text) settings.outro_text = settings.thankyou_heading_text;
+      if (!settings.thankyou_subtitle && settings.thankyou_subtitle_text) settings.thankyou_subtitle = settings.thankyou_subtitle_text;
+      if (!settings.submit_button_text && settings.submit_btn_text) settings.submit_button_text = settings.submit_btn_text;
+      if (!settings.submit_button_text_color && settings.submit_btn_text_color) settings.submit_button_text_color = settings.submit_btn_text_color;
+      if (!settings.submit_button_bg_color && settings.submit_btn_bg_color) settings.submit_button_bg_color = settings.submit_btn_bg_color;
+      if (!settings.continue_button_text && settings.continue_now_btn_text) settings.continue_button_text = settings.continue_now_btn_text;
+      if (!settings.continue_button_text_color && settings.continue_now_btn_text_color) settings.continue_button_text_color = settings.continue_now_btn_text_color;
+      if (!settings.continue_button_bg_color && settings.continue_now_btn_bg_color) settings.continue_button_bg_color = settings.continue_now_btn_bg_color;
+
       return res.json({
         success: true,
         game: {

@@ -387,7 +387,7 @@ export default function MemoryPlayerPage({ gameData, sessionToken: initToken, on
     if (!sessionToken) return
     try {
       const res = await api.post('/play/session/complete', { session_token: sessionToken, score: moves, player_data: { total_moves: moves, total_pairs: totalPairs, time_taken: settings.time_limit_seconds ? settings.time_limit_seconds - timeLeft : 0 } })
-      onComplete?.(res.data)
+      onComplete?.({ ...res.data, redirect_url: res.data.redirect_url || settings.redirect_url || game.redirect_url })
     } catch (err) {
       onComplete?.({ redirect_url: settings.redirect_url || game.redirect_url })
     }

@@ -230,6 +230,8 @@ export default function MemoryBuilderPage() {
         'redirect_url','redirect_delay','redirect_open_new_tab',
       ]
       for (const f of sFields) fd.append(f, settings[f] ?? '')
+      // redirect_url lives in separate state, override the stale settings value
+      fd.set('redirect_url', redirectUrl || '')
       fd.append('bg_color', settings.bg_color || '#f8f8ff')
       fd.append('primary_color', settings.primary_color || '#6366f1')
       fd.append('heading_1_color', heading1Color)

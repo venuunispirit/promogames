@@ -198,6 +198,17 @@ export default function JigsawBuilderPage() {
         'submit_button_text_color','submit_button_bg_color','outro_text_color',
         'continue_button_text_color','continue_button_bg_color']
       for (const f of fields) fd.append(f, settings[f] ?? '')
+      // Jigsaw-specific thank-you fields (not in the generic fields array)
+      fd.append('thankyou_heading_text', settings.thankyou_heading_text ?? '')
+      fd.append('thankyou_heading_color', settings.thankyou_heading_color ?? '')
+      fd.append('thankyou_subtitle_text', settings.thankyou_subtitle_text ?? '')
+      fd.append('thankyou_subtitle_color', settings.thankyou_subtitle_color ?? '')
+      fd.append('submit_btn_text', settings.submit_btn_text ?? '')
+      fd.append('submit_btn_text_color', settings.submit_btn_text_color ?? '')
+      fd.append('submit_btn_bg_color', settings.submit_btn_bg_color ?? '')
+      fd.append('continue_now_btn_text', settings.continue_now_btn_text ?? '')
+      fd.append('continue_now_btn_text_color', settings.continue_now_btn_text_color ?? '')
+      fd.append('continue_now_btn_bg_color', settings.continue_now_btn_bg_color ?? '')
       if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile)
       else if (settings.bg_image_url !== undefined) fd.append('bg_image_url', settings.bg_image_url || '')
       if (settings._tyBgImageFile) fd.append('thankyou_bg_image', settings._tyBgImageFile)

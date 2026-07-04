@@ -646,6 +646,22 @@ function useIsMobile() {
 export default function JigsawSurprise({ gameData, sessionToken, onComplete }) {
   const isMobile = useIsMobile();
   const settings = gameData?.settings || {};
+  const soundMap = gameData?.soundMap || {};
+
+  const resolveSoundUrl = (id) => {
+    if (!id) return null
+    const n = parseInt(id)
+    return isNaN(n) ? null : (soundMap[n] || null)
+  }
+
+  const playCustomSound = (id, fallback) => {
+    const url = resolveSoundUrl(id)
+    if (url) {
+      try { const a = new Audio(url); a.play().catch(() => fallback()) } catch { fallback() }
+    } else {
+      fallback()
+    }
+  }
 
   // Dynamic styles based on settings
   const bgColor = settings.bg_color || '#1a2a3a';
@@ -856,11 +872,11 @@ export default function JigsawSurprise({ gameData, sessionToken, onComplete }) {
     setMoves(m=>m+1);
     vibrate(correct ? 60 : 20);
     if(correct){
-      playSnap();
+      playCustomSound(settings.sound_correct_id, playSnap);
       setPieces(prev=>prev.map(p=>p.id===dragPiece.id?{...p,placed:true,inTray:false}:p));
       setPlacedCount(c=>{ const next=c+1; checkWin(next,colsRef.current*rowsRef.current); return next; });
     } else {
-      playTick();
+      playCustomSound(settings.sound_wrong_id, playTick);
     }
     setDragPiece(null); setDropTarget(null);
   }, [dragPiece, pieces, checkWin]);

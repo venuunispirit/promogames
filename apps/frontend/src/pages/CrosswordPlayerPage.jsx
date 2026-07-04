@@ -187,6 +187,14 @@ const playKeySound = (enabled) => {
 /* ─── main component ────────────────────────────────────── */
 export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId, onComplete }) {
   const { settings, words, soundMap } = gameData
+  const soundMapRef = useRef(soundMap || {})
+  useEffect(() => { soundMapRef.current = soundMap || {} }, [soundMap])
+
+  const resolveSound = useCallback((id) => {
+    if (!id) return null
+    const n = parseInt(id)
+    return isNaN(n) ? null : (soundMapRef.current[n] || null)
+  }, [])
 
   // Injection of global styles for the new design
   useEffect(() => {
@@ -414,7 +422,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
             delete nextWrong[w.id]
             if (!wasCorrect) {
               wordsToUpdate.push({ w, attempt, isCorrect: true })
-              playSound(soundMap[w.sound_correct_id] || soundMap[settings?.sound_correct_id])
+              playSound(resolveSound(w.sound_correct_id) || resolveSound(settings?.sound_correct_id))
               // Trigger overlay if image exists
               if (w.overlay_image_url) setActiveOverlay({ url: w.overlay_image_url })
             }
@@ -422,7 +430,7 @@ export default function CrosswordPlayerPage({ gameData, sessionToken, sessionId,
             nextWrong[w.id] = true
             if (!wasWrong) {
               wordsToUpdate.push({ w, attempt, isCorrect: false })
-              playSound(soundMap[w.sound_wrong_id] || soundMap[settings?.sound_wrong_id])
+              playSound(resolveSound(w.sound_wrong_id) || resolveSound(settings?.sound_wrong_id))
             }
           }
         }

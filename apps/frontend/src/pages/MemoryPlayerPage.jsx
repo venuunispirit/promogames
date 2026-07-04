@@ -389,7 +389,7 @@ export default function MemoryPlayerPage({ gameData, sessionToken: initToken, on
       const res = await api.post('/play/session/complete', { session_token: sessionToken, score: moves, player_data: { total_moves: moves, total_pairs: totalPairs, time_taken: settings.time_limit_seconds ? settings.time_limit_seconds - timeLeft : 0 } })
       onComplete?.(res.data)
     } catch (err) {
-      onComplete?.({ redirect_url: game.redirect_url })
+      onComplete?.({ redirect_url: settings.redirect_url || game.redirect_url })
     }
   }
 
@@ -463,7 +463,17 @@ export default function MemoryPlayerPage({ gameData, sessionToken: initToken, on
 
   const allMatched = cards.length > 0 && cards.every(c => c.isMatched)
   useEffect(() => {
-    if (allMatched && !showOverlay && matchCount > 0 && !gameOver) handleGameOver()
+    if (allMatched && matchCount > 0 && !gameOver) {
+      if (showOverlay) {
+        // If overlay is still showing (last match triggered it), dismiss it first then end game
+        setTimeout(() => {
+          setShowOverlay(false)
+          handleGameOver()
+        }, 1500)
+      } else {
+        handleGameOver()
+      }
+    }
   }, [allMatched])
 
   const formatTime = (s) => `${Math.floor(s/60)}:${(s%60).toString().padStart(2,'0')}`

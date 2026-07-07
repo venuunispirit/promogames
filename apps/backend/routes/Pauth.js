@@ -203,7 +203,7 @@ router.post('/verify-otp', async (req, res) => {
         token,
         player: {
           id: player.id, name: player.name, email: player.email,
-          pc_balance: player.pc_balance, city: player.city,
+          pc_balance: player.pc_balance, city: player.city, avatar_id: player.avatar_id,
         },
       });
     }
@@ -214,8 +214,8 @@ router.post('/verify-otp', async (req, res) => {
       if (teamRows.length > 0) {
         const teamMember = teamRows[0];
         const [insertResult] = await db.query(
-          `INSERT INTO promo_players (name, email, pc_balance)
-           VALUES (?, ?, 100)
+          `INSERT INTO promo_players (name, email, pc_balance, avatar_id)
+           VALUES (?, ?, 100, 'av-3')
            ON DUPLICATE KEY UPDATE name = VALUES(name)`,
           [teamMember.name || email, email]
         );
@@ -233,7 +233,7 @@ router.post('/verify-otp', async (req, res) => {
           token,
           player: {
             id: player.id, name: player.name, email: player.email,
-            pc_balance: player.pc_balance, city: player.city,
+            pc_balance: player.pc_balance, city: player.city, avatar_id: player.avatar_id,
           },
         });
       }
@@ -255,15 +255,41 @@ router.post('/verify-otp', async (req, res) => {
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
+// POST /api/pauth/check-username
+// Body: { username }
+// Returns { available: true/false }
+// ─────────────────────────────────────────────────────────────────────────────
+router.post('/check-username', async (req, res) => {
+  try {
+    const { username } = req.body
+    if (!username || username.length < 3) {
+      return res.json({ available: false, message: 'Username must be at least 3 characters' })
+    }
+    if (!/^[a-z0-9_]+$/.test(username)) {
+      return res.json({ available: false, message: 'Only lowercase letters, numbers and underscores' })
+    }
+    const [[row]] = await db.query('SELECT id FROM promo_players WHERE username = ?', [username])
+    res.json({ available: !row })
+  } catch (err) {
+    res.status(500).json({ available: false, message: err.message })
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 // POST /api/pauth/register
 // Body: { tempToken, name, dob, whatsapp, city, pincode }
 // Creates promo_player + 100 PC welcome bonus transaction
 // ─────────────────────────────────────────────────────────────────────────────
 router.post('/register', async (req, res) => {
-  const { tempToken, name, dob, whatsapp, city, pincode } = req.body;
+  const { tempToken, name, username: rawUsername, dob, whatsapp, city, pincode, avatar_id } = req.body;
 
-  if (!tempToken || !name) {
+  if (!tempToken || !name || !rawUsername) {
     return res.status(400).json({ success: false, message: 'Missing required fields' });
+  }
+
+  const username = rawUsername.trim().toLowerCase();
+  if (username.length < 3 || !/^[a-z0-9_]+$/.test(username)) {
+    return res.status(400).json({ success: false, message: 'Invalid username format' });
   }
 
   let email;
@@ -276,17 +302,21 @@ router.post('/register', async (req, res) => {
   }
 
   try {
-    // Double-check not already registered
     const [existing] = await db.query('SELECT id FROM promo_players WHERE email = ?', [email]);
     if (existing.length > 0) {
       return res.status(409).json({ success: false, message: 'Account already exists for this email' });
     }
 
-    // Create player with 100 PC welcome bonus
+    // Server-side username uniqueness check
+    const [[dup]] = await db.query('SELECT id FROM promo_players WHERE username = ?', [username]);
+    if (dup) {
+      return res.status(409).json({ success: false, message: 'Username already taken' });
+    }
+
     const [result] = await db.query(
-      `INSERT INTO promo_players (name, dob, email, whatsapp, city, pincode, pc_balance)
-       VALUES (?, ?, ?, ?, ?, ?, 100)`,
-      [name, dob || null, email, whatsapp || null, city || null, pincode || null]
+      `INSERT INTO promo_players (name, username, dob, email, whatsapp, city, pincode, pc_balance, avatar_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 100, ?)`,
+      [name, username, dob || null, email, whatsapp || null, city || null, pincode || null, avatar_id || 'av-3']
     );
 
     const playerId = result.insertId;
@@ -308,7 +338,7 @@ router.post('/register', async (req, res) => {
     res.json({
       success: true,
       token,
-      player: { id: playerId, name, email, pc_balance: 100, city },
+      player: { id: playerId, name, email, pc_balance: 100, city, avatar_id: avatar_id || 'av-3' },
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

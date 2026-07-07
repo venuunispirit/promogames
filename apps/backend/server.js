@@ -119,6 +119,9 @@ app.use("/api/internal-team", internalTeamRoutes);
 app.use("/api/notifications", auth, notificationsRoutes);
 app.use("/api/internal-team/notifications", itAuth, notificationsRoutes);
 
+const { startPCResetCron } = require('./cron/pcReset');
+startPCResetCron();
+
 app.get("/api/check-code", (req, res) => {
   res.json({ 
     success: true, 

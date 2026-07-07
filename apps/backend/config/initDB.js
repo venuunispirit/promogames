@@ -2204,7 +2204,22 @@ await safeQuery(connection, `
 
    /* PROMO_PLAYERS — ensure required columns exist */
    await addColumn(connection, 'promo_players', 'username', "VARCHAR(100) DEFAULT NULL");
-   await addColumn(connection, 'promo_players', 'avatar_id', 'INT DEFAULT NULL');
+   await addColumn(connection, 'promo_players', 'avatar_id', "VARCHAR(50) DEFAULT NULL");
+
+   /* PROMO_PLAYERS — ensure username unique index exists */
+   try {
+     const [[idx]] = await connection.query(
+       `SELECT COUNT(*) AS cnt FROM information_schema.STATISTICS
+        WHERE table_schema = ? AND table_name = 'promo_players' AND index_name = 'idx_username'`,
+       [dbName]
+     );
+     if (idx.cnt === 0) {
+       await connection.query('ALTER TABLE promo_players ADD UNIQUE INDEX idx_username (username)');
+       console.log('✅ Added promo_players.username unique index');
+     }
+   } catch (err) {
+     console.error('❌ username unique index:', err.message);
+   }
 
    /* INTERNAL_TEAM — ensure password/phone/permissions columns exist */
    await addColumn(connection, 'internal_team', 'phone', 'VARCHAR(50) DEFAULT NULL');

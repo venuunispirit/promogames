@@ -453,9 +453,27 @@ export default function LoginPage() {
   const [error,     setError]     = useState('')
   const [resendCD,  setResendCD]  = useState(0)
   const [rememberMe, setRememberMe] = useState(true)
-  const [form, setForm] = useState({name:'',dob:'',whatsapp:'',city:'',pincode:'',avatar_id:DEFAULT_AVATARS[0].id})
+  const [form, setForm] = useState({name:'',username:'',dob:'',whatsapp:'',city:'',pincode:'',avatar_id:DEFAULT_AVATARS[0].id})
+  const [usernameStatus, setUsernameStatus] = useState('') // '' | 'checking' | 'available' | 'taken'
+  const [usernameMsg, setUsernameMsg] = useState('')
 
   const setField = (k,v) => setForm(f=>({...f,[k]:v}))
+
+  // Debounced username uniqueness check
+  useEffect(() => {
+    const val = form.username.trim().toLowerCase()
+    if (val.length < 3) { setUsernameStatus(''); setUsernameMsg(val.length ? 'At least 3 characters' : ''); return }
+    if (!/^[a-z0-9_]+$/.test(val)) { setUsernameStatus(''); setUsernameMsg('Only lowercase letters, numbers and _'); return }
+    setUsernameStatus('checking'); setUsernameMsg('')
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await api.post('/pauth/check-username', { username: val })
+        if (data.available) { setUsernameStatus('available'); setUsernameMsg('Username available') }
+        else { setUsernameStatus('taken'); setUsernameMsg('Username already taken') }
+      } catch { setUsernameStatus(''); setUsernameMsg('') }
+    }, 500)
+    return () => clearTimeout(t)
+  }, [form.username])
   const storeAuth = (token, player) => {
     const storage = rememberMe ? localStorage : sessionStorage
     storage.setItem('playerToken', token)
@@ -535,12 +553,18 @@ export default function LoginPage() {
 
   const handleRegister = async () => {
     if (!form.name.trim()) return setError('Name is required')
+    if (!form.username.trim() || form.username.length < 3) return setError('Username must be at least 3 characters')
+    if (!/^[a-z0-9_]+$/.test(form.username)) return setError('Username: only lowercase letters, numbers and underscores')
+    if (usernameStatus === 'taken') return setError('Username is already taken')
+    if (usernameStatus === 'checking') return setError('Please wait, checking username…')
     clearErr(); setLoading(true)
     try {
       const { data } = await api.post('/pauth/register', {
         tempToken, name: form.name.trim(),
+        username: form.username.trim().toLowerCase(),
         dob: form.dob||null,
         whatsapp: form.whatsapp||null, city: form.city||null, pincode: form.pincode||null,
+        avatar_id: form.avatar_id,
       })
       storeAuth(data.token, { ...data.player, avatar_id: form.avatar_id })
       navigate('/')
@@ -701,6 +725,20 @@ export default function LoginPage() {
             onChange={e=>{setField('name',e.target.value);clearErr()}} placeholder="Your full name"/>
         </div>
         <div className="pg-fg">
+          <label className="pg-lbl">Username <span style={{color:'#ffaec5'}}>*</span></label>
+          <input className="pg-inp" type="text" value={form.username}
+            onChange={e=>{setField('username',e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,''));clearErr()}}
+            placeholder="e.g. venu_gamer" maxLength={20}/>
+          {usernameMsg && (
+            <span style={{
+              fontSize:12, marginTop:4, display:'block',
+              color: usernameStatus==='available' ? '#34d399' : usernameStatus==='taken' ? '#f87171' : usernameStatus==='checking' ? '#a78bfa' : '#9ca3af'
+            }}>
+              {usernameStatus==='checking' ? '⏳ Checking…' : usernameMsg}
+            </span>
+          )}
+        </div>
+        <div className="pg-fg">
           <label className="pg-lbl">Date of Birth</label>
           <input className="pg-inp" type="date" value={form.dob} onChange={e=>setField('dob',e.target.value)}/>
         </div>
@@ -729,7 +767,7 @@ export default function LoginPage() {
           <label className="pg-lbl" style={{marginBottom:8,display:'block'}}>Choose Your Avatar</label>
           <AvatarGrid selected={form.avatar_id} onSelect={id => setField('avatar_id', id)} size={68} />
         </div>
-        <button className={`pg-btn${loading?' busy':''}`} onClick={handleRegister} disabled={loading||!form.name.trim()}>
+        <button className={`pg-btn${loading?' busy':''}`} onClick={handleRegister} disabled={loading||!form.name.trim()||!form.username.trim()||usernameStatus==='taken'||usernameStatus==='checking'}>
           {loading ? <><Dots/>&nbsp;Creating account…</> : 'Create Account & Claim 100 PC 🎉'}
         </button>
       </div>

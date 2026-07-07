@@ -151,7 +151,35 @@ async function initPromo() {
   `, 'reset_log table');
   await safeQuery(connection, 'INSERT IGNORE INTO reset_log (id, last_reset_at) VALUES (1, NULL)', 'reset_log seed');
 
-  // ── 8. Rename pp_balance → pc_balance ──────────────────────────────────────
+  // ── 8. Auto-assign usernames to existing players without one ──
+  try {
+    const [players] = await connection.query(`SELECT id, name, email FROM promo_players WHERE username IS NULL OR username = ''`);
+    if (players.length > 0) {
+      // Fetch all existing usernames to avoid collisions
+      const [existing] = await connection.query(`SELECT username FROM promo_players WHERE username IS NOT NULL AND username != ''`);
+      const taken = new Set(existing.map(r => r.username));
+
+      for (const p of players) {
+        let base = (p.name || p.email?.split('@')[0] || 'user')
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, '')
+          .slice(0, 20) || 'player';
+        let username = base;
+        let suffix = 1;
+        while (taken.has(username)) {
+          username = base + suffix;
+          suffix++;
+        }
+        taken.add(username);
+        await connection.query(`UPDATE promo_players SET username = ? WHERE id = ?`, [username, p.id]);
+      }
+      console.log(`✅ Assigned usernames to ${players.length} existing players`);
+    }
+  } catch (err) {
+    console.error('❌ Username migration:', err.message);
+  }
+
+  // ── 9. Rename pp_balance → pc_balance ──────────────────────────────────────
   try {
     const [ppCol] = await connection.query(`SHOW COLUMNS FROM \`promo_players\` LIKE 'pp_balance'`);
     if (ppCol.length > 0) {

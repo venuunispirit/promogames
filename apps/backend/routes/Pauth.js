@@ -87,6 +87,16 @@ router.post('/check-email', async (req, res) => {
       return res.json({ success: true, type: 'admin' });
     }
 
+    // 1.5 Check business developers table
+    try {
+      const [bdRows] = await db.query('SELECT id FROM business_developers WHERE email = ?', [email]);
+      if (bdRows.length > 0) {
+        return res.json({ success: true, type: 'bd' });
+      }
+    } catch {
+      // business_developers table may not exist yet
+    }
+
     // 2. Check internal team table (gracefully skip if table doesn't exist)
     try {
       const [teamRows] = await db.query('SELECT id FROM internal_team WHERE email = ?', [email]);

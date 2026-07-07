@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef, Children } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api'
 import {
@@ -64,6 +64,7 @@ const CSS = `
 }
 
 .dh-card {
+  width:100%;
   background:transparent !important;
 
   backdrop-filter:blur(400px) !important;
@@ -267,6 +268,36 @@ function KpiCard({ label, value, sub, icon, accent, loading, delay = 0 }) {
   )
 }
 
+function MasonryGrid({ children, gap = 14, minColWidth = 320 }) {
+  const ref = useRef()
+  const [cols, setCols] = useState(3)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      const w = el.offsetWidth
+      setCols(Math.max(1, Math.floor((w + gap) / (minColWidth + gap))))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [gap, minColWidth])
+
+  const items = Children.toArray(children)
+  const columns = Array.from({ length: cols }, () => [])
+  items.forEach((item, i) => { columns[i % cols].push(item) })
+
+  return (
+    <div ref={ref} style={{ display:'flex', gap, alignItems:'flex-start', marginBottom:18 }}>
+      {columns.map((col, ci) => (
+        <div key={ci} style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap }}>
+          {col}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 // ─── Main ─────────────────────────────────────────────────────────────────────
 export default function DashboardHome() {
   const navigate = useNavigate()
@@ -409,8 +440,7 @@ export default function DashboardHome() {
           {kpis.map((k,i) => <KpiCard key={k.label} {...k} loading={loading} delay={i*60}/>)}
         </div>
 
-        {/* Row 2 — Growth area + Status donut */}
-        <div className="dh-row2">
+        <MasonryGrid gap={14} minColWidth={340}>
           <div className="dh-card">
             <SecHead title="Platform Growth" sub="Games created & players joined — last 6 months"/>
             <div style={{padding:'16px 20px 8px'}}>
@@ -470,10 +500,7 @@ export default function DashboardHome() {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Row 3 — Top games + Game types + Clients */}
-        <div className="dh-row3">
           <div className="dh-card">
             <SecHead title="Top Games by Plays" sub="Ranked by completed sessions" action="All games" onAction={() => navigate('/dashboard/games')}/>
             <div style={{padding:'16px 20px 8px'}}>
@@ -534,11 +561,8 @@ export default function DashboardHome() {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Recent Games Table */}
-        <div style={{marginBottom:18}}>
-          <div className="dh-card">
+          <div className="dh-card" style={{gridColumn:'1 / -1',width:'100%'}}>
             <SecHead title="Recent Games" sub={`${recentGames.length} most recent`} action="View all" onAction={() => navigate('/dashboard/games')}/>
             {loading ? (
               <div style={{padding:'20px',display:'flex',flexDirection:'column',gap:12}}>
@@ -583,10 +607,7 @@ export default function DashboardHome() {
               </div>
             )}
           </div>
-        </div>
 
-        {/* Row 5 — City + PC distribution */}
-        <div className="dh-row5">
           <div className="dh-card">
             <SecHead title="Players by City" sub="Geographic distribution" action="All players" onAction={() => navigate('/dashboard/players')}/>
             <div style={{padding:'16px 20px'}}>
@@ -618,10 +639,7 @@ export default function DashboardHome() {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Row 6 — Top PC players + Most active */}
-        <div className="dh-row5">
           <div className="dh-card">
             <SecHead title="Top Players by Promo Coins" sub="Highest PC balances" action="All players" onAction={() => navigate('/dashboard/players')}/>
             <div style={{padding:'16px 20px 8px'}}>
@@ -655,10 +673,7 @@ export default function DashboardHome() {
               )}
             </div>
           </div>
-        </div>
 
-        {/* Bottom summary strip */}
-        <div className="dh-row3">
           <div className="dh-card dh-card-pad">
             <div style={{fontSize:10,fontWeight:700,color:T.text3,textTransform:'uppercase',letterSpacing:'.09em',marginBottom:14,fontFamily:"'DM Sans',sans-serif"}}>Platform Summary</div>
             {[
@@ -714,8 +729,7 @@ export default function DashboardHome() {
               ))}
             </div>
           </div>
-        </div>
-
+        </MasonryGrid>
       </div>
     </div>
   )

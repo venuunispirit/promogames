@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
-import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import api from '../api'
+import { useAuth } from '../context/AuthContext'
+import NotificationBell from './NotificationBell'
 
 /* ─────────────────────────────────────────────
    NAV STYLES — light, clean, 3-column
@@ -492,6 +493,7 @@ export default function DashboardLayout() {
     { to:'/dashboard',         label:'Dashboard', icon:'🏠', exact:true },
     { to:'/dashboard/clients', label:'Clients',   icon:'🏢' },
     { to:'/dashboard/games',   label:'Games',     icon:'🎮' },
+    { to:'/dashboard/crm',     label:'CRM',       icon:'🤝' },
     { to:'/dashboard/players', label:'Players',   icon:'👥' },
   ]
 
@@ -521,13 +523,14 @@ export default function DashboardLayout() {
           ))}
         </div>
 
-        {/* RIGHT — Greeting + Avatar */}
+        {/* RIGHT — Greeting + Notifications + Avatar */}
         <div className="nav-right">
           <div className="nav-greeting">
             <span className="nav-greeting-msg">{greeting.emoji} {greeting.msg}</span>
             <span className="nav-greeting-name">{user?.name?.split(' ')[0] || 'there'}!</span>
           </div>
           <AvatarDropdown user={user} onLogout={handleLogout} />
+          <NotificationBell />
         </div>
 
       </nav>

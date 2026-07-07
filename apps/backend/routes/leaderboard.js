@@ -2,8 +2,6 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 
-// GET /api/leaderboard
-// Shows real PC balance from promo_players
 router.get('/', async (req, res) => {
   try {
     const query = `
@@ -37,7 +35,6 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/leaderboard/all - All promo players by PC balance (for landing page)
 router.get('/all', async (req, res) => {
   try {
     const query = `

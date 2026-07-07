@@ -2158,6 +2158,78 @@ await safeQuery(connection, `
     )
   `, 'tictactoe_settings table');
 
+   /* ── BUSINESS DEVELOPERS ── */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS business_developers (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       name VARCHAR(100) NOT NULL,
+       email VARCHAR(150) NOT NULL UNIQUE,
+       phone VARCHAR(50),
+       password VARCHAR(255),
+       created_by INT,
+       is_active TINYINT(1) DEFAULT 1,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+     )
+   `, 'business_developers table');
+
+   /* ── BD REQUESTS ── */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS bd_requests (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       bd_id INT NOT NULL,
+       business_name VARCHAR(255) NOT NULL,
+       gmaps_url VARCHAR(500),
+       social_url VARCHAR(500),
+       game_category VARCHAR(50) NOT NULL,
+       status ENUM('pending','approved','started_working','game_creating','testing','live','rejected') DEFAULT 'pending',
+       client_id INT DEFAULT NULL,
+       game_id INT DEFAULT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+       FOREIGN KEY (bd_id) REFERENCES business_developers(id) ON DELETE CASCADE
+     )
+   `, 'bd_requests table');
+
+   /* GAMES — add status column */
+   try {
+     const exists = await columnExists(connection, 'games', 'status');
+     if (!exists) {
+       await connection.query("ALTER TABLE games ADD COLUMN status ENUM('development','testing','live') DEFAULT 'development'");
+       console.log('✅ Added games.status column');
+     }
+   } catch (err) {
+     console.error('❌ Failed adding games.status:', err.message);
+   }
+
+   /* PROMO_PLAYERS — ensure required columns exist */
+   await addColumn(connection, 'promo_players', 'username', "VARCHAR(100) DEFAULT NULL");
+   await addColumn(connection, 'promo_players', 'avatar_id', 'INT DEFAULT NULL');
+
+   /* INTERNAL_TEAM — ensure password/phone/permissions columns exist */
+   await addColumn(connection, 'internal_team', 'phone', 'VARCHAR(50) DEFAULT NULL');
+   await addColumn(connection, 'internal_team', 'password', 'VARCHAR(255) DEFAULT NULL');
+   await addColumn(connection, 'internal_team', 'permissions', 'TEXT DEFAULT NULL');
+
+   /* BD_REQUESTS — add assigned_to for internal team */
+   await addColumn(connection, 'bd_requests', 'assigned_to', 'INT DEFAULT NULL');
+
+   /* NOTIFICATIONS TABLE */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS notifications (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       user_id INT NOT NULL,
+       user_type ENUM('admin','it','bd') NOT NULL,
+       type VARCHAR(20) DEFAULT 'info',
+       title VARCHAR(255) NOT NULL,
+       message TEXT,
+       link VARCHAR(500),
+       read_at TIMESTAMP NULL DEFAULT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       INDEX idx_notif_user (user_id, user_type, read_at)
+     )
+   `, 'notifications table');
+
    console.log('👤 Creating admin user...');
 
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@yourdomain.com';

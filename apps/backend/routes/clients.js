@@ -84,6 +84,21 @@ router.put('/:id', auth, upload.single('logo'), async (req, res) => {
   }
 });
 
+// GET games for a client
+router.get('/:id/games', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT g.id, g.name, g.slug, g.category, g.is_active, g.game_logo_url, g.created_at,
+      (SELECT COUNT(*) FROM questions q WHERE q.game_id = g.id) as question_count,
+      (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
+      FROM games g WHERE g.client_id = ? ORDER BY g.created_at DESC
+    `, [req.params.id]);
+    res.json({ success: true, games: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // DELETE client
 router.delete('/:id', auth, async (req, res) => {
   try {

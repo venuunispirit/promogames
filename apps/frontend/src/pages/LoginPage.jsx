@@ -4,10 +4,12 @@ import { useAuth } from '../context/AuthContext'
 import api from '../api'
 import { AvatarGrid, DEFAULT_AVATARS } from '../components/AvatarData'
 
-const STEP_EMAIL    = 'email'
-const STEP_PASSWORD = 'password'
-const STEP_OTP      = 'otp'
-const STEP_REGISTER = 'register'
+const STEP_EMAIL     = 'email'
+const STEP_PASSWORD  = 'password'
+const STEP_BD_PASS   = 'bd_password'
+const STEP_IT_PASS   = 'it_password'
+const STEP_OTP       = 'otp'
+const STEP_REGISTER  = 'register'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
@@ -473,13 +475,40 @@ export default function LoginPage() {
       const { data } = await api.post('/pauth/check-email', { email })
       if (data.type === 'admin') {
         setStep(STEP_PASSWORD)
+      } else if (data.type === 'bd') {
+        setStep(STEP_BD_PASS)
+      } else if (data.type === 'internal_team') {
+        setStep(STEP_IT_PASS)
       } else {
-        // Send OTP email and move to OTP input step
         await api.post('/pauth/send-otp', { email })
         setStep(STEP_OTP)
         startCountdown()
       }
     } catch(err) { setError(err.response?.data?.message || 'Something went wrong.') }
+    finally { setLoading(false) }
+  }
+
+  const handleBDLogin = async () => {
+    if (!password) return setError('Please enter your password')
+    clearErr(); setLoading(true)
+    try {
+      const { data } = await api.post('/bd/login', { email, password })
+      localStorage.setItem('bdToken', data.token)
+      localStorage.setItem('bdUser', JSON.stringify(data.bd))
+      navigate('/crm/dashboard')
+    } catch(err) { setError(err.response?.data?.message || 'Invalid credentials.') }
+    finally { setLoading(false) }
+  }
+
+  const handleITLogin = async () => {
+    if (!password) return setError('Please enter your password')
+    clearErr(); setLoading(true)
+    try {
+      const { data } = await api.post('/internal-team/login', { email, password })
+      localStorage.setItem('itToken', data.token)
+      localStorage.setItem('itUser', JSON.stringify(data.member))
+      navigate('/internal-team/dashboard')
+    } catch(err) { setError(err.response?.data?.message || 'Invalid credentials.') }
     finally { setLoading(false) }
   }
 
@@ -547,6 +576,58 @@ export default function LoginPage() {
         </div>
         <button className={`pg-btn${loading?' busy':''}`} onClick={handleEmailSubmit} disabled={loading||!email}>
           {loading ? <><Dots/>&nbsp;Checking…</> : 'Continue →'}
+        </button>
+      </div>
+    </Card>
+  )
+
+  // BD PASSWORD
+  if (step === STEP_BD_PASS) return (
+    <Card error={error} loading={loading} step={step}>
+      <div className="fadeup">
+        <button className="pg-back" onClick={()=>{setStep(STEP_EMAIL);setPassword('');clearErr()}}>← Back</button>
+        <div className="admin-badge">
+          <div style={{width:40,height:40,borderRadius:10,background:'rgba(255,255,255,0.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>🤝</div>
+          <div>
+            <div style={{fontWeight:800,fontSize:14,color:'#fff'}}>Business Developer</div>
+            <div style={{fontSize:12,color:'rgba(210,170,255,0.85)',fontWeight:700}}>{email}</div>
+          </div>
+        </div>
+        <div className="pg-fg">
+          <label className="pg-lbl">Password (Phone Number)</label>
+          <input className="pg-inp" type="password" value={password} autoFocus
+            onChange={e=>{setPassword(e.target.value);clearErr()}}
+            onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleBDLogin()}
+            placeholder="Enter your phone number"/>
+        </div>
+        <button className={`pg-btn${loading?' busy':''}`} onClick={handleBDLogin} disabled={loading||!password}>
+          {loading ? <><Dots/>&nbsp;Signing in…</> : 'Sign In →'}
+        </button>
+      </div>
+    </Card>
+  )
+
+  // INTERNAL TEAM PASSWORD
+  if (step === STEP_IT_PASS) return (
+    <Card error={error} loading={loading} step={step}>
+      <div className="fadeup">
+        <button className="pg-back" onClick={()=>{setStep(STEP_EMAIL);setPassword('');clearErr()}}>← Back</button>
+        <div className="admin-badge">
+          <div style={{width:40,height:40,borderRadius:10,background:'rgba(255,255,255,0.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>🛠️</div>
+          <div>
+            <div style={{fontWeight:800,fontSize:14,color:'#fff'}}>Internal Team</div>
+            <div style={{fontSize:12,color:'rgba(210,170,255,0.85)',fontWeight:700}}>{email}</div>
+          </div>
+        </div>
+        <div className="pg-fg">
+          <label className="pg-lbl">Password (Phone Number)</label>
+          <input className="pg-inp" type="password" value={password} autoFocus
+            onChange={e=>{setPassword(e.target.value);clearErr()}}
+            onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleITLogin()}
+            placeholder="Enter your phone number"/>
+        </div>
+        <button className={`pg-btn${loading?' busy':''}`} onClick={handleITLogin} disabled={loading||!password}>
+          {loading ? <><Dots/>&nbsp;Signing in…</> : 'Sign In →'}
         </button>
       </div>
     </Card>

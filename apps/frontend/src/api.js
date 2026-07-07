@@ -9,11 +9,19 @@ const api = axios.create({
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token') || sessionStorage.getItem('token');
   const playerToken = localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken');
+  const bdToken = localStorage.getItem('bdToken');
+  const itToken = localStorage.getItem('itToken');
   
   // Use a more permissive check for player-related routes
   const isPlayerRoute = /pauth|play/.test(config.url);
+  const isBdRoute = /^\/bd/.test(config.url);
+  const isITRoute = /^\/internal-team/.test(config.url);
 
-  if (isPlayerRoute && playerToken) {
+  if (isITRoute && itToken) {
+    config.headers.Authorization = `Bearer ${itToken}`;
+  } else if (isBdRoute && bdToken) {
+    config.headers.Authorization = `Bearer ${bdToken}`;
+  } else if (isPlayerRoute && playerToken) {
     config.headers.Authorization = `Bearer ${playerToken}`;
   } else if (token) {
     config.headers.Authorization = `Bearer ${token}`;
@@ -39,7 +47,7 @@ api.interceptors.response.use(
       console.error(`AUTH FAILURE: [${status}] URL: ${err.config?.url}`);
       
       // Clear all auth-related keys
-      const keys = ['token', 'user', 'playerToken', 'playerUser'];
+      const keys = ['token', 'user', 'playerToken', 'playerUser', 'bdToken', 'bdUser', 'itToken', 'itUser'];
       keys.forEach(k => {
         localStorage.removeItem(k);
         sessionStorage.removeItem(k);

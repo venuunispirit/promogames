@@ -593,6 +593,12 @@ const handleSubmit = async e => {
 }
 
 // Column definitions — order here = order in table
+const STATUS_META = {
+  development: { label:'Development', color:'#D97706', bg:'#FFFBEB' },
+  testing:     { label:'Testing',     color:'#DC2626', bg:'#FEF2F2' },
+  live:        { label:'Live',        color:'#059669', bg:'#F0FDF4' },
+}
+
 const COLUMNS = [
   { key:'name',         label:'Game',          sortable:true  },
   { key:'category',     label:'Category',      sortable:false },
@@ -601,6 +607,7 @@ const COLUMNS = [
   { key:'show_in_play_page', label:'Play Page', sortable:false, center:true },
   { key:'show_in_hero_page', label:'Hero',     sortable:false, center:true },
   { key:'game_type',    label:'Game Type',     sortable:false, center:true },
+  { key:'status',       label:'Status',        sortable:false, center:true },
   { key:'created_edited', label:'Created / Edited', sortable:false },
   { key:'actions',      label:'Actions',       sortable:false, center:true },
   { key:'qr',           label:'QR',            sortable:false, center:true },
@@ -657,6 +664,10 @@ export default function GamesPage() {
   }
 
   const toggleField = async (game, field) => {
+    if (field === 'is_active' && game.status !== 'live') {
+      showToast('Set status to Live first before activating','error')
+      return
+    }
     try {
       await api.put(`/games/${game.id}`, { [field]: game[field] ? 0 : 1 })
       load()
@@ -669,6 +680,20 @@ export default function GamesPage() {
       showToast('Game duplicated')
       load()
     } catch { showToast('Duplicate failed','error') }
+  }
+
+  const STATUS_CYCLE = ['development', 'testing', 'live']
+
+  const handleStatusToggle = async (game, e) => {
+    e.stopPropagation()
+    const currentIndex = STATUS_CYCLE.indexOf(game.status)
+    const nextStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length]
+    try {
+      await api.put(`/games/${game.id}/status`, { status: nextStatus })
+      load()
+    } catch (err) {
+      showToast(err.response?.data?.message || 'Failed to update status', 'error')
+    }
   }
 
   const handleGameTypeToggle = async (game, e) => {
@@ -814,15 +839,17 @@ export default function GamesPage() {
                         </span>
                       </td>
 
-                      {/* Active toggle */}
+                      {/* Active toggle — only toggleable when status is live */}
                       <td className="center" style={{minWidth:72}} onClick={e => e.stopPropagation()}>
                         <div className="gp-toggle-wrap">
                           <button
-                            className={`gp-toggle ${game.is_active ? 'on' : 'off'}`}
-                            title={game.is_active ? 'Deactivate game' : 'Activate game'}
+                            className={`gp-toggle ${game.status === 'live' && game.is_active ? 'on' : 'off'}`}
+                            disabled={game.status !== 'live'}
+                            title={game.status !== 'live' ? 'Set status to Live first' : (game.is_active ? 'Deactivate game' : 'Activate game')}
                             onClick={e => { e.stopPropagation(); toggleField(game, 'is_active') }}
+                            style={game.status !== 'live' ? { opacity: 0.4, cursor: 'not-allowed' } : {}}
                           />
-                          <span className="gp-toggle-label">{game.is_active ? 'On' : 'Off'}</span>
+                          <span className="gp-toggle-label">{game.status === 'live' ? (game.is_active ? 'On' : 'Off') : 'Off'}</span>
                         </div>
                       </td>
 
@@ -860,6 +887,31 @@ export default function GamesPage() {
                           <span className="gp-toggle-label">
                             {game.game_type === 'branded' ? 'Branded' : 'PromoGames'}
                           </span>
+                        </div>
+                      </td>
+
+                      {/* Status */}
+                      <td className="center" style={{minWidth:80}} onClick={e => e.stopPropagation()}>
+                        <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
+                          <span style={{
+                            padding:'3px 10px', borderRadius:100, fontSize:10.5, fontWeight:700,
+                            background: (STATUS_META[game.status]||STATUS_META.development).bg,
+                            color: (STATUS_META[game.status]||STATUS_META.development).color,
+                          }}>
+                            {(STATUS_META[game.status]||STATUS_META.development).label}
+                          </span>
+                          <button
+                            style={{
+                              padding:'3px 8px', borderRadius:6, border:'1.5px solid #E5E7EB',
+                              background:'#fff', fontSize:10, fontWeight:600, cursor:'pointer',
+                              fontFamily:'DM Sans', color:'#6B7280', transition:'all .13s',
+                            }}
+                            onClick={e => handleStatusToggle(game, e)}
+                            onMouseOver={e=>{e.currentTarget.style.borderColor='#818CF8';e.currentTarget.style.color='#4F46E5'}}
+                            onMouseOut={e=>{e.currentTarget.style.borderColor='#E5E7EB';e.currentTarget.style.color='#6B7280'}}
+                          >
+                            Cycle →
+                          </button>
                         </div>
                       </td>
 
@@ -959,7 +1011,7 @@ export default function GamesPage() {
           </div>
 
           {/* Stats */}
-          <div style={{display:'grid',gridTemplateColumns:'repeat(6,1fr)',gap:16,marginTop:20}}>
+          <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:16,marginTop:20}}>
             {[
               { label:'Active Games', value: stats.active, color:' #4F46E5' },
               { label:'On Play Page', value: stats.onPlayPage, color:' #059669' },
@@ -967,6 +1019,7 @@ export default function GamesPage() {
               { label:'Total Plays', value: stats.plays.toLocaleString(), color:' #0D0D1A' },
               { label:'Branded', value: stats.branded, color:' #15803D' },
               { label:'PromoGames', value: stats.promogames, color:' #B45309' },
+              { label:'Live', value: games.filter(g=>g.status==='live').length, color:' #059669' },
             ].map(s => (
               <div key={s.label} style={{background:' #fff',borderRadius:12,border:'1.5px solid  #EAECF0',padding:'16px 20px'}}>
                 <div style={{fontSize:11,fontWeight:700,color:' #9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>{s.label}</div>

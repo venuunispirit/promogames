@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, Children } from 'react'
 import api from '../api'
 
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
@@ -20,7 +20,7 @@ const CSS = `
 @keyframes cpModalIn{from{opacity:0;transform:scale(0.96)translateY(6px)}to{opacity:1;transform:none}}
 @keyframes cpToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes cpSpin{to{transform:rotate(360deg)}}
-.cp-card{background:#fff;border-radius:16px;border:1.5px solid #EAECF0;padding:22px 22px 18px;cursor:pointer;transition:border-color .18s,box-shadow .18s,transform .18s;animation:cpFadeUp .3s ease both}
+.cp-card{width:100%;background:#fff;border-radius:16px;border:1.5px solid #EAECF0;padding:22px 22px 18px;cursor:pointer;transition:border-color .18s,box-shadow .18s,transform .18s;animation:cpFadeUp .3s ease both}
 .cp-card:hover{border-color:#A5B4FC;box-shadow:0 6px 28px rgba(99,102,241,.1);transform:translateY(-2px)}
 .cp-card:hover .cp-actions{opacity:1}
 .cp-actions{opacity:0;transition:opacity .15s;display:flex;gap:5px}
@@ -115,6 +115,18 @@ function ClientCard({ client, onClick, onEdit, onDelete, delay }) {
 }
 
 function DetailPanel({ client, onClose, onEdit }) {
+  const [games, setGames] = useState([])
+  const [loadingGames, setLoadingGames] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoadingGames(true)
+    api.get(`/clients/${client.id}/games`).then(({data}) => {
+      if (!cancelled) { setGames(data.games||[]); setLoadingGames(false) }
+    }).catch(() => { if (!cancelled) setLoadingGames(false) })
+    return () => { cancelled = true }
+  }, [client.id])
+
   return (
     <div style={{position:'fixed',inset:0,zIndex:500,display:'flex',justifyContent:'flex-end'}}>
       <div onClick={onClose} style={{position:'absolute',inset:0,background:'rgba(8,8,18,.38)',backdropFilter:'blur(3px)'}} />
@@ -146,9 +158,53 @@ function DetailPanel({ client, onClose, onEdit }) {
             </div>
           ))}
         </div>
+
         <button className="cp-primary-btn" onClick={() => onEdit(client)} style={{width:'100%',justifyContent:'center',marginTop:28,padding:'13px 0',borderRadius:12,fontSize:14}}>
           <Ico.edit/> Edit Client
         </button>
+
+        <div style={{marginTop:28}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:12}}>Games</div>
+          {loadingGames ? (
+            Array.from({length:3}).map((_,i) => (
+              <div key={i} style={{height:44,background:'#F3F4F6',borderRadius:10,marginBottom:6,animation:'cpFadeUp .3s ease both'}} />
+            ))
+          ) : games.length === 0 ? (
+            <div style={{fontSize:12.5,color:'#9CA3AF',padding:'16px 0',textAlign:'center'}}>No games yet</div>
+          ) : (
+            games.map(g => (
+              <div key={g.id} style={{
+                display:'flex',alignItems:'center',gap:10,padding:'8px 10px',
+                background:'#F9FAFB',borderRadius:10,marginBottom:6,
+                border:'1px solid #F3F4F6',
+              }}>
+                <div style={{
+                  width:28,height:28,borderRadius:6,background:'#EEF2FF',
+                  display:'flex',alignItems:'center',justifyContent:'center',
+                  fontSize:11,fontWeight:700,color:'#4F46E5',flexShrink:0,
+                }}>{g.name.charAt(0).toUpperCase()}</div>
+                <div style={{flex:1,minWidth:0}}>
+                  <div style={{fontSize:12.5,fontWeight:700,color:'#1F2937',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                    {g.name}
+                  </div>
+                  <div style={{fontSize:10,fontWeight:500,color:'#9CA3AF',marginTop:1,textTransform:'capitalize'}}>{g.category}</div>
+                </div>
+                <span style={{
+                  fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:6,flexShrink:0,
+                  background:g.is_active ? '#ECFDF5' : '#F3F4F6',
+                  color:g.is_active ? '#059669' : '#9CA3AF',
+                  display:'inline-flex',alignItems:'center',gap:4,
+                }}>
+                  <span style={{width:5,height:5,borderRadius:'50%',background:'currentColor',display:'inline-block'}}/>
+                  {g.is_active ? 'Active' : 'Inactive'}
+                </span>
+                <span style={{fontSize:10,fontWeight:600,color:'#6B7280',flexShrink:0,whiteSpace:'nowrap'}}>
+                  {g.play_count||0} plays
+                </span>
+              </div>
+            ))
+          )}
+        </div>
       </div>
     </div>
   )
@@ -225,6 +281,36 @@ function FormModal({ editClient, onClose, onSaved, onError }) {
   )
 }
 
+function MasonryGrid({ children, gap = 16, minColWidth = 290 }) {
+  const ref = useRef()
+  const [cols, setCols] = useState(3)
+
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const ro = new ResizeObserver(() => {
+      const w = el.offsetWidth
+      setCols(Math.max(1, Math.floor((w + gap) / (minColWidth + gap))))
+    })
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [gap, minColWidth])
+
+  const items = Children.toArray(children)
+  const columns = Array.from({ length: cols }, () => [])
+  items.forEach((item, i) => { columns[i % cols].push(item) })
+
+  return (
+    <div ref={ref} style={{ display:'flex', gap, alignItems:'flex-start' }}>
+      {columns.map((col, ci) => (
+        <div key={ci} style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap }}>
+          {col}
+        </div>
+      ))}
+    </div>
+  )
+}
+
 export default function ClientsPage() {
   const [clients, setClients] = useState([])
   const [loading, setLoading] = useState(true)
@@ -262,15 +348,16 @@ export default function ClientsPage() {
               {clients.length} client{clients.length!==1?'s':''} in your workspace
             </p>
           </div>
-          <button className="cp-primary-btn" onClick={openAdd}><Ico.plus/> Add Client</button>
-        </div>
-
-        {clients.length > 0 && (
-          <div style={{position:'relative',maxWidth:360,marginBottom:28}}>
-            <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:'#9CA3AF'}}><Ico.search/></span>
-            <input className="cp-input" style={{paddingLeft:40}} placeholder="Search by name or email…" value={search} onChange={e=>setSearch(e.target.value)} />
+          <div style={{display:'flex',alignItems:'center',gap:12}}>
+            {clients.length > 0 && (
+              <div style={{position:'relative',minWidth:220}}>
+                <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:'#9CA3AF'}}><Ico.search/></span>
+                <input className="cp-input" style={{paddingLeft:40}} placeholder="Search by name or email…" value={search} onChange={e=>setSearch(e.target.value)} />
+              </div>
+            )}
+            <button className="cp-primary-btn" onClick={openAdd}><Ico.plus/> Add Client</button>
           </div>
-        )}
+        </div>
 
         {loading ? (
           <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:'#9CA3AF',fontSize:14}}>
@@ -290,9 +377,9 @@ export default function ClientsPage() {
             No results for "<strong style={{color:'#374151'}}>{search}</strong>"
           </div>
         ) : (
-          <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill,minmax(290px,1fr))',gap:16}}>
+          <MasonryGrid gap={16} minColWidth={290}>
             {filtered.map((c,i) => <ClientCard key={c.id} client={c} onClick={setSelected} onEdit={openEdit} onDelete={handleDelete} delay={i*45} />)}
-          </div>
+          </MasonryGrid>
         )}
       </div>
 

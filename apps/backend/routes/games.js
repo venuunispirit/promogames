@@ -85,7 +85,7 @@ router.post('/', auth, async (req, res) => {
 
 router.put('/:id', auth, async (req, res) => {
   try {
-    const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type'];
+    const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type','status'];
     const booleans = ['is_active','show_in_play_page','show_in_hero_page'];
     const fields = []; const values = [];
     for (const key of allowed) {
@@ -645,6 +645,46 @@ router.get('/:id/responses', auth, async (req, res) => {
 
     res.json({ success: true, sessions });
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+});
+
+// PUT /api/games/:id/status — change game status (development/testing/live)
+router.put('/:id/status', auth, async (req, res) => {
+  const { status } = req.body;
+  const allowed = ['development','testing','live'];
+  if (!allowed.includes(status)) return res.status(400).json({ success: false, message: 'Invalid status' });
+  try {
+    if (status === 'live') {
+      // Clear test player sessions & answers for this game
+      await db.query(
+        `DELETE pa FROM player_answers pa
+         INNER JOIN player_sessions ps ON pa.session_id = ps.id
+         WHERE ps.game_id = ?`, [req.params.id]
+      );
+      await db.query('DELETE FROM player_sessions WHERE game_id = ?', [req.params.id]);
+      await db.query('UPDATE games SET status=?, is_active=1 WHERE id=?', [status, req.params.id]);
+      // Auto-sync linked BD request to live
+      await db.query('UPDATE bd_requests SET status=? WHERE game_id=? AND status!=?', ['live', req.params.id, 'live']);
+      // Notify the BD who requested this game
+      const [bdReq] = await db.query(
+        'SELECT r.bd_id, r.business_name, g.name FROM bd_requests r JOIN games g ON r.game_id=g.id WHERE r.game_id=?',
+        [req.params.id]
+      );
+      if (bdReq.length > 0) {
+        await db.query(
+          'INSERT INTO notifications (user_id, user_type, type, title, message, link) VALUES (?,?,?,?,?,?)',
+          [bdReq[0].bd_id, 'bd', 'success', 'Game is Live!',
+           `"${bdReq[0].name}" for "${bdReq[0].business_name}" is now live — QR code available`,
+           '/bd/requests']
+        );
+      }
+    } else {
+      await db.query('UPDATE games SET status=? WHERE id=?', [status, req.params.id]);
+    }
+    res.json({ success: true, message: `Game status changed to ${status}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
 });
 
 module.exports = router;

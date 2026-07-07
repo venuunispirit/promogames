@@ -60,6 +60,11 @@ const carlaunchRoutes = require("./routes/carlaunch");
 const stressbusterRoutes = require("./routes/stressbuster");
 const soundifyRoutes = require("./routes/soundify");
 const tictactoeRoutes = require("./routes/tictactoe");
+const businessDevRoutes = require("./routes/businessDev");
+const internalTeamRoutes = require("./routes/internalTeam");
+const { itAuth } = internalTeamRoutes;
+const auth = require("./middleware/auth");
+const notificationsRoutes = require("./routes/notifications");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -109,6 +114,10 @@ app.use("/api/carlaunch", carlaunchRoutes);
 app.use("/api/stressbuster", stressbusterRoutes);
 app.use("/api/soundify", soundifyRoutes);
 app.use("/api/tictactoe", tictactoeRoutes);
+app.use("/api/bd", businessDevRoutes);
+app.use("/api/internal-team", internalTeamRoutes);
+app.use("/api/notifications", auth, notificationsRoutes);
+app.use("/api/internal-team/notifications", itAuth, notificationsRoutes);
 
 app.get("/api/check-code", (req, res) => {
   res.json({ 

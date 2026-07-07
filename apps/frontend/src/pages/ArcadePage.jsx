@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useLocation } from 'react-router-dom'
 import GameModal from '../components/GameModal'
 import PlayerNavbar from '../components/PlayerNavbar'
 
@@ -204,11 +205,19 @@ function RowCard({ game, index, rank, onPlay }) {
 }
 
 export default function ArcadePage() {
+  const location = useLocation()
   const [games, setGames] = useState([])
   const [featured, setFeatured] = useState([])
   const [promogames, setPromogames] = useState([])
   const [loading, setLoading] = useState(true)
   const [activeGame, setActiveGame] = useState(null)
+  const [showWelcome, setShowWelcome] = useState(location.state?.welcomeBonus === true)
+
+  useEffect(() => {
+    if (location.state?.welcomeBonus) {
+      window.history.replaceState({}, document.title)
+    }
+  }, [])
 
   useEffect(() => {
     fetch('/api/play/play-page-games')
@@ -370,6 +379,52 @@ export default function ArcadePage() {
           onSwitch={handleSwitch}
           isLoggedIn={!!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))}
         />
+      )}
+
+      {/* ── Welcome Bonus Modal ── */}
+      {showWelcome && (
+        <div style={{
+          position: 'fixed', inset: 0, zIndex: 9000,
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          background: 'rgba(5,2,12,0.85)', backdropFilter: 'blur(12px)',
+          animation: 'gmFadeIn 0.2s ease both',
+        }}>
+          <div style={{
+            background: 'linear-gradient(160deg, #0d0820, #12082a)',
+            border: '1px solid rgba(146,16,246,0.3)',
+            borderRadius: 24, padding: '48px 40px 36px',
+            maxWidth: 420, width: '90%', textAlign: 'center',
+            boxShadow: '0 0 60px rgba(146,16,246,0.15), 0 24px 80px rgba(0,0,0,0.5)',
+            animation: 'gmSlideUp 0.3s cubic-bezier(0.22,1,0.36,1) both',
+          }}>
+            <div style={{ fontSize: 56, marginBottom: 12 }}>🎉</div>
+            <h2 style={{
+              fontFamily: "'Bebas Neue', sans-serif", fontSize: 32,
+              color: '#fff', letterSpacing: 2, marginBottom: 8,
+            }}>Welcome Aboard!</h2>
+            <p style={{
+              fontFamily: "'DM Sans', sans-serif", fontSize: 15,
+              color: 'rgba(255,255,255,0.7)', lineHeight: 1.7, marginBottom: 24,
+            }}>
+              You've earned a bonus of{' '}
+              <strong style={{ color: '#f5c842' }}>100 Promo Coins!</strong>
+              {' '}Play more and earn more!
+            </p>
+            <button onClick={() => setShowWelcome(false)} style={{
+              width: '100%', padding: '14px 24px',
+              fontFamily: "'DM Sans', sans-serif", fontSize: 15, fontWeight: 700,
+              color: '#fff', border: 'none', borderRadius: 14, cursor: 'pointer',
+              background: 'linear-gradient(135deg, #9210f6, #610497)',
+              boxShadow: '0 4px 20px rgba(146,16,246,0.35)',
+              transition: 'all 0.2s ease',
+            }}
+              onMouseEnter={e => { e.currentTarget.style.boxShadow = '0 6px 28px rgba(146,16,246,0.5)'; e.currentTarget.style.transform = 'translateY(-1px)' }}
+              onMouseLeave={e => { e.currentTarget.style.boxShadow = '0 4px 20px rgba(146,16,246,0.35)'; e.currentTarget.style.transform = 'none' }}
+            >
+              Let's Play!
+            </button>
+          </div>
+        </div>
       )}
     </>
   )

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import api from '../api'
 import { AvatarGrid, DEFAULT_AVATARS } from '../components/AvatarData'
+import MascotLogin from '../components/MascotLogin'
 
 const STEP_EMAIL     = 'email'
 const STEP_PASSWORD  = 'password'
@@ -12,320 +13,181 @@ const STEP_OTP       = 'otp'
 const STEP_REGISTER  = 'register'
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;500;600;700;800;900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --p1:#9B59B6;--p2:#7D3C98;--p3:#C39BD3;
-  --text:#1a0533;--text2:rgba(26,5,51,0.58);--text3:rgba(26,5,51,0.32);
-  --success:#27ae60;--danger:#e53e6d;--danger-l:rgba(229,62,109,0.10);
-  --font:'Nunito',sans-serif;
+  --brand:#7c3aed;--brand-light:#a78bfa;--brand-lighter:#c4b5fd;--brand-dark:#6d28d9;
+  --text:#f8fafc;--text2:rgba(248,250,252,0.55);--text3:rgba(248,250,252,0.3);
+  --success:#10b981;--danger:#ef4444;
+  --font:'DM Sans',system-ui,-apple-system,sans-serif;
+  --card-bg:rgba(15,12,28,0.85);
+  --card-border:rgba(124,58,237,0.2);
+  --card-glow:rgba(124,58,237,0.12);
+  --input-bg:rgba(255,255,255,0.04);
+  --input-border:rgba(255,255,255,0.08);
+  --input-focus:#7c3aed;
 }
-html,body{height:100%;font-family:var(--font);-webkit-font-smoothing:antialiased}
+html,body,#root{height:100%;font-family:var(--font);-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
-@keyframes blink      {0%,100%{opacity:1}50%{opacity:0}}
-@keyframes fadeUp     {from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
-@keyframes cardIn     {from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:scale(1)}}
-@keyframes dotBounce  {0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-6px)}}
-@keyframes shimBar    {from{transform:translateX(-100%)}to{transform:translateX(250%)}}
-@keyframes ring1spin  {to{transform:rotate(360deg)}}
-@keyframes ring2spin  {to{transform:rotate(-360deg)}}
-@keyframes glowPulse  {0%,100%{opacity:0.18;transform:scale(1)}50%{opacity:0.35;transform:scale(1.10)}}
-@keyframes shake      {0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
-@keyframes btnShine   {from{left:-100%}to{left:160%}}
+@keyframes fadeUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes dotBounce{0%,80%,100%{transform:translateY(0)}40%{transform:translateY(-5px)}}
+@keyframes shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
 
-/* ── Page ── */
-.pg-page{
-  min-height:100vh;
-  display:flex;align-items:center;justify-content:center;
-  padding:24px 16px;
-  position:relative;overflow:hidden;
-  /* BG IMAGE — swap src in img tag or set background-image here */
-  background: linear-gradient(135deg,#2d0050 0%,#6a0dad 40%,#9b59b6 70%,#c39bd3 100%);
-}
-.pg-bg-img{
-  position:fixed;inset:0;width:100%;height:100%;
-  object-fit:cover;z-index:0;
-}
-.pg-bg-overlay{
-  position:fixed;inset:0;z-index:1;
-  background:rgba(20,0,40,0.38);
-  backdrop-filter:blur(0px);
-}
-
-/* ── Single glass card ── */
 .pg-card{
-  position:relative;z-index:2;
-  width:100%;max-width:320px;
-  background:rgba(255,255,255,0.16);
-  border:1.5px solid rgba(255, 255, 255, 0.07);
-  border-radius:28px;
-  box-shadow:
-    0 8px 48px rgba(60,0,100,0.28),
-    0 2px 12px rgba(60,0,100,0.14),
-    inset 0 1px 0 rgba(255,255,255,0.55),
-    inset 1px 0 0 rgba(255,255,255,0.30);
-  backdrop-filter:blur(22px) saturate(0.8);
-  -webkit-backdrop-filter:blur(52px) saturate(0.08);
+  width:100%;max-width:420px;
+  background:var(--card-bg);
+  border:1px solid var(--card-border);
+  border-radius:24px;
+  box-shadow:0 0 40px rgba(124,58,237,0.08),0 0 80px rgba(124,58,237,0.04),0 24px 80px rgba(0,0,0,0.4),0 0 0 1px rgba(124,58,237,0.08) inset;
+  backdrop-filter:blur(24px);
   overflow:hidden;
-  animation:cardIn 0.45s cubic-bezier(0.34,1.4,0.64,1);
-}
-/* top sheen */
-.pg-card::before{
-  content:'';position:absolute;top:0;left:0;right:0;height:1.5px;
-  background:linear-gradient(90deg,transparent,rgba(255, 255, 255, 0.44) 40%,rgba(255,255,255,0.55) 60%,transparent);
-  pointer-events:none;z-index:3;
 }
 
-/* ── Progress bar ── */
-.pg-prog{height:3px;background:rgba(255,255,255,0.12);position:relative;overflow:hidden}
-.pg-prog-fill{
-  position:absolute;left:0;top:0;height:100%;
-  background:linear-gradient(90deg,var(--p1),#d7b3f0);
-  border-radius:0 2px 2px 0;
-  transition:width 0.5s cubic-bezier(0.4,0,0.2,1);
-}
-.pg-prog-shim{
-  position:absolute;inset:0;display:none;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.55),transparent);
-  transform:translateX(-100%);
-}
-.is-loading-bar .pg-prog-shim{display:block;animation:shimBar 1.3s linear infinite}
+.pg-prog{height:3px;background:rgba(255,255,255,0.03);position:relative;overflow:hidden}
+.pg-prog-fill{position:absolute;left:0;top:0;height:100%;background:linear-gradient(90deg,var(--brand),var(--brand-light));border-radius:0 2px 2px 0;transition:width 0.5s cubic-bezier(0.4,0,0.2,1)}
 
-/* ── Card inner ── */
-.pg-inner{padding:32px 30px 28px}
+.pg-inner{padding:40px 36px 32px}
 
-/* ── Logo section ── */
-.pg-logo-area{
-  display:flex;flex-direction:column;align-items:center;
-  margin-bottom:44px;
-}
-.pg-logo-wrap{position:relative;width:72px;height:72px;margin-bottom:12px}
-.pg-logo-img{
-  width:272px;height:72px;border-radius:18px;
-  margin-left:-100px;
-  object-fit:contain;display:block;position:relative;z-index:2;
-  background:rgba(255,255,255,0.18);
-  // backdrop-filter:blur(150px);-webkit-backdrop-filter:blur(150px);
+.pg-title{font-size:28px;font-weight:800;color:var(--text);margin-bottom:6px;letter-spacing:-0.03em;line-height:1.2}
+.pg-sub{font-size:14px;font-weight:400;color:var(--text2);margin-bottom:28px;line-height:1.6}
 
-}
-.pg-logo-r{position:absolute;border-radius:22px;pointer-events:none}
-.pg-logo-r1{
-  inset:-8px;
-  border:2px solid transparent;
-  border-top-color:rgba(195,155,211,0.9);
-  border-right-color:rgba(255,255,255,0.6);
-  opacity:0;transition:opacity 0.4s;
-  animation:ring1spin 1.4s linear infinite;
-}
-.pg-logo-r2{
-  inset:-14px;border-radius:26px;
-  border:1.5px dashed rgba(255,255,255,0.28);
-  opacity:0;transition:opacity 0.4s;
-  animation:ring2spin 2.8s linear infinite;
-}
-.pg-logo-glow{
-  inset:-6px;border-radius:24px;
-  background:radial-gradient(ellipse,rgba(195,155,211,0.35) 0%,transparent 70%);
-  opacity:0;transition:opacity 0.4s;
-  animation:glowPulse 1.8s ease-in-out infinite;
-}
-.is-loading .pg-logo-r1,
-.is-loading .pg-logo-r2,
-.is-loading .pg-logo-glow{opacity:1}
+.pg-lbl{display:block;font-size:13px;font-weight:600;color:var(--text2);margin-bottom:8px}
 
-.pg-brand{
-  font-size:24px;font-weight:900;letter-spacing:-0.02em;
-  color:#fff;margin-bottom:4px;text-shadow:0 1px 8px rgba(60,0,100,0.25);
-}
-.pg-tagline{
-  display:flex;gap:8px;align-items:center;
-  font-size:10.5px;font-weight:800;letter-spacing:0.14em;
-  color:rgba(255,255,255,0.60);text-transform:uppercase;
-}
-.pg-tagline-dot{width:3px;height:3px;border-radius:50%;background:rgba(255,255,255,0.35)}
-
-/* ── Divider ── */
-.pg-div{
-  height:1px;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.22),transparent);
-  margin-bottom:22px;
-}
-
-/* ── Step title ── */
-.pg-title{
-  font-size:19px;font-weight:900;color:#fff;
-  margin-bottom:4px;letter-spacing:-0.02em;
-}
-.pg-sub{font-size:13.5px;font-weight:500;color:rgba(255,255,255,0.60);margin-bottom:20px;line-height:1.5}
-
-/* ── Label ── */
-.pg-lbl{
-  display:block;font-size:11px;font-weight:800;
-  color:rgba(255,255,255,0.55);letter-spacing:0.09em;
-  text-transform:uppercase;margin-bottom:7px;
-}
-
-/* ── Input ── */
 .pg-inp{
-  width:100%;padding:13px 15px;
-  font-family:var(--font);font-size:15px;font-weight:600;
-  color:#fff;caret-color:#fff;
-  background:rgba(255,255,255,0.12);
-  border:1.5px solid rgba(255,255,255,0.28);
-  border-radius:12px;outline:none;
-  transition:all 0.22s ease;
-  -webkit-appearance:none;
+  width:100%;padding:14px 16px;
+  font-family:var(--font);font-size:14px;font-weight:500;
+  color:var(--text);caret-color:var(--brand-light);
+  background:var(--input-bg);
+  border:1.5px solid var(--input-border);
+  border-radius:14px;outline:none;
+  transition:all 0.2s ease;-webkit-appearance:none;
 }
-.pg-inp::placeholder{color:rgba(255,255,255,0.32);font-weight:500}
-.pg-inp:focus{
-  border-color:rgba(255,255,255,0.65);
-  background:rgba(255,255,255,0.20);
-  box-shadow:0 0 0 4px rgba(155,89,182,0.22);
-}
-.pg-inp:disabled{opacity:0.40;cursor:not-allowed}
-.pg-fg{margin-bottom:24px}
-.pg-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.pg-inp::placeholder{color:rgba(255,255,255,0.18)}
+.pg-inp:focus{border-color:var(--input-focus);background:rgba(124,58,237,0.04);box-shadow:0 0 0 4px rgba(124,58,237,0.08)}
+.pg-inp:disabled{opacity:0.3;cursor:not-allowed}
+.pg-fg{margin-bottom:20px}
+.pg-row{display:grid;grid-template-columns:1fr 1fr;gap:14px}
 
-/* ── Primary button ── */
 .pg-btn{
-  width:100%;padding:14px 20px;
-  font-family:var(--font);font-size:15px;font-weight:800;
-  color:#fff;border:none;border-radius:12px;cursor:pointer;
-  background:linear-gradient(135deg,#9B59B6 0%,#7D3C98 100%);
-  box-shadow:0 4px 22px rgba(100,30,160,0.45);
+  width:100%;padding:15px 24px;
+  font-family:var(--font);font-size:15px;font-weight:700;
+  color:#fff;border:none;border-radius:14px;cursor:pointer;
+  background:linear-gradient(135deg,var(--brand),var(--brand-dark));
+  box-shadow:0 4px 20px rgba(124,58,237,0.35);
   display:flex;align-items:center;justify-content:center;gap:8px;
-  transition:all 0.2s ease;position:relative;overflow:hidden;
-  letter-spacing:0.01em;border:1px solid rgba(255,255,255,0.18);
+  transition:all 0.2s ease;position:relative;
+  letter-spacing:0.01em;
 }
-.pg-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 30px rgba(100,30,160,0.60)}
-.pg-btn:active:not(:disabled){transform:scale(0.975)}
-.pg-btn:disabled{opacity:0.38;cursor:not-allowed;transform:none;box-shadow:none}
-.pg-btn::after{
-  content:'';position:absolute;top:0;width:50%;height:100%;
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,0.20),transparent);
-  left:-100%;transition:left 0.55s ease;
-}
-.pg-btn:hover:not(:disabled)::after{left:160%}
+.pg-btn:hover:not(:disabled){box-shadow:0 6px 28px rgba(124,58,237,0.5);transform:translateY(-1px)}
+.pg-btn:active:not(:disabled){transform:scale(0.98)}
+.pg-btn:disabled{opacity:0.3;cursor:not-allowed;transform:none;box-shadow:none}
 
-/* ── Back ── */
 .pg-back{
-  background:none;border:none;color:rgba(255,255,255,0.55);font-size:13px;
-  font-weight:700;font-family:var(--font);cursor:pointer;padding:0;
-  margin-bottom:18px;display:inline-flex;align-items:center;gap:5px;
+  background:none;border:none;color:var(--text2);font-size:13px;
+  font-weight:600;font-family:var(--font);cursor:pointer;padding:0;
+  margin-bottom:20px;display:inline-flex;align-items:center;gap:6px;
   transition:color 0.15s;
 }
-.pg-back:hover{color:rgba(255,255,255,0.90)}
+.pg-back:hover{color:var(--text)}
 
-/* ── Link btn ── */
-.pg-lnk{
-  background:none;border:none;color:rgba(210,170,255,0.90);font-size:13px;
-  font-weight:700;font-family:var(--font);cursor:pointer;padding:0;
-}
-.pg-lnk:hover{color:#fff}
+.pg-lnk{background:none;border:none;color:var(--brand-light);font-size:13px;font-weight:700;font-family:var(--font);cursor:pointer;padding:0}
+.pg-lnk:hover{color:var(--text)}
 
-/* ── Error ── */
 .pg-err{
-  background:rgba(229,62,109,0.18);border:1px solid rgba(229,62,109,0.35);
-  border-radius:10px;padding:11px 14px;margin-bottom:16px;
-  color:#ffaec5;font-size:13.5px;font-weight:700;
-  display:flex;align-items:center;gap:8px;
-  animation:shake 0.4s ease;
+  background:rgba(239,68,68,0.06);border:1px solid rgba(239,68,68,0.12);
+  border-radius:12px;padding:12px 16px;margin-bottom:20px;
+  color:#fca5a5;font-size:13px;font-weight:600;
+  display:flex;align-items:center;gap:8px;animation:shake 0.4s ease;
 }
 
-/* ── OTP ── */
-.otp-row{display:flex;gap:10px;justify-content:center;margin:22px 0;cursor:text}
+.pg-pw-wrap{position:relative}
+.pg-pw-wrap .pg-inp{padding-right:48px}
+.pg-pw-toggle{
+  position:absolute;right:6px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;padding:8px;
+  color:var(--text3);display:flex;align-items:center;justify-content:center;
+  transition:color 0.15s;border-radius:10px;
+}
+.pg-pw-toggle:hover{color:var(--text)}
+
+.otp-row{display:flex;gap:10px;justify-content:center;margin:24px 0;cursor:text}
 .otp-box{
-  width:60px;height:66px;
-  display:flex;align-items:center;justify-content:center;
-  font-size:28px;font-weight:900;
-  background:rgba(255,255,255,0.12);
-  border:1.5px solid rgba(255,255,255,0.28);
-  border-radius:12px;color:#fff;
-  transition:all 0.2s ease;user-select:none;
+  width:56px;height:64px;display:flex;align-items:center;justify-content:center;
+  font-size:26px;font-weight:800;
+  background:var(--input-bg);border:1.5px solid var(--input-border);
+  border-radius:14px;color:var(--text);transition:all 0.2s ease;user-select:none;
 }
-.otp-box.active{
-  border-color:rgba(255,255,255,0.70);
-  background:rgba(255,255,255,0.22);
-  box-shadow:0 0 0 4px rgba(155,89,182,0.25);
-}
-.otp-box.filled{
-  border-color:rgba(39,174,96,0.70);
-  background:rgba(39,174,96,0.16);
-  color:#a8ffcc;transform:scale(1.05);
-}
+.otp-box.active{border-color:var(--brand);background:rgba(124,58,237,0.04);box-shadow:0 0 0 4px rgba(124,58,237,0.08)}
+.otp-box.filled{border-color:var(--success);background:rgba(16,185,129,0.04);color:#6ee7b7;transform:scale(1.05)}
 
-/* ── Dot loader ── */
 .dots{display:flex;gap:4px;align-items:center}
-.dots span{
-  width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,0.80);
-  animation:dotBounce 1s ease infinite;
-}
+.dots span{width:5px;height:5px;border-radius:50%;background:var(--brand-light);animation:dotBounce 1s ease infinite}
 .dots span:nth-child(2){animation-delay:0.14s}
 .dots span:nth-child(3){animation-delay:0.28s}
 
-/* ── Step dots ── */
-.steps{display:flex;gap:5px;justify-content:center;margin-bottom:22px}
-.step-dot{height:4px;border-radius:2px;background:rgba(255,255,255,0.18);transition:all 0.35s ease}
-.step-dot.active{background:rgba(255,255,255,0.85);width:22px}
-.step-dot.done{background:rgba(39,174,96,0.70);width:12px}
+.steps{display:flex;gap:6px;justify-content:center;margin-bottom:24px}
+.step-dot{height:4px;border-radius:2px;background:rgba(255,255,255,0.08);transition:all 0.35s ease}
+.step-dot.active{background:var(--brand-light);width:24px}
+.step-dot.done{background:var(--success);width:14px}
 .step-dot.pending{width:8px}
 
-/* ── Email badge ── */
 .email-badge{
   display:inline-flex;align-items:center;gap:5px;
-  background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.25);
-  border-radius:100px;padding:4px 12px 4px 8px;
-  font-size:13px;font-weight:700;color:rgba(255,255,255,0.85);
-  margin:4px 0 2px;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);
+  border-radius:100px;padding:5px 14px 5px 10px;
+  font-size:13px;font-weight:600;color:rgba(255,255,255,0.7);margin-bottom:16px;
 }
 
-/* ── Admin badge ── */
-.admin-badge{
-  display:flex;align-items:center;gap:12px;
-  padding:13px 14px;
-  background:rgba(255,255,255,0.09);
-  border:1px solid rgba(255,255,255,0.18);
-  border-radius:12px;margin-bottom:18px;
+.role-badge{
+  display:flex;align-items:center;gap:14px;
+  padding:14px 16px;background:rgba(255,255,255,0.03);
+  border:1px solid rgba(255,255,255,0.06);border-radius:14px;margin-bottom:22px;
 }
+.role-badge-icon{
+  width:44px;height:44px;border-radius:12px;background:rgba(124,58,237,0.1);
+  display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0;
+}
+.role-badge-name{font-weight:700;font-size:15px;color:var(--text)}
+.role-badge-email{font-size:12px;color:var(--brand-light);font-weight:600;margin-top:2px}
 
-/* ── Bonus ── */
 .bonus{
-  background:rgba(39,174,96,0.14);border:1px solid rgba(39,174,96,0.28);
-  border-radius:12px;padding:13px 14px;margin-bottom:16px;
+  background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.1);
+  border-radius:12px;padding:12px 16px;margin-bottom:18px;
   display:flex;align-items:center;gap:10px;
-  font-size:14px;font-weight:600;color:rgba(255,255,255,0.85);
+  font-size:13px;font-weight:600;color:rgba(255,255,255,0.8);
 }
 
-/* ── Timer ── */
 .timer{
-  display:inline-flex;align-items:center;gap:4px;
-  background:rgba(255,255,255,0.10);border:1px solid rgba(255,255,255,0.20);
-  border-radius:100px;padding:3px 10px;
-  font-size:12px;font-weight:800;color:rgba(255,255,255,0.65);
-  font-variant-numeric:tabular-nums;
+  display:inline-flex;align-items:center;
+  background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.06);
+  border-radius:100px;padding:4px 12px;
+  font-size:12px;font-weight:700;color:var(--text2);font-variant-numeric:tabular-nums;
 }
 .resend{
   text-align:center;margin-top:16px;
-  font-size:13px;font-weight:600;color:rgba(255,255,255,0.50);
+  font-size:13px;font-weight:600;color:var(--text3);
   display:flex;align-items:center;justify-content:center;gap:6px;
 }
 
-/* ── Footer ── */
-.pg-footer{
-  text-align:center;margin-top:60px;padding-bottom:4px;
-  font-size:11.5px;font-weight:700;color:rgba(255,255,255,0.35);
-  letter-spacing:0.03em;
-}
-.pg-footer span{color:rgba(210,170,255,0.70);cursor:pointer}
-.pg-footer span:hover{color:#fff}
+.pg-footer{text-align:center;margin-top:36px;font-size:11px;font-weight:600;color:var(--text3);letter-spacing:0.02em}
 
-/* ── Anim ── */
-.fadeup{animation:fadeUp 0.38s cubic-bezier(0.34,1.4,0.64,1)}
+.fadeup{animation:fadeUp 0.4s cubic-bezier(0.34,1.4,0.64,1)}
+
+@media(max-width:767px){
+  .pg-card{max-width:100%;border-radius:20px;margin:0 4px}
+  .pg-inner{padding:28px 20px 24px}
+  .pg-title{font-size:22px}
+  .pg-sub{font-size:13px;margin-bottom:20px}
+  .pg-inp{padding:12px 14px;font-size:13px}
+  .pg-btn{padding:13px 18px;font-size:14px}
+  .otp-box{width:50px;height:56px;font-size:22px}
+  .pg-row{grid-template-columns:1fr;gap:12px}
+}
 `
 
 function useStyles() {
   useEffect(() => {
-    const id = 'pg-v4-css'
+    const id = 'pg-v6-css'
     if (document.getElementById(id)) return
     const el = document.createElement('style')
     el.id = id; el.textContent = CSS
@@ -347,7 +209,7 @@ function StepDots({ step }) {
   )
 }
 
-function OTPInput({ value, onChange }) {
+function OTPInput({ value, onChange, onFocus, onBlur }) {
   const ref = useRef(null)
   const [focused, setFocused] = useState(false)
   const digits = (value+'    ').slice(0,4).split('')
@@ -362,7 +224,7 @@ function OTPInput({ value, onChange }) {
         onChange={handleChange}
         onKeyDown={e => e.key==='Backspace' && value.length===0 && e.preventDefault()}
         onPaste={e => { e.preventDefault(); const p=e.clipboardData.getData('text').replace(/\D/g,'').slice(0,4); if(p) onChange(p) }}
-        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        onFocus={() => { setFocused(true); onFocus?.() }} onBlur={() => { setFocused(false); onBlur?.() }}
         maxLength={4}
         style={{position:'absolute',opacity:0,pointerEvents:'none',width:1,height:1}}/>
       {digits.map((d,i) => {
@@ -371,7 +233,7 @@ function OTPInput({ value, onChange }) {
         return (
           <div key={i} className={`otp-box${active?' active':''}${filled?' filled':''}`}>
             {filled ? d : active
-              ? <div style={{width:2,height:26,background:'rgba(255,255,255,0.85)',borderRadius:1,animation:'blink 1s step-end infinite'}}/>
+              ? <div style={{width:2,height:24,background:'rgba(255,255,255,0.8)',borderRadius:1,animation:'blink 1s step-end infinite'}}/>
               : null}
           </div>
         )
@@ -380,107 +242,48 @@ function OTPInput({ value, onChange }) {
   )
 }
 
-// ── Card — single glass shell, defined OUTSIDE to prevent remount ─────────────
-function Card({ error, loading, step, children }) {
-  useStyles()
-  const pct = {[STEP_EMAIL]:15,[STEP_PASSWORD]:50,[STEP_OTP]:58,[STEP_REGISTER]:88}[step]||0
-  return (
-    <div className="pg-page">
-      {/* ↓ REPLACE src with your actual bg image path, e.g. src="/images/bg.jpg" */}
-      <img className="pg-bg-img" src="" alt="" onError={e=>e.target.style.display='none'}/>
-      <div className="pg-bg-overlay"/>
-
-      <div className="pg-card">
-        {/* progress bar */}
-        <div className={`pg-prog${loading?' is-loading-bar':''}`}>
-          <div className="pg-prog-fill" style={{width:`${pct}%`}}/>
-          <div className="pg-prog-shim"/>
-        </div>
-
-        <div className="pg-inner">
-          {/* ── Logo + brand always visible at top ── */}
-          <div className="pg-logo-area">
-            <div className={`pg-logo-wrap${loading?' is-loading':''}`}>
-              <div className="pg-logo-r pg-logo-glow"/>
-              <div className="pg-logo-r pg-logo-r2"/>
-              <div className="pg-logo-r pg-logo-r1"/>
-              <img src="/favicon3.png" alt="PromoGames" className="pg-logo-img"/>
-            </div>
-            {/* <div className="pg-brand">PromoGames</div> */}
-            <div className="pg-tagline">
-              <span>Play</span>
-              <div className="pg-tagline-dot"/>
-              <span>Earn</span>
-              <div className="pg-tagline-dot"/>
-              <span>Redeem</span>
-            </div>
-          </div>
-
-          {/* ── Divider ── */}
-          <div className="pg-div"/>
-
-          {/* ── Error ── */}
-          {error && <div className="pg-err"><span>⚠</span><span>{error}</span></div>}
-
-          {/* ── Step content ── */}
-          {children}
-<div className="pg-div"/>
-          {/* ── Footer ── */}
-          <div className="pg-footer">
-            Secured by PromoGames &nbsp;·&nbsp; <span>Help</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-// ── Main ──────────────────────────────────────────────────────────────────────
 export default function LoginPage() {
-  const navigate  = useNavigate()
+  const navigate = useNavigate()
   const { login } = useAuth()
 
-  useEffect(() => {
-    // Auto-redirect removed to prevent loop on dashboard failure
-  }, [navigate])
-
-  const [step,      setStep]      = useState(STEP_EMAIL)
-  const [email,     setEmail]     = useState('')
-  const [password,  setPassword]  = useState('')
-  const [otp,       setOtp]       = useState('')
+  const [step, setStep] = useState(STEP_EMAIL)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [otp, setOtp] = useState('')
   const [tempToken, setTempToken] = useState('')
-  const [loading,   setLoading]   = useState(false)
-  const [error,     setError]     = useState('')
-  const [resendCD,  setResendCD]  = useState(0)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const [resendCD, setResendCD] = useState(0)
   const [rememberMe, setRememberMe] = useState(true)
   const [form, setForm] = useState({name:'',username:'',dob:'',whatsapp:'',city:'',pincode:'',avatar_id:DEFAULT_AVATARS[0].id})
-  const [usernameStatus, setUsernameStatus] = useState('') // '' | 'checking' | 'available' | 'taken'
+  const [usernameStatus, setUsernameStatus] = useState('')
   const [usernameMsg, setUsernameMsg] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [inputFocused, setInputFocused] = useState(false)
 
   const setField = (k,v) => setForm(f=>({...f,[k]:v}))
 
-  // Debounced username uniqueness check
   useEffect(() => {
     const val = form.username.trim().toLowerCase()
     if (val.length < 3) { setUsernameStatus(''); setUsernameMsg(val.length ? 'At least 3 characters' : ''); return }
-    if (!/^[a-z0-9_]+$/.test(val)) { setUsernameStatus(''); setUsernameMsg('Only lowercase letters, numbers and _'); return }
+    if (!/^[a-z0-9_]+$/.test(val)) { setUsernameStatus(''); setUsernameMsg('Only lowercase, numbers and _'); return }
     setUsernameStatus('checking'); setUsernameMsg('')
     const t = setTimeout(async () => {
       try {
         const { data } = await api.post('/pauth/check-username', { username: val })
-        if (data.available) { setUsernameStatus('available'); setUsernameMsg('Username available') }
-        else { setUsernameStatus('taken'); setUsernameMsg('Username already taken') }
+        if (data.available) { setUsernameStatus('available'); setUsernameMsg('Available!') }
+        else { setUsernameStatus('taken'); setUsernameMsg('Already taken') }
       } catch { setUsernameStatus(''); setUsernameMsg('') }
     }, 500)
     return () => clearTimeout(t)
   }, [form.username])
+
   const storeAuth = (token, player) => {
     const storage = rememberMe ? localStorage : sessionStorage
     storage.setItem('playerToken', token)
     storage.setItem('playerUser', JSON.stringify(player))
   }
   const clearErr = () => setError('')
-
   const startCountdown = () => {
     setResendCD(30)
     const t = setInterval(() => setResendCD(s => { if(s<=1){clearInterval(t);return 0} return s-1 }),1000)
@@ -488,26 +291,21 @@ export default function LoginPage() {
 
   const handleEmailSubmit = async () => {
     if (!email) return setError('Please enter your email')
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError('Please enter a valid email address')
     clearErr(); setLoading(true)
     try {
       const { data } = await api.post('/pauth/check-email', { email })
-      if (data.type === 'admin') {
-        setStep(STEP_PASSWORD)
-      } else if (data.type === 'bd') {
-        setStep(STEP_BD_PASS)
-      } else if (data.type === 'internal_team') {
-        setStep(STEP_IT_PASS)
-      } else {
-        await api.post('/pauth/send-otp', { email })
-        setStep(STEP_OTP)
-        startCountdown()
-      }
+      if (data.type === 'admin') setStep(STEP_PASSWORD)
+      else if (data.type === 'bd') setStep(STEP_BD_PASS)
+      else if (data.type === 'internal_team') setStep(STEP_IT_PASS)
+      else { await api.post('/pauth/send-otp', { email }); setStep(STEP_OTP); startCountdown() }
     } catch(err) { setError(err.response?.data?.message || 'Something went wrong.') }
     finally { setLoading(false) }
   }
 
   const handleBDLogin = async () => {
-    if (!password) return setError('Please enter your password')
+    if (!password) return setError('Please enter your phone number')
+    if (!/^\d{10}$/.test(password)) return setError('Phone number must be exactly 10 digits')
     clearErr(); setLoading(true)
     try {
       const { data } = await api.post('/bd/login', { email, password })
@@ -519,7 +317,8 @@ export default function LoginPage() {
   }
 
   const handleITLogin = async () => {
-    if (!password) return setError('Please enter your password')
+    if (!password) return setError('Please enter your phone number')
+    if (!/^\d{10}$/.test(password)) return setError('Phone number must be exactly 10 digits')
     clearErr(); setLoading(true)
     try {
       const { data } = await api.post('/internal-team/login', { email, password })
@@ -544,7 +343,7 @@ export default function LoginPage() {
     try {
       const { data } = await api.post('/pauth/verify-otp', { email, otp })
       if (data.type === 'player') {
-      storeAuth(data.token, { ...data.player, avatar_id: form.avatar_id })
+        storeAuth(data.token, { ...data.player, avatar_id: form.avatar_id })
         navigate('/')
       } else { setTempToken(data.tempToken); setStep(STEP_REGISTER) }
     } catch(err) { setError(err.response?.data?.message || 'Invalid or expired code.'); setOtp('') }
@@ -554,9 +353,9 @@ export default function LoginPage() {
   const handleRegister = async () => {
     if (!form.name.trim()) return setError('Name is required')
     if (!form.username.trim() || form.username.length < 3) return setError('Username must be at least 3 characters')
-    if (!/^[a-z0-9_]+$/.test(form.username)) return setError('Username: only lowercase letters, numbers and underscores')
+    if (!/^[a-z0-9_]+$/.test(form.username)) return setError('Only lowercase letters, numbers and underscores')
     if (usernameStatus === 'taken') return setError('Username is already taken')
-    if (usernameStatus === 'checking') return setError('Please wait, checking username…')
+    if (usernameStatus === 'checking') return setError('Checking username…')
     clearErr(); setLoading(true)
     try {
       const { data } = await api.post('/pauth/register', {
@@ -567,7 +366,7 @@ export default function LoginPage() {
         avatar_id: form.avatar_id,
       })
       storeAuth(data.token, { ...data.player, avatar_id: form.avatar_id })
-      navigate('/')
+      navigate('/arcade', { state: { welcomeBonus: true } })
     } catch(err) { setError(err.response?.data?.message || 'Registration failed.') }
     finally { setLoading(false) }
   }
@@ -579,200 +378,236 @@ export default function LoginPage() {
     catch { setError('Failed to resend.') }
   }
 
-  // EMAIL
-  if (step === STEP_EMAIL) return (
-    <Card error={error} loading={loading} step={step}>
-      <div className="fadeup">
-        <div className="pg-title">Welcome back 👋</div>
-        <div className="pg-sub">Enter your email to get started.</div>
-        <div className="pg-fg">
-          <label className="pg-lbl">Email Address</label>
-          <input className="pg-inp" type="email" value={email} autoFocus
-            onChange={e=>{setEmail(e.target.value);clearErr()}}
-            onKeyDown={e=>e.key==='Enter'&&!loading&&email&&handleEmailSubmit()}
-            placeholder="you@example.com"/>
+  const goBack = () => { setPassword(''); setOtp(''); clearErr(); setStep(STEP_EMAIL); setShowPassword(false); setInputFocused(false) }
+
+  // Mascot state
+  const isTyping = inputFocused
+
+  const pct = {[STEP_EMAIL]:15,[STEP_OTP]:55,[STEP_PASSWORD]:70,[STEP_BD_PASS]:70,[STEP_IT_PASS]:70,[STEP_REGISTER]:88}[step]||0
+
+  const goBackFromPassword = () => { setPassword(''); clearErr(); setStep(STEP_EMAIL); setShowPassword(false); setInputFocused(false) }
+
+  return (
+    <MascotLogin
+      isTyping={isTyping}
+      showPassword={showPassword}
+      passwordLength={password.length}
+      loginFailed={!!error}
+      loginSuccess={false}
+    >
+      <div className="pg-card">
+        <div className="pg-prog">
+          <div className="pg-prog-fill" style={{width:`${pct}%`}}/>
         </div>
-        <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
-          <div onClick={()=>setRememberMe(!rememberMe)} style={{width:20,height:20,flexShrink:0,border:`2px solid ${rememberMe?'rgba(255,255,255,0.7)':'rgba(255,255,255,0.3)'}`,borderRadius:5,background:rememberMe?'rgba(255,255,255,0.18)':'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s'}}>
-            {rememberMe && <span style={{color:'#fff',fontSize:11,fontWeight:700}}>✓</span>}
+        <div className="pg-inner">
+          {/* Logo inside form */}
+          <div style={{ display:'flex', justifyContent:'center', marginBottom: 28 }}>
+            <img src="/favicon2.png" alt="PromoGames" style={{ height: 48, width: 'auto', borderRadius: 10 }} />
           </div>
-          <span style={{fontSize:12,fontWeight:600,color:'rgba(255,255,255,0.55)',cursor:'pointer',userSelect:'none'}} onClick={()=>setRememberMe(!rememberMe)}>Remember me</span>
-        </div>
-        <button className={`pg-btn${loading?' busy':''}`} onClick={handleEmailSubmit} disabled={loading||!email}>
-          {loading ? <><Dots/>&nbsp;Checking…</> : 'Continue →'}
-        </button>
-      </div>
-    </Card>
-  )
+          {error && <div className="pg-err"><span>⚠</span><span>{error}</span></div>}
 
-  // BD PASSWORD
-  if (step === STEP_BD_PASS) return (
-    <Card error={error} loading={loading} step={step}>
-      <div className="fadeup">
-        <button className="pg-back" onClick={()=>{setStep(STEP_EMAIL);setPassword('');clearErr()}}>← Back</button>
-        <div className="admin-badge">
-          <div style={{width:40,height:40,borderRadius:10,background:'rgba(255,255,255,0.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>🤝</div>
-          <div>
-            <div style={{fontWeight:800,fontSize:14,color:'#fff'}}>Business Developer</div>
-            <div style={{fontSize:12,color:'rgba(210,170,255,0.85)',fontWeight:700}}>{email}</div>
-          </div>
-        </div>
-        <div className="pg-fg">
-          <label className="pg-lbl">Password (Phone Number)</label>
-          <input className="pg-inp" type="password" value={password} autoFocus
-            onChange={e=>{setPassword(e.target.value);clearErr()}}
-            onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleBDLogin()}
-            placeholder="Enter your phone number"/>
-        </div>
-        <button className={`pg-btn${loading?' busy':''}`} onClick={handleBDLogin} disabled={loading||!password}>
-          {loading ? <><Dots/>&nbsp;Signing in…</> : 'Sign In →'}
-        </button>
-      </div>
-    </Card>
-  )
-
-  // INTERNAL TEAM PASSWORD
-  if (step === STEP_IT_PASS) return (
-    <Card error={error} loading={loading} step={step}>
-      <div className="fadeup">
-        <button className="pg-back" onClick={()=>{setStep(STEP_EMAIL);setPassword('');clearErr()}}>← Back</button>
-        <div className="admin-badge">
-          <div style={{width:40,height:40,borderRadius:10,background:'rgba(255,255,255,0.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>🛠️</div>
-          <div>
-            <div style={{fontWeight:800,fontSize:14,color:'#fff'}}>Internal Team</div>
-            <div style={{fontSize:12,color:'rgba(210,170,255,0.85)',fontWeight:700}}>{email}</div>
-          </div>
-        </div>
-        <div className="pg-fg">
-          <label className="pg-lbl">Password (Phone Number)</label>
-          <input className="pg-inp" type="password" value={password} autoFocus
-            onChange={e=>{setPassword(e.target.value);clearErr()}}
-            onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleITLogin()}
-            placeholder="Enter your phone number"/>
-        </div>
-        <button className={`pg-btn${loading?' busy':''}`} onClick={handleITLogin} disabled={loading||!password}>
-          {loading ? <><Dots/>&nbsp;Signing in…</> : 'Sign In →'}
-        </button>
-      </div>
-    </Card>
-  )
-
-  // ADMIN PASSWORD
-  if (step === STEP_PASSWORD) return (
-    <Card error={error} loading={loading} step={step}>
-      <div className="fadeup">
-        <button className="pg-back" onClick={()=>{setStep(STEP_EMAIL);setPassword('');clearErr()}}>← Back</button>
-        <div className="admin-badge">
-          <div style={{width:40,height:40,borderRadius:10,background:'rgba(255,255,255,0.12)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:18,flexShrink:0}}>🛡️</div>
-          <div>
-            <div style={{fontWeight:800,fontSize:14,color:'#fff'}}>Admin Login</div>
-            <div style={{fontSize:12,color:'rgba(210,170,255,0.85)',fontWeight:700}}>{email}</div>
-          </div>
-        </div>
-        <div className="pg-fg">
-          <label className="pg-lbl">Password</label>
-          <input className="pg-inp" type="password" value={password} autoFocus
-            onChange={e=>{setPassword(e.target.value);clearErr()}}
-            onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleAdminLogin()}
-            placeholder="••••••••"/>
-        </div>
-        <button className={`pg-btn${loading?' busy':''}`} onClick={handleAdminLogin} disabled={loading||!password}>
-          {loading ? <><Dots/>&nbsp;Signing in…</> : 'Sign In →'}
-        </button>
-      </div>
-    </Card>
-  )
-
-  // OTP
-  if (step === STEP_OTP) return (
-    <Card error={error} loading={loading} step={step}>
-      <div className="fadeup">
-        <button className="pg-back" onClick={()=>{setStep(STEP_EMAIL);setOtp('');clearErr()}}>← Back</button>
-        <StepDots step={step}/>
-        <div className="pg-title">Check your email ✉️</div>
-        <p style={{color:'rgba(255,255,255,0.55)',fontSize:14,fontWeight:500,marginBottom:6}}>
-          We sent a 4-digit code to
-        </p>
-        <span className="email-badge">✉ {email}</span>
-        <OTPInput value={otp} onChange={v=>{setOtp(v);clearErr()}}/>
-        <button className={`pg-btn${loading?' busy':''}`} onClick={handleOTPSubmit} disabled={loading||otp.length<4}>
-          {loading ? <><Dots/>&nbsp;Verifying…</> : 'Verify Code →'}
-        </button>
-        <div className="resend">
-          Didn't receive it?
-          {resendCD>0
-            ? <span className="timer">⏱ {resendCD}s</span>
-            : <button className="pg-lnk" onClick={handleResend}>Resend code</button>}
-        </div>
-      </div>
-    </Card>
-  )
-
-  // REGISTER
-  if (step === STEP_REGISTER) return (
-    <Card error={error} loading={loading} step={step}>
-      <div className="fadeup">
-        <StepDots step={step}/>
-        <div className="pg-title">Almost there! 🎉</div>
-        <div className="pg-sub">A few details to set up your wallet.</div>
-        <div className="pg-fg">
-          <label className="pg-lbl">Email Address</label>
-          <input className="pg-inp" type="email" value={email} disabled/>
-        </div>
-        <div className="pg-fg">
-          <label className="pg-lbl">Full Name <span style={{color:'#ffaec5'}}>*</span></label>
-          <input className="pg-inp" type="text" value={form.name} autoFocus
-            onChange={e=>{setField('name',e.target.value);clearErr()}} placeholder="Your full name"/>
-        </div>
-        <div className="pg-fg">
-          <label className="pg-lbl">Username <span style={{color:'#ffaec5'}}>*</span></label>
-          <input className="pg-inp" type="text" value={form.username}
-            onChange={e=>{setField('username',e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,''));clearErr()}}
-            placeholder="e.g. venu_gamer" maxLength={20}/>
-          {usernameMsg && (
-            <span style={{
-              fontSize:12, marginTop:4, display:'block',
-              color: usernameStatus==='available' ? '#34d399' : usernameStatus==='taken' ? '#f87171' : usernameStatus==='checking' ? '#a78bfa' : '#9ca3af'
-            }}>
-              {usernameStatus==='checking' ? '⏳ Checking…' : usernameMsg}
-            </span>
+          {/* ── EMAIL ── */}
+          {step === STEP_EMAIL && (
+            <div className="fadeup">
+              <div className="pg-title">Welcome back 👋</div>
+              <div className="pg-sub">Enter your email to get started.</div>
+              <div className="pg-fg">
+                <label className="pg-lbl">Email Address</label>
+                <input className="pg-inp" type="email" value={email} autoFocus
+                  onChange={e=>{setEmail(e.target.value);clearErr()}}
+                  onKeyDown={e=>e.key==='Enter'&&!loading&&email&&handleEmailSubmit()}
+                  onFocus={()=>setInputFocused(true)} onBlur={()=>setInputFocused(false)}
+                  placeholder="you@example.com"/>
+              </div>
+              <div style={{display:'flex',alignItems:'center',gap:8,marginBottom:16}}>
+                <div onClick={()=>setRememberMe(!rememberMe)} style={{width:18,height:18,flexShrink:0,border:`2px solid ${rememberMe?'rgba(139,92,246,0.6)':'rgba(255,255,255,0.15)'}`,borderRadius:4,background:rememberMe?'rgba(139,92,246,0.15)':'transparent',cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center',transition:'all 0.15s'}}>
+                  {rememberMe && <span style={{color:'#fff',fontSize:10,fontWeight:700}}>✓</span>}
+                </div>
+                <span style={{fontSize:12,fontWeight:600,color:'var(--text2)',cursor:'pointer',userSelect:'none'}} onClick={()=>setRememberMe(!rememberMe)}>Remember me</span>
+              </div>
+              <button className={`pg-btn${loading?' busy':''}`} onClick={handleEmailSubmit} disabled={loading||!email}>
+                {loading ? <><Dots/>&nbsp;Checking…</> : 'Continue →'}
+              </button>
+            </div>
           )}
-        </div>
-        <div className="pg-fg">
-          <label className="pg-lbl">Date of Birth</label>
-          <input className="pg-inp" type="date" value={form.dob} onChange={e=>setField('dob',e.target.value)}/>
-        </div>
-        <div className="pg-fg">
-          <label className="pg-lbl">WhatsApp Number</label>
-          <input className="pg-inp" type="tel" value={form.whatsapp}
-            onChange={e=>setField('whatsapp',e.target.value)} placeholder="+91 9876543210"/>
-        </div>
-        <div className="pg-row pg-fg">
-          <div>
-            <label className="pg-lbl">City</label>
-            <input className="pg-inp" type="text" value={form.city}
-              onChange={e=>setField('city',e.target.value)} placeholder="Bangalore"/>
-          </div>
-          <div>
-            <label className="pg-lbl">Pincode</label>
-            <input className="pg-inp" type="text" value={form.pincode}
-              onChange={e=>setField('pincode',e.target.value)} placeholder="560001" maxLength={6}/>
-          </div>
-        </div>
-        <div className="bonus">
-          <span style={{fontSize:22}}>🎁</span>
-          <span>You'll get <strong style={{color:'#a8ffcc'}}>100 Promo Coins</strong> as a welcome bonus!</span>
-        </div>
-        <div style={{marginBottom:16}}>
-          <label className="pg-lbl" style={{marginBottom:8,display:'block'}}>Choose Your Avatar</label>
-          <AvatarGrid selected={form.avatar_id} onSelect={id => setField('avatar_id', id)} size={68} />
-        </div>
-        <button className={`pg-btn${loading?' busy':''}`} onClick={handleRegister} disabled={loading||!form.name.trim()||!form.username.trim()||usernameStatus==='taken'||usernameStatus==='checking'}>
-          {loading ? <><Dots/>&nbsp;Creating account…</> : 'Create Account & Claim 100 PC 🎉'}
-        </button>
-      </div>
-    </Card>
-  )
 
-  return null
+          {/* ── OTP ── */}
+          {step === STEP_OTP && (
+            <div className="fadeup">
+              <button className="pg-back" onClick={goBack}>← Back</button>
+              <StepDots step={step}/>
+              <div className="pg-title">Check your email ✉️</div>
+              <p style={{color:'var(--text2)',fontSize:13,fontWeight:500,marginBottom:4}}>We sent a 4-digit code to</p>
+              <span className="email-badge">✉ {email}</span>
+              <OTPInput value={otp} onChange={v=>{setOtp(v);clearErr()}} onFocus={()=>setInputFocused(true)} onBlur={()=>setInputFocused(false)}/>
+              <button className={`pg-btn${loading?' busy':''}`} onClick={handleOTPSubmit} disabled={loading||otp.length<4}>
+                {loading ? <><Dots/>&nbsp;Verifying…</> : 'Verify Code →'}
+              </button>
+              <div className="resend">
+                Didn't receive it?
+                {resendCD>0
+                  ? <span className="timer">⏱ {resendCD}s</span>
+                  : <button className="pg-lnk" onClick={handleResend}>Resend code</button>}
+              </div>
+            </div>
+          )}
+
+          {/* ── REGISTER ── */}
+          {step === STEP_REGISTER && (
+            <div className="fadeup" style={{maxHeight:'70vh',overflowY:'auto',paddingRight:4}}>
+              <StepDots step={step}/>
+              <div className="pg-title">Almost there! 🎉</div>
+              <div className="pg-sub">A few details to set up your wallet.</div>
+              <div className="pg-fg">
+                <label className="pg-lbl">Email</label>
+                <input className="pg-inp" type="email" value={email} disabled/>
+              </div>
+              <div className="pg-fg">
+                <label className="pg-lbl">Full Name <span style={{color:'#f87171'}}>*</span></label>
+                <input className="pg-inp" type="text" value={form.name} autoFocus
+                  onChange={e=>{setField('name',e.target.value);clearErr()}}
+                  onFocus={()=>setInputFocused(true)} onBlur={()=>setInputFocused(false)}
+                  placeholder="Your full name"/>
+              </div>
+              <div className="pg-fg">
+                <label className="pg-lbl">Username <span style={{color:'#f87171'}}>*</span></label>
+                <input className="pg-inp" type="text" value={form.username}
+                  onChange={e=>{setField('username',e.target.value.toLowerCase().replace(/[^a-z0-9_]/g,''));clearErr()}}
+                  onFocus={()=>setInputFocused(true)} onBlur={()=>setInputFocused(false)}
+                  placeholder="e.g. venu_gamer" maxLength={20}/>
+                {usernameMsg && (
+                  <span style={{fontSize:11,marginTop:3,display:'block',fontWeight:700,
+                    color: usernameStatus==='available' ? '#34d399' : usernameStatus==='taken' ? '#f87171' : usernameStatus==='checking' ? '#a78bfa' : '#9ca3af'
+                  }}>{usernameMsg}</span>
+                )}
+              </div>
+              <div className="pg-row pg-fg">
+                <div>
+                  <label className="pg-lbl">Date of Birth</label>
+                  <input className="pg-inp" type="date" value={form.dob} onChange={e=>setField('dob',e.target.value)}/>
+                </div>
+                <div>
+                  <label className="pg-lbl">WhatsApp</label>
+                  <input className="pg-inp" type="tel" value={form.whatsapp}
+                    onChange={e=>setField('whatsapp',e.target.value)} placeholder="+91 9876543210"/>
+                </div>
+              </div>
+              <div className="pg-row pg-fg">
+                <div>
+                  <label className="pg-lbl">City</label>
+                  <input className="pg-inp" type="text" value={form.city}
+                    onChange={e=>setField('city',e.target.value)} placeholder="Bangalore"/>
+                </div>
+                <div>
+                  <label className="pg-lbl">Pincode</label>
+                  <input className="pg-inp" type="text" value={form.pincode}
+                    onChange={e=>setField('pincode',e.target.value)} placeholder="560001" maxLength={6}/>
+                </div>
+              </div>
+              <div style={{marginBottom:16}}>
+                <label className="pg-lbl" style={{marginBottom:6,display:'block'}}>Choose Avatar</label>
+                <AvatarGrid selected={form.avatar_id} onSelect={id => setField('avatar_id', id)} size={62} />
+              </div>
+              <button className={`pg-btn${loading?' busy':''}`} onClick={handleRegister} disabled={loading||!form.name.trim()||!form.username.trim()||usernameStatus==='taken'||usernameStatus==='checking'}>
+                {loading ? <><Dots/>&nbsp;Creating…</> : 'Create Account →'}
+              </button>
+            </div>
+          )}
+
+          {/* ── ADMIN PASSWORD ── */}
+          {step === STEP_PASSWORD && (
+            <div className="fadeup">
+              <button className="pg-back" onClick={goBackFromPassword}>← Back</button>
+              <div className="role-badge">
+                <div className="role-badge-icon">🛡️</div>
+                <div><div className="role-badge-name">Admin Login</div><div className="role-badge-email">{email}</div></div>
+              </div>
+              <div className="pg-fg">
+                <label className="pg-lbl">Password</label>
+                <div className="pg-pw-wrap">
+                  <input className="pg-inp" type={showPassword?'text':'password'} value={password} autoFocus
+                    onChange={e=>{setPassword(e.target.value);clearErr()}}
+                    onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleAdminLogin()}
+                    onFocus={()=>setInputFocused(true)} onBlur={()=>setInputFocused(false)}
+                    placeholder="••••••••"/>
+                  <button type="button" className="pg-pw-toggle" onClick={()=>setShowPassword(!showPassword)} tabIndex={-1}>
+                    {showPassword
+                      ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
+              </div>
+              <button className={`pg-btn${loading?' busy':''}`} onClick={handleAdminLogin} disabled={loading||!password}>
+                {loading ? <><Dots/>&nbsp;Signing in…</> : 'Sign In →'}
+              </button>
+            </div>
+          )}
+
+          {/* ── BD PASSWORD ── */}
+          {step === STEP_BD_PASS && (
+            <div className="fadeup">
+              <button className="pg-back" onClick={goBackFromPassword}>← Back</button>
+              <div className="role-badge">
+                <div className="role-badge-icon">🤝</div>
+                <div><div className="role-badge-name">Business Developer</div><div className="role-badge-email">{email}</div></div>
+              </div>
+              <div className="pg-fg">
+                <label className="pg-lbl">Password (Phone Number)</label>
+                <div className="pg-pw-wrap">
+                  <input className="pg-inp" type={showPassword?'text':'password'} value={password} autoFocus
+                    onChange={e=>{setPassword(e.target.value);clearErr()}}
+                    onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleBDLogin()}
+                    onFocus={()=>setInputFocused(true)} onBlur={()=>setInputFocused(false)}
+                    placeholder="Enter your phone number"/>
+                  <button type="button" className="pg-pw-toggle" onClick={()=>setShowPassword(!showPassword)} tabIndex={-1}>
+                    {showPassword
+                      ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
+              </div>
+              <button className={`pg-btn${loading?' busy':''}`} onClick={handleBDLogin} disabled={loading||!password}>
+                {loading ? <><Dots/>&nbsp;Signing in…</> : 'Sign In →'}
+              </button>
+            </div>
+          )}
+
+          {/* ── IT PASSWORD ── */}
+          {step === STEP_IT_PASS && (
+            <div className="fadeup">
+              <button className="pg-back" onClick={goBackFromPassword}>← Back</button>
+              <div className="role-badge">
+                <div className="role-badge-icon">🛠️</div>
+                <div><div className="role-badge-name">Internal Team</div><div className="role-badge-email">{email}</div></div>
+              </div>
+              <div className="pg-fg">
+                <label className="pg-lbl">Password (Phone Number)</label>
+                <div className="pg-pw-wrap">
+                  <input className="pg-inp" type={showPassword?'text':'password'} value={password} autoFocus
+                    onChange={e=>{setPassword(e.target.value);clearErr()}}
+                    onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleITLogin()}
+                    onFocus={()=>setInputFocused(true)} onBlur={()=>setInputFocused(false)}
+                    placeholder="Enter your phone number"/>
+                  <button type="button" className="pg-pw-toggle" onClick={()=>setShowPassword(!showPassword)} tabIndex={-1}>
+                    {showPassword
+                      ? <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                      : <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                    }
+                  </button>
+                </div>
+              </div>
+              <button className={`pg-btn${loading?' busy':''}`} onClick={handleITLogin} disabled={loading||!password}>
+                {loading ? <><Dots/>&nbsp;Signing in…</> : 'Sign In →'}
+              </button>
+            </div>
+          )}
+
+          <div className="pg-footer">Secured by PromoGames</div>
+        </div>
+      </div>
+      <style>{CSS}</style>
+    </MascotLogin>
+  )
 }

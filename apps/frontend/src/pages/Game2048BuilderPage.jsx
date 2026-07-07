@@ -471,18 +471,18 @@ function SoundSelector({ label, value, onChange, sounds }) {
 const TILE_VALUES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
 
 const DEFAULT_TILE_COLORS = {
-  "2": "#eee4da",
-  "4": "#ede0c8",
-  "8": "#f2b179",
-  "16": "#f59563",
-  "32": "#f67c5f",
-  "64": "#f65e3b",
-  "128": "#edcf72",
-  "256": "#edcc61",
-  "512": "#edc850",
-  "1024": "#edc53f",
-  "2048": "#edc22e",
-  "4096": "#3c3a32"
+  "2": "#e8e0ff",
+  "4": "#ddd0ff",
+  "8": "#c4a8ff",
+  "16": "#a88cff",
+  "32": "#8b70ff",
+  "64": "#7c3aed",
+  "128": "#6d28d9",
+  "256": "#5b21b6",
+  "512": "#8b5cf6",
+  "1024": "#a78bfa",
+  "2048": "#c084fc",
+  "4096": "#f0e6ff"
 }
 
 function parseTileColors(val) {
@@ -519,9 +519,9 @@ export default function Game2048BuilderPage() {
     heading_1: '',
     heading_2: '',
     heading_3: '',
-    heading_1_color: '#1a1a2e',
-    heading_2_color: '#64657a',
-    heading_3_color: '#64657a',
+    heading_1_color: '#c084fc',
+    heading_2_color: '#a78bfa',
+    heading_3_color: '#a78bfa',
     description_text: '',
     sound_slide_id: '',
     sound_merge_id: '',

@@ -15,9 +15,8 @@ const jwt        = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
 
 (async () => {
-  try {
-    await db.query(`ALTER TABLE promo_players ADD COLUMN IF NOT EXISTS avatar_id VARCHAR(20) DEFAULT 'av-1'`);
-  } catch {}
+  try { await db.query(`ALTER TABLE promo_players ADD COLUMN IF NOT EXISTS avatar_id VARCHAR(20) DEFAULT 'av-1'`); } catch {}
+  try { await db.query(`ALTER TABLE promo_players ADD COLUMN IF NOT EXISTS age INT DEFAULT NULL`); } catch {}
 })();
 require('dotenv').config();
 
@@ -313,10 +312,16 @@ router.post('/register', async (req, res) => {
       return res.status(409).json({ success: false, message: 'Username already taken' });
     }
 
+    let ageValue = null;
+    if (dob) {
+      const [ageRow] = await db.query('SELECT TIMESTAMPDIFF(YEAR, ?, CURDATE()) as age', [dob]);
+      ageValue = ageRow[0].age;
+    }
+
     const [result] = await db.query(
-      `INSERT INTO promo_players (name, username, dob, email, whatsapp, city, pincode, pc_balance, avatar_id)
-       VALUES (?, ?, ?, ?, ?, ?, ?, 100, ?)`,
-      [name, username, dob || null, email, whatsapp || null, city || null, pincode || null, avatar_id || 'av-3']
+      `INSERT INTO promo_players (name, username, dob, age, email, whatsapp, city, pincode, pc_balance, avatar_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, 100, ?)`,
+      [name, username, dob || null, ageValue, email, whatsapp || null, city || null, pincode || null, avatar_id || 'av-3']
     );
 
     const playerId = result.insertId;

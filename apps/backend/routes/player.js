@@ -885,6 +885,17 @@ router.post('/session/complete', async (req, res) => {
     const emailEnabled = gameSettings.send_email === 1 || gameSettings.send_email === '1' || gameSettings.send_email === true;
     const templateOk   = emailTemplates.length > 0 && (emailTemplates[0].is_enabled === 1 || emailTemplates[0].is_enabled === true);
 
+    // Check if a redemption code exists for this session
+    let redemptionCode = null;
+    let isGuestPlayer = false;
+    try {
+      const [redRows] = await db.query("SELECT code, is_player FROM business_redemptions WHERE session_id = ? AND code IS NOT NULL LIMIT 1", [session.id]);
+      if (redRows.length > 0) {
+        redemptionCode = redRows[0].code;
+        isGuestPlayer = !redRows[0].is_player;
+      }
+    } catch {}
+
     if (emailEnabled && templateOk && playerEmail) {
       const template = emailTemplates[0];
       const scoreText = session.total_scoreable > 0
@@ -906,7 +917,9 @@ router.post('/session/complete', async (req, res) => {
         .replace(/\{\{game_name\}\}/g, games[0]?.name || 'Game')
         .replace(/\{\{time_taken\}\}/g, 'N/A')
         .replace(/\{\{performance_message\}\}/g, perfMsg)
-        .replace(/\{\{website_link\}\}/g, 'https://www.thirdwavecoffeeroasters.com/');
+        .replace(/\{\{website_link\}\}/g, 'https://www.thirdwavecoffeeroasters.com/')
+        .replace(/\{\{code\}\}/g, isGuestPlayer ? (redemptionCode || '') : '')
+        .replace(/\{\{redemption_code\}\}/g, isGuestPlayer ? (redemptionCode || '') : '');
 
       const htmlEmail = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
         <body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">

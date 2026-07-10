@@ -7,3 +7,4 @@ apps/backend/uploads/sounds/*
 !apps/backend/uploads/sounds/.gitkeep
 node_modules/
 .env
+.mimocode

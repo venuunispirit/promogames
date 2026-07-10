@@ -517,6 +517,56 @@ router.post('/reveal-code', async (req, res) => {
     }
     await db.query("UPDATE business_redemptions SET status = 'code_revealed' WHERE id = ?", [redemption.id]);
 
+    const transporter = require('nodemailer').createTransport({
+      host: process.env.SMTP_HOST || 'smtp.gmail.com',
+      port: parseInt(process.env.SMTP_PORT || '587'),
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    });
+
+    // Always send code email to the BO
+    try {
+      const [boRows] = await db.query('SELECT email FROM business_owners WHERE id = ?', [redemption.business_owner_id]);
+      if (boRows.length > 0 && boRows[0].email) {
+        await transporter.sendMail({
+          from: `"PromoGames" <${process.env.SMTP_USER}>`,
+          to: boRows[0].email,
+          subject: `New redemption code: ${code} — ${redemption.player_name}`,
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f8f8ff;border-radius:12px;">
+              <h2 style="color:#8b5cf6;">New Redemption 🎁</h2>
+              <p style="font-size:15px;color:#333;"><strong>${redemption.player_name}</strong> has revealed their code.</p>
+              <div style="text-align:center;margin:24px 0;">
+                <span style="font-size:48px;font-weight:bold;letter-spacing:8px;color:#8b5cf6;">${code}</span>
+              </div>
+              <p style="font-size:13px;color:#888;">Enter this code in your dashboard to verify the redemption.</p>
+            </div>
+          `,
+        });
+      }
+    } catch (e) { console.error('BO email error:', e.message); }
+
+    // Send code email to guest players only (registered players see it in rewards page)
+    if (!redemption.is_player && redemption.player_email) {
+      try {
+        await transporter.sendMail({
+          from: `"PromoGames" <${process.env.SMTP_USER}>`,
+          to: redemption.player_email,
+          subject: `Your redemption code: ${code}`,
+          html: `
+            <div style="font-family:sans-serif;max-width:480px;margin:auto;padding:32px;background:#f8f8ff;border-radius:12px;">
+              <h2 style="color:#8b5cf6;">Your Redemption Code 🎁</h2>
+              <p style="font-size:15px;color:#333;">Show this code to the business to claim your reward:</p>
+              <div style="text-align:center;margin:24px 0;">
+                <span style="font-size:48px;font-weight:bold;letter-spacing:8px;color:#8b5cf6;">${code}</span>
+              </div>
+              <p style="font-size:13px;color:#888;">Present this code at the location to claim your reward.</p>
+            </div>
+          `,
+        });
+      } catch (e) { console.error('Guest email error:', e.message); }
+    }
+
     res.json({ success: true, code, message: 'Show this code to the business!' });
   } catch (err) {
     console.error(err);

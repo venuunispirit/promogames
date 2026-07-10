@@ -760,7 +760,30 @@ router.post('/session/start', async (req, res) => {
       [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null,
        utm_source || null, utm_medium || null, utm_campaign || null, utm_term || null, utm_content || null]
     );
-    res.json({ success: true, session_token: token, session_id: result.insertId });
+
+    // ── Question pool: select random subset if configured ──
+    let selectedQuestions = null;
+    try {
+      const [settingsRows] = await db.query('SELECT randomize_questions, questions_per_session FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [game_id]);
+      const qs = settingsRows[0];
+      if (qs && qs.randomize_questions && qs.questions_per_session > 0) {
+        const [allQ] = await db.query('SELECT id FROM questions WHERE game_id = ? ORDER BY question_order', [game_id]);
+        if (allQ.length > 0) {
+          const count = Math.min(qs.questions_per_session, allQ.length);
+          // Fisher-Yates shuffle
+          const arr = [...allQ];
+          for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+          }
+          const selected = arr.slice(0, count).map(q => q.id);
+          await db.query('UPDATE player_sessions SET selected_question_ids = ? WHERE id = ?', [JSON.stringify(selected), result.insertId]);
+          selectedQuestions = selected;
+        }
+      }
+    } catch (e) { console.error('Question pool error:', e.message); }
+
+    res.json({ success: true, session_token: token, session_id: result.insertId, selected_question_ids: selectedQuestions });
   } catch (err) {
     console.error('Session start error:', err);
     res.status(500).json({ success: false, message: err.message });
@@ -948,8 +971,108 @@ router.post('/session/complete', async (req, res) => {
       console.log(`✅ Awarded ${pcAmount} PC to player ${session.promo_player_id} for game ${game.name}`);
     }
 
+    // ── Business Owner Redemption: Create redemption with 6-digit code ──
+    try {
+      const [boGames] = await db.query(
+        'SELECT bog.business_owner_id, bog.id as bog_id FROM business_owner_games bog WHERE bog.game_id = ? LIMIT 1',
+        [session.game_id]
+      );
+      console.log('[DEBUG] boGames found:', boGames.length, 'for game_id:', session.game_id);
+      if (boGames.length > 0) {
+        const isPlayer = !!session.promo_player_id;
+        const code = String(Math.floor(100000 + Math.random() * 900000));
+        console.log('[DEBUG] isPlayer:', isPlayer, 'code:', code, 'playerEmail:', playerEmail);
+
+        const phoneKey = Object.keys(playerData).find(k => /phone|mobile|whatsapp|contact/i.test(k));
+        const playerPhone = phoneKey ? String(playerData[phoneKey]) : '';
+        const tableKey = Object.keys(playerData).find(k => /table\s*(num|no|number)?/i.test(k));
+        const tableNumber = tableKey ? String(playerData[tableKey]) : '';
+
+        const [gameSettingsRow] = await db.query('SELECT email_settings FROM games WHERE id = ?', [session.game_id]);
+        const emailSettings = gameSettingsRow[0]?.email_settings || {};
+        console.log('[DEBUG] emailSettings type:', typeof emailSettings, 'guest_offer:', JSON.stringify(emailSettings?.guest_offer));
+
+        await db.query(
+          `INSERT INTO business_redemptions (business_owner_id, game_id, session_id, code, player_name, player_phone, player_email, is_player, status, table_number)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+          [boGames[0].business_owner_id, session.game_id, session.id,
+           code, playerName, playerPhone, playerEmail || '', isPlayer ? 1 : 0, tableNumber]
+        );
+
+        const gameName = games[0]?.name || 'a game';
+
+        // Send email 1: Guest offer with code (only for guests, not players)
+        console.log('[DEBUG] guest offer condition:', !isPlayer, !!playerEmail, emailSettings?.guest_offer?.enabled !== false);
+        if (!isPlayer && playerEmail && emailSettings.guest_offer?.enabled !== false) {
+          try {
+            const transporter = nodemailer.createTransport({
+              host: process.env.SMTP_HOST, port: parseInt(process.env.SMTP_PORT || '587', 10),
+              secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1',
+              auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+              tls: { rejectUnauthorized: false },
+            });
+            const html = (emailSettings.guest_offer?.body || '')
+              .replace(/\{\{code\}\}/g, code)
+              .replace(/\{\{name\}\}/g, playerName)
+              .replace(/\{\{player_name\}\}/g, playerName)
+              .replace(/\{\{game_name\}\}/g, gameName);
+            await transporter.sendMail({
+              from: `"PromoGames" <${process.env.SMTP_USER}>`,
+              to: playerEmail,
+              subject: (emailSettings.guest_offer?.subject || 'Your reward code 🎁').replace(/\{\{name\}\}/g, playerName),
+              html,
+            });
+            console.log(`✅ Guest offer email sent to ${playerEmail} with code ${code}`);
+          } catch (e) { console.error('❌ Guest offer email error:', e.message, e.response?.data || ''); }
+        }
+
+        // Send email 2: BO notification for ALL plays
+        try {
+          const [boRows] = await db.query('SELECT email FROM business_owners WHERE id = ?', [boGames[0].business_owner_id]);
+          const boEmail = boRows[0]?.email;
+          if (boEmail) {
+            const transporter = nodemailer.createTransport({
+              host: process.env.SMTP_HOST, port: parseInt(process.env.SMTP_PORT || '587', 10),
+              secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1',
+              auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+              tls: { rejectUnauthorized: false },
+            });
+            const html = (emailSettings.bo_notification?.body || '')
+              .replace(/\{\{code\}\}/g, code)
+              .replace(/\{\{player_name\}\}/g, playerName)
+              .replace(/\{\{name\}\}/g, playerName)
+              .replace(/\{\{game_name\}\}/g, gameName)
+              .replace(/\{\{bo_name\}\}/g, 'Owner');
+            const subject = (emailSettings.bo_notification?.subject || 'New play at your location 🎮')
+              .replace(/\{\{player_name\}\}/g, playerName)
+              .replace(/\{\{game_name\}\}/g, gameName);
+            await transporter.sendMail({
+              from: `"PromoGames" <${process.env.SMTP_USER}>`,
+              to: boEmail,
+              subject,
+              html,
+              headers: {
+                'Message-ID': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
+                'In-Reply-To': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
+                'References': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
+              },
+            });
+            console.log(`✅ BO notification sent to ${boEmail} for ${playerName}`);
+          }
+        } catch (e) { console.error('❌ BO notification email error:', e.message, e.response?.data || ''); }
+      }
+    } catch (err) {
+      console.error('❌ BO redemption hook error:', err.message);
+      console.error('   stack:', err.stack?.split('\n').slice(0,3).join('\n'));
+    }
+
     const [updatedSession] = await db.query('SELECT * FROM player_sessions WHERE id = ?', [session.id]);
-    res.json({ success: true, session: updatedSession[0], email_sent: emailSent, redirect_url: game?.redirect_url || null });
+    res.json({
+      success: true,
+      session: updatedSession[0],
+      email_sent: emailSent,
+      redirect_url: game?.redirect_url || null,
+    });
   } catch (err) {
     console.error('Complete session error:', err);
     res.status(500).json({ success: false, message: err.message });

@@ -796,6 +796,15 @@ export default function PlayerPage() {
       if (playerProfile) payload.promo_player_id = playerProfile.id
       const res = await api.post('/play/session/start', payload)
       setSessionToken(res.data.session_token)
+
+      // ── Question pool: filter to selected subset if server returned it ──
+      if (res.data.selected_question_ids && res.data.selected_question_ids.length > 0) {
+        const selectedIds = new Set(res.data.selected_question_ids)
+        setGame(prev => ({
+          ...prev,
+          questions: prev.questions.filter(q => selectedIds.has(q.id))
+        }))
+      }
       if (game.category === 'crossword') {
         setPhase('crossword')
       } else if (game.category === 'spin') {
@@ -1539,8 +1548,8 @@ export default function PlayerPage() {
                         onClick={handleShortAnswerSubmit}
                         disabled={!shortAnswerText.trim()}
                         style={{
-                          background: shortAnswerText.trim() ? `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` : '#ccc',
-                          color: '#fff',
+                          background: shortAnswerText.trim() ? (s.submit_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`) : '#ccc',
+                          color: s.submit_button_text_color || '#fff',
                           border: 'none',
                           borderRadius: 50,
                           padding: '14px 40px',
@@ -1553,7 +1562,7 @@ export default function PlayerPage() {
                           touchAction: 'manipulation',
                           animation: 'questionEnter 0.4s 0.2s both ease',
                         }}>
-                        Submit Answer →
+                        {s.submit_button_text || 'Submit Answer →'}
                       </button>
                     )}
                     {answered && (
@@ -1629,8 +1638,8 @@ export default function PlayerPage() {
                   onClick={handleContinueClick}
                   style={{
                     marginTop: 12,
-                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-                    color: '#fff',
+                    background: s.continue_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+                    color: s.continue_button_text_color || '#fff',
                     border: 'none',
                     borderRadius: 50,
                     padding: '16px 44px',
@@ -1648,7 +1657,7 @@ export default function PlayerPage() {
                     maxWidth: 160,
                     alignSelf: 'center',
                   }}>
-                  Continue →
+                  {s.continue_button_text || 'Continue →'}
                 </button>
               )}
             </div>

@@ -1097,6 +1097,7 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'submit_button_text', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'continue_button_text', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'randomize_questions', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'questions_per_session', 'INT DEFAULT 0');
 
   /* GAMES */
   await safeQuery(connection,
@@ -1116,6 +1117,16 @@ async function initDB() {
   await addColumn(connection, 'games', 'updated_by', 'INT DEFAULT NULL');
   await addColumn(connection, 'games', 'meta_description', 'TEXT');
 
+  /* BUSINESS OWNERS — link to client */
+  await addColumn(connection, 'business_owners', 'client_id', 'INT DEFAULT NULL');
+  await addColumn(connection, 'business_owners', 'phone', 'VARCHAR(20) DEFAULT NULL');
+  await addColumn(connection, 'business_owners', 'pincode', 'VARCHAR(10) DEFAULT NULL');
+
+  /* GAMES — location/parent columns */
+  await addColumn(connection, 'games', 'parent_game_id', 'INT DEFAULT NULL');
+  await addColumn(connection, 'games', 'location_name', 'VARCHAR(255) DEFAULT NULL');
+  await addColumn(connection, 'games', 'business_owner_id', 'INT DEFAULT NULL');
+
   /* SPIN SEGMENTS */
   await addColumn(connection, 'spin_segments', 'win_message', 'TEXT');
   await addColumn(connection, 'spin_segments', 'lose_message', 'TEXT');
@@ -1129,6 +1140,7 @@ async function initDB() {
   await addColumn(connection, 'player_sessions', 'utm_campaign', 'VARCHAR(255)');
   await addColumn(connection, 'player_sessions', 'utm_term', 'VARCHAR(255)');
   await addColumn(connection, 'player_sessions', 'utm_content', 'VARCHAR(255)');
+  await addColumn(connection, 'player_sessions', 'selected_question_ids', 'JSON DEFAULT NULL');
   await addColumn(connection, 'player_sessions', 'promo_player_id', 'INT');
 
   /* SOUNDS — url column used by sounds.js route */
@@ -2191,6 +2203,80 @@ await safeQuery(connection, `
      )
    `, 'bd_requests table');
 
+   /* ── BUSINESS OWNERS (replaces BD) ── */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS business_owners (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       parent_id INT DEFAULT NULL,
+       business_name VARCHAR(255) NOT NULL UNIQUE,
+       email VARCHAR(255) NOT NULL,
+       password VARCHAR(255) NOT NULL,
+       is_active TINYINT(1) DEFAULT 1,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+       FOREIGN KEY (parent_id) REFERENCES business_owners(id) ON DELETE SET NULL
+     )
+   `, 'business_owners table');
+
+   /* ── BUSINESS OWNER GAMES (links BO to games with location + reward) ── */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS business_owner_games (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       business_owner_id INT NOT NULL,
+       game_id INT NOT NULL,
+       location_name VARCHAR(255) DEFAULT '',
+       reward_text TEXT DEFAULT NULL,
+       parent_id INT DEFAULT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       FOREIGN KEY (business_owner_id) REFERENCES business_owners(id) ON DELETE CASCADE,
+       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+       FOREIGN KEY (parent_id) REFERENCES business_owner_games(id) ON DELETE SET NULL
+     )
+   `, 'business_owner_games table');
+
+   /* Migrate: add parent_id to existing business_owner_games */
+   try {
+     await connection.query("ALTER TABLE business_owner_games ADD COLUMN parent_id INT DEFAULT NULL AFTER reward_text");
+     console.log('✅ Added business_owner_games.parent_id column');
+   } catch (err) {
+     // Column might already exist
+   }
+
+   /* ── BUSINESS REDEMPTIONS (6-digit code + redemption flow) ── */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS business_redemptions (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       business_owner_id INT NOT NULL,
+       game_id INT NOT NULL,
+       session_id INT DEFAULT NULL,
+       code VARCHAR(6) DEFAULT NULL,
+       player_name VARCHAR(255) DEFAULT '',
+       player_phone VARCHAR(50) DEFAULT '',
+       player_email VARCHAR(255) DEFAULT '',
+       is_player TINYINT(1) DEFAULT 0,
+       status ENUM('pending','code_revealed','code_entered','player_confirmed','completed') DEFAULT 'pending',
+       offer_details TEXT DEFAULT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+       FOREIGN KEY (business_owner_id) REFERENCES business_owners(id) ON DELETE CASCADE,
+       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+     )
+   `, 'business_redemptions table');
+
+   /* BUSINESS REDEMPTIONS — migrate existing tables */
+   try {
+     await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN code VARCHAR(6) DEFAULT NULL");
+     console.log('✅ Made business_redemptions.code nullable');
+   } catch (err) {
+     // Column might already be nullable or table might not exist yet
+   }
+   try {
+     await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN status ENUM('pending','code_revealed','code_entered','player_confirmed','completed') DEFAULT 'pending'");
+     console.log('✅ Updated business_redemptions.status ENUM');
+   } catch (err) {
+     // ENUM might already be correct
+   }
+
    /* GAMES — add status column */
    try {
      const exists = await columnExists(connection, 'games', 'status');
@@ -2201,6 +2287,21 @@ await safeQuery(connection, `
    } catch (err) {
      console.error('❌ Failed adding games.status:', err.message);
    }
+
+   /* BUSINESS REDEMPTIONS — add data privacy & accept/reject columns */
+   try {
+     await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN status ENUM('pending','code_revealed','code_entered','player_confirmed','completed','rejected') DEFAULT 'pending'");
+     console.log('✅ Added rejected to business_redemptions.status ENUM');
+   } catch (err) { /* already added */ }
+   await addColumn(connection, 'business_redemptions', 'accepted_by', 'INT DEFAULT NULL');
+   await addColumn(connection, 'business_redemptions', 'accepted_at', 'DATETIME DEFAULT NULL');
+   await addColumn(connection, 'business_redemptions', 'rejected_by', 'INT DEFAULT NULL');
+   await addColumn(connection, 'business_redemptions', 'rejected_at', 'DATETIME DEFAULT NULL');
+   await addColumn(connection, 'business_redemptions', 'reject_reason', 'VARCHAR(500) DEFAULT NULL');
+   await addColumn(connection, 'business_redemptions', 'table_number', 'VARCHAR(50) DEFAULT NULL');
+
+   /* GAMES — add email_settings JSON column */
+   await addColumn(connection, 'games', 'email_settings', "JSON DEFAULT NULL");
 
    /* PROMO_PLAYERS — ensure required columns exist */
    await addColumn(connection, 'promo_players', 'username', "VARCHAR(100) DEFAULT NULL");
@@ -2234,7 +2335,7 @@ await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS notifications (
        id INT AUTO_INCREMENT PRIMARY KEY,
        user_id INT NOT NULL,
-       user_type ENUM('admin','it','bd') NOT NULL,
+        user_type ENUM('admin','it','bd','business_owner') NOT NULL,
        type VARCHAR(20) DEFAULT 'info',
        title VARCHAR(255) NOT NULL,
        message TEXT,

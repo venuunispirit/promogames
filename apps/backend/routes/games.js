@@ -103,6 +103,27 @@ router.put('/:id', auth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
+// GET /api/games/:id/locations — list child location games
+router.get('/:id/locations', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT g.id, g.name, g.slug, g.location_name, g.business_owner_id, g.is_active,
+              (SELECT COUNT(*) FROM questions q WHERE q.game_id = g.id) as question_count
+       FROM games g WHERE g.parent_game_id = ? ORDER BY g.created_at`,
+      [req.params.id]
+    );
+    res.json({ success: true, locations: rows });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
+// DELETE /api/games/:id/locations/:childId — delete a location game
+router.delete('/:id/locations/:childId', auth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM games WHERE id = ? AND parent_game_id = ?', [req.params.childId, req.params.id]);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 // POST /api/games/:id/duplicate — clone a game with all settings, questions, options, form fields
 router.post('/:id/duplicate', auth, async (req, res) => {
   try {
@@ -112,22 +133,40 @@ router.post('/:id/duplicate', auth, async (req, res) => {
     const src = games[0];
 
     let newName = src.name;
-    const copyMatch = src.name.match(/\(Copy(?: (\d+))?\)$/);
-    if (copyMatch) {
-      const n = parseInt(copyMatch[1] || '1');
-      newName = src.name.replace(/\(Copy(?:\s?\d+)?\)$/, `(Copy ${n + 1})`);
+    const { location_name, business_owner_id } = req.body || {};
+
+    if (location_name) {
+      // Location instances keep the original game name
+      newName = src.name;
     } else {
-      newName = `${src.name} (Copy)`;
+      const copyMatch = src.name.match(/\(Copy(?: (\d+))?\)$/);
+      if (copyMatch) {
+        const n = parseInt(copyMatch[1] || '1');
+        newName = src.name.replace(/\(Copy(?:\s?\d+)?\)$/, `(Copy ${n + 1})`);
+      } else {
+        newName = `${src.name} (Copy)`;
+      }
     }
 
     let slug = slugify(newName);
     const [existing] = await db.query('SELECT id FROM games WHERE slug = ? AND client_id = ?', [slug, src.client_id]);
     if (existing.length > 0) slug = `${slug}-${Date.now()}`;
 
+    // Prevent duplicate location instances for the same branch + template
+    if (business_owner_id) {
+      const [dup] = await db.query(
+        'SELECT id FROM games WHERE parent_game_id = ? AND business_owner_id = ?',
+        [gameId, business_owner_id]
+      );
+      if (dup.length > 0) {
+        return res.status(409).json({ success: false, message: 'This branch already has a location instance for this game', existingGameId: dup[0].id });
+      }
+    }
+
     const [result] = await db.query(
-      `INSERT INTO games (client_id, name, slug, category, description, redirect_url, is_active, show_in_play_page, show_in_hero_page, meta_description, game_type, created_by, updated_by)
-       VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?)`,
-      [src.client_id, newName, slug, src.category, src.description, src.redirect_url, src.meta_description, src.game_type || 'promogames', req.user.id, req.user.id]
+      `INSERT INTO games (client_id, name, slug, category, description, redirect_url, is_active, show_in_play_page, show_in_hero_page, meta_description, game_type, created_by, updated_by, parent_game_id, location_name, business_owner_id)
+       VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?)`,
+      [src.client_id, newName, slug, src.category, src.description, src.redirect_url, src.meta_description, src.game_type || 'promogames', req.user.id, req.user.id, location_name ? gameId : null, location_name || null, business_owner_id || null]
     );
     const newId = result.insertId;
 
@@ -136,9 +175,9 @@ router.post('/:id/duplicate', auth, async (req, res) => {
     if (settings[0]) {
       const s = settings[0];
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.heading_1, s.heading_2, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email, s.heading_1_color, s.heading_2_color, s.intro_text_color, s.thankyou_subtitle, s.outro_text_color, s.thankyou_subtitle_color, s.start_button_text, s.start_button_text_color, s.start_button_bg_color, s.submit_button_text, s.submit_button_text_color, s.submit_button_bg_color, s.continue_button_text, s.continue_button_text_color, s.continue_button_bg_color, s.next_button_text, s.next_button_text_color, s.next_button_bg_color, s.randomize_questions]
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.heading_1, s.heading_2, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email, s.heading_1_color, s.heading_2_color, s.intro_text_color, s.thankyou_subtitle, s.outro_text_color, s.thankyou_subtitle_color, s.start_button_text, s.start_button_text_color, s.start_button_bg_color, s.submit_button_text, s.submit_button_text_color, s.submit_button_bg_color, s.continue_button_text, s.continue_button_text_color, s.continue_button_bg_color, s.next_button_text, s.next_button_text_color, s.next_button_bg_color, s.randomize_questions, s.questions_per_session || 0]
       );
     } else {
       await db.query('INSERT INTO quiz_settings (game_id) VALUES (?)', [newId]);
@@ -160,7 +199,7 @@ router.post('/:id/duplicate', auth, async (req, res) => {
     for (const f of formFields) {
       await db.query(
         'INSERT INTO form_fields (game_id, field_label, field_type, field_options, is_required, field_order) VALUES (?, ?, ?, ?, ?, ?)',
-        [newId, f.field_label, f.field_type, f.field_options, f.is_required, f.field_order]
+        [newId, f.field_label, f.field_type, JSON.stringify(f.field_options || []), f.is_required, f.field_order]
       );
     }
 
@@ -168,9 +207,9 @@ router.post('/:id/duplicate', auth, async (req, res) => {
     const [questions] = await db.query('SELECT * FROM questions WHERE game_id = ? ORDER BY question_order', [gameId]);
     for (const q of questions) {
       const [qr] = await db.query(
-        `INSERT INTO questions (game_id, question_text, question_image_url, question_bg_image_url, question_type, question_color, question_order, num_options, sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id, overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out, question_image_animation)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [newId, q.question_text, q.question_image_url, q.question_bg_image_url, q.question_type, q.question_color, q.question_order, q.num_options, q.sound_correct, q.sound_wrong, q.sound_neutral, q.sound_correct_id, q.sound_wrong_id, q.sound_neutral_id, q.overlay_duration, q.overlay_idle_time, q.overlay_animation_in, q.overlay_animation_out, q.question_image_animation]
+        `INSERT INTO questions (game_id, question_text, question_image_url, question_bg_image_url, question_type, question_color, question_order, num_options, sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id, overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out, question_image_animation, expected_answer, comparison_type, answer_text, answer_is_number)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, q.question_text, q.question_image_url, q.question_bg_image_url, q.question_type, q.question_color, q.question_order, q.num_options, q.sound_correct, q.sound_wrong, q.sound_neutral, q.sound_correct_id, q.sound_wrong_id, q.sound_neutral_id, q.overlay_duration, q.overlay_idle_time, q.overlay_animation_in, q.overlay_animation_out, q.question_image_animation, q.expected_answer, q.comparison_type, q.answer_text, q.answer_is_number]
       );
       const newQId = qr.insertId;
 
@@ -447,7 +486,8 @@ router.post('/:id/duplicate', auth, async (req, res) => {
     const [newGame] = await db.query('SELECT g.*, c.company_name, c.slug as client_slug FROM games g LEFT JOIN clients c ON g.client_id = c.id WHERE g.id = ?', [newId]);
     res.status(201).json({ success: true, game: newGame[0] });
   } catch (err) {
-    console.error('Duplicate error:', err);
+    console.error('Duplicate error:', err.message);
+    console.error('Duplicate SQL:', err.sqlMessage);
     res.status(500).json({ success: false, message: err.message });
   }
 });
@@ -501,6 +541,29 @@ router.delete('/:id', auth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
+// PUT settings/field - quick single-field update (JSON, no multer needed)
+router.put('/:id/settings/field', auth, async (req, res) => {
+  try {
+    const allowed = ['randomize_questions', 'show_progress', 'allow_back', 'terms_enabled', 'send_email', 'questions_per_session'];
+    const updates = [];
+    const vals = [];
+    for (const [key, val] of Object.entries(req.body)) {
+      if (allowed.includes(key)) {
+        updates.push(`${key} = ?`);
+        if (key === 'questions_per_session') {
+          vals.push(parseInt(val) || 0);
+        } else {
+          vals.push(val === '1' || val === 1 || val === true ? 1 : 0);
+        }
+      }
+    }
+    if (updates.length === 0) return res.status(400).json({ success: false, message: 'No valid fields' });
+    vals.push(req.params.id);
+    await db.query(`UPDATE quiz_settings SET ${updates.join(', ')} WHERE game_id = ?`, vals);
+    res.json({ success: true });
+  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+});
+
 // PUT settings - with image upload support
 router.put('/:id/settings', auth, upload.fields([
   { name: 'bg_image', maxCount: 1 },
@@ -519,7 +582,7 @@ router.put('/:id/settings', auth, upload.fields([
     submit_button_text, submit_button_text_color, submit_button_bg_color,
     continue_button_text, continue_button_text_color, continue_button_bg_color,
     next_button_text, next_button_text_color, next_button_bg_color,
-    randomize_questions } = req.body;
+    randomize_questions, questions_per_session } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [req.params.id]);
     const bgImg   = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           !== undefined ? bg_image_url           : (existing[0]?.bg_image_url           || null));
@@ -542,7 +605,8 @@ router.put('/:id/settings', auth, upload.fields([
       submit_button_text || null, submit_button_text_color || null, submit_button_bg_color || null,
       continue_button_text || null, continue_button_text_color || null, continue_button_bg_color || null,
       next_button_text || null, next_button_text_color || null, next_button_bg_color || null,
-      randomize_questions !== undefined ? (randomize_questions === 1 || randomize_questions === true || randomize_questions === '1' || randomize_questions === 'true' ? 1 : 0) : 0
+      randomize_questions !== undefined ? (randomize_questions === 1 || randomize_questions === true || randomize_questions === '1' || randomize_questions === 'true' ? 1 : 0) : 0,
+      parseInt(questions_per_session) || 0
     ];
 
     const [upd] = await db.query(
@@ -557,14 +621,14 @@ router.put('/:id/settings', auth, upload.fields([
        submit_button_text=?, submit_button_text_color=?, submit_button_bg_color=?,
        continue_button_text=?, continue_button_text_color=?, continue_button_bg_color=?,
        next_button_text=?, next_button_text_color=?, next_button_bg_color=?,
-       randomize_questions=? WHERE game_id=?`,
+       randomize_questions=?, questions_per_session=? WHERE game_id=?`,
       [...vals.slice(1), req.params.id]
     );
 
     if (upd.affectedRows === 0) {
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         vals
       );
     }
@@ -681,6 +745,31 @@ router.put('/:id/status', auth, async (req, res) => {
       await db.query('UPDATE games SET status=? WHERE id=?', [status, req.params.id]);
     }
     res.json({ success: true, message: `Game status changed to ${status}` });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PUT /games/:id/email-settings — Save email templates for a game
+router.put('/:id/email-settings', auth, async (req, res) => {
+  const { email_settings } = req.body;
+  if (!email_settings) return res.status(400).json({ success: false, message: 'email_settings required' });
+  try {
+    await db.query('UPDATE games SET email_settings = ? WHERE id = ?', [JSON.stringify(email_settings), req.params.id]);
+    res.json({ success: true, message: 'Email settings saved' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /games/:id/email-settings — Get email templates for a game
+router.get('/:id/email-settings', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT email_settings FROM games WHERE id = ?', [req.params.id]);
+    const settings = rows[0]?.email_settings || {};
+    res.json({ success: true, email_settings: settings });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });

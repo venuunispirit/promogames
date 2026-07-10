@@ -59,9 +59,13 @@ import PlayersPage       from './pages/PlayersPage'
 import LeaderboardPage   from './pages/LeaderboardPage'
 import Business          from './pages/Business'
 import CRMPage           from './pages/CRMPage'
-import BDLayout          from './pages/BDLayout'
-import BDDashboard       from './pages/BDDashboard'
-import BDRequestsPage    from './pages/BDRequestsPage'
+
+import StatusPage         from './pages/StatusPage'
+import RedemptionLogsPage from './pages/RedemptionLogsPage'
+import BOLayout          from './pages/BOLayout'
+import BODashboard       from './pages/BODashboard'
+import BOGames           from './pages/BOGames'
+import BORedemptions     from './pages/BORedemptions'
 
 // ── Admin protected route ─────────────────────────────────────────────────────
 function ProtectedRoute({ children }) {
@@ -158,12 +162,16 @@ function AppRoutes() {
         <Route path="games/:id/tictactoe-builder"     element={<TicTacToeBuilderPage />} />
         <Route path="players"                         element={<PlayersPage />} />
         <Route path="crm"                             element={<CRMPage />} />
+
+        <Route path="status"                         element={<StatusPage />} />
+        <Route path="business/redemption-logs"       element={<RedemptionLogsPage />} />
       </Route>
 
-      {/* BD (Business Developer) routes */}
-      <Route path="/crm" element={<BDLayout />}>
-        <Route path="dashboard"                       element={<BDDashboard />} />
-        <Route path="requests"                        element={<BDRequestsPage />} />
+      {/* Business Owner routes */}
+      <Route path="/bo" element={<BOLayout />}>
+        <Route path="dashboard"                       element={<BODashboard />} />
+        <Route path="games"                           element={<BOGames />} />
+        <Route path="redemptions"                     element={<BORedemptions />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

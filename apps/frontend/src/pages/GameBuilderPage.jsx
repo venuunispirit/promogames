@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import BuilderPhoneMockup from '../components/BuilderPhoneMockup'
 
 /* ─────────────────────────────────────────────
    LIGHT THEME TOKENS  (scoped to .gb-wrap)
@@ -752,6 +753,61 @@ export default function GameBuilderPage() {
   const [questions,     setQuestions]     = useState([])
   const [formFields,    setFormFields]    = useState([])
   const [emailTemplate, setEmailTemplate] = useState({})
+  const [boEmailSettings, setBoEmailSettings] = useState({
+    guest_offer: { enabled: true, subject: 'You earned a reward! 🎁', body: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0;padding:0;background:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}.wrap{max-width:600px;margin:0 auto;background:#fff}.header{background:#6366f1;padding:24px 20px;text-align:center}.header h1{color:#fff;margin:0;font-size:20px;font-weight:700}.body{padding:24px 20px;color:#333;font-size:14px;line-height:1.6}.footer{padding:16px 20px;text-align:center;font-size:11px;color:#999;border-top:1px solid #eee}.btn{display:inline-block;padding:12px 28px;background:#6366f1;color:#fff;text-decoration:none;border-radius:8px;font-weight:600;font-size:14px}</style>
+</head>
+<body>
+<div class="wrap">
+<div class="header"><h1>You earned an offer! 🎉</h1></div>
+<div class="body">
+<p>Hi {{name}},</p>
+<p>Congratulations on playing <strong>{{game_name}}</strong>! You've earned a special offer.</p>
+<p style="text-align:center;margin:28px 0;font-size:24px;font-weight:800;letter-spacing:8px;background:#f4f4f6;padding:12px 24px;border-radius:8px;display:inline-block;font-family:monospace">{{code}}</p>
+<p>Show this 6-digit code to the staff to redeem your reward.</p>
+</div>
+<div class="footer"><p>© PromoGames · Enjoy your reward!</p></div>
+</div>
+</body>
+</html>` },
+    bo_notification: { enabled: true, subject: 'Someone played your game! 🎮', body: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0;padding:0;background:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}.wrap{max-width:600px;margin:0 auto;background:#fff}.header{background:#f59e0b;padding:24px 20px;text-align:center}.header h1{color:#fff;margin:0;font-size:20px;font-weight:700}.body{padding:24px 20px;color:#333;font-size:14px;line-height:1.6}.footer{padding:16px 20px;text-align:center;font-size:11px;color:#999;border-top:1px solid #eee}</style>
+</head>
+<body>
+<div class="wrap">
+<div class="header"><h1>New Play! 🎮</h1></div>
+<div class="body">
+<p>Hi {{bo_name}},</p>
+<p><strong>{{player_name}}</strong> just played <strong>{{game_name}}</strong> at your location.</p>
+<p>Their reward code: <strong style="font-size:18px;letter-spacing:2px">{{code}}</strong></p>
+<p>Log in to your dashboard to accept or reject this redemption.</p>
+</div>
+<div class="footer"><p>© PromoGames · Business Owner Dashboard</p></div>
+</div>
+</body>
+</html>` },
+    redemption_complete: { enabled: true, subject: 'Your reward has been redeemed! ✅', body: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>body{margin:0;padding:0;background:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}.wrap{max-width:600px;margin:0 auto;background:#fff}.header{background:#22c55e;padding:24px 20px;text-align:center}.header h1{color:#fff;margin:0;font-size:20px;font-weight:700}.body{padding:24px 20px;color:#333;font-size:14px;line-height:1.6}.footer{padding:16px 20px;text-align:center;font-size:11px;color:#999;border-top:1px solid #eee}</style>
+</head>
+<body>
+<div class="wrap">
+<div class="header"><h1>Reward Redeemed! ✅</h1></div>
+<div class="body">
+<p>Hi {{name}},</p>
+<p>Your reward for <strong>{{game_name}}</strong> has been successfully redeemed.</p>
+<p>Check your rewards history for details.</p>
+</div>
+<div class="footer"><p>© PromoGames · Thanks for playing!</p></div>
+</div>
+</body>
+</html>` },
+  })
   const [settings,      setSettings]      = useState({})
   const [slugInput,     setSlugInput]     = useState('')
 const [draggedIdx,    setDraggedIdx]    = useState(null)
@@ -780,6 +836,9 @@ const [nameInput,     setNameInput]     = useState('')
   const previewTimerRef = useRef(null)
   useEffect(() => { clearTimeout(previewTimerRef.current); setPreviewOverlay(null); setPreviewStage('initial') }, [selectedQuestionId])
   const [redirectUrl,   setRedirectUrl]   = useState('')
+  const [businessTab, setBusinessTab] = useState('preview')
+  const [emailSubTab, setEmailSubTab] = useState('player')
+  const [boEmailTab, setBoEmailTab] = useState('guest_offer')
 
   const soundUploadRef = useRef()
   const bgImgRef       = useRef()
@@ -801,6 +860,9 @@ const [nameInput,     setNameInput]     = useState('')
       setSounds(g.sounds||[])
       setSlugInput(g.slug||'')
       setRedirectUrl(g.redirect_url||'')
+      api.get(`/games/${id}/email-settings`).then(res => {
+        if (res.data.email_settings) setBoEmailSettings(prev => ({ ...prev, ...res.data.email_settings }))
+      }).catch(() => {})
     }).catch(err => {
       setFetchError(err.response?.data?.message || err.message || 'Failed to load game')
     }).finally(() => setLoading(false))
@@ -996,6 +1058,17 @@ const [nameInput,     setNameInput]     = useState('')
     setSaving(false)
   }
 
+  const saveBoEmailSettings = async () => {
+    setSaving(true)
+    try { await api.put(`/games/${id}/email-settings`, { email_settings: boEmailSettings }); showToast('Email settings saved') }
+    catch { showToast('Error saving email settings', 'error') }
+    setSaving(false)
+  }
+
+  const updateBoEmail = (key, field, value) => {
+    setBoEmailSettings(prev => ({ ...prev, [key]: { ...prev[key], [field]: value } }))
+  }
+
   /* ─── Settings ─── */
   const saveSettings = async () => {
     setSaving(true)
@@ -1065,6 +1138,7 @@ const [nameInput,     setNameInput]     = useState('')
   }
 
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
+  const isParentGame = !game?.parent_game_id
   const TABS = [
     { id:'form',      label:'Player Form' },
     { id:'questions', label:'Questions' },
@@ -1072,6 +1146,7 @@ const [nameInput,     setNameInput]     = useState('')
     { id:'email',     label:'Email' },
     { id:'sounds',    label:'Audio' },
     { id:'settings',  label:'Settings' },
+    ...(isParentGame ? [{ id:'locations', label:'📍 Locations' }] : []),
   ]
 
   if (loading) return (
@@ -1177,9 +1252,26 @@ const [nameInput,     setNameInput]     = useState('')
                   </div>
                   <div style={{ marginBottom:14 }}>
                     <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
-                      <input type="checkbox" checked={!!settings.randomize_questions} onChange={e => setSettings({...settings,randomize_questions:e.target.checked?1:0})} style={{ width:16,height:16 }} />
+                      <input type="checkbox" checked={!!settings.randomize_questions} onChange={async e => {
+                        const val = e.target.checked ? 1 : 0
+                        setSettings({...settings, randomize_questions: val})
+                        try { await api.put(`/games/${id}/settings/field`, { randomize_questions: val }) } catch {}
+                      }} style={{ width:16,height:16 }} />
                       Randomise questions
                     </label>
+                  </div>
+                  <div className="gb-fg" style={{ marginBottom:0 }}>
+                    <span className="gb-label">Questions Per Session</span>
+                    <input type="number" min={0} value={settings.questions_per_session||0}
+                      onChange={async e => {
+                        const val = parseInt(e.target.value) || 0
+                        setSettings({...settings, questions_per_session: val})
+                        try { await api.put(`/games/${id}/settings/field`, { questions_per_session: val }) } catch {}
+                      }}
+                      placeholder="0 = show all questions" />
+                    <p style={{ fontSize:11, color:'var(--gb-text3)', marginTop:4 }}>
+                      Number of random questions each player sees. 0 = show all.
+                    </p>
                   </div>
                   <div className="gb-fg" style={{ marginBottom:0 }}>
                     <span className="gb-label">Time Per Question (sec)</span>
@@ -1432,39 +1524,140 @@ const [nameInput,     setNameInput]     = useState('')
           {/* ════ EMAIL TAB ════ */}
           {tab === 'email' && (
             <div>
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-                <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Configure the congratulations email sent to players.</p>
-                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer' }}>
-                  <input type="checkbox" checked={!!emailTemplate.is_enabled}
-                    onChange={e => setEmailTemplate({ ...emailTemplate, is_enabled:e.target.checked?1:0 })}
-                    style={{ width:16,height:16 }} />
-                  Enable email
-                </label>
+              {/* Sub-tabs: Player Email | BO Emails */}
+              <div style={{ display:'flex', gap:0, marginBottom:20, borderBottom:'2px solid var(--gb-border)' }}>
+                {[
+                  { id:'player', label:'Player Email' },
+                  { id:'bo', label:'BO Emails' },
+                ].map(st => (
+                  <button key={st.id} onClick={() => setEmailSubTab(st.id)}
+                    style={{
+                      padding:'8px 18px', fontSize:12.5, fontWeight:700, border:'none',
+                      background:'none', cursor:'pointer', fontFamily:'inherit',
+                      color: emailSubTab===st.id ? 'var(--gb-primary)' : 'var(--gb-text2)',
+                      borderBottom:`2px solid ${emailSubTab===st.id ? 'var(--gb-primary)' : 'transparent'}`,
+                      marginBottom:-2,
+                    }}>
+                    {st.label}
+                  </button>
+                ))}
               </div>
-              <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16, padding:'8px 12px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8 }}>
-                <input type="checkbox" checked={!!settings.send_email}
-                  onChange={e => setSettings({ ...settings, send_email:e.target.checked?1:0 })}
-                  style={{ width:16,height:16 }} />
-                <span style={{ fontWeight:600, color:'#166534' }}>Send email on game completion</span>
-                <span style={{ color:'#166534', fontSize:12, marginLeft:auto }}>Requires template below to be enabled</span>
-              </div>
-              <div className="gb-section" style={{ marginBottom:16, background:'#fffbeb', borderColor:'#fde68a' }}>
-                💡 Use <code>{'{{name}}'}</code>, <code>{'{{score}}'}</code>, <code>{'{{total}}'}</code>, <code>{'{{game_name}}'}</code> as placeholders.
-              </div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-                <div className="gb-fg"><span className="gb-label">Sender Name</span><input value={emailTemplate.sender_name||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_name:e.target.value })} placeholder="Quiz Platform" /></div>
-                <div className="gb-fg"><span className="gb-label">Sender Email</span><input value={emailTemplate.sender_email||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_email:e.target.value })} placeholder="noreply@yourdomain.com" /></div>
-              </div>
-              <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Subject</span><input value={emailTemplate.subject||''} onChange={e => setEmailTemplate({ ...emailTemplate, subject:e.target.value })} placeholder="Congratulations {{name}}! 🎉" /></div>
-              <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:16, alignItems:'flex-end', marginBottom:14 }}>
-                <div className="gb-fg"><span className="gb-label">Header Text</span><input value={emailTemplate.header_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, header_text:e.target.value })} placeholder="🎉 Congratulations!" /></div>
-                <ColorPicker value={emailTemplate.header_color||'#6366f1'} onChange={v => setEmailTemplate({ ...emailTemplate, header_color:v })} label="Header Color" />
-              </div>
-              <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Email Body (HTML)</span><textarea rows={5} value={emailTemplate.body_html||''} onChange={e => setEmailTemplate({ ...emailTemplate, body_html:e.target.value })} placeholder="<p>Thank you, {{name}}!</p>" style={{ resize:'vertical', fontFamily:'monospace', fontSize:13 }} /></div>
-              <div className="gb-fg" style={{ marginBottom:20 }}><span className="gb-label">Footer Text</span><input value={emailTemplate.footer_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, footer_text:e.target.value })} placeholder="© 2024 Your Company" /></div>
-              <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <button className="gb-btn gb-btn-primary" onClick={saveEmailTemplate} disabled={saving}>{saving ? 'Saving…' : '💾 Save Email Template'}</button>
-              </div>
+
+              {emailSubTab === 'player' && (
+                <div>
+                  <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
+                    <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Configure the congratulations email sent to players after completing the game.</p>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer' }}>
+                      <input type="checkbox" checked={!!emailTemplate.is_enabled}
+                        onChange={e => setEmailTemplate({ ...emailTemplate, is_enabled:e.target.checked?1:0 })}
+                        style={{ width:16,height:16 }} />
+                      Enable email
+                    </label>
+                  </div>
+                  <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16, padding:'8px 12px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8 }}>
+                    <input type="checkbox" checked={!!settings.send_email}
+                      onChange={e => setSettings({ ...settings, send_email:e.target.checked?1:0 })}
+                      style={{ width:16,height:16 }} />
+                    <span style={{ fontWeight:600, color:'#166534' }}>Send email on game completion</span>
+                    <span style={{ color:'#166534', fontSize:12, marginLeft:'auto' }}>Requires template below to be enabled</span>
+                  </div>
+                  <div className="gb-section" style={{ marginBottom:16, background:'#fffbeb', borderColor:'#fde68a' }}>
+                    💡 Use <code>{'{{name}}'}</code>, <code>{'{{score}}'}</code>, <code>{'{{total}}'}</code>, <code>{'{{game_name}}'}</code> as placeholders.
+                  </div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
+                    <div className="gb-fg"><span className="gb-label">Sender Name</span><input value={emailTemplate.sender_name||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_name:e.target.value })} placeholder="Quiz Platform" /></div>
+                    <div className="gb-fg"><span className="gb-label">Sender Email</span><input value={emailTemplate.sender_email||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_email:e.target.value })} placeholder="noreply@yourdomain.com" /></div>
+                  </div>
+                  <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Subject</span><input value={emailTemplate.subject||''} onChange={e => setEmailTemplate({ ...emailTemplate, subject:e.target.value })} placeholder="Congratulations {{name}}! 🎉" /></div>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:16, alignItems:'flex-end', marginBottom:14 }}>
+                    <div className="gb-fg"><span className="gb-label">Header Text</span><input value={emailTemplate.header_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, header_text:e.target.value })} placeholder="🎉 Congratulations!" /></div>
+                    <ColorPicker value={emailTemplate.header_color||'#6366f1'} onChange={v => setEmailTemplate({ ...emailTemplate, header_color:v })} label="Header Color" />
+                  </div>
+                  <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Email Body (HTML)</span><textarea rows={5} value={emailTemplate.body_html||''} onChange={e => setEmailTemplate({ ...emailTemplate, body_html:e.target.value })} placeholder="<p>Thank you, {{name}}!</p>" style={{ resize:'vertical', fontFamily:'monospace', fontSize:13 }} /></div>
+                  <div className="gb-fg" style={{ marginBottom:20 }}><span className="gb-label">Footer Text</span><input value={emailTemplate.footer_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, footer_text:e.target.value })} placeholder="© 2024 Your Company" /></div>
+                  <div style={{ display:'flex', justifyContent:'flex-end' }}>
+                    <button className="gb-btn gb-btn-primary" onClick={saveEmailTemplate} disabled={saving}>{saving ? 'Saving…' : '💾 Save Email Template'}</button>
+                  </div>
+                </div>
+              )}
+
+              {emailSubTab === 'bo' && (
+                <div>
+                  <p style={{ color:'var(--gb-text2)', fontSize:13, marginBottom:16 }}>Configure the 3 BO redemption emails.</p>
+
+                  {/* BO sub-tabs: Guest Offer | BO Notification | Redemption Complete */}
+                  <div style={{ display:'flex', gap:0, marginBottom:16, borderBottom:'2px solid var(--gb-border)' }}>
+                    {[
+                      { id:'guest_offer', label:'1. Guest Offer' },
+                      { id:'bo_notification', label:'2. BO Notification' },
+                      { id:'redemption_complete', label:'3. Redemption Complete' },
+                    ].map(bt => (
+                      <button key={bt.id} onClick={() => setBoEmailTab(bt.id)}
+                        style={{
+                          padding:'6px 14px', fontSize:11.5, fontWeight:700, border:'none',
+                          background:'none', cursor:'pointer', fontFamily:'inherit',
+                          color: boEmailTab===bt.id ? '#6366f1' : 'var(--gb-text3)',
+                          borderBottom:`2px solid ${boEmailTab===bt.id ? '#6366f1' : 'transparent'}`,
+                          marginBottom:-2,
+                        }}>
+                        {bt.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Toggle + description for the active sub-tab */}
+                  {boEmailTab === 'guest_offer' && (
+                    <div className="gb-card" style={{ padding:16, marginBottom:16 }}>
+                      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:13, fontWeight:600, marginBottom:6 }}>
+                        <input type="checkbox" checked={boEmailSettings.guest_offer.enabled}
+                          onChange={e => updateBoEmail('guest_offer', 'enabled', e.target.checked)}
+                          style={{ width:16, height:16 }} />
+                        Guest Offer Email
+                      </label>
+                      <p style={{ fontSize:12, color:'var(--gb-text3)', marginBottom:0 }}>Sent to non-registered players with an offer to register and claim reward. When disabled, only BO Accept/Reject decides the outcome.</p>
+                    </div>
+                  )}
+                  {boEmailTab === 'bo_notification' && (
+                    <div className="gb-card" style={{ padding:16, marginBottom:16 }}>
+                      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:13, fontWeight:600, marginBottom:6 }}>
+                        <input type="checkbox" checked={boEmailSettings.bo_notification.enabled}
+                          onChange={e => updateBoEmail('bo_notification', 'enabled', e.target.checked)}
+                          style={{ width:16, height:16 }} />
+                        BO Notification Email
+                      </label>
+                      <p style={{ fontSize:12, color:'var(--gb-text3)', marginBottom:0 }}>Sent to the business owner when someone plays their game.</p>
+                    </div>
+                  )}
+                  {boEmailTab === 'redemption_complete' && (
+                    <div className="gb-card" style={{ padding:16, marginBottom:16 }}>
+                      <label style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', fontSize:13, fontWeight:600, marginBottom:6 }}>
+                        <input type="checkbox" checked={boEmailSettings.redemption_complete.enabled}
+                          onChange={e => updateBoEmail('redemption_complete', 'enabled', e.target.checked)}
+                          style={{ width:16, height:16 }} />
+                        Redemption Complete Email
+                      </label>
+                      <p style={{ fontSize:12, color:'var(--gb-text3)', marginBottom:0 }}>Template for redemption completion. Not auto-sent — player checks rewards page for history.</p>
+                    </div>
+                  )}
+
+                  {/* Fields for the active sub-tab */}
+                  {[boEmailTab].map(key => (
+                    <div key={key} className="gb-card" style={{ padding:16, marginBottom:16 }}>
+                      <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Subject</span>
+                        <input value={boEmailSettings[key].subject} onChange={e => updateBoEmail(key, 'subject', e.target.value)} />
+                      </div>
+                      <div className="gb-fg"><span className="gb-label">Body (HTML)</span>
+                        <textarea rows={8} value={boEmailSettings[key].body} onChange={e => updateBoEmail(key, 'body', e.target.value)}
+                          placeholder="<p>Your custom HTML here</p>" style={{ resize:'vertical', fontFamily:'monospace', fontSize:13, minHeight:200 }} />
+                      </div>
+                    </div>
+                  ))}
+
+                  <div style={{ display:'flex', justifyContent:'flex-end' }}>
+                    <button className="gb-btn gb-btn-primary" onClick={saveBoEmailSettings} disabled={saving}>{saving ? 'Saving…' : '💾 Save BO Email Settings'}</button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -1699,7 +1892,8 @@ const [nameInput,     setNameInput]     = useState('')
 
         </div>{/* ─ end left col ─ */}
 
-          {/* ─── RIGHT COL — Phone Mockup ─── */}
+        {/* ─── RIGHT COL — Phone Mockup ─── */}
+        {tab !== 'locations' && (
         <div style={{
           position:'sticky', top:80,
           width:320, height:640, borderRadius:36,
@@ -1966,6 +2160,24 @@ const [nameInput,     setNameInput]     = useState('')
 
           {/* ── Email preview (live HTML template) ── */}
           {tab === 'email' && (() => {
+            const isPlayer = emailSubTab === 'player'
+            const boKey = boEmailTab
+            const preview = isPlayer ? {
+              headerColor: emailTemplate.header_color || '#6366f1',
+              headerText: emailTemplate.header_text || '🎉 Congratulations!',
+              bodyHtml: emailTemplate.body_html || '<p>Thank you for completing the game!</p>',
+              footerText: emailTemplate.footer_text || '',
+            } : {
+              headerColor: boEmailTab === 'bo_notification' ? '#f59e0b' : boEmailTab === 'redemption_complete' ? '#22c55e' : '#6366f1',
+              headerText: boEmailSettings[boKey].subject || 'Email Preview',
+              bodyHtml: (boEmailSettings[boKey].body || '<p>Email content here</p>')
+                .replace(/\{\{code\}\}/g, '236672')
+                .replace(/\{\{name\}\}/g, 'Customer')
+                .replace(/\{\{player_name\}\}/g, 'Customer')
+                .replace(/\{\{game_name\}\}/g, 'Game Name')
+                .replace(/\{\{bo_name\}\}/g, 'Store Owner'),
+              footerText: '© PromoGames',
+            }
             const html = `
 <!DOCTYPE html>
 <html>
@@ -1975,7 +2187,7 @@ const [nameInput,     setNameInput]     = useState('')
   <style>
     body { margin:0; padding:0; background:#f4f4f6; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif; }
     .wrap { max-width:600px; margin:0 auto; background:#fff; }
-    .header { background:${emailTemplate.header_color||'#6366f1'}; padding:24px 20px; text-align:center; }
+    .header { background:${preview.headerColor}; padding:24px 20px; text-align:center; }
     .header h1 { color:#fff; margin:0; font-size:20px; font-weight:700; }
     .body { padding:24px 20px; color:#333; font-size:14px; line-height:1.6; }
     .footer { padding:16px 20px; text-align:center; font-size:11px; color:#999; border-top:1px solid #eee; }
@@ -1983,9 +2195,9 @@ const [nameInput,     setNameInput]     = useState('')
 </head>
 <body>
   <div class="wrap">
-    <div class="header"><h1>${emailTemplate.header_text||'🎉 Congratulations!'}</h1></div>
-    <div class="body">${emailTemplate.body_html||'<p>Thank you for completing the game!</p>'}</div>
-    <div class="footer">${emailTemplate.footer_text||''}</div>
+    <div class="header"><h1>${preview.headerText}</h1></div>
+    <div class="body">${preview.bodyHtml}</div>
+    <div class="footer">${preview.footerText}</div>
   </div>
 </body>
 </html>`.trim()
@@ -2051,7 +2263,29 @@ const [nameInput,     setNameInput]     = useState('')
               </div>
             </div>
           )})()}
-        </div>{/* ─ end right col ─ */}
+        </div>
+        )}{/* ─ end right col ─ */}
+
+        {/* ─── LOCATIONS PANEL ─── */}
+        {tab === 'locations' && isParentGame && (
+          <div style={{ position:'sticky', top:80, width:340, flexShrink:0, marginRight:20 }}>
+            <BuilderPhoneMockup
+              gameId={id}
+              clientId={game?.client_id}
+              settings={settings}
+              businessTab={businessTab}
+              onBusinessTabChange={setBusinessTab}
+            >
+              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', background:'#f4f4ff', padding:20 }}>
+                <div style={{ textAlign:'center', color:'#64657a' }}>
+                  <div style={{ fontSize:48, marginBottom:12 }}>📍</div>
+                  <div style={{ fontSize:14, fontWeight:600 }}>Location Manager</div>
+                  <div style={{ fontSize:12, marginTop:4 }}>Switch to Locations tab to manage</div>
+                </div>
+              </div>
+            </BuilderPhoneMockup>
+          </div>
+        )}
 
 
       </div>

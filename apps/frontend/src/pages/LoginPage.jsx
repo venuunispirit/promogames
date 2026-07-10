@@ -7,7 +7,7 @@ import MascotLogin from '../components/MascotLogin'
 
 const STEP_EMAIL     = 'email'
 const STEP_PASSWORD  = 'password'
-const STEP_BD_PASS   = 'bd_password'
+const STEP_BUSINESS_PASS = 'business_pass'
 const STEP_IT_PASS   = 'it_password'
 const STEP_OTP       = 'otp'
 const STEP_REGISTER  = 'register'
@@ -289,29 +289,28 @@ export default function LoginPage() {
     const t = setInterval(() => setResendCD(s => { if(s<=1){clearInterval(t);return 0} return s-1 }),1000)
   }
 
-  const handleEmailSubmit = async () => {
+const handleEmailSubmit = async () => {
     if (!email) return setError('Please enter your email')
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError('Please enter a valid email address')
     clearErr(); setLoading(true)
     try {
       const { data } = await api.post('/pauth/check-email', { email })
       if (data.type === 'admin') setStep(STEP_PASSWORD)
-      else if (data.type === 'bd') setStep(STEP_BD_PASS)
+      else if (data.type === 'business_owner') setStep(STEP_BUSINESS_PASS)
       else if (data.type === 'internal_team') setStep(STEP_IT_PASS)
       else { await api.post('/pauth/send-otp', { email }); setStep(STEP_OTP); startCountdown() }
     } catch(err) { setError(err.response?.data?.message || 'Something went wrong.') }
     finally { setLoading(false) }
   }
 
-  const handleBDLogin = async () => {
+  const handleBusinessLogin = async () => {
     if (!password) return setError('Please enter your phone number')
-    if (!/^\d{10}$/.test(password)) return setError('Phone number must be exactly 10 digits')
     clearErr(); setLoading(true)
     try {
-      const { data } = await api.post('/bd/login', { email, password })
-      localStorage.setItem('bdToken', data.token)
-      localStorage.setItem('bdUser', JSON.stringify(data.bd))
-      navigate('/crm/dashboard')
+      const { data } = await api.post('/business/login', { business_name: email, password })
+      localStorage.setItem('businessToken', data.token)
+      localStorage.setItem('businessUser', JSON.stringify(data.bo))
+      navigate('/bo/dashboard')
     } catch(err) { setError(err.response?.data?.message || 'Invalid credentials.') }
     finally { setLoading(false) }
   }
@@ -383,7 +382,7 @@ export default function LoginPage() {
   // Mascot state
   const isTyping = inputFocused
 
-  const pct = {[STEP_EMAIL]:15,[STEP_OTP]:55,[STEP_PASSWORD]:70,[STEP_BD_PASS]:70,[STEP_IT_PASS]:70,[STEP_REGISTER]:88}[step]||0
+  const pct = {[STEP_EMAIL]:15,[STEP_OTP]:55,[STEP_PASSWORD]:70,[STEP_BUSINESS_PASS]:70,[STEP_IT_PASS]:70,[STEP_REGISTER]:88}[step]||0
 
   const goBackFromPassword = () => { setPassword(''); clearErr(); setStep(STEP_EMAIL); setShowPassword(false); setInputFocused(false) }
 
@@ -544,20 +543,20 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* ── BD PASSWORD ── */}
-          {step === STEP_BD_PASS && (
+          {/* ── BUSINESS OWNER PASSWORD ── */}
+          {step === STEP_BUSINESS_PASS && (
             <div className="fadeup">
               <button className="pg-back" onClick={goBackFromPassword}>← Back</button>
               <div className="role-badge">
-                <div className="role-badge-icon">🤝</div>
-                <div><div className="role-badge-name">Business Developer</div><div className="role-badge-email">{email}</div></div>
+                <div className="role-badge-icon">🏢</div>
+                <div><div className="role-badge-name">Business Owner</div><div className="role-badge-email">Username: {email}</div></div>
               </div>
               <div className="pg-fg">
                 <label className="pg-lbl">Password (Phone Number)</label>
                 <div className="pg-pw-wrap">
                   <input className="pg-inp" type={showPassword?'text':'password'} value={password} autoFocus
                     onChange={e=>{setPassword(e.target.value);clearErr()}}
-                    onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleBDLogin()}
+                    onKeyDown={e=>e.key==='Enter'&&!loading&&password&&handleBusinessLogin()}
                     onFocus={()=>setInputFocused(true)} onBlur={()=>setInputFocused(false)}
                     placeholder="Enter your phone number"/>
                   <button type="button" className="pg-pw-toggle" onClick={()=>setShowPassword(!showPassword)} tabIndex={-1}>
@@ -568,7 +567,7 @@ export default function LoginPage() {
                   </button>
                 </div>
               </div>
-              <button className={`pg-btn${loading?' busy':''}`} onClick={handleBDLogin} disabled={loading||!password}>
+              <button className={`pg-btn${loading?' busy':''}`} onClick={handleBusinessLogin} disabled={loading||!password}>
                 {loading ? <><Dots/>&nbsp;Signing in…</> : 'Sign In →'}
               </button>
             </div>

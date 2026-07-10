@@ -166,5 +166,35 @@ router.put('/:id/permissions', auth, async (req, res) => {
   }
 });
 
+// GET /internal-team/redemption-logs — Admin view of all redemptions
+router.get('/redemption-logs', auth, async (req, res) => {
+  try {
+    const { status, bo_id, game_id, start_date, end_date } = req.query;
+    let where = ['1=1']
+    let params = []
+    if (status) { where.push('br.status = ?'); params.push(status) }
+    if (bo_id) { where.push('br.business_owner_id = ?'); params.push(bo_id) }
+    if (game_id) { where.push('br.game_id = ?'); params.push(game_id) }
+    if (start_date) { where.push('br.created_at >= ?'); params.push(start_date) }
+    if (end_date) { where.push('br.created_at <= ?'); params.push(end_date) }
+    const [rows] = await db.query(
+      `SELECT br.*, g.name as game_name, bo.business_name, bo.email as bo_email,
+              a.business_name as accepted_by_name, r.business_name as rejected_by_name
+       FROM business_redemptions br
+       JOIN business_owners bo ON br.business_owner_id = bo.id
+       JOIN games g ON br.game_id = g.id
+       LEFT JOIN business_owners a ON br.accepted_by = a.id
+       LEFT JOIN business_owners r ON br.rejected_by = r.id
+       WHERE ${where.join(' AND ')}
+       ORDER BY br.created_at DESC LIMIT 500`,
+      params
+    );
+    res.json({ success: true, redemptions: rows });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
 module.exports.itAuth = itAuth;

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, Children } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../api'
 
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
@@ -38,6 +39,13 @@ const CSS = `
 .cp-primary-btn:disabled{opacity:.55;cursor:not-allowed}
 .cp-ghost-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:1.5px solid #E5E7EB;background:#fff;color:#374151;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s}
 .cp-ghost-btn:hover{background:#F3F4F6}
+.cp-sm-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;border:none;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .13s}
+.cp-sm-btn.primary{background:#EEF2FF;color:#4F46E5}
+.cp-sm-btn.primary:hover{background:#DDE4FF}
+.cp-sm-btn.danger{background:#FEF2F2;color:#DC2626}
+.cp-sm-btn.danger:hover{background:#FEE2E2}
+.cp-add-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;border:1px solid #E0E7FF;background:#EEF2FF;font-size:10px;font-weight:600;cursor:pointer;color:#4F46E5;font-family:'DM Sans',sans-serif;transition:background .13s}
+.cp-add-btn:hover{background:#DDE4FF}
 `
 
 const Ico = {
@@ -74,7 +82,8 @@ function Toast({ msg, type, onClose }) {
 
 function Avatar({ name, logo, size = 46 }) {
   const c = avatarColor(name)
-  if (logo) return <img src={logo} alt="" style={{width:size,height:size,borderRadius:10,objectFit:'cover',flexShrink:0}} />
+  const [failed, setFailed] = useState(false)
+  if (logo && !failed) return <img src={logo} alt="" onError={() => setFailed(true)} style={{width:size,height:size,borderRadius:10,objectFit:'cover',flexShrink:0}} />
   return (
     <div style={{width:size,height:size,borderRadius:10,flexShrink:0,background:c.bg,color:c.fg,
       display:'flex',alignItems:'center',justifyContent:'center',
@@ -87,7 +96,14 @@ function Avatar({ name, logo, size = 46 }) {
 function ClientCard({ client, onClick, onEdit, onDelete, delay }) {
   return (
     <div className="cp-card" style={{animationDelay:`${delay}ms`}} onClick={() => onClick(client)}>
-      <div style={{display:'flex',alignItems:'flex-start',gap:13,marginBottom:14}}>
+      {client.logo_url && (
+        <div style={{margin:-22,marginBottom:14,borderRadius:'16px 16px 0 0',overflow:'hidden',background:'#F9FAFB',textAlign:'center'}}>
+          <img src={client.logo_url} alt={client.company_name}
+            style={{width:'100%',maxHeight:140,objectFit:'contain',background:'#F9FAFB',display:'block'}}
+            onError={e => { e.target.style.display='none' }} />
+        </div>
+      )}
+      <div style={{display:'flex',alignItems:'flex-start',gap:13}}>
         <Avatar name={client.company_name} logo={client.logo_url} />
         <div style={{flex:1,minWidth:0}}>
           <div style={{fontWeight:700,fontSize:15,color:'#0D0D1A',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-0.015em'}}>
@@ -100,7 +116,7 @@ function ClientCard({ client, onClick, onEdit, onDelete, delay }) {
           <button className="cp-icon-btn del" title="Delete" onClick={() => onDelete(client.id)}><Ico.trash/></button>
         </div>
       </div>
-      <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16}}>
+      <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16,marginTop:14}}>
         {client.email && <div style={{display:'flex',alignItems:'center',gap:7,color:'#6B7280',fontSize:12.5}}><span style={{color:'#9CA3AF'}}><Ico.mail/></span><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{client.email}</span></div>}
         {client.phone && <div style={{display:'flex',alignItems:'center',gap:7,color:'#6B7280',fontSize:12.5}}><span style={{color:'#9CA3AF'}}><Ico.phone/></span>{client.phone}</div>}
       </div>
@@ -115,120 +131,386 @@ function ClientCard({ client, onClick, onEdit, onDelete, delay }) {
 }
 
 function DetailPanel({ client, onClose, onEdit }) {
+  const navigate = useNavigate()
   const [games, setGames] = useState([])
   const [loadingGames, setLoadingGames] = useState(false)
+  const [branches, setBranches] = useState([])
+  const [loadingBranches, setLoadingBranches] = useState(false)
+  const [selectedBranch, setSelectedBranch] = useState(null)
+  const [branchGames, setBranchGames] = useState([])
+  const [loadingBranchGames, setLoadingBranchGames] = useState(false)
+  const [showBranchForm, setShowBranchForm] = useState(false)
+  const [editBranch, setEditBranch] = useState(null)
+  const [branchForm, setBranchForm] = useState({ name: '', email: '', phone: '', pincode: '' })
+  const [submitting, setSubmitting] = useState(false)
+  const [showEditClient, setShowEditClient] = useState(false)
 
-  useEffect(() => {
-    let cancelled = false
+  const navigateBuilder = (game) => {
+    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe'}
+    const slug = builders[game.category]
+    navigate(`/dashboard/games/${game.id}${slug ? '/' + slug + '-builder' : '/builder'}`)
+  }
+
+  const loadGames = () => {
     setLoadingGames(true)
     api.get(`/clients/${client.id}/games`).then(({data}) => {
-      if (!cancelled) { setGames(data.games||[]); setLoadingGames(false) }
-    }).catch(() => { if (!cancelled) setLoadingGames(false) })
-    return () => { cancelled = true }
+      setGames(data.games||[])
+    }).catch(() => {}).finally(() => setLoadingGames(false))
+  }
+
+  useEffect(() => {
+    loadGames()
   }, [client.id])
 
+  const loadBranches = () => {
+    setLoadingBranches(true)
+    api.get(`/clients/${client.id}/branches`).then(({data}) => {
+      setBranches(data.branches || [])
+    }).catch(() => {}).finally(() => setLoadingBranches(false))
+  }
+
+  useEffect(() => { loadBranches() }, [client.id])
+
+  // Reload games when branch selected so counts are fresh (user may have created games in builder)
+  useEffect(() => { loadGames() }, [selectedBranch?.id])
+
+  // When a branch is selected, load its games
+  useEffect(() => {
+    if (!selectedBranch) { setBranchGames([]); return }
+    setLoadingBranchGames(true)
+    api.get('/games').then(({data}) => {
+      const allGames = data.games || []
+      // Match by business_owner_id FK (primary); fallback to location_name only for legacy games without FK
+      setBranchGames(allGames.filter(g =>
+        g.business_owner_id === selectedBranch.id ||
+        (!g.business_owner_id && g.location_name && g.location_name.toLowerCase() === selectedBranch.business_name.toLowerCase())
+      ))
+    }).catch(() => {}).finally(() => setLoadingBranchGames(false))
+  }, [selectedBranch])
+
+  const resetBranchForm = () => {
+    setBranchForm({ name: '', email: '', phone: '', pincode: '' })
+    setEditBranch(null)
+    setShowBranchForm(false)
+  }
+
+  const handleCreateBranch = async () => {
+    if (!branchForm.name.trim() || !branchForm.email.trim() || !branchForm.phone.trim()) return
+    setSubmitting(true)
+    try {
+      await api.post(`/clients/${client.id}/branches`, {
+        branch_name: branchForm.name.trim(),
+        email: branchForm.email.trim(),
+        phone: branchForm.phone.trim(),
+        pincode: branchForm.pincode.trim() || null,
+      })
+      resetBranchForm()
+      loadBranches()
+      loadGames()
+    } catch (err) { alert(err.response?.data?.message || 'Failed') }
+    setSubmitting(false)
+  }
+
+  const handleUpdateBranch = async () => {
+    if (!branchForm.phone.trim()) return
+    setSubmitting(true)
+    try {
+      await api.put(`/clients/${client.id}/branches/${editBranch.id}`, {
+        phone: branchForm.phone.trim(),
+        pincode: branchForm.pincode.trim() || null,
+      })
+      resetBranchForm()
+      loadBranches()
+    } catch (err) { alert(err.response?.data?.message || 'Failed') }
+    setSubmitting(false)
+  }
+
+  const handleDeleteBranch = async (branchId) => {
+    if (!confirm('Delete this branch?')) return
+    try { await api.delete(`/clients/${client.id}/branches/${branchId}`); loadBranches(); loadGames(); if (selectedBranch?.id === branchId) setSelectedBranch(null) } catch {}
+  }
+
+  const handleToggleBranch = async (branchId, current) => {
+    try { await api.put(`/clients/${client.id}/branches/${branchId}`, { is_active: current ? 0 : 1 }); loadBranches() } catch {}
+  }
+
+  const startEditBranch = (b) => {
+    setEditBranch(b)
+    setBranchForm({ name: b.business_name, email: b.email, phone: b.phone || '', pincode: b.pincode || '' })
+    setShowBranchForm(true)
+  }
+
+  // Split games: template (no parent_game_id) vs location instances (parent_game_id set)
+  const templateGames = games.filter(g => !g.parent_game_id)
+  const locationGames = games.filter(g => g.parent_game_id)
+
+  // Per-branch game counts (for display in branch list)
+  const branchGameCounts = {}
+  branches.forEach(b => {
+    branchGameCounts[b.id] = games.filter(g =>
+      g.business_owner_id === b.id ||
+      (!g.business_owner_id && g.location_name && g.location_name.toLowerCase() === b.business_name.toLowerCase())
+    ).length
+  })
+
   return (
-    <div style={{position:'fixed',inset:0,zIndex:500,display:'flex',justifyContent:'flex-end'}}>
-      <div onClick={onClose} style={{position:'absolute',inset:0,background:'rgba(8,8,18,.38)',backdropFilter:'blur(3px)'}} />
-      <div style={{
-        position:'relative',width:400,height:'100%',background:'#fff',
-        boxShadow:'-16px 0 56px rgba(0,0,0,.14)',padding:'36px 30px',
-        overflow:'auto',zIndex:1,animation:'cpSlideIn .24s cubic-bezier(.22,1,.36,1)',
-        fontFamily:"'DM Sans',sans-serif",
-      }}>
-        <button className="cp-icon-btn" style={{position:'absolute',top:20,right:20}} onClick={onClose}><Ico.close/></button>
-        <Avatar name={client.company_name} logo={client.logo_url} size={56} />
-        <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:24,color:'#0D0D1A',margin:'16px 0 4px',letterSpacing:'-0.025em',lineHeight:1.2}}>
-          {client.company_name}
-        </h2>
-        {client.contact_name && <p style={{color:'#6B7280',fontSize:13.5,marginTop:4}}>{client.contact_name}</p>}
-        <div style={{margin:'24px 0',background:'#F5F3FF',borderRadius:12,padding:'16px 20px'}}>
-          <div style={{fontSize:28,fontWeight:700,color:'#4F46E5',letterSpacing:'-0.04em'}}>{client.game_count||0}</div>
-          <div style={{fontSize:11,fontWeight:700,color:'#7C3AED',textTransform:'uppercase',letterSpacing:'.08em',marginTop:3}}>Total Games</div>
+    <><div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:16,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={onClose}>
+      <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:1100,maxHeight:'92vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif"}} onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div style={{padding:'18px 24px',borderBottom:'1px solid #F3F4F6',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+          <div style={{display:'flex',gap:12,alignItems:'center'}}>
+            <Avatar name={client.company_name} logo={client.logo_url} size={40} />
+            <div>
+              <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A'}}>{client.company_name}</h2>
+              <div style={{fontSize:12,color:'#9CA3AF'}}>{client.email} · {games.length} games · {branches.length} branches</div>
+            </div>
+          </div>
+          <div style={{display:'flex',gap:8,alignItems:'center'}}>
+            <button className="cp-ghost-btn" onClick={() => onEdit(client)} style={{padding:'7px 14px',fontSize:12}}>
+              <Ico.edit/> Edit
+            </button>
+            <button className="cp-icon-btn" onClick={onClose}><Ico.close/></button>
+          </div>
         </div>
-        <div style={{display:'flex',flexDirection:'column'}}>
-          {[{icon:<Ico.mail/>,label:'Email',val:client.email},{icon:<Ico.phone/>,label:'Phone',val:client.phone},{icon:null,label:'Address',val:client.address},{icon:null,label:'Notes',val:client.notes}]
-            .filter(r=>r.val).map((row,i) => (
-            <div key={i} style={{padding:'14px 0',borderBottom:'1px solid #F3F4F6',display:'flex',gap:14,alignItems:'flex-start'}}>
-              <span style={{color:'#9CA3AF',marginTop:1,flexShrink:0}}>{row.icon}</span>
-              <div>
-                <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>{row.label}</div>
-                <div style={{fontSize:13.5,color:'#1F2937'}}>{row.val}</div>
+
+        {/* 5-Column Body */}
+        <div style={{display:'flex',flex:1,overflow:'hidden'}}>
+
+          {/* Col 1: Client Info */}
+          <div style={{width:240,borderRight:'1px solid #F3F4F6',padding:'16px',overflow:'auto',flexShrink:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Client Details</div>
+            {[{icon:<Ico.mail/>,label:'Email',val:client.email},{icon:<Ico.phone/>,label:'Phone',val:client.phone},{icon:null,label:'Address',val:client.address},{icon:null,label:'Notes',val:client.notes}]
+              .filter(r=>r.val).map((row,i) => (
+              <div key={i} style={{padding:'8px 0',borderBottom:'1px solid #F3F4F6'}}>
+                <div style={{fontSize:9,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:2}}>{row.label}</div>
+                <div style={{fontSize:12,color:'#1F2937',wordBreak:'break-word'}}>{row.val}</div>
+              </div>
+            ))}
+            <div style={{marginTop:14,padding:'10px',background:'#F5F3FF',borderRadius:8,textAlign:'center'}}>
+              <div style={{fontSize:20,fontWeight:700,color:'#4F46E5'}}>{games.length}</div>
+              <div style={{fontSize:9,fontWeight:700,color:'#7C3AED',textTransform:'uppercase'}}>Games</div>
+            </div>
+            <div style={{marginTop:8,padding:'10px',background:'#ECFDF5',borderRadius:8,textAlign:'center'}}>
+              <div style={{fontSize:20,fontWeight:700,color:'#059669'}}>{branches.length}</div>
+              <div style={{fontSize:9,fontWeight:700,color:'#10B981',textTransform:'uppercase'}}>Branches</div>
+            </div>
+            <button className="cp-ghost-btn" onClick={() => onEdit(client)} style={{width:'100%',justifyContent:'center',marginTop:12,padding:'8px 0',fontSize:12}}>
+              <Ico.edit/> Edit Client
+            </button>
+          </div>
+
+          {/* Col 2: Branches */}
+          <div style={{width:260,borderRight:'1px solid #F3F4F6',display:'flex',flexDirection:'column',flexShrink:0}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>Branches</div>
+              <button className="cp-add-btn" onClick={() => { setEditBranch(null); setBranchForm({name:'',email:'',phone:'',pincode:''}); setShowBranchForm(true) }}>+ Add</button>
+            </div>
+            <div style={{flex:1,overflow:'auto',padding:8}}>
+              {loadingBranches ? (
+                Array.from({length:3}).map((_,i) => <div key={i} style={{height:48,background:'#F3F4F6',borderRadius:8,marginBottom:6}} />)
+              ) : branches.length === 0 ? (
+                <div style={{fontSize:11,color:'#9CA3AF',padding:'20px 0',textAlign:'center'}}>No branches yet</div>
+              ) : (
+                branches.map(b => (
+                  <div key={b.id} onClick={() => setSelectedBranch(selectedBranch?.id === b.id ? null : b)}
+                    style={{padding:'10px 12px',borderRadius:8,marginBottom:4,cursor:'pointer',border:selectedBranch?.id===b.id?'2px solid #4F46E5':'1.5px solid #F3F4F6',background:selectedBranch?.id===b.id?'#EEF2FF':'#fff',transition:'all .15s'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <div style={{fontWeight:700,fontSize:12,color:'#1F2937'}}>{b.business_name}</div>
+                      <div style={{display:'flex',alignItems:'center',gap:6}}>
+                        <span style={{fontSize:9,fontWeight:700,padding:'1px 7px',borderRadius:100,background:'#EEF2FF',color:'#4F46E5'}}>{branchGameCounts[b.id]||0}</span>
+                        <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:b.is_active?'#ECFDF5':'#F3F4F6',color:b.is_active?'#059669':'#9CA3AF',cursor:'pointer'}}
+                          onClick={e => { e.stopPropagation(); handleToggleBranch(b.id, b.is_active) }}>
+                          {b.is_active ? 'On' : 'Off'}
+                        </span>
+                      </div>
+                    </div>
+                    <div style={{fontSize:10,color:'#9CA3AF',marginTop:2}}>
+                      {b.email}{b.pincode && <span> · {b.pincode}</span>}
+                    </div>
+                    <div style={{display:'flex',gap:4,marginTop:6}}>
+                      <button className="cp-sm-btn primary" onClick={e => { e.stopPropagation(); startEditBranch(b) }}>Edit</button>
+                      <button className="cp-sm-btn danger" onClick={e => { e.stopPropagation(); handleDeleteBranch(b.id) }}>Delete</button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Col 3: Branch Games (selected branch) */}
+          <div style={{width:280,borderRight:'1px solid #F3F4F6',display:'flex',flexDirection:'column',flexShrink:0}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>
+                {selectedBranch ? `${selectedBranch.business_name} Games` : 'Select a Branch'}
               </div>
             </div>
-          ))}
-        </div>
-
-        <button className="cp-primary-btn" onClick={() => onEdit(client)} style={{width:'100%',justifyContent:'center',marginTop:28,padding:'13px 0',borderRadius:12,fontSize:14}}>
-          <Ico.edit/> Edit Client
-        </button>
-
-        <div style={{marginTop:28}}>
-          <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:12}}>Games</div>
-          {loadingGames ? (
-            Array.from({length:3}).map((_,i) => (
-              <div key={i} style={{height:44,background:'#F3F4F6',borderRadius:10,marginBottom:6,animation:'cpFadeUp .3s ease both'}} />
-            ))
-          ) : games.length === 0 ? (
-            <div style={{fontSize:12.5,color:'#9CA3AF',padding:'16px 0',textAlign:'center'}}>No games yet</div>
-          ) : (
-            games.map(g => (
-              <div key={g.id} style={{
-                display:'flex',alignItems:'center',gap:10,padding:'8px 10px',
-                background:'#F9FAFB',borderRadius:10,marginBottom:6,
-                border:'1px solid #F3F4F6',
-              }}>
-                <div style={{
-                  width:28,height:28,borderRadius:6,background:'#EEF2FF',
-                  display:'flex',alignItems:'center',justifyContent:'center',
-                  fontSize:11,fontWeight:700,color:'#4F46E5',flexShrink:0,
-                }}>{g.name.charAt(0).toUpperCase()}</div>
-                <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:12.5,fontWeight:700,color:'#1F2937',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
-                    {g.name}
-                  </div>
-                  <div style={{fontSize:10,fontWeight:500,color:'#9CA3AF',marginTop:1,textTransform:'capitalize'}}>{g.category}</div>
+            <div style={{flex:1,overflow:'auto',padding:8}}>
+              {!selectedBranch ? (
+                <div style={{fontSize:11,color:'#9CA3AF',padding:'30px 16px',textAlign:'center'}}>
+                  Click a branch on the left to see its games
                 </div>
-                <span style={{
-                  fontSize:10,fontWeight:700,padding:'2px 7px',borderRadius:6,flexShrink:0,
-                  background:g.is_active ? '#ECFDF5' : '#F3F4F6',
-                  color:g.is_active ? '#059669' : '#9CA3AF',
-                  display:'inline-flex',alignItems:'center',gap:4,
-                }}>
-                  <span style={{width:5,height:5,borderRadius:'50%',background:'currentColor',display:'inline-block'}}/>
-                  {g.is_active ? 'Active' : 'Inactive'}
-                </span>
-                <span style={{fontSize:10,fontWeight:600,color:'#6B7280',flexShrink:0,whiteSpace:'nowrap'}}>
-                  {g.play_count||0} plays
-                </span>
-              </div>
-            ))
-          )}
+              ) : loadingBranchGames ? (
+                Array.from({length:3}).map((_,i) => <div key={i} style={{height:40,background:'#F3F4F6',borderRadius:8,marginBottom:6}} />)
+              ) : branchGames.length === 0 ? (
+                <div style={{fontSize:11,color:'#9CA3AF',padding:'20px 0',textAlign:'center'}}>
+                  No games for this branch yet.<br/>
+                  <span style={{fontSize:10}}>Create from game builder Locations tab</span>
+                </div>
+              ) : (
+                branchGames.map(g => (
+                  <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1px solid #F3F4F6',background:'#FAFAFA',cursor:'pointer',transition:'all .12s'}}
+                    onClick={() => navigateBuilder(g)}
+                    onMouseEnter={e => {e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='#EEF2FF'}}
+                    onMouseLeave={e => {e.currentTarget.style.borderColor='#F3F4F6';e.currentTarget.style.background='#FAFAFA'}}>
+                    <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                      <div style={{fontWeight:700,fontSize:11,color:'#1F2937'}}>{g.name}</div>
+                      <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'#F3F4F6',color:g.is_active?'#059669':'#9CA3AF'}}>
+                        {g.is_active ? 'Live' : 'Draft'}
+                      </span>
+                    </div>
+                    {g.location_name && <div style={{fontSize:10,color:'#6B7280',marginTop:1}}>📍 {g.location_name}</div>}
+                    <div style={{fontSize:9,color:'#9CA3AF',marginTop:2}}>{g.question_count||0} questions · {g.play_count||0} plays</div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Col 4: Game Templates (brand-level games only) */}
+          <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,borderRight:'1px solid #F3F4F6'}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>Game Templates ({templateGames.length})</div>
+            </div>
+            <div style={{flex:1,overflow:'auto',padding:8}}>
+              {templateGames.map(g => (
+                <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1.5px solid #E0E7FF',background:'#FAFAFA',cursor:'pointer',transition:'all .12s'}}
+                  onClick={() => navigateBuilder(g)}
+                  onMouseEnter={e => {e.currentTarget.style.borderColor='#818CF8';e.currentTarget.style.background='#EEF2FF'}}
+                  onMouseLeave={e => {e.currentTarget.style.borderColor='#E0E7FF';e.currentTarget.style.background='#FAFAFA'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div style={{fontWeight:700,fontSize:11,color:'#1F2937',display:'flex',alignItems:'center',gap:4}}>{g.name}</div>
+                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'#F3F4F6',color:g.is_active?'#059669':'#9CA3AF'}}>
+                      {g.is_active ? 'Live' : 'Draft'}
+                    </span>
+                  </div>
+                  <div style={{fontSize:10,color:'#6B7280',textTransform:'capitalize',marginTop:1}}>{g.category}</div>
+                  <div style={{fontSize:9,color:'#9CA3AF',marginTop:2}}>{g.question_count||0} questions · {g.play_count||0} plays</div>
+                </div>
+              ))}
+              {templateGames.length === 0 && (
+                <div style={{fontSize:11,color:'#9CA3AF',padding:'30px 16px',textAlign:'center'}}>No template games yet</div>
+              )}
+            </div>
+          </div>
+
+          {/* Col 5: All Games (includes branch-level games) */}
+          <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>All Games ({games.length})</div>
+            </div>
+            <div style={{flex:1,overflow:'auto',padding:8}}>
+              {games.map(g => (
+                <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1.5px solid #E5E7EB',background:'#fff',cursor:'pointer',transition:'all .12s'}}
+                  onClick={() => navigateBuilder(g)}
+                  onMouseEnter={e => {e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='#F5F3FF'}}
+                  onMouseLeave={e => {e.currentTarget.style.borderColor='#E5E7EB';e.currentTarget.style.background='#fff'}}>
+                  <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                    <div style={{fontWeight:700,fontSize:11,color:'#1F2937',display:'flex',alignItems:'center',gap:4}}>{g.name}</div>
+                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'#F3F4F6',color:g.is_active?'#059669':'#9CA3AF'}}>
+                      {g.is_active ? 'Live' : 'Draft'}
+                    </span>
+                  </div>
+                  <div style={{fontSize:10,color:'#6B7280',textTransform:'capitalize',marginTop:1}}>
+                    {g.parent_game_id ? '📍 Branch' : '📦 Template'} · {g.category}
+                  </div>
+                  <div style={{fontSize:9,color:'#9CA3AF',marginTop:2}}>{g.question_count||0} questions · {g.play_count||0} plays</div>
+                </div>
+              ))}
+              {games.length === 0 && (
+                <div style={{fontSize:11,color:'#9CA3AF',padding:'30px 16px',textAlign:'center'}}>No games yet</div>
+              )}
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
-  )
+      {showBranchForm && (
+        <div style={{position:'fixed',inset:0,zIndex:700,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={resetBranchForm}>
+          <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'92vh',overflow:'auto',padding:'30px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif",animation:'cpModalIn .22s cubic-bezier(.22,1,.36,1)'}} onClick={e => e.stopPropagation()}>
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
+              <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A'}}>{editBranch ? 'Edit Branch' : 'New Branch'}</h2>
+              <button className="cp-icon-btn" onClick={resetBranchForm}><Ico.close/></button>
+            </div>
+            {!editBranch && (
+              <div className="cp-field">
+                <label className="cp-label">Branch Name <span style={{color:'#EF4444'}}>*</span></label>
+                <input className="cp-input" placeholder="e.g. Downtown Office" value={branchForm.name}
+                  onChange={e => setBranchForm({...branchForm, name: e.target.value})} />
+              </div>
+            )}
+            {!editBranch && (
+              <div className="cp-field">
+                <label className="cp-label">Email <span style={{color:'#EF4444'}}>*</span></label>
+                <input className="cp-input" type="email" placeholder="branch@example.com" value={branchForm.email}
+                  onChange={e => setBranchForm({...branchForm, email: e.target.value})} />
+              </div>
+            )}
+            <div className="cp-field">
+              <label className="cp-label">Phone (password)</label>
+              <input className="cp-input" type="tel" placeholder="Phone or access code" value={branchForm.phone}
+                onChange={e => setBranchForm({...branchForm, phone: e.target.value})} />
+            </div>
+            <div className="cp-field" style={{marginBottom:24}}>
+              <label className="cp-label">Pincode</label>
+              <input className="cp-input" placeholder="Optional pincode" value={branchForm.pincode}
+                onChange={e => setBranchForm({...branchForm, pincode: e.target.value})} />
+            </div>
+            <div style={{display:'flex',gap:10}}>
+              <button type="button" className="cp-ghost-btn" onClick={resetBranchForm} style={{flex:1,justifyContent:'center'}}>Cancel</button>
+              <button className="cp-primary-btn" onClick={editBranch ? handleUpdateBranch : handleCreateBranch} disabled={submitting} style={{flex:2,justifyContent:'center',padding:'12px 0',fontSize:14}}>
+                {submitting ? <><Ico.spin/> Saving…</> : (editBranch ? 'Save Changes' : 'Add Branch')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+  </>
+)
 }
 
 function FormModal({ editClient, onClose, onSaved, onError }) {
-  const blank = {company_name:'',contact_name:'',email:'',phone:'',address:'',notes:''}
+  const blank = {company_name:'',contact_name:'',email:'',phone:'',address:'',notes:'',logo_url:''}
   const [form, setForm] = useState(editClient ? {
     company_name:editClient.company_name,contact_name:editClient.contact_name||'',
     email:editClient.email||'',phone:editClient.phone||'',
-    address:editClient.address||'',notes:editClient.notes||''
+    address:editClient.address||'',notes:editClient.notes||'',
+    logo_url:editClient.logo_url||''
   } : blank)
+  const [logoFile, setLogoFile] = useState(null)
   const [submitting, setSubmitting] = useState(false)
   const set = k => e => setForm(f => ({...f,[k]:e.target.value}))
 
   const handleSubmit = async e => {
     e.preventDefault(); setSubmitting(true)
     try {
-      if (editClient) { await api.put(`/clients/${editClient.id}`,form); onSaved('Client updated') }
-      else { await api.post('/clients',form); onSaved('Client added') }
+      if (logoFile) {
+        const fd = new FormData()
+        Object.entries(form).forEach(([k,v]) => fd.append(k, v))
+        fd.append('logo', logoFile)
+        if (editClient) { await api.put(`/clients/${editClient.id}`, fd); onSaved('Client updated') }
+        else { await api.post('/clients', fd); onSaved('Client added') }
+      } else {
+        if (editClient) { await api.put(`/clients/${editClient.id}`, form); onSaved('Client updated') }
+        else { await api.post('/clients', form); onSaved('Client added') }
+      }
       onClose()
     } catch(err) { onError(err.response?.data?.message||'Something went wrong') }
     finally { setSubmitting(false) }
   }
+
+  const logoPreview = logoFile ? URL.createObjectURL(logoFile) : form.logo_url
 
   return (
     <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
@@ -243,6 +525,24 @@ function FormModal({ editClient, onClose, onSaved, onError }) {
           <button className="cp-icon-btn" onClick={onClose}><Ico.close/></button>
         </div>
         <form onSubmit={handleSubmit}>
+          <div style={{marginBottom:20,border:'1.5px dashed #E5E7EB',borderRadius:12,padding:16,textAlign:'center'}}>
+            <label className="cp-label" style={{marginBottom:8}}>Logo</label>
+            {logoPreview ? (
+              <div style={{marginBottom:10}}>
+                <img src={logoPreview} alt="Logo preview" style={{maxWidth:120,maxHeight:80,borderRadius:8,objectFit:'contain'}} />
+              </div>
+            ) : (
+              <div style={{width:72,height:72,borderRadius:12,background:'#F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 8px',color:'#9CA3AF',fontSize:10}}>No logo</div>
+            )}
+            <div style={{display:'flex',gap:8,justifyContent:'center'}}>
+              <label className="cp-primary-btn" style={{fontSize:11,padding:'6px 14px',cursor:'pointer'}}>
+                Upload File
+                <input type="file" accept="image/*" style={{display:'none'}} onChange={e => { const f = e.target.files[0]; if (f) setLogoFile(f); e.target.value='' }} />
+              </label>
+              <span style={{color:'#9CA3AF',fontSize:11,alignSelf:'center'}}>or</span>
+              <input className="cp-input" style={{width:180,fontSize:11}} placeholder="Paste logo URL…" value={form.logo_url} onChange={e => { setLogoFile(null); setForm(f => ({...f, logo_url: e.target.value})) }} />
+            </div>
+          </div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:'0 16px'}}>
             <div className="cp-field">
               <label className="cp-label">Company Name <span style={{color:'#EF4444'}}>*</span></label>

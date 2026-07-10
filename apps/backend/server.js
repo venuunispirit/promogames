@@ -61,10 +61,12 @@ const stressbusterRoutes = require("./routes/stressbuster");
 const soundifyRoutes = require("./routes/soundify");
 const tictactoeRoutes = require("./routes/tictactoe");
 const businessDevRoutes = require("./routes/businessDev");
+const businessOwnerRoutes = require("./routes/businessOwner");
 const internalTeamRoutes = require("./routes/internalTeam");
 const { itAuth } = internalTeamRoutes;
 const auth = require("./middleware/auth");
 const notificationsRoutes = require("./routes/notifications");
+const systemRoutes = require("./routes/system");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -115,9 +117,11 @@ app.use("/api/stressbuster", stressbusterRoutes);
 app.use("/api/soundify", soundifyRoutes);
 app.use("/api/tictactoe", tictactoeRoutes);
 app.use("/api/bd", businessDevRoutes);
+app.use("/api/business", businessOwnerRoutes);
 app.use("/api/internal-team", internalTeamRoutes);
 app.use("/api/notifications", auth, notificationsRoutes);
 app.use("/api/internal-team/notifications", itAuth, notificationsRoutes);
+app.use("/api/system", systemRoutes);
 
 const { startPCResetCron } = require('./cron/pcReset');
 startPCResetCron();

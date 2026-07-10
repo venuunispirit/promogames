@@ -200,7 +200,50 @@ function ScoreRing({ score, total, primaryColor }) {
   )
 }
 
-function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm, gameCategory, continueButtonText, continueButtonTextColor, continueButtonBgColor }) {
+function SubmittingPopup({ primaryColor, ff }) {
+  return (
+    <div style={{
+      position: 'fixed', inset: 0, zIndex: 2100,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(8px)',
+      animation: 'backdropIn 0.3s ease'
+    }}>
+      <div style={{
+        background: '#fff', borderRadius: 24,
+        padding: 'clamp(28px,7vw,40px) clamp(24px,6vw,36px)',
+        maxWidth: 340, width: '100%', textAlign: 'center',
+        boxShadow: '0 24px 80px rgba(0,0,0,0.35)',
+        animation: 'modalIn 0.45s cubic-bezier(0.34,1.56,0.64,1)',
+        fontFamily: ff, boxSizing: 'border-box'
+      }}>
+        <div style={{
+          width: 56, height: 56, borderRadius: '50%',
+          background: `${primaryColor}15`, display: 'flex',
+          alignItems: 'center', justifyContent: 'center',
+          margin: '0 auto 20px', animation: 'pulse 1.5s ease-in-out infinite'
+        }}>
+          <div style={{
+            width: 28, height: 28, border: `3px solid ${primaryColor}30`,
+            borderTopColor: primaryColor, borderRadius: '50%',
+            animation: 'spin 0.8s linear infinite'
+          }} />
+        </div>
+        <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.3 }}>
+          Submitting your progress…
+        </h3>
+        <p style={{ color: '#888', fontSize: 14, lineHeight: 1.6, margin: 0 }}>
+          Please don't close this page.
+        </p>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg) } }
+          @keyframes pulse { 0%,100% { transform: scale(1); opacity: 1 } 50% { transform: scale(1.08); opacity: 0.8 } }
+        `}</style>
+      </div>
+    </div>
+  )
+}
+
+function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm, onClose, gameCategory, continueButtonText, continueButtonTextColor, continueButtonBgColor }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
@@ -229,8 +272,16 @@ function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm, gameCategory,
         <div style={{ height: 5, background: `${primaryColor}22`, borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
           <div style={{ height: '100%', background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`, borderRadius: 10, animation: 'redirectBar 3s linear forwards' }} />
         </div>
-        <button onClick={onConfirm} style={{ background: continueButtonBgColor || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: continueButtonTextColor || '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: continueButtonBgColor ? '0 8px 28px rgba(0,0,0,0.2)' : `0 8px 28px ${primaryColor}55`, touchAction: 'manipulation' }}>
-          {continueButtonText || 'Continue Now →'}</button>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <button onClick={onConfirm} style={{ background: continueButtonBgColor || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: continueButtonTextColor || '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: continueButtonBgColor ? '0 8px 28px rgba(0,0,0,0.2)' : `0 8px 28px ${primaryColor}55`, touchAction: 'manipulation' }}>
+            {continueButtonText || 'Continue Now →'}
+          </button>
+          <button onClick={onClose} style={{ background: 'transparent', color: '#888', border: '1.5px solid #ddd', borderRadius: 50, padding: '12px 36px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: ff, touchAction: 'manipulation', transition: 'border-color 0.2s, color 0.2s' }}
+            onMouseEnter={e => { e.target.style.borderColor = primaryColor; e.target.style.color = primaryColor; }}
+            onMouseLeave={e => { e.target.style.borderColor = '#ddd'; e.target.style.color = '#888'; }}>
+            Close
+          </button>
+        </div>
         <style>{`@keyframes redirectBar { from { width: 0% } to { width: 100% } }`}</style>
       </div>
     </div>
@@ -796,15 +847,6 @@ export default function PlayerPage() {
       if (playerProfile) payload.promo_player_id = playerProfile.id
       const res = await api.post('/play/session/start', payload)
       setSessionToken(res.data.session_token)
-
-      // ── Question pool: filter to selected subset if server returned it ──
-      if (res.data.selected_question_ids && res.data.selected_question_ids.length > 0) {
-        const selectedIds = new Set(res.data.selected_question_ids)
-        setGame(prev => ({
-          ...prev,
-          questions: prev.questions.filter(q => selectedIds.has(q.id))
-        }))
-      }
       if (game.category === 'crossword') {
         setPhase('crossword')
       } else if (game.category === 'spin') {
@@ -1266,7 +1308,9 @@ export default function PlayerPage() {
         OUTER SHELL — locks to full device screen height on every phone/tablet/desktop.
         Nothing can push outside this box.
       */
-      <div style={{
+      <>
+        {completing && <SubmittingPopup primaryColor={primaryColor} ff={ff} />}
+        <div style={{
         height: '100dvh',
         maxHeight: '100dvh',
         overflow: 'hidden',
@@ -1548,8 +1592,8 @@ export default function PlayerPage() {
                         onClick={handleShortAnswerSubmit}
                         disabled={!shortAnswerText.trim()}
                         style={{
-                          background: shortAnswerText.trim() ? (s.submit_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`) : '#ccc',
-                          color: s.submit_button_text_color || '#fff',
+                          background: shortAnswerText.trim() ? `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` : '#ccc',
+                          color: '#fff',
                           border: 'none',
                           borderRadius: 50,
                           padding: '14px 40px',
@@ -1562,7 +1606,7 @@ export default function PlayerPage() {
                           touchAction: 'manipulation',
                           animation: 'questionEnter 0.4s 0.2s both ease',
                         }}>
-                        {s.submit_button_text || 'Submit Answer →'}
+                        Submit Answer →
                       </button>
                     )}
                     {answered && (
@@ -1638,8 +1682,8 @@ export default function PlayerPage() {
                   onClick={handleContinueClick}
                   style={{
                     marginTop: 12,
-                    background: s.continue_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-                    color: s.continue_button_text_color || '#fff',
+                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+                    color: '#fff',
                     border: 'none',
                     borderRadius: 50,
                     padding: '16px 44px',
@@ -1657,7 +1701,7 @@ export default function PlayerPage() {
                     maxWidth: 160,
                     alignSelf: 'center',
                   }}>
-                  {s.continue_button_text || 'Continue →'}
+                  Continue →
                 </button>
               )}
             </div>
@@ -1667,13 +1711,14 @@ export default function PlayerPage() {
 
         {completing && (
           <div style={{ marginBottom: 12, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: '#555' }}>
-            <span style={{ width: 16, height: 16, border: `2px solid ${primaryColor}44`, borderTopColor: primaryColor, borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
-            Saving results…
+              <span style={{ width: 16, height: 16, border: `2px solid ${primaryColor}44`, borderTopColor: primaryColor, borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+              Saving results…
           </div>
         )}
 
         <style>{OVERLAY_STYLES}</style>
       </div>
+      </>
     )
   }
 
@@ -1702,12 +1747,17 @@ const handleModalConfirm = () => {
   }
 }
 
+const handleModalClose = () => {
+  setShowSubmitModal(false)
+  window.location.href = `/play/${gameName}/${companyName}`
+}
+
     return (
       <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box' }}>
         <Confetti />
 
         {showSubmitModal && (
-          <SubmitModal primaryColor={primaryColor} ff={ff} confirmGifUrl={confirmGifUrl} onConfirm={handleModalConfirm} gameCategory={game.category} continueButtonText={s.continue_button_text} continueButtonTextColor={s.continue_button_text_color} continueButtonBgColor={s.continue_button_bg_color} />
+          <SubmitModal primaryColor={primaryColor} ff={ff} confirmGifUrl={confirmGifUrl} onConfirm={handleModalConfirm} onClose={handleModalClose} gameCategory={game.category} continueButtonText={s.continue_button_text} continueButtonTextColor={s.continue_button_text_color} continueButtonBgColor={s.continue_button_bg_color} />
         )}
 
         <div style={{

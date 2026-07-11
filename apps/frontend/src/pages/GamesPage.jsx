@@ -54,9 +54,9 @@ const CSS = `
 .gp *,.gp *::before,.gp *::after{box-sizing:border-box;margin:0;padding:0}
 .gp *::-webkit-scrollbar{display:none}
 .gp *{-ms-overflow-style:none;scrollbar-width:none}
-@media(max-width:1200px){.gp [style*="column-count:4"]{column-count:3!important}}
-@media(max-width:900px){.gp [style*="column-count:4"]{column-count:2!important}}
-@media(max-width:600px){.gp [style*="column-count:4"]{column-count:1!important}}
+@media(max-width:820px){.gp [style*="column-count:4"]{column-count:3!important}}
+@media(max-width:600px){.gp [style*="column-count:4"]{column-count:2!important}}
+@media(max-width:440px){.gp [style*="column-count:4"]{column-count:1!important}}
 .gp{font-family:'DM Sans',sans-serif;color: #111827;background: #F8F9FB;min-height:100vh}
 @keyframes gpFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes gpModalIn{from{opacity:0;transform:scale(0.96)translateY(6px)}to{opacity:1;transform:none}}

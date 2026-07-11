@@ -17,12 +17,13 @@ function boAuth(req, res, next) {
   }
 }
 
-// POST /api/business/login — Business Owner login (email + phone as password)
+// POST /api/business/login — Business Owner login (email or business name + phone as password)
 router.post('/login', async (req, res) => {
   const { business_name, password } = req.body;
-  if (!business_name || !password) return res.status(400).json({ success: false, message: 'Business name and password required' });
+  const identifier = business_name || '';
+  if (!identifier || !password) return res.status(400).json({ success: false, message: 'Email/business name and password required' });
   try {
-    const [rows] = await db.query('SELECT * FROM business_owners WHERE business_name = ? AND is_active = 1', [business_name]);
+    const [rows] = await db.query('SELECT * FROM business_owners WHERE (business_name = ? OR email = ?) AND is_active = 1', [identifier, identifier]);
     if (rows.length === 0) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     const bo = rows[0];
     const isMatch = await bcrypt.compare(password, bo.password);
@@ -220,6 +221,7 @@ router.get('/notifications', boAuth, async (req, res) => {
       }
       return {
         ...rest,
+        has_code: !!(r.code != null && String(r.code).trim() !== ''),
         player_phone: r.table_number ? '' : r.player_phone,
         player_data: playerData,
       }
@@ -295,7 +297,7 @@ router.post('/accept-redemption', boAuth, async (req, res) => {
   if (!redemption_id) return res.status(400).json({ success: false, message: 'redemption_id required' });
   try {
     const [rows] = await db.query(
-      "SELECT * FROM business_redemptions WHERE id = ? AND status IN ('code_revealed','code_entered')",
+      "SELECT * FROM business_redemptions WHERE id = ? AND status IN ('pending','code_revealed','code_entered')",
       [redemption_id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Redemption not found or already processed' });

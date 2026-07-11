@@ -196,5 +196,153 @@ router.get('/redemption-logs', auth, async (req, res) => {
   }
 });
 
+// ── Helper: get all game IDs owned/assigned to a business owner ──
+async function getBusinessOwnerGameIds(boId) {
+  const [rows] = await db.query(
+    `SELECT DISTINCT game_id FROM business_owner_games WHERE business_owner_id = ?
+     UNION SELECT id FROM games WHERE business_owner_id = ?`,
+    [boId, boId]
+  );
+  return rows.map(r => r.game_id).filter(Boolean);
+}
+
+// GET /internal-team/bo-logs — list all business owners with summary stats
+router.get('/bo-logs', auth, async (req, res) => {
+  try {
+    const [bos] = await db.query(
+      `SELECT id, business_name, email, phone, created_at FROM business_owners ORDER BY business_name ASC`
+    );
+    const result = [];
+    for (const bo of bos) {
+      const gameIds = await getBusinessOwnerGameIds(bo.id);
+      let plays = 0, redemptions = 0, withCode = 0, withoutCode = 0;
+      if (gameIds.length) {
+        const [stats] = await db.query(
+          `SELECT
+             COUNT(DISTINCT ps.id) as plays,
+             COUNT(DISTINCT br.id) as redemptions,
+             SUM(CASE WHEN br.id IS NOT NULL AND br.code IS NOT NULL AND br.code <> '' THEN 1 ELSE 0 END) as with_code,
+             SUM(CASE WHEN br.id IS NOT NULL AND (br.code IS NULL OR br.code = '') THEN 1 ELSE 0 END) as without_code
+           FROM player_sessions ps
+           LEFT JOIN business_redemptions br ON br.session_id = ps.id AND br.business_owner_id = ?
+           WHERE ps.game_id IN (?)`,
+          [bo.id, gameIds]
+        );
+        plays = stats[0]?.plays || 0;
+        redemptions = stats[0]?.redemptions || 0;
+        withCode = stats[0]?.with_code || 0;
+        withoutCode = stats[0]?.without_code || 0;
+      }
+      result.push({
+        id: bo.id,
+        business_name: bo.business_name,
+        email: bo.email,
+        phone: bo.phone,
+        created_at: bo.created_at,
+        total_games: gameIds.length,
+        total_plays: plays,
+        total_redemptions: redemptions,
+        with_code: withCode,
+        without_code: withoutCode
+      });
+    }
+    res.json({ success: true, business_owners: result });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /internal-team/bo-logs/:boId/entries — detailed play + redemption log for one BO
+// Includes players who played but never redeemed ("Played, not redeemed")
+router.get('/bo-logs/:boId/entries', auth, async (req, res) => {
+  try {
+    const boId = req.params.boId;
+    const { start_date, end_date } = req.query;
+    const gameIds = await getBusinessOwnerGameIds(boId);
+    if (!gameIds.length) return res.json({ success: true, entries: [] });
+
+    let dateFilter = '';
+    const params = [boId, gameIds];
+    if (start_date) { dateFilter += ' AND ps.started_at >= ?'; params.push(start_date); }
+    if (end_date) { dateFilter += ' AND ps.started_at <= ?'; params.push(end_date); }
+
+    const [rows] = await db.query(
+      `SELECT
+         ps.id AS session_id,
+         ps.game_id,
+         g.name AS game_name,
+         ps.score,
+         ps.total_scoreable,
+         ps.completed,
+         ps.started_at AS played_at,
+         ps.completed_at,
+         ps.player_data,
+          br.id AS redemption_id,
+          br.status AS redemption_status,
+          br.code,
+          br.accepted_at,
+          br.updated_at AS redemption_updated_at,
+          br.rejected_at,
+          br.reject_reason,
+          br.table_number,
+          br.player_name AS br_player_name,
+          br.player_phone AS br_player_phone,
+          br.player_email AS br_player_email,
+          a.business_name AS accepted_by_name
+       FROM player_sessions ps
+       JOIN games g ON ps.game_id = g.id
+       LEFT JOIN business_redemptions br ON br.session_id = ps.id AND br.business_owner_id = ?
+       LEFT JOIN business_owners a ON br.accepted_by = a.id
+       WHERE ps.game_id IN (?)
+       ${dateFilter}
+       ORDER BY ps.started_at DESC
+       LIMIT 1000`,
+      params
+    );
+
+    const entries = rows.map(r => {
+      let playerData = {};
+      try { playerData = typeof r.player_data === 'string' ? JSON.parse(r.player_data) : (r.player_data || {}); }
+      catch { playerData = {}; }
+      const codePresent = r.code != null && String(r.code).trim() !== '';
+      let redemptionState = 'played_not_redeemed';
+      if (r.redemption_id) {
+        redemptionState = codePresent ? 'accepted_with_code' : 'accepted_without_code';
+      }
+      const acceptedAt = r.accepted_at || (r.redemption_status ? (r.redemption_updated_at || r.played_at) : null);
+      return {
+        session_id: r.session_id,
+        game_id: r.game_id,
+        game_name: r.game_name,
+        score: r.score,
+        total_scoreable: r.total_scoreable,
+        completed: !!r.completed,
+        played_at: r.played_at,
+        completed_at: r.completed_at,
+        player_data: playerData,
+        redemption_id: r.redemption_id,
+        redemption_status: r.redemption_status,
+        redemption_state: redemptionState,
+        code_present: codePresent,
+        code: r.code,
+        accepted_at: r.accepted_at,
+        rejected_at: r.rejected_at,
+        reject_reason: r.reject_reason,
+        table_number: r.table_number,
+        accepted_by_name: r.accepted_by_name,
+        player_name: r.br_player_name || playerData.Name || playerData.name || playerData.FullName || playerData.fullName || '',
+        player_email: r.br_player_email || playerData.Email || playerData.email || '',
+        player_phone: r.br_player_phone || playerData.Phone || playerData.phone || playerData.Mobile || ''
+      };
+    });
+
+    res.json({ success: true, entries });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
 module.exports.itAuth = itAuth;

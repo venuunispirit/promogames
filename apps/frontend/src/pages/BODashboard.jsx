@@ -45,6 +45,7 @@ export default function BODashboard() {
   const [activeToast, setActiveToast] = useState(null)
   const [exiting, setExiting] = useState(false)
   const [passkey, setPasskey] = useState('')
+  const [searchResult, setSearchResult] = useState(null)
   const [verifyMsg, setVerifyMsg] = useState('')
   const [verifyStatus, setVerifyStatus] = useState('')
   const [lastNotifCount, setLastNotifCount] = useState(0)

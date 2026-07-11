@@ -192,6 +192,15 @@ export default function BORedemptions() {
                   }}>
                     {statusLabel(n.status)}
                   </span>
+                  {['completed','player_confirmed'].includes(n.status) && (
+                    <div style={{
+                      marginTop:6, fontSize:10, fontWeight:700, padding:'2px 8px', borderRadius:6, display:'inline-block',
+                      background: (n.has_code ? '#059669' : '#b45309') + '22',
+                      color: n.has_code ? '#059669' : '#b45309',
+                    }}>
+                      {n.has_code ? 'With 6-digit code' : 'Without code'}
+                    </div>
+                  )}
                 </div>
               </div>
 

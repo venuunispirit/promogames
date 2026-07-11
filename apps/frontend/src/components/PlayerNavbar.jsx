@@ -18,7 +18,7 @@ const DROPDOWN_ITEMS = [
 
 const CSS = `
   .pn-wrap{position:fixed;top:0;left:0;right:0;z-index:1000;padding:18px 0;pointer-events:none;display:flex;justify-content:center}
-  .pn-nav{pointer-events:all;width:62%;max-width:700px;min-width:580px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:0 20px;padding:11px 20px 11px 18px;border-radius:100px;background:rgba(7,4,15,0.88);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(146,16,246,0.22);box-shadow:0 8px 48px rgba(0,0,0,0.60)}
+  .pn-nav{pointer-events:all;width:62%;max-width:700px;min-width:580px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:0 20px;padding:11px 20px 11px 18px;border-radius:100px;background:rgba(7,4,15,0.88);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(146,16,246,0.22);box-shadow:0 8px 48px rgba(0,0,0,0.60);position:relative}
   .pn-logo{display:flex;align-items:center;gap:10px;text-decoration:none}
   .pn-logo img{width:auto;height:60px;border-radius:9px;flex-shrink:0}
   .pn-links{list-style:none;display:flex;gap:26px;align-items:center;justify-content:center;margin:0;padding:0}
@@ -55,11 +55,114 @@ const CSS = `
   .pn-mob-cta{margin-top:8px;padding:14px 40px;border-radius:100px;background:linear-gradient(90deg,#610497,#9210f6)!important;color:#fff!important;font-size:17px!important;font-weight:700!important;letter-spacing:0!important}
   .pn-mob-avatar{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px}
   .pn-mob-name{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:0}
+  /* Hanging wire */
+  .pn-wire-wrap{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:2px;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:1001}
+  .pn-wire{width:2px;background:linear-gradient(180deg,rgba(146,16,246,0.6),rgba(146,16,246,0.15));border-radius:1px;transition:height .4s cubic-bezier(.22,1,.36,1)}
+  .pn-wire-handle{
+    width:28px;height:28px;border-radius:50%;
+    background:linear-gradient(135deg,#9210f6,#610497);
+    border:2px solid rgba(255,255,255,0.25);
+    box-shadow:0 4px 20px rgba(146,16,246,0.5),0 0 12px rgba(146,16,246,0.3);
+    cursor:grab;pointer-events:all;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .3s cubic-bezier(.22,1,.36,1),box-shadow .3s;
+    margin-top:-1px;
+    animation:wireDangle 3s ease-in-out infinite;
+  }
+  .pn-wire-handle:active{cursor:grabbing;transform:scale(1.15);box-shadow:0 6px 28px rgba(146,16,246,0.7),0 0 20px rgba(146,16,246,0.4)}
+  .pn-wire-handle svg{width:14px;height:14px;color:#fff}
+  @keyframes wireDangle{0%,100%{transform:translateX(0) rotate(0deg)}25%{transform:translateX(2px) rotate(2deg)}75%{transform:translateX(-2px) rotate(-2deg)}}
+  .pn-wire-mascot{
+    margin-top:8px;width:70px;position:relative;
+    animation:mascotBounce 3s ease-in-out infinite;
+    filter:drop-shadow(0 4px 16px rgba(146,16,246,0.35));
+    transition:opacity .15s;
+  }
+  .pn-wire-mascot.hidden{opacity:0;visibility:hidden;pointer-events:none}
+  .pn-wire-mascot img{width:100%;height:auto;display:block}
+  .pn-mascot-bubble{
+    position:absolute;bottom:calc(100% + 10px);left:50%;transform:translateX(-50%);
+    min-width:160px;max-width:200px;padding:10px 14px;
+    background:rgba(20,8,40,0.95);border:1px solid rgba(146,16,246,0.4);border-radius:14px;
+    font-family:'DM Sans',sans-serif;font-size:11px;line-height:1.5;color:#e0d0ff;text-align:center;
+    box-shadow:0 6px 24px rgba(0,0,0,0.5),0 0 12px rgba(146,16,246,0.2);
+    opacity:0;transform:translateX(-50%) translateY(6px) scale(0.9);
+    transition:opacity .3s ease,transform .3s ease;pointer-events:none;white-space:nowrap;z-index:20;
+  }
+  .pn-mascot-bubble.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+  .pn-mascot-bubble::after{
+    content:'';position:absolute;bottom:-6px;left:50%;margin-left:-5px;
+    width:10px;height:10px;background:rgba(20,8,40,0.95);
+    border-right:1px solid rgba(146,16,246,0.4);border-bottom:1px solid rgba(146,16,246,0.4);
+    transform:rotate(45deg);
+  }
+  .pn-wire-mascot .pn-mascot-r,.pn-wire-mascot .pn-mascot-b{
+    position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:screen;opacity:0
+  }
+  .pn-wire-mascot .pn-mascot-scanlines{
+    position:absolute;inset:0;pointer-events:none;z-index:10;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px);opacity:0
+  }
+  @keyframes mascotBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .pn-wire-mascot.glitch-in{animation:smallGlitchIn .6s steps(1) forwards}
+  .pn-wire-mascot.glitch-in .pn-mascot-r{animation:pRGB_R_IN .6s steps(1) forwards}
+  .pn-wire-mascot.glitch-in .pn-mascot-b{animation:pRGB_B_IN .6s steps(1) forwards}
+  .pn-wire-mascot.glitch-in .pn-mascot-scanlines{animation:pScan_IN .6s steps(1) forwards}
+  .pn-wire-mascot.glitch-out{animation:smallGlitchOut .5s steps(1) forwards}
+  .pn-wire-mascot.glitch-out .pn-mascot-r{animation:pRGB_R_OUT .5s steps(1) forwards}
+  .pn-wire-mascot.glitch-out .pn-mascot-b{animation:pRGB_B_OUT .5s steps(1) forwards}
+  .pn-wire-mascot.glitch-out .pn-mascot-scanlines{animation:pScan_OUT .5s steps(1) forwards}
+  @keyframes smallGlitchIn{
+    0%{opacity:0;transform:translateY(-20px) scale(0.8);clip-path:inset(0 0 100% 0)}
+    5%{opacity:1;transform:translate(6px,-2px) skewX(5deg);clip-path:inset(10% 0 60% 0)}
+    10%{opacity:0.7;transform:translate(-10px,2px) skewX(-7deg);clip-path:inset(30% 0 20% 0);filter:hue-rotate(40deg) drop-shadow(3px 0 6px rgba(255,0,100,0.6))}
+    15%{opacity:1;transform:translate(4px,-1px) skewX(3deg);clip-path:inset(5% 0 70% 0);filter:hue-rotate(-30deg) drop-shadow(-2px 0 5px rgba(0,200,255,0.5))}
+    20%{opacity:0.8;transform:translate(-6px,3px) skewX(-4deg);clip-path:inset(40% 0 10% 0);filter:hue-rotate(60deg)}
+    25%{opacity:1;transform:translate(2px,-1px);clip-path:inset(15% 0 45% 0);filter:none}
+    35%{opacity:1;transform:translate(-1px,0);clip-path:inset(8% 0 55% 0)}
+    50%{opacity:1;transform:translate(0,0);clip-path:inset(0)}
+    100%{opacity:1;transform:translate(0,0) scale(1);clip-path:inset(0);animation:mascotBounce 3s ease-in-out infinite}
+  }
+  @keyframes smallGlitchOut{
+    0%{opacity:1;transform:translate(0,0) scale(1);clip-path:inset(0)}
+    10%{opacity:1;transform:translate(-5px,2px) skewX(-4deg);clip-path:inset(10% 0 50% 0);filter:hue-rotate(-30deg) drop-shadow(3px 0 6px rgba(255,0,100,0.5))}
+    15%{opacity:0.8;transform:translate(8px,-3px) skewX(6deg);clip-path:inset(30% 0 20% 0);filter:hue-rotate(50deg) drop-shadow(-3px 0 7px rgba(0,200,255,0.6))}
+    20%{opacity:0.9;transform:translate(-4px,1px) skewX(-3deg);clip-path:inset(5% 0 60% 0);filter:hue-rotate(-40deg)}
+    30%{opacity:0.5;transform:translate(3px,-2px);clip-path:inset(20% 0 40% 0);filter:none}
+    40%{opacity:0.3;transform:translate(-2px,1px);clip-path:inset(50% 0 25% 0)}
+    55%{opacity:0.1;transform:translate(0,0);clip-path:inset(30% 0 50% 0)}
+    70%{opacity:0;transform:translate(0,0);clip-path:inset(50% 0 50% 0)}
+    100%{opacity:0;transform:translate(0,0) scale(0.9);clip-path:inset(50% 0 50% 0);visibility:hidden}
+  }
+  @keyframes pRGB_R_IN{
+    0%{opacity:0}5%{opacity:0.6;transform:translate(5px,-2px);filter:hue-rotate(-30deg) saturate(2)}
+    15%{opacity:0.5;transform:translate(-3px,1px);filter:hue-rotate(20deg)}30%{opacity:0.2}50%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pRGB_B_IN{
+    0%{opacity:0}5%{opacity:0.5;transform:translate(-4px,2px);filter:hue-rotate(50deg) saturate(2)}
+    15%{opacity:0.4;transform:translate(3px,-1px);filter:hue-rotate(-40deg)}30%{opacity:0.15}50%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pScan_IN{
+    0%{opacity:0}5%{opacity:0.5}15%{opacity:0.3}25%{opacity:0.4}40%{opacity:0.15}55%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pRGB_R_OUT{
+    0%{opacity:0}5%{opacity:0.3;transform:translate(4px,-2px);filter:hue-rotate(-40deg) saturate(2)}
+    15%{opacity:0.5;transform:translate(-6px,2px);filter:hue-rotate(40deg) saturate(2.5)}
+    25%{opacity:0.4;transform:translate(2px,-1px)}40%{opacity:0.2}60%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pRGB_B_OUT{
+    0%{opacity:0}5%{opacity:0.35;transform:translate(-3px,2px);filter:hue-rotate(50deg) saturate(2)}
+    15%{opacity:0.5;transform:translate(5px,-2px);filter:hue-rotate(-50deg) saturate(2.5)}
+    25%{opacity:0.35;transform:translate(-2px,1px)}40%{opacity:0.15}60%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pScan_OUT{
+    0%{opacity:0}5%{opacity:0.3}15%{opacity:0.5}25%{opacity:0.4}40%{opacity:0.3}55%{opacity:0.1}70%{opacity:0}100%{opacity:0}
+  }
   .pn-logo-desktop{display:block}
   .pn-logo-mobile{display:none}
   @media(max-width:1100px){.pn-nav{width:78%}}
   @media(max-width:900px){
-    .pn-links,.pn-cta{display:none}
+    .pn-links,.pn-cta,.pn-wire-wrap{display:none}
     .pn-ham{display:flex}
     .pn-wrap{padding:12px 20px;display:block}
     .pn-nav{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}
@@ -73,9 +176,36 @@ export default function PlayerNavbar() {
   const [player, setPlayer] = useState(null);
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [mascotGlitch, setMascotGlitch] = useState('visible');
+  const [bubbleText, setBubbleText] = useState('');
+  const [bubbleShow, setBubbleShow] = useState(false);
   const ddRef = useRef(null);
+  const wireRef = useRef(null);
+  const [wireDragging, setWireDragging] = useState(false);
+  const wireStartY = useRef(0);
   const navigate = useNavigate();
   const location = useLocation();
+
+  /* Mascot popup messages */
+  const MASCOT_MSGS = [
+    'Pull the trigger to play a quick game!',
+    'Drag me down to start!',
+    'Ready to play? Pull down!',
+    'Spin the wheel of rewards!',
+    'Try your luck today!',
+  ];
+  useEffect(() => {
+    let idx = 0;
+    const show = () => {
+      setBubbleText(MASCOT_MSGS[idx % MASCOT_MSGS.length]);
+      setBubbleShow(true);
+      setTimeout(() => setBubbleShow(false), 3500);
+      idx++;
+    };
+    const t1 = setTimeout(show, 1500);
+    const timer = setInterval(show, 8000);
+    return () => { clearTimeout(t1); clearInterval(timer); };
+  }, []);
 
   useEffect(() => {
     const readPlayer = () => {
@@ -89,6 +219,28 @@ export default function PlayerNavbar() {
     return () => window.removeEventListener('player-updated', readPlayer);
   }, [location.pathname]);
 
+  /* Listen for mascot-switch events (auto 5s cycle) */
+  useEffect(() => {
+    const handler = (e) => {
+      const { phase, activeMascot } = e.detail;
+      if (activeMascot === 'small' && phase === 'glitch-in') {
+        setMascotGlitch('glitch-in');
+        setTimeout(() => setMascotGlitch('visible'), 600);
+      } else if (activeMascot === 'small' && phase === 'glitch-out') {
+        setMascotGlitch('glitch-out');
+        setTimeout(() => setMascotGlitch('hidden'), 500);
+      } else if (activeMascot === 'big' && phase === 'glitch-out') {
+        setMascotGlitch('glitch-out');
+        setTimeout(() => setMascotGlitch('hidden'), 500);
+      } else if (activeMascot === 'big' && phase === 'glitch-in') {
+        setMascotGlitch('glitch-in');
+        setTimeout(() => setMascotGlitch('visible'), 600);
+      }
+    };
+    window.addEventListener('mascot-switch', handler);
+    return () => window.removeEventListener('mascot-switch', handler);
+  }, []);
+
   useEffect(() => {
     if (!open) return;
     const handler = (e) => { if (ddRef.current && !ddRef.current.contains(e.target)) setOpen(false); };
@@ -99,6 +251,37 @@ export default function PlayerNavbar() {
   }, [open]);
 
   useEffect(() => { setMenuOpen(false); }, [location.pathname]);
+
+  /* Wire drag handlers */
+  const onWireDown = (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setWireDragging(true);
+    wireStartY.current = e.clientY || e.touches?.[0]?.clientY || 0;
+  };
+  useEffect(() => {
+    if (!wireDragging) return;
+    const onMove = (e) => {
+      const y = e.clientY || e.touches?.[0]?.clientY || 0;
+      const dy = y - wireStartY.current;
+      if (dy > 120) {
+        setWireDragging(false);
+        const el = document.getElementById('cta-final');
+        if (el) el.scrollIntoView({ behavior: 'smooth' });
+      }
+    };
+    const onUp = () => setWireDragging(false);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onUp);
+    return () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onUp);
+    };
+  }, [wireDragging]);
 
   const isActive = (href) => location.pathname === href;
 
@@ -176,7 +359,34 @@ export default function PlayerNavbar() {
             </div>
             </div>
           ) : (
-            <a href="/login" className="pn-cta">Signup &amp; Play</a>
+            <div style={{ position: 'relative' }}>
+              <a href="/login" className="pn-cta">Login</a>
+              <div className="pn-wire-wrap" ref={wireRef}>
+                <div className="pn-wire" style={{ height: wireDragging ? 80 : 40, transition: wireDragging ? 'none' : 'height .4s cubic-bezier(.22,1,.36,1)' }} />
+                <div
+                  className="pn-wire-handle"
+                  onMouseDown={onWireDown}
+                  onTouchStart={onWireDown}
+                  style={wireDragging ? { animation: 'none', transform: 'scale(1.15)' } : {}}
+                >
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </div>
+                {/* Small mascot below the pulling trigger */}
+                <div className={`pn-wire-mascot${mascotGlitch === 'visible' ? '' : mascotGlitch === 'hidden' ? ' hidden' : ' ' + mascotGlitch}`}>
+                  <div className={`pn-mascot-bubble${bubbleShow ? ' show' : ''}`}>{bubbleText}</div>
+                  <img src="/mascotques.png" alt="Mascot" />
+                  {mascotGlitch === 'glitch-in' && (
+                    <>
+                      <img src="/mascotques.png" alt="" className="pn-mascot-r" />
+                      <img src="/mascotques.png" alt="" className="pn-mascot-b" />
+                      <div className="pn-mascot-scanlines" />
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
           )}
 
           <button className={`pn-ham${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(!menuOpen)}>
@@ -200,7 +410,7 @@ export default function PlayerNavbar() {
             Dashboard
           </button>
         ) : (
-          <a href="/login" className="pn-mob-cta">Signup &amp; Play</a>
+          <a href="/login" className="pn-mob-cta">Login</a>
         )}
       </div>
     </>

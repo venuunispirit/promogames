@@ -61,6 +61,7 @@ import Business          from './pages/Business'
 import CRMPage           from './pages/CRMPage'
 
 import StatusPage         from './pages/StatusPage'
+import BOLogsPage         from './pages/BOLogsPage'
 import RedemptionLogsPage from './pages/RedemptionLogsPage'
 import BOLayout          from './pages/BOLayout'
 import BODashboard       from './pages/BODashboard'
@@ -164,6 +165,7 @@ function AppRoutes() {
         <Route path="crm"                             element={<CRMPage />} />
 
         <Route path="status"                         element={<StatusPage />} />
+        <Route path="bo-logs"                        element={<BOLogsPage />} />
         <Route path="business/redemption-logs"       element={<RedemptionLogsPage />} />
       </Route>
 

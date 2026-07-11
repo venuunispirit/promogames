@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 
 const BRICK_ROWS = 8;
-const BRICK_COLS = 13;
 const BRICK_H = 18;
-const BRICK_GAP_H = 12;
+const BRICK_GAP_H = 10;
 const BRICK_GAP_V = 10;
 const BALL_R = 7;
 const PADDLE_H = 10;
@@ -35,14 +34,23 @@ function makeSound(ctx, freq, type, dur, vol) {
   osc.stop(ctx.currentTime + dur);
 }
 
+function getBrickCols(W) {
+  if (W < 360) return 7;
+  if (W < 480) return 9;
+  if (W < 640) return 11;
+  return 13;
+}
+
 function makeBricks(W, H) {
-  const totalW = W - 40;
-  const bw = (totalW - (BRICK_COLS - 1) * BRICK_GAP_H) / BRICK_COLS;
-  const startX = 20;
+  const cols = getBrickCols(W);
+  const sidePad = W < 480 ? 12 : 20;
+  const totalW = W - sidePad * 2;
+  const bw = (totalW - (cols - 1) * BRICK_GAP_H) / cols;
+  const startX = sidePad;
   const startY = H * 0.10;
   const bricks = [];
   for (let r = 0; r < BRICK_ROWS; r++) {
-    for (let c = 0; c < BRICK_COLS; c++) {
+    for (let c = 0; c < cols; c++) {
       bricks.push({
         x: startX + c * (bw + BRICK_GAP_H),
         y: startY + r * (BRICK_H + BRICK_GAP_V),
@@ -59,13 +67,15 @@ function makeBricks(W, H) {
 }
 
 function makeCtaBricks(W, H) {
-  const totalW = W - 40;
-  const bw = (totalW - (BRICK_COLS - 1) * BRICK_GAP_H) / BRICK_COLS;
-  const startX = 20;
+  const cols = getBrickCols(W);
+  const sidePad = W < 480 ? 12 : 20;
+  const totalW = W - sidePad * 2;
+  const bw = (totalW - (cols - 1) * BRICK_GAP_H) / cols;
+  const startX = sidePad;
   const startY = H * 0.10;
   const midRow = Math.floor(BRICK_ROWS / 2);
-  const midColL = Math.floor(BRICK_COLS / 2) - 2;
-  const midColR = Math.floor(BRICK_COLS / 2) + 1;
+  const midColL = Math.floor(cols / 2) - 2;
+  const midColR = Math.floor(cols / 2) + 1;
   const ctaY = startY + midRow * (BRICK_H + BRICK_GAP_V);
   return [
     {
@@ -92,12 +102,13 @@ export default function ArkanoidGame() {
     const canvas = canvasRef.current;
     const wrap = wrapRef.current;
     if (!canvas || !wrap) return;
-    const W = wrap.clientWidth || 700;
-    const H = wrap.clientHeight || 500;
+
+    let W = wrap.clientWidth || 700;
+    let H = wrap.clientHeight || 500;
     canvas.width = W;
     canvas.height = H;
     const ctx = canvas.getContext('2d');
-    const PW = Math.max(70, W * 0.10);
+    const PW = Math.max(70, Math.min(W * 0.18, 120));
 
     let audioCtx = null;
     try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch {}
@@ -126,6 +137,24 @@ export default function ArkanoidGame() {
       s.ball.dy = Math.sin(angle) * speed;
     };
 
+    const rebuildLayout = () => {
+      const newW = wrap.clientWidth || 700;
+      const newH = wrap.clientHeight || 500;
+      if (newW === W && newH === H) return;
+      W = newW; H = newH;
+      s.W = W; s.H = H;
+      canvas.width = W;
+      canvas.height = H;
+      s.paddle.w = Math.max(70, Math.min(W * 0.18, 120));
+      s.paddle.y = H - 16;
+      s.paddle.x = Math.max(0, Math.min(W - s.paddle.w, s.paddle.x));
+      s.bricks = makeBricks(W, H);
+      s.ctaBricks = makeCtaBricks(W, H);
+    };
+
+    const ro = new ResizeObserver(() => rebuildLayout());
+    ro.observe(wrap);
+
     const onInteract = (mx) => {
       s.mouseX = mx;
       if (s.ball.dx === 0 && s.ball.dy === 0) {
@@ -145,10 +174,22 @@ export default function ArkanoidGame() {
       const mx = ((e.clientX || 0) - rect.left) * (W / rect.width);
       onInteract(mx);
     };
-    const onTouch = (e) => {
+    const onTouchMove = (e) => {
       e.preventDefault();
       const rect = canvas.getBoundingClientRect();
-      onInteract(((e.touches?.[0]?.clientX || 0) - rect.left) * (W / rect.width));
+      const touch = e.touches[0];
+      if (!touch) return;
+      const mx = (touch.clientX - rect.left) * (W / rect.width);
+      s.mouseX = mx;
+      if (s.ball.dx === 0 && s.ball.dy === 0) onInteract(mx);
+    };
+    const onTouchStart = (e) => {
+      e.preventDefault();
+      const rect = canvas.getBoundingClientRect();
+      const touch = e.touches[0];
+      if (!touch) return;
+      const mx = (touch.clientX - rect.left) * (W / rect.width);
+      onInteract(mx);
     };
 
     const onCtaClick = (e) => {
@@ -168,7 +209,8 @@ export default function ArkanoidGame() {
     };
 
     canvas.addEventListener('mousemove', onMouse);
-    canvas.addEventListener('touchmove', onTouch, { passive: false });
+    canvas.addEventListener('touchmove', onTouchMove, { passive: false });
+    canvas.addEventListener('touchstart', onTouchStart, { passive: false });
     canvas.addEventListener('click', onCtaClick);
 
     function spawnParticles(x, y, count, color) {
@@ -284,13 +326,14 @@ export default function ArkanoidGame() {
         ctx.fill();
       }
 
+      const ctaFontSize = W < 480 ? 11 : W < 640 ? 13 : 15;
       for (let bi = 0; bi < s.ctaBricks.length; bi++) {
         const bb = s.ctaBricks[bi];
         if (!bb.alive) continue;
         const isPrimary = bi === 0;
-        const pillH = 40;
+        const pillH = W < 480 ? 32 : 40;
         const pillY = bb.y + (bb.h - pillH) / 2;
-        const padX = 24;
+        const padX = W < 480 ? 12 : 24;
         const pillW = bb.w - padX * 2;
         const pillX = bb.x + padX;
         const radius = pillH / 2;
@@ -322,7 +365,7 @@ export default function ArkanoidGame() {
         }
 
         ctx.fillStyle = '#fff';
-        ctx.font = `${isPrimary ? 700 : 600} 15px 'DM Sans', sans-serif`;
+        ctx.font = `${isPrimary ? 700 : 600} ${ctaFontSize}px 'DM Sans', sans-serif`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         ctx.fillText(bb.label, pillX + pillW / 2, pillY + pillH / 2 + 1);
@@ -384,15 +427,17 @@ export default function ArkanoidGame() {
     rafRef.current = requestAnimationFrame(loop);
     return () => {
       cancelAnimationFrame(rafRef.current);
+      ro.disconnect();
       canvas.removeEventListener('mousemove', onMouse);
-      canvas.removeEventListener('touchmove', onTouch);
+      canvas.removeEventListener('touchmove', onTouchMove);
+      canvas.removeEventListener('touchstart', onTouchStart);
       canvas.removeEventListener('click', onCtaClick);
     };
   }, [started]);
 
   return (
-    <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%', minHeight: 400, borderRadius: 0, overflow: 'hidden', flex: '1 1 auto' }}>
-      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: 'none' }} />
+    <div ref={wrapRef} style={{ position: 'relative', width: '100%', height: '100%', minHeight: 'min(400px, 60vh)', borderRadius: 0, overflow: 'hidden', flex: '1 1 auto', touchAction: 'none' }}>
+      <canvas ref={canvasRef} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', cursor: 'none', touchAction: 'none' }} />
       <div style={{
         position: 'absolute', top: 0, left: 0, right: 0, zIndex: 10,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -401,7 +446,7 @@ export default function ArkanoidGame() {
       }}>
         <div style={{
           fontFamily: "'Bebas Neue', sans-serif",
-          fontSize: 'clamp(22px, 3vw, 36px)', letterSpacing: 2, color: '#fff',
+          fontSize: 'clamp(18px, 3vw, 36px)', letterSpacing: 2, color: '#fff',
           whiteSpace: 'nowrap',
         }}>
           READY TO{' '}

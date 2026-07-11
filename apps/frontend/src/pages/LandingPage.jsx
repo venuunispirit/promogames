@@ -1,8 +1,43 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import CountUp from "../components/CountUp";
 import PlayerNavbar from "../components/PlayerNavbar";
-import WaveText from "../components/WaveText";
 import ArkanoidGame from "../components/ArkanoidGame";
+import MascotCursor from "../components/MascotCursor";
+
+import gsap from "gsap";
+
+/* ─── INLINE SVG ICONS ────────────────────────────── */
+const ICONS = {
+  dice:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="18" height="18" rx="4"/><circle cx="8.5" cy="8.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="15.5" cy="15.5" r="1.2" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.2" fill="currentColor" stroke="none"/></svg>',
+  zap:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 3 14h7l-1 8 10-12h-7l1-8z"/></svg>',
+  puzzle:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h4a2 2 0 0 1 4 0h4a2 2 0 0 1 2 2v4a2 2 0 0 1 0 4v2H2v-2a2 2 0 0 1 0-4V9a2 2 0 0 1 2-2z"/></svg>',
+  trophy:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8 21h8M12 17v4M6 3h12l-1 7a5 5 0 0 1-10 0L6 3zM6 5H3v2a3 3 0 0 0 3 3M18 5h3v2a3 3 0 0 1-3 3"/></svg>',
+  gift:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7h-3.2a3 3 0 1 0-4.8-3 3 3 0 1 0-4.8 3H4a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1h16a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1z"/><path d="M4 12v7a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-7M12 7v14"/></svg>',
+  tap:   '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 11V6a2 2 0 1 1 4 0M13 6a2 2 0 1 1 4 0v6M9 12V9a2 2 0 1 0-4 0v7a7 7 0 0 0 7 7h1a7 7 0 0 0 7-7v-3a2 2 0 1 0-4 0"/></svg>',
+  blocks:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  pointer:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 4l7.07 17 2.51-7.39L21 11.07z"/><path d="M9.12 12.88L4 4"/></svg>',
+  star:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 6.9L12 17.3 5.7 20.8l1.7-6.9-5.4-4.7 7.1-.6z"/></svg>',
+  check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+  starSolid: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 6.9L12 17.3 5.7 20.8l1.7-6.9-5.4-4.7 7.1-.6z"/></svg>',
+  arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>',
+  gamepad:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 12h4M8 10v4M15 11h.01M18 13h.01"/></svg>',
+  flame: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>',
+  phone: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3 19.5 19.5 0 0 1-6-6 19.8 19.8 0 0 1-3-8.7A2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.1 1 .4 2 .7 3a2 2 0 0 1-.5 2.1L8 10a16 16 0 0 0 6 6l1.2-1.3a2 2 0 0 1 2.1-.5c1 .3 2 .5 3 .7a2 2 0 0 1 1.7 2z"/></svg>',
+  mail:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m2 6 10 7 10-7"/></svg>',
+  linkedin: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4V9h4v2a5 5 0 0 1 2-3z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>',
+  instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="2" width="20" height="20" rx="5"/><circle cx="12" cy="12" r="4.2"/><circle cx="17.4" cy="6.6" r="1"/></svg>',
+  twitter: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 5.9a8.4 8.4 0 0 1-2.4.66 4.2 4.2 0 0 0 1.83-2.3 8.3 8.3 0 0 1-2.65 1 4.17 4.17 0 0 0-7.1 3.8A11.83 11.83 0 0 1 3.15 4.6a4.16 4.16 0 0 0 1.29 5.56 4.1 4.1 0 0 1-1.89-.52v.05a4.17 4.17 0 0 0 3.34 4.09 4.2 4.2 0 0 1-1.88.07 4.18 4.18 0 0 0 3.89 2.9A8.35 8.35 0 0 1 2 18.57a11.78 11.78 0 0 0 6.4 1.88c7.68 0 11.88-6.37 11.88-11.89l-.01-.54A8.5 8.5 0 0 0 22 5.9z"/></svg>',
+  youtube: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="m10 9 5 3-5 3z"/></svg>',
+  badgeCheck: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3.85 8.62a4 4 0 0 1 4.78-4.77 4 4 0 0 1 6.74 0 4 4 0 0 1 4.78 4.77 4 4 0 0 1 0 6.76 4 4 0 0 1-4.78 4.77 4 4 0 0 1-6.74 0 4 4 0 0 1-4.78-4.77 4 4 0 0 1 0-6.76Z"/><path d="m9 12 2 2 4-4"/></svg>',
+};
+
+const SvgIcon = ({ name, size = 24, className = "", style = {} }) => (
+  <span
+    className={className}
+    style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: size, height: size, flexShrink: 0, ...style }}
+    dangerouslySetInnerHTML={{ __html: ICONS[name] || '' }}
+  />
+);
 
 /* ─── DATA ─────────────────────────────────────────── */
 const MARQUEE_TEXTS = [
@@ -14,18 +49,18 @@ const MARQUEE_TEXTS = [
 ];
 
 const GAME_CATEGORIES = [
-  { icon: "🎡", label: "Spin & Win",    color: "#9210f6" },
-  { icon: "⚡", label: "Quick Reflex",  color: "#610497" },
-  { icon: "🧩", label: "Puzzle Rush",   color: "#7C3AED" },
-  { icon: "🏆", label: "Quiz Battle",   color: "#4F46E5" },
-  { icon: "🍀", label: "Lucky Drop",    color: "#9210f6" },
-  { icon: "👆", label: "Tap Challenge", color: "#610497" },
+  { icon: <SvgIcon name="dice" size={40} />, label: "Spin & Win",    color: "#9210f6" },
+  { icon: <SvgIcon name="zap" size={40} />, label: "Quick Reflex",  color: "#610497" },
+  { icon: <SvgIcon name="blocks" size={40} />, label: "Puzzle Rush",   color: "#7C3AED" },
+  { icon: <SvgIcon name="trophy" size={40} />, label: "Quiz Battle",   color: "#4F46E5" },
+  { icon: <SvgIcon name="gift" size={40} />, label: "Lucky Drop",    color: "#9210f6" },
+  { icon: <SvgIcon name="pointer" size={40} />, label: "Tap Challenge", color: "#610497" },
 ];
 
 const HOW_STEPS = [
-  { num: "01", icon: "🎮", title: "Choose A Game",  desc: "Jump into fun quick games anytime, anywhere." },
-  { num: "02", icon: "⭐", title: "Earn Points",    desc: "Score higher and move up the leaderboard with every play." },
-  { num: "03", icon: "🎁", title: "Unlock Rewards", desc: "Top players win exciting gifts, rewards, and exclusive surprises." },
+  { num: "01", icon: <SvgIcon name="gamepad" size={32} />, title: "Choose A Game",  desc: "Jump into fun quick games anytime, anywhere." },
+  { num: "02", icon: <SvgIcon name="star" size={32} />, title: "Earn Points",    desc: "Score higher and move up the leaderboard with every play." },
+  { num: "03", icon: <SvgIcon name="gift" size={32} />, title: "Unlock Rewards", desc: "Top players win exciting gifts, rewards, and exclusive surprises." },
 ];
 
 const REWARD_TAGS = [
@@ -34,10 +69,10 @@ const REWARD_TAGS = [
 ];
 
 const REWARD_CARDS_DATA = [
-  { icon: "⚡", title: "Real-Time Rewards", desc: "Earn points and redeem rewards instantly — no waiting, no delays." },
-  { icon: "🏆", title: "monthly Winners",    desc: "Top scorers every week get exclusive prizes and surprises." },
-  { icon: "🎁", title: "Exclusive Gifts",   desc: "Unlock curated gifts and offers only available to top players." },
-  { icon: "🎰", title: "Daily Surprises",   desc: "Log in every day for bonus drops, mystery rewards, and more." },
+  { icon: <SvgIcon name="zap" size={38} />, title: "Real-Time Rewards", desc: "Earn points and redeem rewards instantly — no waiting, no delays." },
+  { icon: <SvgIcon name="trophy" size={38} />, title: "monthly Winners",    desc: "Top scorers every week get exclusive prizes and surprises." },
+  { icon: <SvgIcon name="gift" size={38} />, title: "Exclusive Gifts",   desc: "Unlock curated gifts and offers only available to top players." },
+  { icon: <SvgIcon name="dice" size={38} />, title: "Daily Surprises",   desc: "Log in every day for bonus drops, mystery rewards, and more." },
 ];
 
 const WHY_POINTS = [
@@ -146,11 +181,7 @@ img{display:block;max-width:100%}
 
 .scroll-bar{position:fixed;top:0;left:0;height:3px;z-index:9999;background:linear-gradient(90deg,var(--purple),var(--purple3),var(--gold));width:var(--scroll-pct,0%);transition:width .05s linear;box-shadow:0 0 12px var(--purple)}
 
-.cursor-dot{position:fixed;top:0;left:0;pointer-events:none;z-index:99999;width:8px;height:8px;border-radius:50%;background:var(--accent);transform:translate(-50%,-50%);transition:width .2s,height .2s,opacity .2s;box-shadow:0 0 10px var(--accent)}
-.cursor-ring{position:fixed;top:0;left:0;pointer-events:none;z-index:99998;width:36px;height:36px;border-radius:50%;border:1.5px solid rgba(192,64,255,0.5);transform:translate(-50%,-50%);transition:width .3s cubic-bezier(.22,1,.36,1),height .3s cubic-bezier(.22,1,.36,1),opacity .3s}
-body.cursor-hover .cursor-dot{width:14px;height:14px;background:#fff}
-body.cursor-hover .cursor-ring{width:52px;height:52px;border-color:rgba(192,64,255,0.9)}
-body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opacity:0}
+
 
 /* BUTTONS */
 .btn-primary{display:inline-flex;align-items:center;gap:10px;height:52px;padding:0 32px;border-radius:100px;background:linear-gradient(90deg,var(--purple2),var(--purple));color:#fff;font-family:var(--fb);font-weight:700;font-size:15px;text-decoration:none;cursor:none;border:none;transition:opacity .2s,transform .2s}
@@ -167,22 +198,50 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(146,16,246,0)}50%{box-shadow:0 0 28px 6px rgba(146,16,246,0.35)}}
 @keyframes marqueeScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
 @keyframes fadeUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+@keyframes mascotBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
 @keyframes scaleIn{from{opacity:0;transform:scale(0.88)}to{opacity:1;transform:scale(1)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes rankPop{from{opacity:0;transform:scale(0.6) translateY(20px)}to{opacity:1;transform:scale(1) translateY(0)}}
 
 /* HERO */
 #home{width:100%;min-height:100svh;padding:120px 6% 70px;display:flex;align-items:center;position:relative;overflow:hidden;background:radial-gradient(ellipse 90% 60% at 50% -10%,rgba(146,16,246,0.22) 0%,transparent 65%),radial-gradient(ellipse 50% 40% at 85% 60%,rgba(97,4,151,0.14) 0%,transparent 60%),var(--bg)}
-.hero-inner{width:100%;max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1fr 480px;gap:60px;align-items:center}
-.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border-radius:100px;background:rgba(146,16,246,0.12);border:1px solid rgba(146,16,246,0.30);font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:24px;animation:fadeUp .6s ease both}
-.hero-h1{font-family:var(--fh);font-size:clamp(52px,7.5vw,110px);font-weight:400;letter-spacing:3px;line-height:1;margin-bottom:22px;animation:fadeUp .6s .1s ease both}
-.hero-h1 .line-accent{display:block;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;position:relative;animation:glitch 5s infinite}
-.hero-h1 .line-accent::before,.hero-h1 .line-accent::after{content:attr(data-text);position:absolute;inset:0;background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;pointer-events:none}
-.hero-h1 .line-accent::before{animation:glitchTop 5s infinite;clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}
-.hero-h1 .line-accent::after{animation:glitchBottom 5s infinite;clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}
-@keyframes glitch{0%,15%,35%,55%,100%{transform:translate(0)}3%{transform:translate(-3px,2px)}5%{transform:translate(3px,-1px)}7%{transform:translate(-2px,-2px)}9%{transform:translate(0)}38%{transform:translate(4px,-2px)}40%{transform:translate(-4px,1px)}42%{transform:translate(2px,2px)}44%,52%{transform:translate(0)}46%{transform:translate(-5px,3px)}48%{transform:translate(5px,-2px)}50%{transform:translate(-3px,1px)}}
-@keyframes glitchTop{0%,15%,35%,55%,100%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}3%{transform:translate(-5px,4px);clip-path:polygon(0 0,100% 0,100% 45%,0 45%)}5%{transform:translate(5px,-3px);clip-path:polygon(0 0,100% 0,100% 20%,0 20%)}7%,9%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}38%{transform:translate(-6px,3px);clip-path:polygon(0 0,100% 0,100% 55%,0 55%)}40%{transform:translate(6px,-2px);clip-path:polygon(0 0,100% 0,100% 25%,0 25%)}42%,44%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}46%{transform:translate(-4px,5px);clip-path:polygon(0 0,100% 0,100% 50%,0 50%)}48%{transform:translate(4px,-4px);clip-path:polygon(0 0,100% 0,100% 15%,0 15%)}50%,52%{transform:translate(0);clip-path:polygon(0 0,100% 0,100% 33%,0 33%)}}
-@keyframes glitchBottom{0%,15%,35%,55%,100%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}3%{transform:translate(4px,-3px);clip-path:polygon(0 55%,100% 55%,100% 100%,0 100%)}5%{transform:translate(-5px,2px);clip-path:polygon(0 75%,100% 75%,100% 100%,0 100%)}7%,9%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}38%{transform:translate(5px,3px);clip-path:polygon(0 50%,100% 50%,100% 100%,0 100%)}40%{transform:translate(-5px,-3px);clip-path:polygon(0 80%,100% 80%,100% 100%,0 100%)}42%,44%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}46%{transform:translate(3px,-4px);clip-path:polygon(0 58%,100% 58%,100% 100%,0 100%)}48%{transform:translate(-3px,4px);clip-path:polygon(0 72%,100% 72%,100% 100%,0 100%)}50%,52%{transform:translate(0);clip-path:polygon(0 66%,100% 66%,100% 100%,0 100%)}}
+.hero-mascot-wrap{flex:1;display:flex;align-items:center;justify-content:flex-end;margin-right:-6%;animation:fadeUp .6s .2s ease both}
+.hero-mascot-img{width:100%;max-width:800px;height:auto;filter:drop-shadow(0 8px 32px rgba(146,16,246,0.3))}
+.hero-inner{width:100%;max-width:1440px;margin:0 auto;display:flex;align-items:center;gap:40px}
+.hero-left{flex:1;min-width:0}
+.hero-eyebrow{display:inline-flex;align-items:center;gap:8px;padding:5px 16px;border-radius:100px;background:rgba(146,16,246,0.12);border:1px solid rgba(146,16,246,0.30);font-family:var(--fm);font-size:10px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--accent);margin-bottom:32px;animation:fadeUp .6s ease both}
+.hero-h1{font-family:'Inter',var(--fh);font-size:clamp(52px,7.5vw,110px);font-weight:900;letter-spacing:-0.03em;line-height:1;margin-bottom:32px;animation:fadeUp .6s .1s ease both}
+.hero-h1 .glitch-line{
+  color:rgba(150,150,150,0.2);
+  background:linear-gradient(to right,#4a4a4a,#7a7a7a);
+  background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-repeat:no-repeat;background-size:0% 100%;
+  border-bottom:none;
+  display:block;position:relative;cursor:pointer;overflow:hidden;
+  white-space:nowrap;transform:scale(0.95);opacity:0.7;
+  padding:0;margin-bottom:8px;transition:opacity .5s ease,transform .5s ease;
+  line-height:1.05;
+}
+.hero-h1 .glitch-line.accent{
+  background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));
+  background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-h1 .glitch-line.accent .overlay{
+  background:linear-gradient(90deg,var(--purple),var(--accent),var(--gold));
+  background-clip:text;-webkit-background-clip:text;-webkit-text-fill-color:transparent;
+}
+.hero-h1 .glitch-line .overlay{
+  position:absolute;width:100%;height:100%;top:0;left:0;
+  font-weight:900;display:flex;align-items:center;
+  background-color:transparent;
+  color:rgba(255,255,255,0.9);-webkit-text-fill-color:rgba(255,255,255,0.9);
+  clip-path:polygon(0 50%,100% 50%,100% 50%,0 50%);
+  transition:clip-path .4s cubic-bezier(0.25,0.46,0.45,0.94);
+  pointer-events:none;overflow:hidden;white-space:nowrap;
+  letter-spacing:0.0em;padding:0;
+}
+.hero-h1 .glitch-line:hover{background:none;-webkit-text-fill-color:transparent;border-bottom-color:transparent}
+.hero-h1 .glitch-line:hover .overlay{clip-path:polygon(0 0,100% 0,100% 100%,0 100%)}
 .hero-sub{font-family:var(--fb);font-size:17px;color:var(--muted);line-height:1.75;max-width:460px;margin-bottom:36px;animation:fadeUp .6s .18s ease both}
 .hero-actions{display:flex;align-items:center;gap:14px;margin-bottom:44px;flex-wrap:wrap;animation:fadeUp .6s .26s ease both}
 .hero-stats{display:flex;gap:0;animation:fadeUp .6s .34s ease both}
@@ -191,26 +250,69 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .hst:first-child{padding-left:0}
 .hst-n{font-family:var(--fh);font-size:clamp(22px,2.4vw,32px);font-weight:400;letter-spacing:1px;line-height:1;background:linear-gradient(90deg,#fff,rgba(255,255,255,0.7));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
 .hst-l{font-family:var(--fb);font-size:11px;color:var(--muted);letter-spacing:.3px}
-.hero-games{display:flex;flex-direction:column;gap:10px;animation:fadeUp .6s .2s ease both}
-.hero-games-title{font-family:var(--fm);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+/* HERO GAMES — card right + avatar left on hover */
+.hero-games{position:relative;width:480px;flex-shrink:0;margin-left:auto;animation:fadeUp .6s .2s ease both}
+.hero-games-title{font-family:var(--fm);font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:16px;display:flex;align-items:center;gap:8px;width:100%}
 .hero-games-title::after{content:'';flex:1;height:1px;background:rgba(255,255,255,0.08)}
-.hg-card{display:flex;align-items:center;gap:14px;padding:12px 16px;border-radius:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);cursor:none;transition:background .22s,border-color .22s,transform .22s;text-decoration:none;color:#fff;position:relative;overflow:hidden}
-.hg-card::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent 0%,rgba(146,16,246,0.06) 100%);opacity:0;transition:opacity .25s}
-.hg-card:hover{background:rgba(255,255,255,0.07);border-color:rgba(146,16,246,0.35);transform:translateX(4px)}
-.hg-card:hover::before{opacity:1}
-.hg-rank{font-family:var(--fh);font-size:28px;letter-spacing:1px;color:rgba(255,255,255,0.15);width:36px;flex-shrink:0;line-height:1;animation:rankPop .5s cubic-bezier(.34,1.56,.64,1) both}
-.hg-rank.top{color:var(--gold)}
-.hg-thumb{width:52px;height:52px;border-radius:12px;object-fit:cover;flex-shrink:0;background:linear-gradient(135deg,rgba(146,16,246,0.3),rgba(97,4,151,0.2))}
-.hg-thumb-placeholder{width:52px;height:52px;border-radius:12px;flex-shrink:0;background:linear-gradient(135deg,rgba(146,16,246,0.22),rgba(97,4,151,0.14));display:flex;align-items:center;justify-content:center;font-size:22px}
-.hg-info{flex:1;min-width:0}
-.hg-name{font-family:var(--fb);font-size:14px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
-.hg-meta{font-family:var(--fm);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:6px}
-.hg-plays-dot{width:4px;height:4px;border-radius:50%;background:var(--purple)}
-.hg-badge{padding:3px 10px;border-radius:100px;font-family:var(--fm);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;background:rgba(146,16,246,0.18);border:1px solid rgba(146,16,246,0.32);color:var(--accent);flex-shrink:0}
-.hg-arrow{color:var(--muted);font-size:16px;flex-shrink:0;transition:color .2s,transform .2s}
-.hg-card:hover .hg-arrow{color:#fff;transform:translateX(3px)}
-.hg-loader{display:flex;align-items:center;justify-content:center;padding:40px;gap:12px;color:var(--muted);font-family:var(--fb);font-size:13px}
-.hg-spinner{width:18px;height:18px;border:2px solid rgba(146,16,246,0.2);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite}
+.hero-games-area{display:flex;align-items:center;gap:20px;position:relative;justify-content:flex-end}
+
+/* Avatar list — arc around left side of cards */
+.hero-game-avatars{
+  position:absolute;top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;z-index:5;
+  opacity:0;
+  transition:opacity .3s ease;
+}
+.hero-fan-layout:hover .hero-game-avatars{opacity:1}
+.hero-game-avatar{
+  position:absolute;
+  width:48px;height:48px;border-radius:50%;overflow:hidden;
+  border:2px solid rgba(255,255,255,0.12);cursor:pointer;
+  transition:border-color .3s,box-shadow .3s,opacity .4s ease,transform .4s ease;
+  background:rgba(10,5,20,0.95);
+  pointer-events:auto;
+  margin-left:-24px;margin-top:-24px;
+  box-shadow:0 4px 20px rgba(0,0,0,0.4);
+  opacity:0;transform:scale(0.5);
+}
+.hero-fan-layout:hover .hero-game-avatar{opacity:1;transform:scale(1)}
+.hero-game-avatar:hover{border-color:var(--purple);box-shadow:0 0 16px rgba(146,16,246,0.4)}
+.hero-game-avatar.active{border-color:var(--purple);box-shadow:0 0 20px rgba(146,16,246,0.5)}
+.hero-game-avatar img{width:100%;height:100%;object-fit:cover}
+.hero-game-avatar-placeholder{
+  width:100%;height:100%;display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+}
+
+/* Card — right side */
+.hero-fan-layout{position:relative;display:flex;justify-content:flex-end;align-items:center;width:380px;height:380px;overflow:visible}
+.hero-fan-card{
+  width:250px;height:320px;
+  border-radius:16px;padding:14px;
+  display:flex;flex-direction:column;
+  background:rgba(10,5,20,0.95);
+  border:1px solid rgba(255,255,255,0.08);
+  text-decoration:none;color:#fff;
+  overflow:hidden;
+  box-shadow:0 8px 32px rgba(0,0,0,0.35);
+  border-color:rgba(146,16,246,0.5);
+  box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 32px rgba(146,16,246,0.12);
+}
+.hero-fan-card.hgf-preview{
+  border-color:rgba(146,16,246,0.7);
+  box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 40px rgba(146,16,246,0.2);
+}
+.hgf-thumb{width:100%;flex:1;border-radius:10px;object-fit:cover;background:linear-gradient(135deg,rgba(146,16,246,0.25),rgba(97,4,151,0.15));margin-bottom:10px}
+.hgf-thumb-placeholder{width:100%;flex:1;border-radius:10px;background:linear-gradient(135deg,rgba(146,16,246,0.2),rgba(97,4,151,0.12));display:flex;align-items:center;justify-content:center}
+.hgf-bottom{display:flex;align-items:center;justify-content:space-between;gap:6px}
+.hgf-info{flex:1;min-width:0}
+.hgf-name{font-family:var(--fb);font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.hgf-meta{font-family:var(--fm);font-size:9px;color:var(--muted);display:flex;align-items:center;gap:4px;margin-top:2px}
+.hgf-plays-dot{width:3px;height:3px;border-radius:50%;background:var(--purple)}
+.hgf-badge{padding:3px 8px;border-radius:100px;font-family:var(--fm);font-size:8px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;background:rgba(146,16,246,0.2);border:1px solid rgba(146,16,246,0.35);color:var(--accent);flex-shrink:0}
+.hg-loader{display:flex;align-items:center;justify-content:center;height:260px;gap:10px;color:var(--muted);font-family:var(--fb);font-size:13px}
+.hg-spinner{width:16px;height:16px;border:2px solid rgba(146,16,246,0.2);border-top-color:var(--purple);border-radius:50%;animation:spin .7s linear infinite}
 
 /* MARQUEE */
 .marquee-strip{padding:20px 0;overflow:hidden;position:relative;background:rgba(146,16,246,0.08);border-top:1px solid rgba(146,16,246,0.18);border-bottom:1px solid rgba(146,16,246,0.18)}
@@ -221,6 +323,59 @@ body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opa
 .marquee-track:hover{animation-play-state:paused}
 .marquee-item{display:inline-flex;align-items:center;gap:16px;padding:0 32px;font-family:var(--fh);font-size:20px;letter-spacing:2px;color:rgba(255,255,255,0.38);white-space:nowrap}
 .marquee-item .dot{width:6px;height:6px;border-radius:50%;background:var(--purple);flex-shrink:0}
+
+/* STICKY MASCOT — sticks inside ranked section, unsticks when scrolling past */
+.rg-section{position:relative}
+.rg-sticky-mascot{
+  position:fixed;right:3%;bottom:15%;width:120px;z-index:50;
+  pointer-events:none;display:flex;flex-direction:column;align-items:center;
+  opacity:0;transform:translateY(20px);transition:opacity .4s ease,transform .4s ease;
+}
+.rg-sticky-mascot.visible{opacity:1;transform:translateY(0)}
+.rg-sticky-mascot img{width:100%;height:auto;display:block;filter:drop-shadow(0 4px 16px rgba(146,16,246,0.35));animation:floatY 4s ease-in-out infinite}
+.rg-mascot-bubble{
+  position:absolute;bottom:calc(100% + 8px);left:50%;transform:translateX(-50%);
+  min-width:140px;max-width:190px;padding:8px 12px;
+  background:rgba(20,8,40,0.92);border:1px solid rgba(146,16,246,0.35);border-radius:12px;
+  font-family:'DM Sans',sans-serif;font-size:11px;line-height:1.45;color:#e0d0ff;text-align:center;
+  box-shadow:0 4px 18px rgba(0,0,0,0.45),0 0 10px rgba(146,16,246,0.15);
+  opacity:0;transform:translateX(-50%) translateY(5px) scale(0.92);
+  transition:opacity .3s ease,transform .3s ease;white-space:nowrap;z-index:20;
+}
+.rg-mascot-bubble.show{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}
+.rg-mascot-bubble::after{
+  content:'';position:absolute;bottom:-5px;left:50%;margin-left:-4px;
+  width:8px;height:8px;background:rgba(20,8,40,0.92);
+  border-right:1px solid rgba(146,16,246,0.35);border-bottom:1px solid rgba(146,16,246,0.35);
+  transform:rotate(45deg);
+}
+
+/* TOP GAMES THIS WEEK */
+.rg-section{padding:70px 6% 60px;position:relative;overflow:hidden}
+.rg-section::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(146,16,246,0.4),transparent)}
+.rg-kicker{font-family:var(--fm);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:10px}
+.rg-heading{font-family:var(--fh);font-size:clamp(22px,3vw,40px);font-weight:400;line-height:1.15;letter-spacing:-0.01em;margin-bottom:8px}
+.rg-sub{font-family:var(--fb);font-size:14px;color:var(--muted);margin-bottom:40px}
+.rg-track{display:flex;gap:0;align-items:flex-end;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
+.rg-track::-webkit-scrollbar{display:none}
+.rg-item{position:relative;flex-shrink:0;cursor:pointer;transition:transform .32s cubic-bezier(.22,1,.36,1)}
+.rg-item:hover{transform:scale(1.04) translateY(-6px);z-index:10}
+.rg-rank{position:absolute;left:-10px;top:-18px;font-family:var(--fh);font-size:clamp(60px,7vw,100px);font-weight:400;line-height:1;color:transparent;-webkit-text-stroke:2px rgba(227,227,227,0.45);user-select:none;z-index:20;pointer-events:none;transition:color .3s,-webkit-text-stroke .3s}
+.rg-item:hover .rg-rank{-webkit-text-stroke:2px rgba(146,16,246,0.85);text-shadow:0 0 40px rgba(146,16,246,0.3)}
+.rg-card{width:210px;height:290px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);position:relative;transition:border-color .3s,box-shadow .3s}
+.rg-item:hover .rg-card{border-color:rgba(146,16,246,0.5);box-shadow:0 16px 48px rgba(146,16,246,0.18),0 0 0 1px rgba(146,16,246,0.2)}
+.rg-card-img{width:100%;height:65%;object-fit:cover;display:block;transition:transform .4s}
+.rg-item:hover .rg-card-img{transform:scale(1.08)}
+.rg-card-body{position:absolute;bottom:0;left:0;right:0;padding:10px 12px 12px;background:linear-gradient(to top,rgba(10,5,20,0.97) 0%,rgba(10,5,20,0.6) 60%,transparent 100%)}
+.rg-card-name{font-family:var(--fb);font-size:12.5px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rg-card-plays{font-family:var(--fb);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
+.rg-card-badge{position:absolute;top:8px;right:8px;background:rgba(146,16,246,0.7);border:1px solid rgba(146,16,246,0.5);backdrop-filter:blur(8px);padding:3px 8px;border-radius:100px;font-family:var(--fb);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff}
+.rg-card-overlay{position:absolute;inset:0;background:rgba(146,16,246,0.12);opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;border-radius:14px}
+.rg-item:hover .rg-card-overlay{opacity:1}
+.rg-play-btn{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;transform:scale(0);transition:transform .3s cubic-bezier(.22,1,.36,1);box-shadow:0 4px 16px rgba(146,16,246,0.3)}
+.rg-item:hover .rg-play-btn{transform:scale(1)}
+@keyframes rgSlideIn{from{opacity:0;transform:translateY(30px) scale(0.92)}to{opacity:1;transform:translateY(0) scale(1)}}
+.rg-item{animation:rgSlideIn .5s cubic-bezier(.22,1,.36,1) both}
 
 /* FEATURED GAMES */
 #featured{padding:100px 6%;position:relative;overflow:hidden}
@@ -447,7 +602,11 @@ section::before,section::after,.marquee-strip::before,.marquee-strip::after,foot
 
 /* RESPONSIVE */
 @media(max-width:900px){
-  .hero-inner{grid-template-columns:1fr;gap:40px}
+  .hero-inner{flex-direction:column;gap:40px}
+  .hero-games{width:100%;margin-left:0}
+  .hero-games-area{justify-content:center}
+  .hero-game-avatars{display:none}
+  .hero-game-avatar{width:40px;height:40px}
   .lb-inner,.why-inner{grid-template-columns:1fr}
   .why-visual{display:none}
   .game-grid{grid-template-columns:repeat(2,1fr)}
@@ -465,25 +624,108 @@ section::before,section::after,.marquee-strip::before,.marquee-strip::after,foot
   .rwc-card[data-pos="left1"]{transform:translateX(-220px) scale(0.85);opacity:0.45}
   .rwc-card[data-pos="right2"]{transform:translateX(800px) scale(0.72);opacity:0}
   .rwc-card[data-pos="left2"]{transform:translateX(-800px) scale(0.72);opacity:0}
+  .featured-head{flex-direction:column;align-items:flex-start;gap:16px}
+  .featured-head-sub{text-align:left;max-width:100%}
+  #featured{padding:60px 5%}
+  #how{padding:60px 5%}
+  #leaderboard-section{padding:60px 5%}
+  #rewards{padding:60px 5%}
+  #why{padding:60px 5%}
+  #testimonials{padding:80px 5% 60px}
+  #daily{padding:50px 5%}
+  #community{padding:60px 5%}
+  .rg-section{padding:50px 5% 40px}
+  .how-head{margin-bottom:40px}
+  .testimonials-head{margin-bottom:50px}
+  .lb-row{padding:12px 16px;gap:10px}
+  .lb-bar-wrap{width:50px}
+  .why-points{gap:10px;margin-top:24px}
+  .why-point{padding:14px 16px}
+  .reels-wrap{max-width:320px;height:420px}
 }
 @media(max-width:640px){
+  #home{padding:100px 5% 50px;min-height:auto}
+  .hero-h1{font-size:clamp(36px,10vw,56px);margin-bottom:20px}
+  .hero-sub{font-size:15px;margin-bottom:24px}
+  .hero-stats{gap:0}
+  .hst{padding:0 16px}
+  .hst-n{font-size:20px}
+  .hst-l{font-size:10px}
+  .hero-game-avatar{width:36px;height:36px}
+  .hero-fan-card{width:200px;height:260px;padding:10px}
+  .hero-fan-layout{width:260px;height:320px;justify-content:center}
   .game-grid{grid-template-columns:1fr}
+  .game-cat-card{padding:24px 20px}
+  .game-cat-label{font-size:22px}
   .how-steps{grid-template-columns:1fr}
   .how-steps::before{display:none}
-  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .how-step{padding:28px 20px 24px}
+  .how-icon-wrap{width:64px;height:64px;font-size:26px}
+  .how-title{font-size:20px}
+  .how-desc{font-size:13px}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .stat-card{padding:24px 16px}
+  .stat-val{font-size:clamp(28px,6vw,40px)}
+  .stat-lbl{font-size:11px}
   body{cursor:auto}
-  .cursor-dot,.cursor-ring{display:none}
-  .tc-card{width:260px}
+  .tc-card{width:260px;padding:22px 20px 20px}
   .tc-card[data-pos="right1"]{transform:translateX(190px) scale(0.85);opacity:0.4}
   .tc-card[data-pos="left1"]{transform:translateX(-190px) scale(0.85);opacity:0.4}
+  .tc-quote{font-size:12.5px}
   .tc-prev{left:calc(50% - 170px)}
   .tc-next{right:calc(50% - 170px)}
   .rwc-wrap{height:260px}
   .rwc-card{width:240px;margin-left:-120px;height:240px;padding:28px 24px}
   .rwc-card[data-pos="right1"]{transform:translateX(190px) scale(0.82);opacity:0.35}
   .rwc-card[data-pos="left1"]{transform:translateX(-190px) scale(0.82);opacity:0.35}
+  .rwc-card-title{font-size:22px}
+  .rwc-card-desc{font-size:12px}
+  .lb-inner{gap:40px}
+  .lb-header{padding:12px 16px}
+  .lb-pos{font-size:18px;width:24px}
+  .lb-avatar{width:30px;height:30px;font-size:11px}
+  .lb-name{font-size:13px}
+  .lb-score{font-size:11px}
+  .footer-main{padding:40px 5%;gap:32px}
+  .footer-brand-name{font-size:24px}
+  .footer-desc{font-size:13px}
+  .footer-map iframe{height:200px}
+  .footer-bar{padding:14px 5%;font-size:10px;flex-direction:column;text-align:center}
+  .rg-card{width:170px;height:240px}
+  .rg-rank{font-size:clamp(48px,8vw,72px)}
+  .marquee-item{font-size:14px;padding:0 20px;gap:10px}
+  .reels-wrap{max-width:280px;height:380px}
+  .reel-overlay{padding:24px 16px 20px}
+  .reel-overlay p{font-size:13px}
+  .daily-inner .section-h2{font-size:clamp(32px,8vw,52px)}
+  .daily-inner .section-sub{font-size:14px}
+  .cta-final-sub{font-size:15px}
+  #cta-final{min-height:50vh}
 }
-`;
+@media(max-width:380px){
+  .hero-h1{font-size:32px}
+  .hero-sub{font-size:14px}
+  .hst{padding:0 12px}
+  .hst-n{font-size:18px}
+  .rg-card{width:150px;height:210px}
+  .tc-card{width:230px}
+  .tc-card[data-pos="right1"]{transform:translateX(170px) scale(0.82)}
+  .tc-card[data-pos="left1"]{transform:translateX(-170px) scale(0.82)}
+  .tc-prev{left:calc(50% - 155px)}
+  .tc-next{right:calc(50% - 155px)}
+  .rwc-card{width:210px;margin-left:-105px;height:220px;padding:20px 18px}
+  .rwc-card[data-pos="right1"]{transform:translateX(170px)}
+  .rwc-card[data-pos="left1"]{transform:translateX(-170px)}
+  .rwc-card-title{font-size:18px}
+  .rwc-wrap{height:230px}
+  .game-cat-card{padding:20px 16px}
+  .game-cat-icon{font-size:32px}
+  .game-cat-label{font-size:18px}
+  .how-step{padding:22px 16px 20px}
+  .stat-card{padding:20px 12px}
+  .reward-tag{padding:10px 18px;font-size:12px}
+  .reward-tags-wrap{gap:8px;margin-bottom:40px}
+}`;
 
 /* ─── SVG ARROW ─── */
 const Arr = ({ size = 16 }) => (
@@ -493,10 +735,57 @@ const Arr = ({ size = 16 }) => (
   </svg>
 );
 
-/* ─── HERO GAMES ─── */
+/* ─── HERO GAMES — Card right + avatars left ─── */
+const HERO_FAN_MAX = 7;
+const HERO_FAN_HALF = 3;
+const HERO_FAN_POSITIONS = [
+  { rot: 0, scale: 0.85, x: 0, y: -6.5, zIndex: 1 },
+  { rot: 0, scale: 0.90, x: 0, y: -4.8, zIndex: 2 },
+  { rot: 0, scale: 0.95, x: 0, y: -2.8, zIndex: 3 },
+  { rot: 0, scale: 1.0,  x: 0, y: 0,    zIndex: 10 },
+  { rot: 0, scale: 0.95, x: 0, y: 2.8,  zIndex: 3 },
+  { rot: 0, scale: 0.90, x: 0, y: 4.8,  zIndex: 2 },
+  { rot: 0, scale: 0.85, x: 0, y: 6.5,  zIndex: 1 },
+];
+
+function heroFanResponsiveMult(w) {
+  if (w < 480) return 0.5;
+  if (w < 640) return 0.65;
+  if (w < 768) return 0.8;
+  if (w < 1024) return 0.9;
+  return 1;
+}
+function heroFanHeightMult(w) {
+  let ideal;
+  if (w < 480) ideal = 352;
+  else if (w < 640) ideal = 416;
+  else if (w < 768) ideal = 448;
+  else if (w < 1024) ideal = 544;
+  else ideal = 608;
+  const avail = window.innerHeight * 0.7;
+  return avail >= ideal ? 1 : avail / ideal;
+}
+function heroFanSlotCfg(total, slot) {
+  if (total >= HERO_FAN_MAX) return HERO_FAN_POSITIONS[slot];
+  const c = total >> 1;
+  const d = total > 1 ? (slot - c) / c : 0;
+  const a = Math.abs(d);
+  return { rot: 0, scale: 1 - 0.15 * a, x: 0, y: d * 3, zIndex: 10 - Math.abs(slot - c) };
+}
+
 function HeroGames() {
-  const [games, setGames]   = useState([]);
+  const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [center, setCenter] = useState(0);
+  const [hoveredIdx, setHoveredIdx] = useState(null);
+  const containerRef = useRef(null);
+  const isAnimating = useRef(false);
+  const hasEntered = useRef(false);
+  const directionRef = useRef(null);
+  const prevVisible = useRef(new Set());
+  const hoverTimerRef = useRef(null);
+  const hoverRef = useRef(false);
+  const autoRef = useRef(null);
 
   useEffect(() => {
     fetch('/api/play/hero-games')
@@ -506,44 +795,244 @@ function HeroGames() {
       .finally(() => setLoading(false));
   }, []);
 
+  const total = games.length;
+  const needsNav = total > HERO_FAN_MAX;
+  const visibleCount = needsNav ? HERO_FAN_MAX : total;
+
+  const getVisibleMap = useCallback((ctr) => {
+    const map = new Map();
+    if (!needsNav) { games.forEach((_, i) => map.set(i, i)); return map; }
+    for (let s = 0; s < HERO_FAN_MAX; s++) {
+      map.set(((ctr + s - HERO_FAN_HALF) % total + total) % total, s);
+    }
+    return map;
+  }, [total, needsNav, games]);
+
+  const cycle = useCallback((dir) => {
+    if (isAnimating.current || !needsNav) return;
+    isAnimating.current = true;
+    directionRef.current = dir;
+    setCenter(p => dir === 'right' ? (p + 1) % total : (p - 1 + total) % total);
+  }, [total, needsNav]);
+
+  /* Auto-cycle every 3s, pause on hover */
+  useEffect(() => {
+    if (!needsNav || total < 2) return;
+    const start = () => {
+      clearInterval(autoRef.current);
+      autoRef.current = setInterval(() => {
+        if (!hoverRef.current && !isAnimating.current) cycle('right');
+      }, 3000);
+    };
+    start();
+    return () => clearInterval(autoRef.current);
+  }, [needsNav, total, cycle]);
+
+  useEffect(() => {
+    const el = containerRef.current;
+    if (!el || !total) return;
+    const cards = Array.from(el.querySelectorAll('.hero-fan-card'));
+    if (!cards.length) return;
+
+    const visMap = getVisibleMap(center);
+    const prev = prevVisible.current;
+    const dir = directionRef.current;
+    const first = !hasEntered.current;
+    const mult = heroFanResponsiveMult(window.innerWidth);
+    const hMult = heroFanHeightMult(window.innerWidth);
+    const cfg = (s) => heroFanSlotCfg(visibleCount, s);
+
+    if (first) isAnimating.current = true;
+    let done = 0;
+    const onDone = () => { if (++done >= visMap.size) { isAnimating.current = false; if (first) hasEntered.current = true; } };
+
+    cards.forEach((card, ci) => {
+      const slot = visMap.get(ci);
+      const was = prev.has(ci);
+      if (slot !== undefined) {
+        const base = cfg(slot);
+        const tgt = { x: `${base.x * mult}rem`, y: `${base.y * hMult}rem`, rotation: base.rot, scale: base.scale, opacity: 1, zIndex: base.zIndex };
+        if (first) {
+          gsap.set(card, { x: 0, y: `${6 * hMult}rem`, rotation: 0, scale: 0.5, opacity: 0 });
+          gsap.to(card, { ...tgt, duration: 1.2, ease: 'elastic.out(1.05,.78)', delay: 0.2 + slot * 0.06, onComplete: onDone });
+        } else if (!was) {
+          const ex = dir === 'right' ? 20 : -20;
+          gsap.set(card, { x: `${ex}rem`, y: `${base.y * hMult}rem`, rotation: dir === 'right' ? 20 : -20, scale: 0.5, opacity: 0 });
+          gsap.to(card, { ...tgt, duration: 0.6, ease: 'power2.out', onComplete: onDone });
+        } else {
+          gsap.to(card, { ...tgt, duration: 0.5, ease: 'power2.out', onComplete: onDone });
+        }
+      } else if (was) {
+        const ex = dir === 'right' ? -20 : 20;
+        gsap.to(card, { x: `${ex}rem`, opacity: 0, scale: 0.5, rotation: dir === 'right' ? -20 : 20, duration: 0.4, ease: 'power2.in', zIndex: 0 });
+      } else if (first) {
+        gsap.set(card, { opacity: 0, scale: 0.3, x: 0, y: 0, zIndex: 0 });
+      }
+    });
+    prevVisible.current = new Set(visMap.keys());
+
+    /* Hover */
+    const entries = [];
+    cards.forEach((c, i) => { const s = visMap.get(i); if (s !== undefined) entries.push({ el: c, slot: s, gameIdx: i }); });
+    entries.sort((a, b) => a.slot - b.slot);
+    let activeSlot = null;
+    const centerSlot = entries.length >> 1;
+
+    const updateHover = (hSlot) => {
+      const m = heroFanResponsiveMult(window.innerWidth);
+      const hm = heroFanHeightMult(window.innerWidth);
+      entries.forEach(({ el, slot }) => {
+        const base = cfg(slot);
+        let tx = base.x * m, ty = base.y * hm, tr = base.rot, ts = base.scale, dl = 0;
+        if (hSlot !== null) {
+          const dist = Math.abs(slot - hSlot);
+          dl = dist * 0.015;
+          if (slot === hSlot) { ts *= 1.04; }
+          else if (slot < hSlot) { ty -= 0.4 * hm; }
+          else { ty += 0.4 * hm; }
+        } else { dl = Math.abs(slot - centerSlot) * 0.02; }
+        gsap.to(el, { x: `${tx}rem`, y: `${ty}rem`, rotation: tr, scale: ts, duration: 0.45, delay: dl, ease: 'power2.out', overwrite: 'auto' });
+        gsap.set(el, { zIndex: base.zIndex });
+      });
+    };
+
+    const enterHandlers = entries.map(({ el, slot, gameIdx }) => {
+      const h = () => {
+        if (isAnimating.current) return;
+        if (hoverTimerRef.current) { clearTimeout(hoverTimerRef.current); hoverTimerRef.current = null; }
+        if (activeSlot !== slot) { activeSlot = slot; updateHover(slot); }
+        setHoveredIdx(gameIdx);
+      };
+      el.addEventListener('mouseenter', h);
+      return { el, h };
+    });
+    const onLeave = () => {
+      if (isAnimating.current) return;
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+      hoverTimerRef.current = setTimeout(() => { activeSlot = null; updateHover(null); setHoveredIdx(null); }, 50);
+    };
+    el.addEventListener('mouseleave', onLeave);
+    const onResize = () => { if (!isAnimating.current) updateHover(activeSlot); };
+    window.addEventListener('resize', onResize);
+
+    return () => {
+      enterHandlers.forEach(({ el, h }) => el.removeEventListener('mouseenter', h));
+      el.removeEventListener('mouseleave', onLeave);
+      window.removeEventListener('resize', onResize);
+      if (hoverTimerRef.current) clearTimeout(hoverTimerRef.current);
+    };
+  }, [center, total, getVisibleMap, needsNav, visibleCount]);
+
   const COLORS = ['#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497'];
-  const EMOJIS = ['🧩','🎡','🏆','🎁','⚡','🎮'];
+  const GAME_ICONS = [
+    <SvgIcon name="puzzle" size={24} />, <SvgIcon name="dice" size={24} />,
+    <SvgIcon name="trophy" size={24} />, <SvgIcon name="gift" size={24} />,
+    <SvgIcon name="zap" size={24} />, <SvgIcon name="gamepad" size={24} />
+  ];
+
+  const chevron = (d) => (
+    <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+      <polyline points={d === 'left' ? '15 18 9 12 15 6' : '9 18 15 12 9 6'} />
+    </svg>
+  );
 
   return (
     <div className="hero-games">
-      <div className="hero-games-title">🔥 Top Games this month</div>
-      {loading && (
-        <div className="hg-loader">
-          <div className="hg-spinner" />Loading top games…
-        </div>
-      )}
-      {!loading && games.slice(0, 5).map((game, i) => (
-        <a key={game.id} href={`/play/${game.slug}/${game.client_slug}`}
-          target="_blank" rel="noopener noreferrer" className="hg-card"
-          style={{ animationDelay: `${i * 80}ms` }}>
-          <span className={`hg-rank${i === 0 ? ' top' : ''}`}>{i + 1}</span>
-          {game.game_logo_url || game.bg_image_url ? (
-            <img className="hg-thumb" src={game.game_logo_url || game.bg_image_url} alt={game.name} loading="lazy" />
-          ) : (
-            <div className="hg-thumb-placeholder"
-              style={{ background: `linear-gradient(135deg,${COLORS[i % COLORS.length]}44,${COLORS[(i+2)%COLORS.length]}22)` }}>
-              {EMOJIS[i % EMOJIS.length]}
-            </div>
-          )}
-          <div className="hg-info">
-            <div className="hg-name">{game.name}</div>
-            <div className="hg-meta">
-              <div className="hg-plays-dot" />
-              {(game.play_count || 0).toLocaleString()} plays
-            </div>
+      <div className="hero-games-title"><SvgIcon name="flame" size={14} /> Top Games this month</div>
+      <div className="hero-games-area">
+        {/* Card stack + arc avatars */}
+        <div className="hero-fan-layout" ref={containerRef}
+          onMouseEnter={() => { hoverRef.current = true; clearInterval(autoRef.current); }}
+          onMouseLeave={() => { hoverRef.current = false; if (needsNav && total >= 2) autoRef.current = setInterval(() => { if (!hoverRef.current && !isAnimating.current) cycle('right'); }, 3000); }}>
+          {/* Arc avatars from top-right of card, curving left, to bottom */}
+          <div className="hero-game-avatars">
+            {!loading && games.map((game, i) => {
+              const count = Math.min(games.length, HERO_FAN_MAX);
+              const idx = i < count ? i : i % count;
+              const total = Math.min(games.length, HERO_FAN_MAX);
+              const startAngle = 38;
+              const endAngle = -142;
+              const angleDeg = startAngle + (total > 1 ? (idx / (total - 1)) * (endAngle - startAngle) : 0);
+              const rad = (angleDeg * Math.PI) / 180;
+              const radius = 210;
+              const cx = 255;
+              const cy = 190;
+              const x = cx + Math.sin(rad) * radius - 24;
+              const y = cy - Math.cos(rad) * radius - 24;
+              const delay = idx * 0.08;
+              return (
+                <div key={game.id}
+                  className={`hero-game-avatar${hoveredIdx === i ? ' active' : ''}`}
+                  style={{ left: `${x}px`, top: `${y}px`, transitionDelay: `${delay}s`, transitionDuration: '0.4s' }}>
+                  {game.game_logo_url || game.bg_image_url ? (
+                    <img src={game.game_logo_url || game.bg_image_url} alt={game.name} />
+                  ) : (
+                    <div className="hero-game-avatar-placeholder" style={{ background: `linear-gradient(135deg,${COLORS[i % COLORS.length]}44,${COLORS[(i+2)%COLORS.length]}22)` }}>
+                      {GAME_ICONS[i % GAME_ICONS.length]}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
-          <span className="hg-badge">{game.category || 'Quiz'}</span>
-          <span className="hg-arrow">›</span>
-        </a>
-      ))}
-      {!loading && games.length === 0 && (
-        <div style={{ padding:'32px 20px', textAlign:'center', color:'var(--muted)', fontFamily:'var(--fb)', fontSize:14 }}>
-          Games loading soon — check back shortly!
+        {loading && <div className="hg-loader"><div className="hg-spinner" />Loading…</div>}
+        {!loading && games.length > 0 && (() => {
+          const game = games[center] || games[0];
+          return game.slug ? (
+            <a key={game.id} href={`/play/${game.slug}/${game.client_slug}`} target="_blank" rel="noopener noreferrer"
+              className="hero-fan-card hgf-front">
+              <div className="relative w-full h-full overflow-hidden">
+                {game.game_logo_url || game.bg_image_url ? (
+                  <img className="hgf-thumb" src={game.game_logo_url || game.bg_image_url} alt={game.name} loading="lazy" />
+                ) : (
+                  <div className="hgf-thumb-placeholder" style={{ background: `linear-gradient(135deg,${COLORS[center % COLORS.length]}33,${COLORS[(center+2)%COLORS.length]}18)` }}>
+                    {GAME_ICONS[center % GAME_ICONS.length]}
+                  </div>
+                )}
+                <div className="hgf-bottom">
+                  <div className="hgf-info">
+                    <span className="hgf-name">{game.name}</span>
+                    <div className="hgf-meta"><div className="hgf-plays-dot" />{(game.play_count || 0).toLocaleString()} plays</div>
+                  </div>
+                  <span className="hgf-badge">{game.category || 'Quiz'}</span>
+                </div>
+              </div>
+            </a>
+          ) : (
+            <div key={game.id} className="hero-fan-card hgf-front">
+              <div className="relative w-full h-full overflow-hidden">
+                {game.game_logo_url || game.bg_image_url ? (
+                  <img className="hgf-thumb" src={game.game_logo_url || game.bg_image_url} alt={game.name} loading="lazy" />
+                ) : (
+                  <div className="hgf-thumb-placeholder" style={{ background: `linear-gradient(135deg,${COLORS[center % COLORS.length]}33,${COLORS[(center+2)%COLORS.length]}18)` }}>
+                    {GAME_ICONS[center % GAME_ICONS.length]}
+                  </div>
+                )}
+                <div className="hgf-bottom">
+                  <div className="hgf-info">
+                    <span className="hgf-name">{game.name}</span>
+                    <div className="hgf-meta"><div className="hgf-plays-dot" />{(game.play_count || 0).toLocaleString()} plays</div>
+                  </div>
+                  <span className="hgf-badge">{game.category || 'Quiz'}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+        {!loading && total === 0 && (
+          <div style={{ height:240, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--muted)', fontFamily:'var(--fb)', fontSize:13 }}>
+            Games loading soon — check back shortly!
+          </div>
+        )}
+      </div>
+      </div>
+      {!loading && needsNav && (
+        <div className="hero-fan-nav">
+          <button className="hero-fan-arrow" onClick={() => cycle('left')} aria-label="Previous">{chevron('left')}</button>
+          <div className="hero-fan-dots">
+            {games.map((_, i) => <span key={i} className={`hero-fan-dot${i === center ? ' active' : ''}`} />)}
+          </div>
+          <button className="hero-fan-arrow" onClick={() => cycle('right')} aria-label="Next">{chevron('right')}</button>
         </div>
       )}
     </div>
@@ -563,6 +1052,120 @@ function MarqueeStrip() {
         ))}
       </div>
     </div>
+  );
+}
+
+/* ─── TOP GAMES THIS WEEK (from Business page) ─── */
+function RankedGames() {
+  const [games, setGames] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [msgIdx, setMsgIdx] = useState(0);
+  const [bubbleShow, setBubbleShow] = useState(false);
+
+  const MASCOT_MSGS = [
+    'Check out this week\'s hottest games!',
+    'Play now and climb the ranks!',
+    'Top players win big rewards!',
+    'Tap a game to start playing!',
+    'New games added every week!',
+  ];
+
+  useEffect(() => {
+    fetch('/api/play/hero-games')
+      .then(r => r.json())
+      .then(d => { if (d.success) setGames(d.games || []); })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+
+  const sectionRef = useRef(null);
+  const [mascotVisible, setMascotVisible] = useState(false);
+
+  useEffect(() => {
+    let idx = 0;
+    const showMsg = () => {
+      setMsgIdx(idx % MASCOT_MSGS.length);
+      setBubbleShow(true);
+      setTimeout(() => setBubbleShow(false), 3200);
+      idx++;
+    };
+    const t1 = setTimeout(showMsg, 1200);
+    const timer = setInterval(showMsg, 7000);
+    return () => { clearTimeout(t1); clearInterval(timer); };
+  }, []);
+
+  useEffect(() => {
+    const heroEl = document.getElementById('home');
+
+    const sectionObs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) setMascotVisible(true);
+    }, { threshold: 0.05 });
+
+    const heroObs = new IntersectionObserver(([e]) => {
+      if (e.isIntersecting) setMascotVisible(false);
+    }, { threshold: 0.1 });
+
+    if (sectionRef.current) sectionObs.observe(sectionRef.current);
+    if (heroEl) heroObs.observe(heroEl);
+
+    return () => { sectionObs.disconnect(); heroObs.disconnect(); };
+  }, [loading]);
+
+  const COLORS = ['#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497'];
+
+  return (
+    <>
+      <div className={`rg-sticky-mascot${mascotVisible ? ' visible' : ''}`}>
+        <div className={`rg-mascot-bubble${bubbleShow ? ' show' : ''}`}>{MASCOT_MSGS[msgIdx]}</div>
+        <img src="/mascot.png.png" alt="Mascot" />
+      </div>
+      {loading || games.length === 0 ? null : (
+    <section className="rg-section" ref={sectionRef}>
+      <p className="rg-kicker">Trending Now</p>
+      <h2 className="rg-heading">Top Games This Week</h2>
+      <p className="rg-sub">Play brand games from our partners — live & free</p>
+
+      <div className="rg-track">
+        {games.map((game, i) => (
+          <div
+            key={game.id}
+            className="rg-item"
+            style={{ animationDelay: `${i * 60}ms`, marginLeft: i === 0 ? 0 : i < 3 ? 36 : 24, marginTop: 28 }}
+            onClick={() => window.open(`/play/${game.slug}/${game.client_slug}`, '_blank')}
+          >
+            <span className="rg-rank">{i + 1}</span>
+
+            <div className="rg-card">
+              {game.game_logo_url || game.bg_image_url ? (
+                <img className="rg-card-img" src={game.game_logo_url || game.bg_image_url} alt={game.name} loading="lazy" />
+              ) : (
+                <div className="rg-card-img" style={{
+                  background: `linear-gradient(135deg, ${COLORS[i % COLORS.length]}44, ${COLORS[(i+2) % COLORS.length]}22)`,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40
+                }}>
+                  🎮
+                </div>
+              )}
+              <span className="rg-card-badge">{game.category || 'Quiz'}</span>
+              <div className="rg-card-body">
+                <div className="rg-card-name">{game.name}</div>
+                <div className="rg-card-plays">
+                  <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  {(game.play_count || 0).toLocaleString()} plays
+                </div>
+              </div>
+              <div className="rg-card-overlay">
+                <div className="rg-play-btn">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#9210f6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </section>
+      )}
+    </>
   );
 }
 
@@ -777,7 +1380,7 @@ function TestimonialsCarousel({ onIndexChange }) {
                 onClick={() => !isCenter && goTo(i)}
                 style={{ cursor: isCenter ? 'default' : 'none' }}>
                 <div className="tc-stars">
-                  {[...Array(5)].map((_, si) => <span key={si} className="tc-star">★</span>)}
+                  {[...Array(5)].map((_, si) => <span key={si} className="tc-star"><SvgIcon name="starSolid" size={14} /></span>)}
                 </div>
                 <p className="tc-quote">"{t.quote}"</p>
                 <div className="tc-divider" />
@@ -828,138 +1431,68 @@ function AnimateBar({ pct, threshold = 0.3 }) {
 export default function PromoGamesHome() {
   const [leaderboardEntries] = useState(DUMMY_LEADERBOARD);
   const [leaderboardLoading] = useState(false);
-  const dotRef  = useRef(null);
-  const ringRef = useRef(null);
-  const flyRef = useRef(null);
-  const mx = useRef(0); const my = useRef(0);
-  const rx = useRef(0); const ry = useRef(0);
-  const rafRef = useRef(null);
 
-  useEffect(() => {
-    const move  = e => { mx.current = e.clientX; my.current = e.clientY; document.body.classList.add('cursor-visible'); };
-    const enter = () => document.body.classList.add('cursor-hover');    const leave = () => document.body.classList.remove('cursor-hover');
-    document.addEventListener('mousemove', move);
-    document.querySelectorAll('a,button').forEach(el => {
-      el.addEventListener('mouseenter', enter);
-      el.addEventListener('mouseleave', leave);
-    });
-    const loop = () => {
-      rx.current += (mx.current - rx.current) * 0.14;
-      ry.current += (my.current - ry.current) * 0.14;
-      if (dotRef.current)  dotRef.current.style.transform  = `translate(${mx.current - 4}px,${my.current - 4}px)`;
-      if (ringRef.current) ringRef.current.style.transform = `translate(${rx.current - 18}px,${ry.current - 18}px)`;
-      rafRef.current = requestAnimationFrame(loop);
-    };
-    rafRef.current = requestAnimationFrame(loop);
-    return () => { document.removeEventListener('mousemove', move); cancelAnimationFrame(rafRef.current); };
-  }, []);
-
-  const flyModeRef = useRef('path');
   const testimonialIdxRef = useRef(0);
 
   useEffect(() => {
-    const PATH = [
-      { x: 0.50, y: -0.02 },
-      { x: 0.45, y:  0.05 },
-      { x: 0.05, y:  0.14 },
-      { x: 0.92, y:  0.23 },
-      { x: 0.45, y:  0.33 },
-      { x: 0.05, y:  0.42 },
-      { x: 0.45, y:  0.50 },
-      { x: 0.50, y:  0.56 },
-    ];
-    const N = PATH.length;
-    const END_Y = 0.55;
-
-    function catmull(p, i, t) {
-      const p0 = p[Math.max(i - 1, 0)];
-      const p1 = p[i];
-      const p2 = p[Math.min(i + 1, N - 1)];
-      const p3 = p[Math.min(i + 2, N - 1)];
-      const t2 = t * t, t3 = t2 * t;
-      return {
-        x: 0.5 * ((2 * p1.x) + (-p0.x + p2.x) * t + (2 * p0.x - 5 * p1.x + 4 * p2.x - p3.x) * t2 + (-p0.x + 3 * p1.x - 3 * p2.x + p3.x) * t3),
-        y: 0.5 * ((2 * p1.y) + (-p0.y + p2.y) * t + (2 * p0.y - 5 * p1.y + 4 * p2.y - p3.y) * t2 + (-p0.y + 3 * p1.y - 3 * p2.y + p3.y) * t3),
-      };
-    }
-
-    let floatPhase = 0;
-    let floatRaf = null;
-
-    const TESTIMONIAL_START = 0.54;
-    const TESTIMONIAL_END = 0.65;
-
-    const tick = () => {
-      floatPhase += 0.018;
+    const onScroll = () => {
       const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight);
       document.documentElement.style.setProperty('--scroll-pct', `${pct * 100}%`);
-
-      if (!flyRef.current) { floatRaf = requestAnimationFrame(tick); return; }
-
-      const t = Math.min(Math.max(pct, 0), 1);
-
-      if (t >= TESTIMONIAL_START && t <= TESTIMONIAL_END) {
-        flyModeRef.current = 'testimonial';
-      } else if (t > TESTIMONIAL_END) {
-        flyModeRef.current = 'hidden';
-      } else {
-        flyModeRef.current = 'path';
-      }
-
-      const mode = flyModeRef.current;
-
-      if (mode === 'path') {
-        flyRef.current.style.opacity = '1';
-        const segs = N - 1;
-        const raw = (t / END_Y) * segs;
-        const seg = Math.min(Math.floor(raw), segs - 1);
-        const local = raw - seg;
-        const ease = local * local * (3 - 2 * local);
-        const pt = catmull(PATH, seg, ease);
-
-        const vw = window.innerWidth;
-        const sh = document.body.scrollHeight - window.innerHeight;
-        const x = vw * pt.x;
-        const y = sh * pt.y + 60;
-        const floatY = Math.sin(floatPhase) * 8;
-        const rot = floatPhase * 8;
-
-        flyRef.current.style.transform = `translate3d(${x}px, ${y + floatY}px, 0) rotate(${rot}deg)`;
-      } else if (mode === 'testimonial') {
-        flyRef.current.style.opacity = '1';
-        const testimonialsEl = document.getElementById('testimonials');
-        if (testimonialsEl) {
-          const rect = testimonialsEl.getBoundingClientRect();
-          const cx = window.innerWidth * 0.50;
-          const cy = rect.top + rect.height * 0.42 + testimonialIdxRef.current * 8;
-          const floatY = Math.sin(floatPhase) * 8;
-          const rot = floatPhase * 8;
-          flyRef.current.style.transform = `translate3d(${cx}px, ${cy + floatY}px, 0) rotate(${rot}deg)`;
-        }
-      } else {
-        flyRef.current.style.opacity = '0';
-      }
-
-      floatRaf = requestAnimationFrame(tick);
     };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
 
-    floatRaf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(floatRaf);
+  /* ─── Glitch text entrance + scramble ─── */
+  useEffect(() => {
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+    const texts = document.querySelectorAll('.glitch-line');
+
+    texts.forEach((el, i) => {
+      const isAccent = el.classList.contains('accent');
+      if (!isAccent) {
+        gsap.set(el, { backgroundSize: "0% 100%", scale: 0.95, opacity: 0.7 });
+      } else {
+        gsap.set(el, { scale: 0.95, opacity: 0.7 });
+      }
+      const tl = gsap.timeline({ delay: i * 0.2 });
+      tl.to(el, { opacity: 1, scale: 1, duration: 0.6, ease: "back.out(1.7)" });
+      if (!isAccent) {
+        tl.to(el, { backgroundSize: "100% 100%", duration: 2, ease: "elastic.out(1, 0.5)" }, "-=0.3");
+      }
+    });
+
+    texts.forEach((el) => {
+      const hoverText = el.getAttribute('data-hover');
+      const overlay = el.querySelector('.overlay');
+      let hoverInterval = null;
+
+      el.addEventListener('mouseenter', () => {
+        let iteration = 0;
+        if (hoverInterval) clearInterval(hoverInterval);
+        hoverInterval = setInterval(() => {
+          const scrambled = hoverText.split('').map((letter, index) => {
+            if (index < iteration) return hoverText[index];
+            return letters[Math.floor(Math.random() * 26)];
+          }).join('');
+          overlay.textContent = scrambled;
+          if (iteration >= hoverText.length) clearInterval(hoverInterval);
+          iteration += 1 / 3;
+        }, 30);
+      });
+
+      el.addEventListener('mouseleave', () => {
+        if (hoverInterval) { clearInterval(hoverInterval); hoverInterval = null; }
+        overlay.textContent = hoverText;
+      });
+    });
   }, []);
 
   return (
     <>
       <style>{CSS}</style>
       <div className="scroll-bar" />
-      <div ref={dotRef}  className="cursor-dot"  />
-      <div ref={ringRef} className="cursor-ring" />
-      <img ref={flyRef} src="/favicon.png" alt=""
-        style={{
-          position: 'fixed', top: 0, left: 0, zIndex: 1,
-          width: 40, height: 40, objectFit: 'contain',
-          pointerEvents: 'none', willChange: 'transform',
-          filter: 'brightness(0) invert(1) drop-shadow(0 0 16px rgba(192,64,255,0.6)) drop-shadow(0 0 40px rgba(146,16,246,0.3))',
-        }} />
+      <MascotCursor />
 
       {/* ── NAV ── */}
       <PlayerNavbar />
@@ -968,17 +1501,23 @@ export default function PromoGamesHome() {
       <section id="home">
         <div className="hero-inner">
           <div className="hero-left">
-            <div className="hero-eyebrow">🎮 Gaming That Rewards You</div>
+            <div className="hero-eyebrow"><SvgIcon name="gamepad" size={14} /> Gaming That Rewards You</div>
             <h1 className="hero-h1">
-              <WaveText text="Quick Games." fontSize="clamp(52px,7.5vw,110px)" /><br />
-              <span className="line-accent" data-text="Real Rewards.">Real Rewards.</span>
+              <span className="glitch-line" data-text="QUICK GAMES" data-hover="QUICK WINS">
+                QUICK GAMES
+                <span className="overlay">QUICK WINS</span>
+              </span>
+              <span className="glitch-line accent" data-text="REAL REWARDS" data-hover="REAL PRIZES">
+                REAL REWARDS
+                <span className="overlay">REAL PRIZES</span>
+              </span>
             </h1>
+
             <p className="hero-sub">
               Play exciting quick games, climb the leaderboard, and unlock real-time rewards every day.
             </p>
             <div className="hero-actions">
               <a href="/arcade" className="btn-primary">Start Playing <Arr /></a>
-              <a href="/leaderboard" className="btn-ghost">Join The Leaderboard</a>
             </div>
             <div className="hero-stats">
               {STATS.map(({ val, label }) => (
@@ -989,12 +1528,13 @@ export default function PromoGamesHome() {
               ))}
             </div>
           </div>
-          <HeroGames />
+          <div className="hero-mascot-wrap">
+            <img src="/hero-mascot.png" alt="Mascot" className="hero-mascot-img" />
+          </div>
         </div>
       </section>
-
-      {/* ── MARQUEE ── */}
       <MarqueeStrip />
+      <RankedGames />
 
       {/* ── FEATURED GAMES ── */}
       <section id="featured">
@@ -1094,7 +1634,7 @@ export default function PromoGamesHome() {
                     </div>
                     <span className="lb-name" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       {p.name}
-                      {p.has_account && <span className="account-badge" style={{ fontSize: 10, padding: '2px 6px', borderRadius: '100px', background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.4)', color: '#22c55e', fontFamily: 'var(--fm)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase' }}>✓ Account</span>}
+                      {p.has_account && <span className="account-badge" style={{ fontSize: 10, padding: '2px 6px', borderRadius: '100px', background: 'rgba(34,197,94,0.2)', border: '1px solid rgba(34,197,94,0.4)', color: '#22c55e', fontFamily: 'var(--fm)', fontWeight: 700, letterSpacing: 1, textTransform: 'uppercase', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><SvgIcon name="badgeCheck" size={10} /> Account</span>}
                     </span>
                     <CountUp as="span" className="lb-score" value={scoreNum.toLocaleString()} />
                     <AnimateBar pct={pct} />
@@ -1126,7 +1666,7 @@ export default function PromoGamesHome() {
             <div className="why-points">
               {WHY_POINTS.map((pt, i) => (
                 <div key={i} className="why-point">
-                  <div className="why-check">✓</div>
+                  <div className="why-check"><SvgIcon name="check" size={14} /></div>
                   <span className="why-text">{pt}</span>
                 </div>
               ))}
@@ -1198,8 +1738,14 @@ export default function PromoGamesHome() {
               Quick games, real rewards, and a leaderboard that keeps you coming back. Your reward journey starts here.
             </p>
             <div className="socials">
-              {[["in","https://www.linkedin.com"],["f","https://www.facebook.com/profile.php?id=61579982040453"],["𝕏","#"],["▶","#"],["📷","#"]].map(([s, href], i) => (
-                <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="soc">{s}</a>
+              {[
+                { icon: "linkedin", href: "https://www.linkedin.com" },
+                { icon: "instagram", href: "https://www.facebook.com/profile.php?id=61579982040453" },
+                { icon: "twitter", href: "#" },
+                { icon: "youtube", href: "#" },
+                { icon: "instagram", href: "#" }
+              ].map((s, i) => (
+                <a key={i} href={s.href} target="_blank" rel="noopener noreferrer" className="soc"><SvgIcon name={s.icon} size={18} /></a>
               ))}
             </div>
           </div>
@@ -1212,8 +1758,8 @@ export default function PromoGamesHome() {
             </div>
             <div className="footer-contact">
               <div className="footer-links-title" style={{ marginTop:24 }}>Get in Touch</div>
-              <a href="tel:+916366870248">📞 +91 6366 870 248</a>
-              <a href="mailto:offers.promogames@gmail.com">📧 offers.promogames@gmail.com</a>
+              <a href="tel:+916366870248" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><SvgIcon name="phone" size={16} /> +91 6366 870 248</a>
+              <a href="mailto:offers.promogames@gmail.com" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><SvgIcon name="mail" size={16} /> offers.promogames@gmail.com</a>
             </div>
           </div>
           <div>
@@ -1237,6 +1783,8 @@ export default function PromoGamesHome() {
           </div>
         </div>
       </footer>
+
+
     </>
   );
 }

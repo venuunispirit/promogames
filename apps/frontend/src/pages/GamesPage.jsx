@@ -52,6 +52,11 @@ const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F4F6', fg:'#
 const CSS = `
 @import url('${FONT_URL}');
 .gp *,.gp *::before,.gp *::after{box-sizing:border-box;margin:0;padding:0}
+.gp *::-webkit-scrollbar{display:none}
+.gp *{-ms-overflow-style:none;scrollbar-width:none}
+@media(max-width:1200px){.gp [style*="column-count:4"]{column-count:3!important}}
+@media(max-width:900px){.gp [style*="column-count:4"]{column-count:2!important}}
+@media(max-width:600px){.gp [style*="column-count:4"]{column-count:1!important}}
 .gp{font-family:'DM Sans',sans-serif;color: #111827;background: #F8F9FB;min-height:100vh}
 @keyframes gpFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes gpModalIn{from{opacity:0;transform:scale(0.96)translateY(6px)}to{opacity:1;transform:none}}
@@ -648,6 +653,10 @@ export default function GamesPage() {
   const [filterCat, setFilterCat] = useState('all')
   const [sortKey, setSortKey] = useState('created_at')
   const [sortDir, setSortDir] = useState('desc')
+  const [viewMode, setViewMode] = useState('grid')
+  const [selectedGame, setSelectedGame] = useState(null)
+  const [selectedClient, setSelectedClient] = useState(null)
+  const [expandedParents, setExpandedParents] = useState({})
   const navigate = useNavigate()
 
   const load = () =>
@@ -685,6 +694,12 @@ export default function GamesPage() {
   }
 
   const STATUS_CYCLE = ['development', 'testing', 'live']
+
+  const navigateBuilder = (game) => {
+    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe'}
+    const slug = builders[game.category]
+    navigate(`/dashboard/games/${game.id}${slug ? '/' + slug + '-builder' : '/builder'}`)
+  }
 
   const handleStatusToggle = async (game, e) => {
     e.stopPropagation()
@@ -767,10 +782,23 @@ export default function GamesPage() {
             Games
           </h1>
           {games.length > 0 && (
-            <div style={{position:'relative'}}>
-              <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:' #9CA3AF'}}><Ico.search/></span>
-              <input className="gp-input" style={{paddingLeft:40,height:38,padding:'0 14px 0 40px',width:'100%'}} placeholder="Search games or client…" value={search} onChange={e=>setSearch(e.target.value)} />
-            </div>
+            <div style={{display:'flex',alignItems:'center',gap:12}}>
+              <div style={{position:'relative',flex:1}}>
+                <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:' #9CA3AF'}}><Ico.search/></span>
+                <input className="gp-input" style={{paddingLeft:40,height:38,padding:'0 14px 0 40px',width:'100%'}} placeholder="Search games or client…" value={search} onChange={e=>setSearch(e.target.value)} />
+              </div>
+              {/* View toggle */}
+              <div style={{display:'flex',background:'#F3F4F6',borderRadius:8,padding:3,gap:2}}>
+                <button onClick={() => setViewMode('list')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='list'?'#fff':'transparent',cursor:'pointer',boxShadow:viewMode==='list'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='list'?'#4F46E5':'#6B7280',fontFamily:'inherit'}}>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
+                    List
+                  </button>
+                  <button onClick={() => setViewMode('tree')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='tree'?'#fff':'transparent',cursor:'pointer',boxShadow:viewMode==='tree'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='tree'?'#4F46E5':'#6B7280',fontFamily:'inherit'}}>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                    Grid
+                  </button>
+                </div>
+              </div>
           )}
           <div style={{justifySelf:'end'}}>
             <button className="gp-primary-btn" onClick={() => setShowForm(true)}><Ico.plus/> Create Game</button>
@@ -795,7 +823,7 @@ export default function GamesPage() {
           <div style={{textAlign:'center',padding:'60px 0',color:' #9CA3AF',fontSize:14}}>
             No games match your filters.
           </div>
-        ) : (
+        ) : viewMode === 'list' ? (
           <>
           <div className="gp-table-wrap" style={{overflowX:'auto'}}>
             <table className="gp-table">
@@ -1030,8 +1058,175 @@ export default function GamesPage() {
             ))}
           </div>
           </>
+        ) : (
+          /* ─── TREE VIEW (Masonry Grid by Client) ─── */
+          <div style={{columnCount:4,columnGap:16}}>
+            {clients.filter(c => sorted.some(g => g.client_id === c.id) || sorted.some(g => !g.client_id)).map((client, ci) => {
+              const clientGames = sorted.filter(g => g.client_id === client.id)
+              const templates = clientGames.filter(g => !g.parent_game_id)
+              const locations = clientGames.filter(g => g.parent_game_id)
+              if (clientGames.length === 0) return null
+              return (
+                <div key={client.id} style={{breakInside:'avoid',marginBottom:16,background:'#fff',borderRadius:16,border:'1.5px solid #EAECF0',overflow:'hidden',animation:`crmFadeUp .3s ease ${ci*40}ms both`}}>
+                  {/* Client header */}
+                  <div style={{padding:'14px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',alignItems:'center',gap:10}}>
+                    <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#6366f1,#4f46e5)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:14,fontWeight:700,flexShrink:0}}>
+                      {client.company_name?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <div style={{flex:1,minWidth:0}}>
+                      <div style={{fontWeight:700,fontSize:13,color:'#0D0D1A',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{client.company_name}</div>
+                      <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>{templates.length} template{templates.length!==1?'s':''} · {locations.length} location{locations.length!==1?'s':''}</div>
+                    </div>
+                  </div>
+                  {/* Action buttons */}
+                  <div style={{padding:'8px 12px',display:'flex',gap:6,borderBottom:'1px solid #F3F4F6'}}>
+                    <button onClick={() => navigate(`/dashboard/games/${templates[0]?.id}/responses`)} style={{flex:1,padding:'6px 0',borderRadius:6,border:'1px solid #E5E7EB',background:'#fff',fontSize:10,fontWeight:600,cursor:'pointer',color:'#374151',fontFamily:'inherit'}}>
+                      📊 Responses
+                    </button>
+                    <button onClick={() => setSelectedClient(selectedClient?.id===client.id?null:client)} style={{flex:1,padding:'6px 0',borderRadius:6,border:`1px solid ${selectedClient?.id===client.id?'#4F46E5':'#E5E7EB'}`,background:selectedClient?.id===client.id?'#EEF2FF':'#fff',fontSize:10,fontWeight:600,cursor:'pointer',color:selectedClient?.id===client.id?'#4F46E5':'#374151',fontFamily:'inherit'}}>
+                      {selectedClient?.id===client.id?'▾ Expanded':'▸ Expand'}
+                    </button>
+                  </div>
+                  {/* Game list - hidden until expanded */}
+                  {selectedClient?.id === client.id && (
+                  <div style={{padding:'6px 10px'}}>
+                    {templates.map(g => {
+                      const isExpanded = expandedParents[g.id]
+                      const childLocs = locations.filter(l => l.parent_game_id === g.id)
+                      return (
+                        <div key={g.id}>
+                          <div onClick={() => childLocs.length > 0 ? setExpandedParents(p => ({...p,[g.id]:!p[g.id]})) : setSelectedGame(g)}
+                            style={{padding:'7px 8px',borderRadius:6,marginBottom:3,cursor:'pointer',border:'1px solid #F3F4F6',background:'#FAFAFA',transition:'all .12s'}}
+                            onMouseEnter={e=>{e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='#EEF2FF'}}
+                            onMouseLeave={e=>{e.currentTarget.style.borderColor='#F3F4F6';e.currentTarget.style.background='#FAFAFA'}}>
+                            <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                              <div style={{fontWeight:700,fontSize:11,color:'#1F2937',display:'flex',alignItems:'center',gap:4}}>
+                                {childLocs.length > 0 && <span style={{fontSize:8,color:'#9CA3AF',transition:'transform .2s',transform:isExpanded?'rotate(90deg)':'rotate(0deg)',display:'inline-block'}}>▶</span>}
+                                {g.name}
+                              </div>
+                              <span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:3,background:g.is_active?'#ECFDF5':'#F3F4F6',color:g.is_active?'#059669':'#9CA3AF'}}>{g.status||'Draft'}</span>
+                            </div>
+                            <div style={{fontSize:9,color:'#6B7280',marginTop:1}}>{g.category} · {g.question_count||0}q · {g.play_count||0}p</div>
+                          </div>
+                          {isExpanded && childLocs.map(loc => (
+                            <div key={loc.id} onClick={() => setSelectedGame(loc)}
+                              style={{marginLeft:12,marginBottom:3,padding:'5px 8px',borderRadius:5,border:'1px solid #F3F4F6',background:'#F9FAFB',cursor:'pointer',transition:'all .12s'}}
+                              onMouseEnter={e=>{e.currentTarget.style.borderColor='#C7D2FE';e.currentTarget.style.background='#EEF2FF'}}
+                              onMouseLeave={e=>{e.currentTarget.style.borderColor='#F3F4F6';e.currentTarget.style.background='#F9FAFB'}}>
+                              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+                                <div style={{fontSize:10,fontWeight:600,color:'#374151'}}>↳ {loc.location_name||loc.name}</div>
+                                <span style={{fontSize:7,fontWeight:700,padding:'1px 4px',borderRadius:3,background:loc.is_active?'#ECFDF5':'#F3F4F6',color:loc.is_active?'#059669':'#9CA3AF'}}>{loc.status||'Draft'}</span>
+                              </div>
+                              <div style={{fontSize:8,color:'#9CA3AF',marginTop:1}}>{loc.question_count||0}q · {loc.play_count||0}p</div>
+                            </div>
+                          ))}
+                        </div>
+                      )
+                    })}
+                    {templates.length === 0 && (
+                      <div style={{fontSize:10,color:'#9CA3AF',padding:'8px 0',textAlign:'center'}}>No games</div>
+                    )}
+                  </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
+
+      {/* Game Detail Modal */}
+      {selectedGame && (
+        <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={()=>setSelectedGame(null)}>
+          <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'90vh',overflow:'auto',padding:'28px 24px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif"}} onClick={e=>e.stopPropagation()}>
+            {/* Header */}
+            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+              <div>
+                <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A',marginBottom:4}}>
+                  {selectedGame.name}
+                  {selectedGame.location_name && <span style={{color:'#6B7280',fontWeight:500,fontSize:14,marginLeft:8}}>- {selectedGame.location_name}</span>}
+                </h2>
+                <div style={{display:'flex',gap:8,alignItems:'center'}}>
+                  <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:catMeta(selectedGame.category).bg,color:catMeta(selectedGame.category).fg}}>
+                    {selectedGame.category}
+                  </span>
+                  <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:selectedGame.is_active?'#ECFDF5':'#F3F4F6',color:selectedGame.is_active?'#059669':'#9CA3AF'}}>
+                    {selectedGame.status||'Draft'}
+                  </span>
+                </div>
+              </div>
+              <button onClick={()=>setSelectedGame(null)} style={{border:'none',background:'none',cursor:'pointer',color:'#9CA3AF',padding:4}}>
+                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+              </button>
+            </div>
+
+            {/* Stats */}
+            <div style={{display:'flex',gap:12,marginBottom:16}}>
+              <div style={{flex:1,background:'#F5F3FF',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
+                <div style={{fontSize:18,fontWeight:700,color:'#4F46E5'}}>{selectedGame.question_count||0}</div>
+                <div style={{fontSize:9,fontWeight:700,color:'#7C3AED',textTransform:'uppercase'}}>Questions</div>
+              </div>
+              <div style={{flex:1,background:'#ECFDF5',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
+                <div style={{fontSize:18,fontWeight:700,color:'#059669'}}>{selectedGame.play_count||0}</div>
+                <div style={{fontSize:9,fontWeight:700,color:'#10B981',textTransform:'uppercase'}}>Plays</div>
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Quick Actions</div>
+              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+                <button onClick={()=>{navigateBuilder(selectedGame);setSelectedGame(null)}} style={{padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}}>
+                  🔧 Open Builder
+                </button>
+                <button onClick={()=>{navigate(`/dashboard/games/${selectedGame.id}/responses`);setSelectedGame(null)}} style={{padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}}>
+                  📊 Responses
+                </button>
+                <button onClick={()=>{setQrModalGame(selectedGame);setSelectedGame(null)}} style={{padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}}>
+                  📱 Show QR
+                </button>
+                <button onClick={()=>{copyLink(selectedGame);setSelectedGame(null)}} style={{padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}}>
+                  🔗 Copy Link
+                </button>
+              </div>
+            </div>
+
+            {/* Settings Toggles */}
+            <div style={{marginBottom:16}}>
+              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Settings</div>
+              {[
+                {label:'Active',field:'is_active',disabled:selectedGame.status!=='live'},
+                {label:'Show in Play Page',field:'show_in_play_page'},
+                {label:'Show in Hero Page',field:'show_in_hero_page'},
+              ].map(t => (
+                <div key={t.field} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #F3F4F6'}}>
+                  <span style={{fontSize:13,color:'#374151'}}>{t.label}</span>
+                  <button disabled={t.disabled} onClick={()=>toggleField(selectedGame,t.field)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:t.disabled?'not-allowed':'pointer',background:selectedGame[t.field]?'#059669':'#D1D5DB',position:'relative',transition:'background .15s',opacity:t.disabled?0.4:1}}>
+                    <span style={{position:'absolute',top:3,left:selectedGame[t.field]?21:3,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+                  </button>
+                </div>
+              ))}
+              {/* Game Type */}
+              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #F3F4F6'}}>
+                <span style={{fontSize:13,color:'#374151'}}>Game Type</span>
+                <button onClick={()=>handleGameTypeToggle(selectedGame)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',background:selectedGame.game_type==='branded'?'#059669':'#D1D5DB',position:'relative',transition:'background .15s'}}>
+                  <span style={{position:'absolute',top:3,left:selectedGame.game_type==='branded'?21:3,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+                </button>
+              </div>
+            </div>
+
+            {/* Danger zone */}
+            <div style={{display:'flex',gap:8}}>
+              <button onClick={()=>{handleDuplicate(selectedGame.id);setSelectedGame(null)}} style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit'}}>
+                📋 Duplicate
+              </button>
+              <button onClick={()=>{if(confirm('Delete this game?')){handleDelete(selectedGame.id);setSelectedGame(null)}}} style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid #FECACA',background:'#FEF2F2',cursor:'pointer',fontSize:12,fontWeight:600,color:'#DC2626',fontFamily:'inherit'}}>
+                🗑 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {showForm && !showClientForm && (
         <CreateModal

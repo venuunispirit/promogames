@@ -1,8 +1,8 @@
 const express = require('express');
 const router = express.Router();
+const db = require('../config/db');
 const fs = require('fs');
 const path = require('path');
-const db = require('../config/db');
 const { promisify } = require('util');
 const readdir = promisify(fs.readdir);
 const stat = promisify(fs.stat);
@@ -11,6 +11,11 @@ const BACKEND_DIR = path.join(__dirname, '..');
 const FRONTEND_SRC = path.join(__dirname, '..', '..', 'frontend', 'src');
 const FEATURES_DIR = path.join(__dirname, '..', '..', '..', 'features');
 const PACKAGES_DIR = path.join(__dirname, '..', '..', '..', 'packages');
+
+// Cache for system status to avoid repeated heavy checks
+let statusCache = null;
+let cacheExpiry = 0;
+const CACHE_TTL = 30000; // 30 seconds
 
 const REQUIRED_ENV_VARS = [
   'PORT', 'NODE_ENV', 'DB_HOST', 'DB_PORT', 'DB_USER', 'DB_PASSWORD', 'DB_NAME',
@@ -51,6 +56,26 @@ const GAME_TYPES = [
   'breakout', 'bubbleshooter', 'carlaunch', 'frustration', 'stressbuster', 'soundify', 'tictactoe', 'arrowescape'
 ];
 
+// Cache helpers
+function isCacheValid() {
+  return statusCache && Date.now() < cacheExpiry;
+}
+
+function setCache(data) {
+  statusCache = data;
+  cacheExpiry = Date.now() + CACHE_TTL;
+}
+
+function addResult(results, category, test) {
+  if (!results.categories[category]) results.categories[category] = { tests: [] };
+  results.categories[category].tests.push(test);
+  results.summary.total++;
+  if (test.status === 'pass') results.summary.passed++;
+  else if (test.status === 'fail') results.summary.failed++;
+  else results.summary.warnings++;
+}
+
+// Simple HTTP test helper with short timeout
 async function testEndpoint(baseUrl, method, endpoint, label) {
   const url = `${baseUrl}${endpoint}`;
   const start = Date.now();
@@ -59,7 +84,83 @@ async function testEndpoint(baseUrl, method, endpoint, label) {
     const https = require('https');
     const mod = url.startsWith('https') ? https : http;
     const result = await new Promise((resolve) => {
-      const req = mod.get(url, { timeout: 5000 }, (res) => {
+      const req = mod.get(url, { timeout: 3000 }, (res) => {
+        let data = '';
+        res.on('data', chunk => data += chunk);
+        res.on('end', () => {
+          resolve({ status: res.statusCode, ok: res.statusCode < 500, time: Date.now() - start });
+        });
+      });
+      req.on('error', (err) => resolve({ status: 0, ok: false, error: err.message, time: Date.now() - start }));
+      req.on('timeout', () => { req.destroy(); resolve({ status: 0, ok: false, error: 'Timeout', time: Date.now() - start }); });
+    });
+    return { endpoint: url, label, ...result };
+  } catch (e) {
+    return { endpoint: url, label, status: 0, ok: false, error: e.message, time: Date.now() - start };
+  }
+}
+
+// Lightweight health check endpoint - no cache, fast
+router.get('/health', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({
+      status: 'healthy',
+      timestamp: new Date().toISOString(),
+      uptime: process.uptime(),
+      memory: process.memoryUsage(),
+      version: process.env.npm_package_version || '1.0.0'
+    });
+  } catch (error) {
+    res.status(503).json({
+      status: 'unhealthy',
+      timestamp: new Date().toISOString(),
+      error: error.message
+    });
+  }
+});
+
+// Readiness check - for Kubernetes/docker
+router.get('/ready', async (req, res) => {
+  try {
+    await db.query('SELECT 1');
+    res.json({ ready: true });
+  } catch (error) {
+    res.status(503).json({ ready: false, error: error.message });
+  }
+});
+
+// Helper: check if cache is valid
+function isCacheValid() {
+  return statusCache && Date.now() < cacheExpiry;
+}
+
+// Helper: set cache
+function setCache(data) {
+  statusCache = data;
+  cacheExpiry = Date.now() + CACHE_TTL;
+}
+
+// Helper: add result to results object
+function addResult(results, category, test) {
+  if (!results.categories[category]) results.categories[category] = { tests: [] };
+  results.categories[category].tests.push(test);
+  results.summary.total++;
+  if (test.status === 'pass') results.summary.passed++;
+  else if (test.status === 'fail') results.summary.failed++;
+  else results.summary.warnings++;
+}
+
+// Simple HTTP test helper
+async function testEndpoint(baseUrl, method, endpoint, label) {
+  const url = `${baseUrl}${endpoint}`;
+  const start = Date.now();
+  try {
+    const http = require('http');
+    const https = require('https');
+    const mod = url.startsWith('https') ? https : http;
+    const result = await new Promise((resolve) => {
+      const req = mod.get(url, { timeout: 3000 }, (res) => {
         let data = '';
         res.on('data', chunk => data += chunk);
         res.on('end', () => {
@@ -79,6 +180,12 @@ router.get('/status', async (req, res) => {
   res.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
   res.set('Pragma', 'no-cache');
   res.set('Expires', '0');
+
+  // Return cached result if valid
+  if (isCacheValid()) {
+    return res.json({ success: true, ...statusCache });
+  }
+
   const results = {
     timestamp: new Date().toISOString(),
     summary: { total: 0, passed: 0, failed: 0, warnings: 0 },
@@ -104,15 +211,12 @@ router.get('/status', async (req, res) => {
     });
   }
 
-
-
   // ── 2. File System Checks ──
   const routeFiles = fs.readdirSync(path.join(__dirname)).filter(f => f.endsWith('.js'));
   addResult('File System', {
     name: 'Route files count', status: 'pass', message: `${routeFiles.length} route files found in routes/`, expected: 'Should have 50+ route files'
   });
 
-  // Check initDB.js exists
   const initDBPath = path.join(BACKEND_DIR, 'config', 'initDB.js');
   const initDBExists = fs.existsSync(initDBPath);
   addResult('File System', {
@@ -121,14 +225,12 @@ router.get('/status', async (req, res) => {
     expected: 'Must exist for deployment auto-migration'
   });
 
-  // Check db.js
   const dbPath = path.join(BACKEND_DIR, 'config', 'db.js');
   addResult('File System', {
     name: 'config/db.js', status: fs.existsSync(dbPath) ? 'pass' : 'fail',
     message: fs.existsSync(dbPath) ? 'Exists' : 'MISSING', expected: 'Database connection config'
   });
 
-  // Check upload config
   const uploadConfigPath = path.join(BACKEND_DIR, 'config', 'upload.js');
   addResult('File System', {
     name: 'config/upload.js', status: fs.existsSync(uploadConfigPath) ? 'pass' : 'warn',
@@ -136,7 +238,6 @@ router.get('/status', async (req, res) => {
     expected: 'Multer file upload config'
   });
 
-  // Check .env file
   const envPath = path.join(BACKEND_DIR, '.env');
   addResult('File System', {
     name: 'Backend .env', status: fs.existsSync(envPath) ? 'pass' : 'fail',
@@ -144,7 +245,6 @@ router.get('/status', async (req, res) => {
     expected: 'Required for configuration'
   });
 
-  // Check upload directories
   for (const dir of ['uploads/images', 'uploads/sounds']) {
     const fullPath = path.join(BACKEND_DIR, dir);
     const exists = fs.existsSync(fullPath);
@@ -179,7 +279,6 @@ router.get('/status', async (req, res) => {
     addResult('Frontend Pages', { name: 'pages directory', status: 'fail', message: 'MISSING', expected: 'src/pages/ directory' });
   }
 
-  // Check frontend entry files
   for (const [name, p] of [['main.jsx', 'main.jsx'], ['App.jsx', 'App.jsx'], ['api.js', 'api.js']]) {
     const fp = path.join(FRONTEND_SRC, p);
     addResult('Frontend Core', {
@@ -213,7 +312,6 @@ router.get('/status', async (req, res) => {
     }
   }
 
-  // Check @promogames packages
   if (fs.existsSync(PACKAGES_DIR)) {
     const pkgDirs = fs.readdirSync(PACKAGES_DIR).filter(f => {
       try { return fs.statSync(path.join(PACKAGES_DIR, f)).isDirectory(); } catch { return false; }
@@ -250,7 +348,6 @@ router.get('/status', async (req, res) => {
       });
     }
 
-    // Check games category ENUM
     try {
       const [colInfo] = await db.query('SHOW COLUMNS FROM games WHERE Field = ?', ['category']);
       if (colInfo.length > 0) {
@@ -268,7 +365,6 @@ router.get('/status', async (req, res) => {
       addResult('Game Types', { name: 'CHECK_ERROR', status: 'fail', message: e.message, expected: 'N/A' });
     }
 
-    // Check initDB.js runs successfully by verifying a core table
     addResult('Database', {
       name: 'Migration Status', status: 'pass',
       message: 'initDB.js runs on startup (tables verified above)',
@@ -282,14 +378,13 @@ router.get('/status', async (req, res) => {
     });
   }
 
-   // ── 6. API Endpoint Check (lightweight) ──
+  // ── 6. API Endpoint Check (lightweight) ──
   const baseUrl = `http://localhost:${process.env.PORT || 8080}`;
   const endpointsToTest = [
     { method: 'GET', endpoint: '/api/check-code', label: 'Health Check' },
     { method: 'GET', endpoint: '/', label: 'Root' },
   ];
 
-  // Add safe, accessible API endpoints (excluding protected ones)
   const safeEndpoints = [
     '/api/auth',
     '/api/pauth',
@@ -302,18 +397,15 @@ router.get('/status', async (req, res) => {
     '/api/roblox'
   ];
 
-  // Add core accessible endpoints
   for (const ep of safeEndpoints) {
     endpointsToTest.push({ method: 'GET', endpoint: ep, label: ep });
   }
 
-  // Only test system status when available (it should be accessible)
   const systemEndpoints = ['/api/system/status'];
   for (const ep of systemEndpoints) {
     endpointsToTest.push({ method: 'GET', endpoint: ep, label: ep });
   }
 
-  // Test in batches to avoid overwhelming the server
   const batchSize = 10;
   for (let i = 0; i < endpointsToTest.length; i += batchSize) {
     const batch = endpointsToTest.slice(i, i + batchSize);
@@ -321,7 +413,6 @@ router.get('/status', async (req, res) => {
       batch.map(e => testEndpoint(baseUrl, e.method, e.endpoint, e.label))
     );
     for (const tr of testResults) {
-      // 200 is expected for public endpoints, 401 is acceptable for protected routes
       const expectedStatus = tr.endpoint.includes('/api/system') ? '200' :
         tr.endpoint === '/api/check-code' || tr.endpoint === '/' ? '200' :
         '401 (needs auth) - endpoint exists';
@@ -334,7 +425,7 @@ router.get('/status', async (req, res) => {
     }
   }
 
-  // ── 7. InitDB Migration Script Check ──
+  // ── 7. Deployment Readiness ──
   addResult('Deployment Readiness', {
     name: 'Auto-migration on start', status: 'pass',
     message: 'server.js calls initDB() before listening — migrations run on every start',
@@ -347,7 +438,6 @@ router.get('/status', async (req, res) => {
     expected: 'initDB.js must exist at config/initDB.js for deployment auto-migration'
   });
 
-  // Check three.js
   try {
     require('three');
     addResult('Dependencies', { name: 'three', status: 'pass', message: 'Installed (root)', expected: '3D library for some games' });
@@ -360,13 +450,16 @@ router.get('/status', async (req, res) => {
   const health = summary.failed === 0 && summary.warnings === 0 ? 'healthy' :
     summary.failed === 0 ? 'degraded' : 'unhealthy';
 
-  res.json({
+  const response = {
     success: true,
     health,
     summary,
     categories: results.categories,
     timestamp: results.timestamp
-  });
+  };
+
+  setCache(response);
+  res.json({ success: true, ...response });
 });
 
 module.exports = router;

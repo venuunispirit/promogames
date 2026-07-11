@@ -968,7 +968,7 @@ router.post('/session/complete', async (req, res) => {
       console.warn('⚠️  Email enabled but no email found in player data:', JSON.stringify(playerData));
     }
 
-    // ── Award Promo Coins (PC) ────────────────────────────────────────────────
+    // ── Award Promo Coins (PC) on game completion ──
     const game = games[0];
     if (session.promo_player_id && !session.pc_awarded && game) {
       const pcAmount = game.game_type === 'branded' ? 50 : 10;
@@ -978,10 +978,9 @@ router.post('/session/complete', async (req, res) => {
       );
       await db.query(
         'INSERT INTO pc_transactions (player_id, type, points, game_id, note) VALUES (?, ?, ?, ?, ?)',
-        [session.promo_player_id, 'earn', pcAmount, session.game_id, `Game completed: ${game.name}`]
+        [session.promo_player_id, 'earn', pcAmount, session.game_id, `Completed: ${game.name}`]
       );
       await db.query('UPDATE player_sessions SET pc_awarded = 1 WHERE id = ?', [session.id]);
-      console.log(`✅ Awarded ${pcAmount} PC to player ${session.promo_player_id} for game ${game.name}`);
     }
 
     // ── Business Owner Redemption: Create redemption with 6-digit code ──
@@ -1006,10 +1005,10 @@ router.post('/session/complete', async (req, res) => {
         console.log('[DEBUG] emailSettings type:', typeof emailSettings, 'guest_offer:', JSON.stringify(emailSettings?.guest_offer));
 
         await db.query(
-          `INSERT INTO business_redemptions (business_owner_id, game_id, session_id, code, player_name, player_phone, player_email, is_player, status, table_number)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
+          `INSERT INTO business_redemptions (business_owner_id, game_id, session_id, code, player_name, player_phone, player_email, is_player, promo_player_id, status, table_number)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
           [boGames[0].business_owner_id, session.game_id, session.id,
-           code, playerName, playerPhone, playerEmail || '', isPlayer ? 1 : 0, tableNumber]
+           code, playerName, playerPhone, playerEmail || '', isPlayer ? 1 : 0, session.promo_player_id || null, tableNumber]
         );
 
         const gameName = games[0]?.name || 'a game';

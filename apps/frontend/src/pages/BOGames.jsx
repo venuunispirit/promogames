@@ -33,7 +33,7 @@ export default function BOGames() {
               {g.game_logo_url && (
                 <img src={g.game_logo_url} alt="" style={{ height:40, objectFit:'contain', marginBottom:12 }} />
               )}
-              <div style={{ fontWeight:700, fontSize:15 }}>{g.game_name}</div>
+              <div style={{ fontWeight:700, fontSize:15 }}>{g.name}</div>
               {g.location_name && (
                 <div style={{ fontSize:12, color:'rgba(167,139,250,0.5)', marginTop:4 }}>
                   📍 {g.location_name}
@@ -55,7 +55,7 @@ export default function BOGames() {
               </div>
               {g.slug && (
                 <div style={{ fontSize:11, color:'rgba(167,139,250,0.3)', marginTop:8, wordBreak:'break-all' }}>
-                  QR: {window.location.origin}/play/{g.game_slug}/{g.client_slug || 'play'}
+                  QR: {window.location.origin}/play/{g.slug}/{g.client_slug || 'play'}
                 </div>
               )}
             </div>

@@ -2268,8 +2268,15 @@ await safeQuery(connection, `
      await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN code VARCHAR(6) DEFAULT NULL");
      console.log('✅ Made business_redemptions.code nullable');
    } catch (err) {
-     // Column might already be nullable or table might not exist yet
+     // Column might already be nullable
    }
+   try {
+     await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN status ENUM('pending','code_revealed','code_entered','player_confirmed','completed') DEFAULT 'pending'");
+     console.log('✅ Updated business_redemptions.status ENUM');
+   } catch (err) {
+     // ENUM might already be correct
+   }
+   await addColumn(connection, 'business_redemptions', 'promo_player_id', 'INT DEFAULT NULL');
    try {
      await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN status ENUM('pending','code_revealed','code_entered','player_confirmed','completed') DEFAULT 'pending'");
      console.log('✅ Updated business_redemptions.status ENUM');

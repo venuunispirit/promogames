@@ -455,6 +455,9 @@ export default function PlayerPage() {
         document.head.appendChild(twitterCardTag)
 
         const canSkipForm = () => {
+          // PromoGames: always skip form (anonymous/public games)
+          if (g.game_type === 'promogames') return true
+          // Branded: guest must fill form, registered player skips if profile complete
           if (!profile) return false
           const fields = g.formFields || []
           if (fields.length === 0) return true

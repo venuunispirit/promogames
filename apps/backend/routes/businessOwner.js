@@ -20,9 +20,9 @@ function boAuth(req, res, next) {
 // POST /api/business/login — Business Owner login (email + phone as password)
 router.post('/login', async (req, res) => {
   const { business_name, password } = req.body;
-  if (!business_name || !password) return res.status(400).json({ success: false, message: 'Email and password required' });
+  if (!business_name || !password) return res.status(400).json({ success: false, message: 'Business name and password required' });
   try {
-    const [rows] = await db.query('SELECT * FROM business_owners WHERE email = ? AND is_active = 1', [business_name]);
+    const [rows] = await db.query('SELECT * FROM business_owners WHERE business_name = ? AND is_active = 1', [business_name]);
     if (rows.length === 0) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     const bo = rows[0];
     const isMatch = await bcrypt.compare(password, bo.password);
@@ -304,6 +304,19 @@ router.post('/accept-redemption', boAuth, async (req, res) => {
       'UPDATE business_redemptions SET status = ?, accepted_by = ?, accepted_at = NOW() WHERE id = ?',
       [redemption.is_player ? 'player_confirmed' : 'completed', req.bo.id, redemption.id]
     );
+
+    // ── Deduct 50 PC from registered player on successful redemption ──
+    if (redemption.is_player && redemption.promo_player_id) {
+      try {
+        await db.query('UPDATE promo_players SET pc_balance = pc_balance - 50 WHERE id = ?', [redemption.promo_player_id]);
+        await db.query(
+          'INSERT INTO pc_transactions (player_id, type, points, game_id, note) VALUES (?, ?, ?, ?, ?)',
+          [redemption.promo_player_id, 'spend', -50, redemption.game_id, `Redemption at location`]
+        );
+        console.log(`✅ Deducted 50 PC from player ${redemption.promo_player_id} for redemption`);
+      } catch (e) { console.error('PC deduction error:', e.message); }
+    }
+
     if (!redemption.is_player) {
       // Send completion email to guest if email is enabled for this game
       try {
@@ -375,6 +388,17 @@ router.post('/accept-with-code', boAuth, async (req, res) => {
       'UPDATE business_redemptions SET status = ?, accepted_by = ?, accepted_at = NOW() WHERE id = ?',
       [redemption.is_player ? 'player_confirmed' : 'completed', req.bo.id, redemption.id]
     );
+
+    // ── Deduct 50 PC from registered player on successful redemption ──
+    if (redemption.is_player && redemption.promo_player_id) {
+      try {
+        await db.query('UPDATE promo_players SET pc_balance = pc_balance - 50 WHERE id = ?', [redemption.promo_player_id]);
+        await db.query(
+          'INSERT INTO pc_transactions (player_id, type, points, game_id, note) VALUES (?, ?, ?, ?, ?)',
+          [redemption.promo_player_id, 'spend', -50, redemption.game_id, `Redemption at location`]
+        );
+      } catch (e) { console.error('PC deduction error:', e.message); }
+    }
 
     // Send completion email to guest only
     if (!redemption.is_player && redemption.player_email) {

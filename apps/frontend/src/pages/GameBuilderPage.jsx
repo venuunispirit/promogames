@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 import BuilderPhoneMockup from '../components/BuilderPhoneMockup'
+import PhoneFrame from '../components/PhoneFrame'
 
 /* ─────────────────────────────────────────────
    LIGHT THEME TOKENS  (scoped to .gb-wrap)
@@ -1074,7 +1075,7 @@ const [nameInput,     setNameInput]     = useState('')
     setSaving(true)
     try {
       const fd = new FormData()
-      const fields = ['bg_color','primary_color','show_progress','allow_back','time_per_question',
+      const fields = ['bg_color','primary_color','show_progress','time_per_question',
         'heading_1','heading_2','intro_text','outro_text','win_sound_id','lose_sound_id',
         'sound_correct_id','sound_wrong_id',
         'terms_enabled','terms_text','terms_url','send_email','font_family',
@@ -1085,7 +1086,7 @@ const [nameInput,     setNameInput]     = useState('')
         'submit_button_text_color','submit_button_bg_color',
         'continue_button_text_color','continue_button_bg_color',
         'next_button_text','next_button_text_color','next_button_bg_color',
-        'randomize_questions']
+        'randomize_questions','questions_per_session']
       for (const f of fields) fd.append(f, settings[f]??'')
       if (settings._bgImageFile)    fd.append('bg_image',           settings._bgImageFile)
       else if (settings.bg_image_url !== undefined) fd.append('bg_image_url',     settings.bg_image_url)
@@ -1894,16 +1895,7 @@ const [nameInput,     setNameInput]     = useState('')
 
         {/* ─── RIGHT COL — Phone Mockup ─── */}
         {tab !== 'locations' && (
-        <div style={{
-          position:'sticky', top:80,
-          width:320, height:640, borderRadius:36,
-          border:'4px solid #1a1a2e', background:'#f4f4ff',
-          overflow:'hidden', boxShadow:'0 12px 48px rgba(0,0,0,.18)',
-          fontFamily: settings.font_family ? (settings.font_family + ", sans-serif") : "'DM Sans', sans-serif", flexShrink:0,
-          display:'flex', flexDirection:'column',
-          marginRight:20,
-        }}>
-          <div style={{ width:100, height:24, background:'#1a1a2e', borderRadius:'0 0 16px 16px', margin:'0 auto', flexShrink:0 }} />
+        <PhoneFrame settings={settings}>
 
           {/* ── Form preview ── */}
           {tab === 'form' && (() => {
@@ -2263,7 +2255,7 @@ const [nameInput,     setNameInput]     = useState('')
               </div>
             </div>
           )})()}
-        </div>
+        </PhoneFrame>
         )}{/* ─ end right col ─ */}
 
         {/* ─── LOCATIONS PANEL ─── */}

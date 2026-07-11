@@ -48,8 +48,6 @@ export default function BODashboard() {
   const [verifyMsg, setVerifyMsg] = useState('')
   const [verifyStatus, setVerifyStatus] = useState('')
   const [lastNotifCount, setLastNotifCount] = useState(0)
-  const [searchCode, setSearchCode] = useState('')
-  const [searchResult, setSearchResult] = useState(null)
   const timerRef = useRef(null)
   const pollRef = useRef(null)
 
@@ -127,16 +125,6 @@ export default function BODashboard() {
       fetchNotifications()
     } catch (err) {
       alert(err.response?.data?.message || 'Failed to reject')
-    }
-  }
-
-  const handleCodeSearch = async () => {
-    if (searchCode.length !== 6) return
-    try {
-      const { data } = await api.post('/business/verify-code', { code: searchCode })
-      if (data.success) setSearchResult(data.redemption)
-    } catch {
-      setSearchResult(null)
     }
   }
 

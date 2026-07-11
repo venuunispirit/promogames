@@ -935,26 +935,17 @@ export default function Business() {
               {FOOTER_NAV.map(([label, href]) => (
                 <a key={label} href={href}>{label}</a>
               ))}
+              <a href="/company">Company</a>
             </div>
+          </div>
+          <div>
+            <div className="footer-links-title">Get in Touch</div>
             <div className="footer-contact">
-              <div className="footer-links-title" style={{ marginTop: 24 }}>Get in Touch</div>
               <a href="tel:+916366870248">📞 +91 6366 870 248</a>
               <a href="mailto:offers.promogames@gmail.com">📧 offers.promogames@gmail.com</a>
             </div>
           </div>
-          <div>
-            <div className="footer-links-title">Our Office</div>
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15543.255684115567!2d77.548492!3d13.105036!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae230b7c2c9c6f%3A0x9b6d0c5e5c5e5c5e!2sVidyaranyapura%2C%20Bengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1712345678901!5m2!1sen!2sin"
-              width="100%" height="260" style={{ borderRadius: 14, border: 'none' }}
-              loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-              title="Office Address"
-            />
-            <p style={{ fontFamily: "'Inter',sans-serif", fontSize: 12, color: 'rgba(255,255,255,0.5)', marginTop: 10, lineHeight: 1.6 }}>
-              #14 AMS Layout, Near Jelly Machine<br />
-              Vidyaranyapura, Bangalore
-            </p>
-          </div>
+
         </div>
         <div className="footer-bar">
           <p>© 2026 Promogames. Fun Games. Exciting Gifts.</p>

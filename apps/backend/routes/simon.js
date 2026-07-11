@@ -4,6 +4,8 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 
+let simonColsMigrated = false;
+
 router.get('/:gameId/settings', auth, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM simon_settings WHERE game_id = ?', [req.params.gameId]);
@@ -17,6 +19,7 @@ router.put('/:gameId/settings', auth, upload.fields([
 ]), async (req, res) => {
   const {
     num_rounds, num_colors, speed, color_1, color_2, color_3, color_4, color_5, color_6,
+    color_1_sound_id, color_2_sound_id, color_3_sound_id, color_4_sound_id, color_5_sound_id, color_6_sound_id,
     heading_1, heading_2, heading_3, description_text,
     heading_1_color, heading_2_color, heading_3_color, description_color,
     bg_color, primary_color, font_family, show_timer, time_limit_seconds,
@@ -26,6 +29,13 @@ router.put('/:gameId/settings', auth, upload.fields([
     bg_image_url, thankyou_bg_image_url, game_logo_url, submit_confirm_gif_url,
   } = req.body;
   try {
+    if (!simonColsMigrated) {
+      await Promise.all([1,2,3,4,5,6].map(i =>
+        db.query(`ALTER TABLE simon_settings ADD COLUMN IF NOT EXISTS color_${i}_sound_id INT NULL`)
+      ));
+      simonColsMigrated = true
+    }
+
     const [existing] = await db.query('SELECT * FROM simon_settings WHERE game_id = ?', [req.params.gameId]);
     const e = existing[0] || {};
     const bgImg = req.files?.bg_image ? `/uploads/images/${req.files.bg_image[0].filename}` : (bg_image_url !== undefined ? bg_image_url : (e.bg_image_url || null));
@@ -39,6 +49,12 @@ router.put('/:gameId/settings', auth, upload.fields([
       color_1: color_1 || e.color_1 || '#ef4444', color_2: color_2 || e.color_2 || '#3b82f6',
       color_3: color_3 || e.color_3 || '#22c55e', color_4: color_4 || e.color_4 || '#f59e0b',
       color_5: color_5 || e.color_5 || '#8b5cf6', color_6: color_6 || e.color_6 || '#ec4899',
+      color_1_sound_id: color_1_sound_id !== undefined && color_1_sound_id !== '' ? Number(color_1_sound_id) : (e.color_1_sound_id || null),
+      color_2_sound_id: color_2_sound_id !== undefined && color_2_sound_id !== '' ? Number(color_2_sound_id) : (e.color_2_sound_id || null),
+      color_3_sound_id: color_3_sound_id !== undefined && color_3_sound_id !== '' ? Number(color_3_sound_id) : (e.color_3_sound_id || null),
+      color_4_sound_id: color_4_sound_id !== undefined && color_4_sound_id !== '' ? Number(color_4_sound_id) : (e.color_4_sound_id || null),
+      color_5_sound_id: color_5_sound_id !== undefined && color_5_sound_id !== '' ? Number(color_5_sound_id) : (e.color_5_sound_id || null),
+      color_6_sound_id: color_6_sound_id !== undefined && color_6_sound_id !== '' ? Number(color_6_sound_id) : (e.color_6_sound_id || null),
       heading_1: heading_1 !== undefined ? heading_1 : (e.heading_1 || null),
       heading_2: heading_2 !== undefined ? heading_2 : (e.heading_2 || null),
       heading_3: heading_3 !== undefined ? heading_3 : (e.heading_3 || null),

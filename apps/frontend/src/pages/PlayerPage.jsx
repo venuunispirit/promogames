@@ -750,6 +750,30 @@ export default function PlayerPage() {
           return
         }
 
+        if (g.category === 'screw') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'simon') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
+        if (g.category === 'snake') {
+          const init = {}
+          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+          setFormData(init)
+          setPhase('form')
+          return
+        }
+
         // Shuffle questions if randomize_questions is enabled
         if (g.settings?.randomize_questions && g.questions?.length) {
           const arr = [...g.questions]

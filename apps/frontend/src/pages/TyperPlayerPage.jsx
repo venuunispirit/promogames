@@ -25,6 +25,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       medium: function(len){ return 1100 + EXTRA_WORD_TIME + len*190; },
       hard:   function(len){ return 850  + EXTRA_WORD_TIME + len*160; }
     }
+    function wordBudget(len){ return WORD_TIME[difficulty](len) * speedScale; }
 
     var ICON_SOUND_ON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 5V4L8 9H4Z"/><path d="M17.5 8.5a5 5 0 0 1 0 7"/><path d="M20 6a8.5 8.5 0 0 1 0 12"/></svg>';
     var ICON_SOUND_OFF = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 9v6h4l5 5V4L8 9H4Z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>';
@@ -70,9 +71,50 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       root.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
     });
 
-    var difficulty = 'medium';
-    var duration = 60;
+    var gSettings = (gameDataRef.current && gameDataRef.current.settings) || {};
+    var gSoundMap = (gameDataRef.current && gameDataRef.current.soundMap) || {};
+    if (typeof gSoundMap !== 'object' || gSoundMap === null) gSoundMap = {};
+
+    var customWords = (gameDataRef.current && Array.isArray(gameDataRef.current.words))
+      ? gameDataRef.current.words
+          .map(function(w){ return { text: (w.word_text || '').toUpperCase(), diff: (w.difficulty || 'medium') }; })
+          .filter(function(w){ return w.text.length > 0; })
+      : [];
+
+    var sFallSpeed = Number(gSettings.fall_speed) || 2;
+    var speedScale = 2 / sFallSpeed;
+    var maxSim = gSettings.max_simultaneous ? Number(gSettings.max_simultaneous) : 2;
+    var maxMisses = gSettings.max_misses ? Number(gSettings.max_misses) : 0;
+    var targetWords = gSettings.target_words ? Number(gSettings.target_words) : 0;
+
+    var diffMode = gSettings.difficulty_mode;
+    var initialDifficulty = (diffMode === 'easy' || diffMode === 'medium' || diffMode === 'hard') ? diffMode : 'medium';
+    var initialDuration = gSettings.time_limit_seconds ? Number(gSettings.time_limit_seconds) : 60;
+
+    var difficulty = initialDifficulty;
+    var duration = initialDuration;
     var soundOn = true;
+
+    function playSoundById(id){
+      if (!soundOn || !id) return;
+      var url = gSoundMap[id];
+      if (!url) return;
+      try {
+        var a = new window.Audio(url);
+        a.play().catch(function(){});
+      } catch(e){}
+    }
+
+    var durMatch = durRow.querySelector('.key[data-dur="' + duration + '"]');
+    if (durMatch) {
+      durRow.querySelectorAll('.key').forEach(function(b){ b.classList.remove('active'); });
+      durMatch.classList.add('active');
+    }
+    var diffMatch = diffRow.querySelector('.key[data-diff="' + difficulty + '"]');
+    if (diffMatch) {
+      diffRow.querySelectorAll('.key').forEach(function(b){ b.classList.remove('active'); });
+      diffMatch.classList.add('active');
+    }
 
     var audioCtx = null;
     var masterBus = null;
@@ -150,6 +192,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
 
     function errBuzz(){
       if(!soundOn) return;
+      if(playSoundById(gSettings.sound_wrong_id)) return;
       try{
         var ctx = getCtx();
         var out = getMaster();
@@ -169,6 +212,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
 
     function ding(){
       if(!soundOn) return;
+      if(playSoundById(gSettings.sound_correct_id)) return;
       try{
         var ctx = getCtx();
         var out = getMaster();
@@ -373,7 +417,8 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     }
 
     function fillQueue(){
-      var bank = WORDS[difficulty];
+      var cust = customWords.filter(function(w){ return w.diff === difficulty; });
+      var bank = cust.length ? cust.map(function(w){ return w.text; }) : WORDS[difficulty];
       var batch = shuffle(bank);
       for(var i=0;i<batch.length;i++) queue.push(batch[i]);
     }
@@ -412,7 +457,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     function renderLadder(typed){
       var doneSlice = history.slice(-2);
       while(doneSlice.length < 2) doneSlice.unshift(null);
-      var nextSlice = queue.slice(0,2);
+      var nextSlice = queue.slice(0, Math.max(1, maxSim));
       while(nextSlice.length < 2) nextSlice.push('');
 
       var html = '';
@@ -462,7 +507,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
         submitWord(true, gen);
         return;
       }
-      var pct = (remaining / WORD_TIME[difficulty](currentWord.length)) * 100;
+      var pct = (remaining / wordBudget(currentWord.length)) * 100;
       setRing(pct);
       wordAnimFrame = requestAnimationFrame(function(){ ringTick(gen); });
     }
@@ -470,7 +515,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     function startRing(){
       wordActive = false;
       cancelAnimationFrame(wordAnimFrame);
-      var budget = WORD_TIME[difficulty](currentWord.length);
+      var budget = wordBudget(currentWord.length);
       var now = performance.now();
       ringStartedAt = now;
       wordDeadline = now + budget;
@@ -528,6 +573,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
         banner.style.setProperty('--rot', (Math.random()*10 - 5).toFixed(1) + 'deg');
         streakLayer.appendChild(banner);
         setTimeout(function(){ if(banner.parentNode) banner.parentNode.removeChild(banner); }, 1200);
+        playSoundById(gSettings.sound_combo_id);
       }
     }
 
@@ -569,6 +615,9 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
         errBuzz(); shakePaper();
       }
       updateStatsDisplay();
+
+      if (targetWords > 0 && correctWords >= targetWords) { wordLocked = false; endRound(); return; }
+      if (maxMisses > 0 && mistakes >= maxMisses) { wordLocked = false; endRound(); return; }
 
       wordLocked = false;
       loadNextWord();
@@ -689,6 +738,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     }
 
     function endRound(){
+      playSoundById(gSettings.sound_gameover_id);
       clearTimeout(countdownTimeoutId);
       countdownOverlay.classList.add('hidden');
       clearInterval(roundTimerId);

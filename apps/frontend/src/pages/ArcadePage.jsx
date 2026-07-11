@@ -148,8 +148,6 @@ img{display:block;max-width:100%}
 .footer-contact{display:flex;flex-direction:column;gap:10px;margin-top:28px}
 .footer-contact a{font-family:var(--fb);font-size:14px;color:var(--muted);text-decoration:none;transition:color .2s}
 .footer-contact a:hover{color:#fff}
-.footer-map{border-top:1px solid rgba(255,255,255,0.07);padding:40px 6%;max-width:1440px;margin:0 auto}
-.footer-map iframe{width:100%;height:280px;border-radius:16px;border:none}
 .footer-bar{border-top:1px solid rgba(255,255,255,0.07);padding:18px 6%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-family:var(--fm);font-size:11px;color:rgba(255,255,255,0.3);max-width:1440px;margin:0 auto;letter-spacing:.5px}
 .footer-bar a{color:rgba(255,255,255,0.3);text-decoration:none;transition:color .2s}
 .footer-bar a:hover{color:#fff}
@@ -339,29 +337,19 @@ export default function ArcadePage() {
           <div>
             <div className="footer-links-title">Quick Links</div>
             <div className="footer-links">
-              {[["Play Now","/arcade"],["Leaderboard","/leaderboard"],["Business","/business"],["Log In","/login"]].map(([label, href]) => (
+              {[["Play Now","/arcade"],["Leaderboard","/leaderboard"],["Business","/business"],["Log In","/login"],["Company","/company"]].map(([label, href]) => (
                 <a key={label} href={href}>{label}</a>
               ))}
             </div>
+          </div>
+          <div>
+            <div className="footer-links-title">Get in Touch</div>
             <div className="footer-contact">
-              <div className="footer-links-title" style={{ marginTop: 24 }}>Get in Touch</div>
               <a href="tel:+916366870248">📞 +91 6366 870 248</a>
               <a href="mailto:offers.promogames@gmail.com">📧 offers.promogames@gmail.com</a>
             </div>
           </div>
-          <div>
-            <div className="footer-links-title">Our Office</div>
-            <iframe
-              src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d15543.255684115567!2d77.548492!3d13.105036!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae230b7c2c9c6f%3A0x9b6d0c5e5c5e5c5e!2sVidyaranyapura%2C%20Bengaluru%2C%20Karnataka!5e0!3m2!1sen!2sin!4v1712345678901!5m2!1sen!2sin"
-              width="100%" height="260" style={{ borderRadius: 14, border: 'none' }}
-              loading="lazy" referrerPolicy="no-referrer-when-downgrade"
-              title="Office Address"
-            />
-            <p style={{ fontFamily: 'var(--fb)', fontSize: 12, color: 'var(--muted)', marginTop: 10, lineHeight: 1.6 }}>
-              #14 AMS Layout, Near Jelly Machine<br />
-              Vidyaranyapura, Bangalore
-            </p>
-          </div>
+
         </div>
         <div className="footer-bar" style={{ width:'100%' }}>
           <p>© 2026 Promogames. Fun Games. Exciting Gifts.</p>

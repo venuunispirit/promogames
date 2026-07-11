@@ -769,12 +769,36 @@ export default function JigsawSurprise({ gameData, sessionToken, onComplete }) {
     drawImageToCanvas(menuPreviewRef.current, puzzleImg, 210, 210);
   }, [puzzleImg]);
 
-  // Timer
+  // Timer — count down when show_timer is enabled and time_limit_seconds > 0,
+  // otherwise count up (no timer)
+  const showTimer = Number(settings.show_timer) === 1;
+  const timeLimit = Number(settings.time_limit_seconds) || 0;
+  const countdown = showTimer && timeLimit > 0;
+
   useEffect(() => {
     if (screen !== "game") { clearInterval(timerRef.current); return; }
-    timerRef.current = setInterval(() => { secondsRef.current++; setSeconds(secondsRef.current); }, 1000);
+    if (countdown) {
+      secondsRef.current = timeLimit;
+      setSeconds(timeLimit);
+    } else {
+      secondsRef.current = 0;
+      setSeconds(0);
+    }
+    timerRef.current = setInterval(() => {
+      if (countdown) {
+        secondsRef.current = Math.max(0, secondsRef.current - 1);
+        setSeconds(secondsRef.current);
+        if (secondsRef.current <= 0) {
+          clearInterval(timerRef.current);
+          setShowWin(true);
+        }
+      } else {
+        secondsRef.current = secondsRef.current + 1;
+        setSeconds(secondsRef.current);
+      }
+    }, 1000);
     return () => clearInterval(timerRef.current);
-  }, [screen]);
+  }, [screen, countdown, timeLimit]);
 
   const startGame = useCallback(() => {
     clearInterval(timerRef.current);
@@ -1056,7 +1080,7 @@ export default function JigsawSurprise({ gameData, sessionToken, onComplete }) {
       {/* ── WIN OVERLAY ── */}
       {showWin && (
         <WinOverlay
-          seconds={seconds}
+          seconds={countdown ? Math.max(0, timeLimit - seconds) : seconds}
           sceneCanvas={fullCanvasRef.current}
           onMenu={()=>{ setShowWin(false); setScreen("menu"); }}
           onPlayAgain={()=>{ setShowWin(false); startGame(); }}

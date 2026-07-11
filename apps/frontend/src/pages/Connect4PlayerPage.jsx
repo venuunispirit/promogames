@@ -2,47 +2,43 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 
 function playSound(url) { if (!url) return; try { const a = new Audio(url); a.play().catch(() => {}) } catch {} }
 
-const ROWS = 6
-const COLS = 7
-const WIN = 4
-
-function createBoard() {
-  return Array.from({ length: ROWS }, () => Array(COLS).fill(0))
+function createBoard(rows, cols) {
+  return Array.from({ length: rows }, () => Array(cols).fill(0))
 }
 
-function checkWin(board, row, col, player) {
+function checkWin(board, row, col, player, rows, cols, win) {
   const directions = [[0,1],[1,0],[1,1],[1,-1]]
   for (const [dr, dc] of directions) {
     let count = 1
-    for (let i = 1; i < WIN; i++) {
+    for (let i = 1; i < win; i++) {
       const r = row + dr * i, c = col + dc * i
-      if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) count++
+      if (r >= 0 && r < rows && c >= 0 && c < cols && board[r][c] === player) count++
       else break
     }
-    for (let i = 1; i < WIN; i++) {
+    for (let i = 1; i < win; i++) {
       const r = row - dr * i, c = col - dc * i
-      if (r >= 0 && r < ROWS && c >= 0 && c < COLS && board[r][c] === player) count++
+      if (r >= 0 && r < rows && c >= 0 && c < cols && board[r][c] === player) count++
       else break
     }
-    if (count >= WIN) return true
+    if (count >= win) return true
   }
   return false
 }
 
-function isBoardFull(board) {
-  return board[0].every(cell => cell !== 0)
+function isBoardFull(board, cols) {
+  return board[0].every((_, c) => board[0][c] !== 0) || cols === 0
 }
 
-function getValidRow(board, col) {
-  for (let r = ROWS - 1; r >= 0; r--) {
+function getValidRow(board, col, rows) {
+  for (let r = rows - 1; r >= 0; r--) {
     if (board[r][col] === 0) return r
   }
   return -1
 }
 
-function aiMove(board, difficulty) {
+function aiMove(board, difficulty, rows, cols, win) {
   const validCols = []
-  for (let c = 0; c < COLS; c++) {
+  for (let c = 0; c < cols; c++) {
     if (board[0][c] === 0) validCols.push(c)
   }
   if (validCols.length === 0) return -1
@@ -53,22 +49,23 @@ function aiMove(board, difficulty) {
 
   // Check if AI can win
   for (const c of validCols) {
-    const r = getValidRow(board, c)
+    const r = getValidRow(board, c, rows)
     board[r][c] = 2
-    if (checkWin(board, r, c, 2)) { board[r][c] = 0; return c }
+    if (checkWin(board, r, c, 2, rows, cols, win)) { board[r][c] = 0; return c }
     board[r][c] = 0
   }
 
   // Check if player can win (block)
   for (const c of validCols) {
-    const r = getValidRow(board, c)
+    const r = getValidRow(board, c, rows)
     board[r][c] = 1
-    if (checkWin(board, r, c, 1)) { board[r][c] = 0; return c }
+    if (checkWin(board, r, c, 1, rows, cols, win)) { board[r][c] = 0; return c }
     board[r][c] = 0
   }
 
   // Center preference
-  if (validCols.includes(3)) return 3
+  const center = Math.floor(cols / 2)
+  if (validCols.includes(center)) return center
 
   // Random from remaining
   return validCols[Math.floor(Math.random() * validCols.length)]
@@ -87,8 +84,12 @@ export default function Connect4PlayerPage({ gameData, sessionToken, onComplete 
   const boardColor = settings?.board_color || '#3b82f6'
   const difficulty = settings?.difficulty || 'medium'
 
+  const ROWS = parseInt(settings?.board_rows) || 6
+  const COLS = parseInt(settings?.board_cols) || 7
+  const WIN = parseInt(settings?.win_count) || 4
+
   const [showIntro, setShowIntro] = useState(true)
-  const [board, setBoard] = useState(createBoard())
+  const [board, setBoard] = useState(() => createBoard(ROWS, COLS))
   const [currentPlayer, setCurrentPlayer] = useState(1)
   const [gameOver, setGameOver] = useState(false)
   const [winner, setWinner] = useState(null)
@@ -114,7 +115,7 @@ export default function Connect4PlayerPage({ gameData, sessionToken, onComplete 
 
   const handleStart = () => {
     setShowIntro(false)
-    setBoard(createBoard())
+    setBoard(createBoard(ROWS, COLS))
     setCurrentPlayer(1)
     setGameOver(false)
     setWinner(null)
@@ -125,7 +126,7 @@ export default function Connect4PlayerPage({ gameData, sessionToken, onComplete 
 
   const dropPiece = useCallback((col) => {
     if (gameOver || currentPlayer !== 1) return
-    const row = getValidRow(board, col)
+    const row = getValidRow(board, col, ROWS)
     if (row === -1) return
 
     const newBoard = board.map(r => [...r])
@@ -134,7 +135,7 @@ export default function Connect4PlayerPage({ gameData, sessionToken, onComplete 
     setLastMove({ row, col, player: 1 })
     playSound(resolveSound(settings?.sound_drop_id))
 
-    if (checkWin(newBoard, row, col, 1)) {
+    if (checkWin(newBoard, row, col, 1, ROWS, COLS, WIN)) {
       playSound(resolveSound(settings?.sound_win_id))
       setWinner(1)
       setGameOver(true)
@@ -143,7 +144,7 @@ export default function Connect4PlayerPage({ gameData, sessionToken, onComplete 
       return
     }
 
-    if (isBoardFull(newBoard)) {
+    if (isBoardFull(newBoard, COLS)) {
       playSound(resolveSound(settings?.sound_draw_id))
       setWinner(0)
       setGameOver(true)
@@ -152,22 +153,22 @@ export default function Connect4PlayerPage({ gameData, sessionToken, onComplete 
     }
 
     setCurrentPlayer(2)
-  }, [board, currentPlayer, gameOver, settings, resolveSound, handleComplete])
+  }, [board, currentPlayer, gameOver, settings, resolveSound, handleComplete, ROWS, COLS, WIN])
 
   useEffect(() => {
     if (currentPlayer !== 2 || gameOver) return
     const timer = setTimeout(() => {
-      const col = aiMove(board.map(r => [...r]), difficulty)
+      const col = aiMove(board.map(r => [...r]), difficulty, ROWS, COLS, WIN)
       if (col === -1) return
 
       const newBoard = board.map(r => [...r])
-      const row = getValidRow(newBoard, col)
+      const row = getValidRow(newBoard, col, ROWS)
       newBoard[row][col] = 2
       setBoard(newBoard)
       setLastMove({ row, col, player: 2 })
       playSound(resolveSound(settings?.sound_drop_id))
 
-      if (checkWin(newBoard, row, col, 2)) {
+      if (checkWin(newBoard, row, col, 2, ROWS, COLS, WIN)) {
         playSound(resolveSound(settings?.sound_win_id))
         setWinner(2)
         setGameOver(true)
@@ -176,7 +177,7 @@ export default function Connect4PlayerPage({ gameData, sessionToken, onComplete 
         return
       }
 
-      if (isBoardFull(newBoard)) {
+      if (isBoardFull(newBoard, COLS)) {
         playSound(resolveSound(settings?.sound_draw_id))
         setWinner(0)
         setGameOver(true)
@@ -188,7 +189,7 @@ export default function Connect4PlayerPage({ gameData, sessionToken, onComplete 
     }, 500)
 
     return () => clearTimeout(timer)
-  }, [currentPlayer, gameOver, board, difficulty, settings, resolveSound, handleComplete])
+  }, [currentPlayer, gameOver, board, difficulty, settings, resolveSound, handleComplete, ROWS, COLS, WIN])
 
   const bgStyle = settings?.bg_image_url
     ? { backgroundImage: `url(${settings.bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }

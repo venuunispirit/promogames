@@ -36,23 +36,19 @@ router.put('/:gameId/settings', auth, upload.fields([
   { name: 'center_image',      maxCount: 1 },
   { name: 'submit_confirm_gif',maxCount: 1 },
 ]), async (req, res) => {
-  const {
-    heading_1, heading_1_color, heading_2, heading_2_color, description_text, description_color, spin_mode,
-    win_message, lose_message,
-    wheel_bg_color, pointer_color, center_color, center_label,
-    bg_color, primary_color, font_family,
-    bg_image_url, thankyou_bg_image_url, game_logo_url,
-    center_image_url, submit_confirm_gif_url,
-    sound_spin_id, sound_win_id, sound_lose_id,
-    meta_description,
-    outro_text, outro_text_color,
-    thankyou_subtitle, thankyou_subtitle_color,
-    submit_button_text, submit_button_text_color, submit_button_bg_color,
-    redirect_url, redirect_delay, redirect_open_new_tab,
-    continue_button_text, continue_button_text_color, continue_button_bg_color,
-    terms_enabled, terms_text, terms_url,
-    start_button_text, start_button_text_color, start_button_bg_color,
-  } = req.body;
+    const {
+      heading_1, heading_1_color, heading_2, heading_2_color, description_text, spin_mode,
+      win_message, lose_message,
+      wheel_bg_color, pointer_color, center_color, center_label,
+      bg_color, primary_color, font_family,
+      bg_image_url, thankyou_bg_image_url, game_logo_url,
+      center_image_url, submit_confirm_gif_url,
+      sound_spin_id, sound_win_id, sound_lose_id,
+      redirect_url, redirect_delay,
+      continue_button_text,
+      terms_enabled, terms_text, terms_url,
+      start_button_text,
+    } = req.body;
 
   try {
     const [existing] = await db.query('SELECT * FROM spin_settings WHERE game_id = ?', [req.params.gameId]);

@@ -571,18 +571,18 @@ router.put('/:id/settings', auth, upload.fields([
   { name: 'game_logo', maxCount: 1 },
   { name: 'submit_confirm_gif', maxCount: 1 }
 ]), async (req, res) => {
-  const { bg_color, primary_color, show_progress, allow_back, time_per_question,
-    heading_1, heading_2, intro_text, outro_text,
-    win_sound_url, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id,
-    terms_enabled, terms_text, terms_url, send_email,
-    bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url,
-    heading_1_color, heading_2_color, intro_text_color,
-    thankyou_subtitle, outro_text_color, thankyou_subtitle_color,
-    start_button_text, start_button_text_color, start_button_bg_color,
-    submit_button_text, submit_button_text_color, submit_button_bg_color,
-    continue_button_text, continue_button_text_color, continue_button_bg_color,
-    next_button_text, next_button_text_color, next_button_bg_color,
-    randomize_questions, questions_per_session } = req.body;
+    const { bg_color, primary_color, show_progress, allow_back, time_per_question,
+      intro_text, outro_text,
+      win_sound_url, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id,
+      terms_enabled, terms_text, terms_url, send_email,
+      bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url,
+      heading_1_color, heading_2_color, intro_text_color,
+      thankyou_subtitle, outro_text_color, thankyou_subtitle_color,
+      start_button_text, start_button_text_color, start_button_bg_color,
+      submit_button_text, submit_button_text_color, submit_button_bg_color,
+      continue_button_text, continue_button_text_color, continue_button_bg_color,
+      next_button_text, next_button_text_color, next_button_bg_color,
+      randomize_questions, questions_per_session } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [req.params.id]);
     const bgImg   = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           !== undefined ? bg_image_url           : (existing[0]?.bg_image_url           || null));

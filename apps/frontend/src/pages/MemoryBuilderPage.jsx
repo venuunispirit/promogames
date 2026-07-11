@@ -219,7 +219,7 @@ export default function MemoryBuilderPage() {
       const sFields = [
         'grid_cols','grid_rows','card_shape','show_timer','time_limit_seconds',
         'heading_1','heading_2','heading_3','description_text','font_family',
-        'sound_flip_id','sound_match_id','sound_nomatch_id',
+        'sound_flip_id','sound_match_id','sound_nomatch_id','win_sound_id',
         'overlay_animation_in','overlay_animation_out','overlay_idle_time','overlay_duration',
         'intro_text','outro_text','submit_button_text','continue_button_text','start_button_text',
         'terms_enabled','terms_text','terms_url','meta_description','send_email',
@@ -778,6 +778,7 @@ export default function MemoryBuilderPage() {
                   <SoundSelect label="🃏 Card Flip" value={settings.sound_flip_id} onChange={v => setSettings({...settings,sound_flip_id:v})} sounds={sounds} />
                   <SoundSelect label="✅ Match" value={settings.sound_match_id} onChange={v => setSettings({...settings,sound_match_id:v})} sounds={sounds} />
                   <SoundSelect label="❌ No Match" value={settings.sound_nomatch_id} onChange={v => setSettings({...settings,sound_nomatch_id:v})} sounds={sounds} />
+                  <SoundSelect label="🏆 Win" value={settings.win_sound_id} onChange={v => setSettings({...settings,win_sound_id:v})} sounds={sounds} />
                 </div>
                 <button className="mb-btn mb-btn-sm" onClick={saveSettings} disabled={saving} style={{ marginTop:8 }}>
                   {saving ? '⏳ Saving…' : '💾 Save Sound Assignments'}

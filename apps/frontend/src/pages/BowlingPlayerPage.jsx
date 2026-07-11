@@ -15,7 +15,7 @@ export default function BowlingPlayerPage({ gameData, sessionToken, onComplete }
   const [currentRoll, setCurrentRoll] = useState(0)
   const [frames, setFrames] = useState(Array.from({ length: totalFrames }, () => ({ rolls: [], score: null })))
   const [totalScore, setTotalScore] = useState(0)
-  const [pins, setPins] = useState(Array(10).fill(true))
+  const [pins, setPins] = useState(Array(settings?.pins || 10).fill(true))
   const [aimAngle, setAimAngle] = useState(50)
   const [ballX, setBallX] = useState(50)
   const [ballY, setBallY] = useState(90)
@@ -92,7 +92,7 @@ export default function BowlingPlayerPage({ gameData, sessionToken, onComplete }
         }
         setTimeout(() => {
           setCurrentFrame(f => f + 1); setCurrentRoll(0)
-          setPins(Array(10).fill(true)); setGamePhase('aiming')
+          setPins(Array(settings?.pins || 10).fill(true)); setGamePhase('aiming')
         }, 1000)
       } else {
         setFrames(newFrames); setCurrentRoll(1); setGamePhase('aiming')

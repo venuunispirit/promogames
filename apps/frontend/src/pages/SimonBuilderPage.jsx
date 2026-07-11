@@ -570,7 +570,7 @@ export default function SimonBuilderPage() {
     setSaving(true)
     try {
       const fd = new FormData()
-      const textFields = ['num_rounds','num_colors','speed','color_1','color_2','color_3','color_4','color_5','color_6','heading_1','heading_2','heading_3','description_text','intro_text','outro_text','submit_button_text','continue_button_text','start_button_text','font_family','show_timer','time_limit_seconds','sound_correct_id','sound_wrong_id','sound_gameover_id','terms_enabled','terms_text','terms_url','meta_description','heading_1_color','heading_2_color','heading_3_color','description_color','intro_text_color','outro_text_color','thankyou_subtitle','thankyou_subtitle_color','submit_button_text_color','submit_button_bg_color','continue_button_text_color','continue_button_bg_color','start_button_text_color','start_button_bg_color','bg_color','primary_color']
+      const textFields = ['num_rounds','num_colors','speed','color_1','color_2','color_3','color_4','color_5','color_6','color_1_sound_id','color_2_sound_id','color_3_sound_id','color_4_sound_id','color_5_sound_id','color_6_sound_id','heading_1','heading_2','heading_3','description_text','intro_text','outro_text','submit_button_text','continue_button_text','start_button_text','font_family','show_timer','time_limit_seconds','sound_correct_id','sound_wrong_id','sound_gameover_id','terms_enabled','terms_text','terms_url','meta_description','heading_1_color','heading_2_color','heading_3_color','description_color','intro_text_color','outro_text_color','thankyou_subtitle','thankyou_subtitle_color','submit_button_text_color','submit_button_bg_color','continue_button_text_color','continue_button_bg_color','start_button_text_color','start_button_bg_color','bg_color','primary_color']
       for (const f of textFields) fd.append(f, settings[f] ?? '')
       if (settings._bgFile) fd.append('bg_image', settings._bgFile)
       else fd.append('bg_image_url', settings.bg_image_url || '')
@@ -885,14 +885,15 @@ export default function SimonBuilderPage() {
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">Pad Colors</div>
                 <p style={{ fontSize:12, color:'var(--gb-text2)', marginBottom:8 }}>Customize the colors of the Simon pads. Only the first {settings.num_colors||4} are used.</p>
-                <div className="gb-row" style={{ gap:8 }}>
-                  {[1,2,3,4,5,6].map(i => (
-                    <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
-                      <span className="gb-label" style={{ textAlign:'center' }}>Pad {i}</span>
-                      <ColorPicker value={settings[`color_${i}`]||['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899'][i-1]} onChange={v => setSettings({...settings, [`color_${i}`]:v})} />
-                    </div>
-                  ))}
-                </div>
+                 <div className="gb-row" style={{ gap:8 }}>
+                   {[1,2,3,4,5,6].map(i => (
+                     <div key={i} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
+                       <span className="gb-label" style={{ textAlign:'center' }}>Pad {i}</span>
+                       <ColorPicker value={settings[`color_${i}`]||['#ef4444','#3b82f6','#22c55e','#f59e0b','#8b5cf6','#ec4899'][i-1]} onChange={v => setSettings({...settings, [`color_${i}`]:v})} />
+                       <SoundSelector label="Sound" value={settings[`color_${i}_sound_id`]} onChange={v => setSettings({...settings, [`color_${i}_sound_id`]:v})} sounds={sounds} />
+                     </div>
+                   ))}
+                 </div>
               </div>
 
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>

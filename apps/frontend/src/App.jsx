@@ -58,6 +58,7 @@ import PlayerProfilePage from './pages/PlayerProfilePage'
 import PlayersPage       from './pages/PlayersPage'
 import LeaderboardPage   from './pages/LeaderboardPage'
 import Business          from './pages/Business'
+import CompanyProfilePage from './pages/CompanyProfilePage'
 import CRMPage           from './pages/CRMPage'
 
 import StatusPage         from './pages/StatusPage'
@@ -104,6 +105,7 @@ function AppRoutes() {
       <Route path="/arcade"     element={<ArcadePage />} />
       <Route path="/leaderboard" element={<LeaderboardPage />} />
       <Route path="/business"    element={<Business />} />
+      <Route path="/company"     element={<CompanyProfilePage />} />
 
       {/* Player game routes */}
       <Route path="/play/:gameName/:companyName" element={<PlayerPageWrapper />} />

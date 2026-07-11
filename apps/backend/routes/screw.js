@@ -4,6 +4,8 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 
+let screwColsMigrated = false;
+
 router.get('/:gameId/settings', auth, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM screw_settings WHERE game_id = ?', [req.params.gameId]);
@@ -33,6 +35,10 @@ router.put('/:gameId/settings', auth, upload.fields([
   } = req.body;
 
   try {
+    if (!screwColsMigrated) {
+      await db.query('ALTER TABLE screw_settings ADD COLUMN IF NOT EXISTS empty_holes INT NULL');
+      screwColsMigrated = true
+    }
     const [existing] = await db.query('SELECT * FROM screw_settings WHERE game_id = ?', [req.params.gameId]);
     const e = existing[0] || {};
 

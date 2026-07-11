@@ -282,29 +282,34 @@ router.get('/status', async (req, res) => {
     });
   }
 
-  // ── 6. API Endpoint Check (lightweight) ──
+   // ── 6. API Endpoint Check (lightweight) ──
   const baseUrl = `http://localhost:${process.env.PORT || 8080}`;
   const endpointsToTest = [
     { method: 'GET', endpoint: '/api/check-code', label: 'Health Check' },
     { method: 'GET', endpoint: '/', label: 'Root' },
   ];
-  // Add all route-mounted endpoints
-  const apiEndpoints = [
-    '/api/auth', '/api/pauth', '/api/games', '/api/sounds', '/api/upload',
-    '/api/quiz', '/api/play', '/api/clients', '/api/spin', '/api/crossword',
-    '/api/leaderboard', '/api/players-admin', '/api/memory', '/api/jigsaw',
-    '/api/wordsearch', '/api/pouring', '/api/typer', '/api/screw',
-    '/api/snake', '/api/catch', '/api/reaction', '/api/math', '/api/maze',
-    '/api/2048', '/api/simon', '/api/bounce', '/api/flappy', '/api/canva',
-    '/api/connect4', '/api/brick-images', '/api/bowling', '/api/sudoku',
-    '/api/minesweeper', '/api/wordscramble', '/api/rps', '/api/arrowescape',
-    '/api/space', '/api/bejeweled', '/api/tetris', '/api/stack',
-    '/api/whackamole', '/api/hanoi', '/api/breakout', '/api/bubbleshooter',
-    '/api/carlaunch', '/api/stressbuster', '/api/soundify', '/api/tictactoe',
-    '/api/bd', '/api/business', '/api/internal-team', '/api/notifications'
+
+  // Add safe, accessible API endpoints (excluding protected ones)
+  const safeEndpoints = [
+    '/api/auth',
+    '/api/pauth',
+    '/api/games',
+    '/api/clients',
+    '/api/leaderboard',
+    '/api/play',
+    '/api/upload',
+    '/api/brick-images',
+    '/api/roblox'
   ];
 
-  for (const ep of apiEndpoints) {
+  // Add core accessible endpoints
+  for (const ep of safeEndpoints) {
+    endpointsToTest.push({ method: 'GET', endpoint: ep, label: ep });
+  }
+
+  // Only test system status when available (it should be accessible)
+  const systemEndpoints = ['/api/system/status'];
+  for (const ep of systemEndpoints) {
     endpointsToTest.push({ method: 'GET', endpoint: ep, label: ep });
   }
 
@@ -316,10 +321,9 @@ router.get('/status', async (req, res) => {
       batch.map(e => testEndpoint(baseUrl, e.method, e.endpoint, e.label))
     );
     for (const tr of testResults) {
-      // 401 is expected for protected routes (means it's alive and working)
+      // 200 is expected for public endpoints, 401 is acceptable for protected routes
       const expectedStatus = tr.endpoint.includes('/api/system') ? '200' :
         tr.endpoint === '/api/check-code' || tr.endpoint === '/' ? '200' :
-        tr.endpoint.startsWith('/api/leaderboard') || tr.endpoint.startsWith('/api/play') ? '200' :
         '401 (needs auth) - endpoint exists';
       const isOk = tr.ok || tr.status === 401 || tr.status === 405;
       addResult('API Endpoints', {

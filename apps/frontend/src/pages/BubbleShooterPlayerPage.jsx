@@ -118,6 +118,7 @@ export default function BubbleShooterPlayerPage({ gameData, sessionToken, onComp
   const [gameOver, setGameOver] = useState(false)
 
   const canvasRef = useRef(null)
+  const bgImageRef = useRef(null)
   const animationRef = useRef(null)
   const completedRef = useRef(false)
   const scoreRef = useRef(0)
@@ -247,6 +248,22 @@ export default function BubbleShooterPlayerPage({ gameData, sessionToken, onComp
 
     ctx.fillStyle = settings?.bg_color || '#0f172a'
     ctx.fillRect(0, 0, CANVAS_W, CANVAS_H)
+
+    if (settings?.bg_image_url) {
+      if (!bgImageRef.current || bgImageRef.current.src !== settings.bg_image_url) {
+        const img = new Image()
+        img.onload = () => {
+          if (canvasRef.current) {
+            const cx = canvasRef.current.getContext('2d')
+            cx.drawImage(img, 0, 0, CANVAS_W, CANVAS_H)
+          }
+        }
+        img.src = settings.bg_image_url
+        bgImageRef.current = img
+      } else if (bgImageRef.current.complete) {
+        ctx.drawImage(bgImageRef.current, 0, 0, CANVAS_W, CANVAS_H)
+      }
+    }
 
     drawGrid(ctx)
     drawAimLine(ctx)

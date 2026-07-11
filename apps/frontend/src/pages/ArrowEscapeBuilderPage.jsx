@@ -65,7 +65,7 @@ export default function ArrowEscapeBuilderPage() {
     setSaving(true)
     try {
       const fd = new FormData()
-      const fields = ['heading_1','heading_2','heading_3','description_text','intro_text','outro_text','submit_button_text','continue_button_text','start_button_text','font_family','bg_color','primary_color','meta_description','heading_1_color','heading_2_color','heading_3_color','grid_rows','grid_cols','difficulty','show_timer','time_limit_seconds']
+      const fields = ['heading_1','heading_2','heading_3','description_text','intro_text','outro_text','submit_button_text','continue_button_text','start_button_text','font_family','bg_color','primary_color','meta_description','heading_1_color','heading_2_color','heading_3_color','grid_rows','grid_cols','difficulty','show_timer','time_limit_seconds','sound_move_id','sound_win_id','sound_lose_id','start_button_text_color','start_button_bg_color']
       for (const f of fields) fd.append(f, settings[f] ?? '')
       if (settings._bgFile) fd.append('bg_image', settings._bgFile)
       else fd.append('bg_image_url', settings.bg_image_url || '')

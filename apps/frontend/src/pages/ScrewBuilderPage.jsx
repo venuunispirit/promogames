@@ -570,7 +570,7 @@ export default function ScrewBuilderPage() {
     setSaving(true)
     try {
       const fd = new FormData()
-      const textFields = ['board_rows','board_cols','screws_per_block','difficulty','heading_1','heading_2','heading_3','description_text','intro_text','outro_text','submit_button_text','continue_button_text','start_button_text','reveal_text','font_family','show_timer','time_limit_seconds','sound_screw_id','sound_fall_id','sound_reveal_id','terms_enabled','terms_text','terms_url','meta_description','heading_1_color','heading_2_color','heading_3_color','description_color','intro_text_color','outro_text_color','thankyou_subtitle','thankyou_subtitle_color','submit_button_text_color','submit_button_bg_color','continue_button_text_color','continue_button_bg_color','start_button_text_color','start_button_bg_color','intro_text_color','block_colors','bg_color','primary_color']
+      const textFields = ['board_rows','board_cols','screws_per_block','empty_holes','difficulty','heading_1','heading_2','heading_3','description_text','intro_text','outro_text','submit_button_text','continue_button_text','start_button_text','reveal_text','font_family','show_timer','time_limit_seconds','sound_screw_id','sound_fall_id','sound_reveal_id','terms_enabled','terms_text','terms_url','meta_description','heading_1_color','heading_2_color','heading_3_color','description_color','intro_text_color','outro_text_color','thankyou_subtitle','thankyou_subtitle_color','submit_button_text_color','submit_button_bg_color','continue_button_text_color','continue_button_bg_color','start_button_text_color','start_button_bg_color','intro_text_color','block_colors','bg_color','primary_color']
       for (const f of textFields) fd.append(f, settings[f] ?? '')
       if (settings._bgFile) fd.append('bg_image', settings._bgFile)
       else fd.append('bg_image_url', settings.bg_image_url || '')
@@ -883,6 +883,11 @@ export default function ScrewBuilderPage() {
                       <option value="medium">Medium (2 taps)</option>
                       <option value="hard">Hard (3 taps)</option>
                     </select>
+                  </div>
+                  <div className="gb-fg">
+                    <span className="gb-label">Empty Holes</span>
+                    <input type="number" min={0} max={20} value={settings.empty_holes??3}
+                      onChange={e => setSettings({...settings, empty_holes: parseInt(e.target.value)||0 })} />
                   </div>
                 </div>
               </div>

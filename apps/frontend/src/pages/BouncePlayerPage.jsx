@@ -27,11 +27,11 @@ const BouncePlayerPage = () => {
   const lastTimeRef = useRef(0);
   const lastPositionRef = useRef({ x: 0, y: 0 });
   
-  const BALL_SIZE = 24;
-  const GRAVITY = 0.5;
-  const JUMP_FORCE = -12;
-  const FRICTION = 0.85;
-  const MAX_SPEED = 8;
+  const BALL_SIZE = settings?.ball_size || 24;
+  const GRAVITY = settings?.gravity || 0.5;
+  const JUMP_FORCE = settings?.jump_force || -12;
+  const FRICTION = settings?.friction || 0.85;
+  const MAX_SPEED = settings?.max_speed || 8;
   
   // Load game data
   useEffect(() => {

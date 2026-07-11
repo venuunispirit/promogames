@@ -8,6 +8,7 @@ const SpacePlayerPage = () => {
   
   const [game, setGame] = useState(null);
   const [settings, setSettings] = useState({});
+  const [soundMap, setSoundMap] = useState({});
   const [ships, setShips] = useState([]);
   const [weapons, setWeapons] = useState([]);
   const [enemies, setEnemies] = useState([]);
@@ -39,9 +40,19 @@ const SpacePlayerPage = () => {
   const BULLET_SIZE = 4;
   const ENEMY_SIZE = { small: 30, medium: 40, large: 50 };
   const GRAVITY = 0;
-  const PLAYER_SPEED = 5;
-  const BULLET_SPEED = 10;
-  const ENEMY_SPEED = { straight: 2, zigzag: 3, circle: 1, sine: 2, random: 2 };
+  const PLAYER_SPEED = Number(settings.player_speed) || 5;
+  const BULLET_SPEED = Number(settings.laser_speed) || 10;
+  const ENEMY_SPEED = (() => {
+    const base = Number(settings.enemy_speed) || 2;
+    return { straight: base, zigzag: base + 1, circle: Math.max(1, base - 1), sine: base, random: base };
+  })();
+
+  const playSoundById = (id) => {
+    if (!id) return;
+    const url = soundMap[id] || (typeof id === 'string' && id.startsWith('http') ? id : null);
+    if (!url) return;
+    try { const a = new Audio(url); a.play().catch(() => {}); } catch {}
+  };
   
   // Load game data
   useEffect(() => {
@@ -49,6 +60,7 @@ const SpacePlayerPage = () => {
       .then(res => {
         setGame(res.data.game);
         setSettings(res.data.settings);
+        setSoundMap(res.data.game.soundMap || {});
         setShips(res.data.ships);
         setWeapons(res.data.weapons);
         setEnemies(res.data.enemies);
@@ -218,7 +230,8 @@ const SpacePlayerPage = () => {
       }
       
       // Keep player in bounds
-      player.x = Math.max(PLAYER_SIZE / 2, Math.min(game.settings.canvas_width - PLAYER_SIZE / 2, player.x));
+      const canvasW = canvasRef.current ? canvasRef.current.width : (currentLevel?.width || 800);
+      player.x = Math.max(PLAYER_SIZE / 2, Math.min(canvasW - PLAYER_SIZE / 2, player.x));
       
       // Update bullets
       bulletsRef.current = bulletsRef.current.filter(bullet => {

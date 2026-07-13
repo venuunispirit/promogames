@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 
@@ -39,7 +40,7 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
       Future.delayed(const Duration(milliseconds: 1800), () {
         final auth = context.read<AuthService>();
         auth.checkSession().then((_) {
-          Navigator.pushReplacementNamed(context, auth.isLoggedIn ? '/home' : '/login');
+          context.go(auth.isLoggedIn ? auth.dashboardRoute : '/login');
         });
       });
     });

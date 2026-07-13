@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../models/game.dart';
 
 class GamesListPage extends StatefulWidget {
   const GamesListPage({super.key});
@@ -20,9 +21,10 @@ class _GamesListPageState extends State<GamesListPage> {
 
   Future<void> fetchGames() async {
     try {
-      final data = await ApiService.get('/play/games');
+      final data = await ApiService.get('/play/play-page-games');
+      final list = data['games'] as List?;
       setState(() {
-        games = List.from(data['games'] ?? []);
+        games = list?.map((g) => g as Map<String, dynamic>).toList() ?? [];
         loading = false;
       });
     } catch (e) {
@@ -49,7 +51,7 @@ class _GamesListPageState extends State<GamesListPage> {
                         leading: const CircleAvatar(child: Icon(Icons.play_arrow)),
                         title: Text(g['name']?.toString() ?? ''),
                         subtitle: Text(g['category']?.toString() ?? ''),
-                        onTap: () => Navigator.pushNamed(c, '/game', arguments: g),
+                        onTap: () => Navigator.pushNamed(c, '/game', arguments: Game.fromJson(g)),
                       ),
                     );
                   },

@@ -141,14 +141,18 @@ router.post('/send-otp', async (req, res) => {
       [email, otp, expiresAt]
     );
 
-    // In development, skip email and log OTP to console
+    // In development, also log the OTP to the console (dev backdoor 0000 still works)
     if (process.env.NODE_ENV === 'development') {
       console.log(`[DEV] OTP for ${email}: ${otp} (use 0000 as dummy)`);
-      return res.json({ success: true, message: `OTP sent to ${email}` });
     }
 
-    // Send email
-    await sendOTPEmail(email, otp);
+    // Always send the OTP email to the player
+    try {
+      await sendOTPEmail(email, otp);
+    } catch (mailErr) {
+      console.error('send-otp email error:', mailErr);
+      return res.status(500).json({ success: false, message: 'Failed to send OTP email. Check SMTP config.' });
+    }
 
     res.json({ success: true, message: `OTP sent to ${email}` });
   } catch (err) {

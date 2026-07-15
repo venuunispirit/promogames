@@ -580,6 +580,7 @@ router.put('/:id/settings', auth, upload.fields([
   { name: 'submit_confirm_gif', maxCount: 1 }
 ]), async (req, res) => {
     const { bg_color, primary_color, show_progress, allow_back, time_per_question,
+      heading_1, heading_2,
       intro_text, outro_text,
       win_sound_url, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id,
       terms_enabled, terms_text, terms_url, send_email,

@@ -46,6 +46,7 @@ const CATEGORY_META = {
   stressbuster:{ label:'Stress Buster',  bg:'#FEF2F2', fg:'#991B1B', dot:'#F87171', icon:'😤', desc:'Click-based stress relief game' },
   soundify:    { label:'Soundify',       bg:'#F5F3FF', fg:'#6D28D9', dot:'#A78BFA', icon:'🔊', desc:'Sound-based interactive quiz' },
   tictactoe:   { label:'Tic Tac Toe',    bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'❌', desc:'Classic noughts and crosses' },
+  chess:      { label:'Chess',          bg:'#F7F7F7', fg:'#1F2937', dot:'#374151', icon:'♟️', desc:'Two-player online chess' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F4F6', fg:'#374151', dot:'#9CA3AF' }
 
@@ -383,6 +384,8 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/soundify-builder`)
     } else if (game.category === 'tictactoe') {
       navigate(`/dashboard/games/${game.id}/tictactoe-builder`)
+    } else if (game.category === 'chess') {
+      navigate(`/dashboard/games/${game.id}/chess-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }

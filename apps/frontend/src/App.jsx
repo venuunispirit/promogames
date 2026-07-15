@@ -68,6 +68,7 @@ import BOLayout          from './pages/BOLayout'
 import BODashboard       from './pages/BODashboard'
 import BOGames           from './pages/BOGames'
 import BORedemptions     from './pages/BORedemptions'
+import BrandOwnerMyPage  from './pages/BrandOwnerMyPage'
 
 // ── Admin protected route ─────────────────────────────────────────────────────
 function ProtectedRoute({ children }) {
@@ -176,6 +177,7 @@ function AppRoutes() {
         <Route path="dashboard"                       element={<BODashboard />} />
         <Route path="games"                           element={<BOGames />} />
         <Route path="redemptions"                     element={<BORedemptions />} />
+        <Route path="my-page"                         element={<BrandOwnerMyPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

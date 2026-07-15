@@ -1,3 +1,7 @@
+import { useState, useEffect, useRef } from 'react'
+import { useParams, useNavigate } from 'react-router-dom'
+import api from '../api'
+
 export default function BounceBuilderPage() {
   const { id } = useParams();
   const navigate = useNavigate();

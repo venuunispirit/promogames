@@ -67,10 +67,11 @@ router.post('/', auth, upload.single('logo'), async (req, res) => {
     // Auto-create a parent Business Owner for this client (brand-level login)
     if (email) {
       try {
-        const hashedPw = await bcrypt.hash(email, 10);
+        const pw = phone || email;
+        const hashedPw = await bcrypt.hash(pw, 10);
         await db.query(
-          'INSERT INTO business_owners (business_name, email, password, client_id) VALUES (?, ?, ?, ?)',
-          [company_name, email, hashedPw, clientId]
+          'INSERT INTO business_owners (business_name, email, password, phone, client_id) VALUES (?, ?, ?, ?, ?)',
+          [company_name, email, hashedPw, phone || null, clientId]
         );
       } catch {}
     }

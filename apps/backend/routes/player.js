@@ -990,7 +990,24 @@ router.post('/session/complete', async (req, res) => {
         [session.game_id]
       );
       console.log('[DEBUG] boGames found:', boGames.length, 'for game_id:', session.game_id);
-      if (boGames.length > 0) {
+
+      // If no direct BO link, check if game belongs to a client and find the parent (brand) BO
+      let resolvedBoId = boGames.length > 0 ? boGames[0].business_owner_id : null;
+      if (!resolvedBoId) {
+        const [gameRow] = await db.query('SELECT client_id FROM games WHERE id = ?', [session.game_id]);
+        if (gameRow.length > 0 && gameRow[0].client_id) {
+          const [parentBo] = await db.query(
+            'SELECT id FROM business_owners WHERE client_id = ? AND parent_id IS NULL LIMIT 1',
+            [gameRow[0].client_id]
+          );
+          if (parentBo.length > 0) {
+            resolvedBoId = parentBo[0].id;
+            console.log('[DEBUG] Resolved brand BO via client_id:', resolvedBoId);
+          }
+        }
+      }
+
+      if (resolvedBoId) {
         const isPlayer = !!session.promo_player_id;
         const code = String(Math.floor(100000 + Math.random() * 900000));
         console.log('[DEBUG] isPlayer:', isPlayer, 'code:', code, 'playerEmail:', playerEmail);
@@ -1007,7 +1024,7 @@ router.post('/session/complete', async (req, res) => {
         await db.query(
           `INSERT INTO business_redemptions (business_owner_id, game_id, session_id, code, player_name, player_phone, player_email, is_player, promo_player_id, status, table_number)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending', ?)`,
-          [boGames[0].business_owner_id, session.game_id, session.id,
+          [resolvedBoId, session.game_id, session.id,
            code, playerName, playerPhone, playerEmail || '', isPlayer ? 1 : 0, session.promo_player_id || null, tableNumber]
         );
 
@@ -1040,7 +1057,7 @@ router.post('/session/complete', async (req, res) => {
 
         // Send email 2: BO notification for ALL plays
         try {
-          const [boRows] = await db.query('SELECT email FROM business_owners WHERE id = ?', [boGames[0].business_owner_id]);
+          const [boRows] = await db.query('SELECT email FROM business_owners WHERE id = ?', [resolvedBoId]);
           const boEmail = boRows[0]?.email;
           if (boEmail) {
             const transporter = nodemailer.createTransport({

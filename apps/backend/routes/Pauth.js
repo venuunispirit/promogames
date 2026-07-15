@@ -88,7 +88,7 @@ router.post('/check-email', async (req, res) => {
 
     // 1.5 Check business owners table
     try {
-      const [boRows] = await db.query('SELECT id FROM business_owners WHERE email = ?', [email]);
+      const [boRows] = await db.query('SELECT id FROM business_owners WHERE email = ? AND is_active = 1', [email]);
       if (boRows.length > 0) {
         return res.json({ success: true, type: 'business_owner' });
       }
@@ -141,18 +141,14 @@ router.post('/send-otp', async (req, res) => {
       [email, otp, expiresAt]
     );
 
-    // In development, also log the OTP to the console (dev backdoor 0000 still works)
+    // In development, skip email and log OTP to console
     if (process.env.NODE_ENV === 'development') {
       console.log(`[DEV] OTP for ${email}: ${otp} (use 0000 as dummy)`);
+      return res.json({ success: true, message: `OTP sent to ${email}` });
     }
 
-    // Always send the OTP email to the player
-    try {
-      await sendOTPEmail(email, otp);
-    } catch (mailErr) {
-      console.error('send-otp email error:', mailErr);
-      return res.status(500).json({ success: false, message: 'Failed to send OTP email. Check SMTP config.' });
-    }
+    // Send email
+    await sendOTPEmail(email, otp);
 
     res.json({ success: true, message: `OTP sent to ${email}` });
   } catch (err) {

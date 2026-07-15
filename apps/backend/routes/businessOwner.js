@@ -25,9 +25,28 @@ router.post('/login', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM business_owners WHERE (business_name = ? OR email = ?) AND is_active = 1', [identifier, identifier]);
     if (rows.length === 0) return res.status(401).json({ success: false, message: 'Invalid credentials' });
-    const bo = rows[0];
-    const isMatch = await bcrypt.compare(password, bo.password);
-    if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' });
+    // Try each match — multiple BOs can share the same email (parent + branches)
+    // Prefer parent BO (parent_id IS NULL) so brand-level accounts see all children's data
+    let bo = null;
+    const parentRow = rows.find(r => !r.parent_id);
+    // Check parent first
+    if (parentRow && await bcrypt.compare(password, parentRow.password)) {
+      bo = parentRow;
+    } else {
+      // Check children — if a child matches, sync password to parent and log in as parent
+      for (const candidate of rows.filter(r => r !== parentRow)) {
+        if (await bcrypt.compare(password, candidate.password)) {
+          if (parentRow) {
+            await db.query('UPDATE business_owners SET password = ? WHERE id = ?', [candidate.password, parentRow.id]);
+            bo = parentRow;
+          } else {
+            bo = candidate;
+          }
+          break;
+        }
+      }
+    }
+    if (!bo) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     const token = jwt.sign(
       { id: bo.id, business_name: bo.business_name, email: bo.email, role: 'business_owner', parent_id: bo.parent_id },
       process.env.JWT_SECRET || 'secret',
@@ -88,7 +107,7 @@ router.put('/:id/toggle-active', async (req, res) => {
   }
 });
 
-// GET /api/business/games — BO's linked games
+// GET /api/business/games — BO's linked games (includes games via client_id for brand owners)
 router.get('/games', boAuth, async (req, res) => {
   try {
     let ids = [req.bo.id]
@@ -96,6 +115,7 @@ router.get('/games', boAuth, async (req, res) => {
       const [children] = await db.query('SELECT id FROM business_owners WHERE parent_id = ?', [req.bo.id])
       ids = ids.concat(children.map(c => c.id))
     }
+    // Games linked via business_owner_games table
     const [rows] = await db.query(
       `SELECT bog.*, g.name as game_name, g.slug as game_slug, g.status as game_status,
               g.game_logo_url
@@ -105,7 +125,44 @@ router.get('/games', boAuth, async (req, res) => {
        ORDER BY bog.created_at DESC`,
       [ids]
     );
-    res.json({ success: true, games: rows });
+
+    // For brand owners (parent_id IS NULL), also include games linked via client_id
+    let allGames = rows;
+    if (!req.bo.parent_id) {
+      // Get client_id from the BO record
+      const [boRow] = await db.query('SELECT client_id FROM business_owners WHERE id = ?', [req.bo.id]);
+      const clientId = boRow[0]?.client_id;
+      if (clientId) {
+        const [clientGames] = await db.query(
+          `SELECT g.id, g.name as game_name, g.slug as game_slug, g.status as game_status,
+                  g.game_logo_url, g.client_id,
+                  NULL as id, g.id as game_id, NULL as location_name, NULL as reward_text,
+                  NULL as parent_id, g.created_at
+           FROM games g
+           WHERE g.client_id = ? AND g.is_active = 1
+           AND g.id NOT IN (SELECT game_id FROM business_owner_games WHERE business_owner_id IN (?))`,
+          [clientId, ids]
+        );
+        // Map to match the bog format
+        const mappedClientGames = clientGames.map(g => ({
+          id: null,
+          business_owner_id: req.bo.id,
+          game_id: g.game_id,
+          location_name: '',
+          reward_text: '',
+          parent_id: null,
+          created_at: g.created_at,
+          game_name: g.game_name,
+          game_slug: g.game_slug,
+          game_status: g.game_status,
+          game_logo_url: g.game_logo_url,
+          is_template: true,
+        }));
+        allGames = [...rows, ...mappedClientGames];
+      }
+    }
+
+    res.json({ success: true, games: allGames });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });
@@ -200,15 +257,27 @@ router.get('/notifications', boAuth, async (req, res) => {
       const [children] = await db.query('SELECT id FROM business_owners WHERE parent_id = ?', [req.bo.id])
       ids = ids.concat(children.map(c => c.id))
     }
+    // For brand owners, also include redemptions where game belongs to their client_id
+    let extraClause = '';
+    let extraParams = [];
+    if (!req.bo.parent_id) {
+      const [boRow] = await db.query('SELECT client_id FROM business_owners WHERE id = ?', [req.bo.id]);
+      const clientId = boRow[0]?.client_id;
+      if (clientId) {
+        extraClause = ` OR br.game_id IN (SELECT g.id FROM games g WHERE g.client_id = ?)`;
+        extraParams = [clientId];
+      }
+    }
     const [rows] = await db.query(
-      `SELECT br.*, g.name as game_name, bog.location_name, ps.player_data
+      `SELECT br.*, g.name as game_name,
+              COALESCE(bog.location_name, '') as location_name, ps.player_data
        FROM business_redemptions br
-       JOIN business_owner_games bog ON br.game_id = bog.game_id AND bog.business_owner_id = br.business_owner_id
        JOIN games g ON br.game_id = g.id
+       LEFT JOIN business_owner_games bog ON br.game_id = bog.game_id AND bog.business_owner_id = br.business_owner_id
        LEFT JOIN player_sessions ps ON br.session_id = ps.id
-       WHERE br.business_owner_id IN (?)
+       WHERE br.business_owner_id IN (?) ${extraClause}
        ORDER BY br.created_at DESC LIMIT 100`,
-      [ids]
+      [...ids, ...extraParams]
     );
     // Data privacy: hide email, hide code, hide phone when table_number is present
     const sanitized = rows.map(r => {
@@ -241,9 +310,19 @@ router.get('/unread-count', boAuth, async (req, res) => {
       const [children] = await db.query('SELECT id FROM business_owners WHERE parent_id = ?', [req.bo.id])
       ids = ids.concat(children.map(c => c.id))
     }
+    let extraClause = '';
+    let extraParams = [];
+    if (!req.bo.parent_id) {
+      const [boRow] = await db.query('SELECT client_id FROM business_owners WHERE id = ?', [req.bo.id]);
+      const clientId = boRow[0]?.client_id;
+      if (clientId) {
+        extraClause = ` OR (br.game_id IN (SELECT g.id FROM games g WHERE g.client_id = ?) AND br.status = 'pending')`;
+        extraParams = [clientId];
+      }
+    }
     const [rows] = await db.query(
-      "SELECT COUNT(*) as count FROM business_redemptions WHERE business_owner_id IN (?) AND status = 'pending'",
-      [ids]
+      `SELECT COUNT(*) as count FROM business_redemptions br WHERE (br.business_owner_id IN (?) AND br.status = 'pending') ${extraClause}`,
+      [ids, ...extraParams]
     );
     res.json({ success: true, count: rows[0].count });
   } catch (err) {
@@ -594,6 +673,142 @@ router.post('/reveal-code', async (req, res) => {
     }
 
     res.json({ success: true, code, message: 'Show this code to the business!' });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET /api/business/brand-dashboard — Brand-owner read-only KPIs across all branches
+router.get('/brand-dashboard', boAuth, async (req, res) => {
+  // Only parent BOs (brand owners) can access this
+  if (req.bo.parent_id) return res.status(403).json({ success: false, message: 'Only brand owners can view this page' });
+  try {
+    // Get all child branch IDs
+    const [children] = await db.query('SELECT id, business_name, email FROM business_owners WHERE parent_id = ?', [req.bo.id]);
+    const allIds = [req.bo.id, ...children.map(c => c.id)];
+
+    // Total games across all branches + games via client_id
+    const [gamesRows] = await db.query(
+      'SELECT COUNT(DISTINCT game_id) as total_games FROM business_owner_games WHERE business_owner_id IN (?)',
+      [allIds]
+    );
+    // Also count games linked via client_id (template games)
+    const [boRow] = await db.query('SELECT client_id FROM business_owners WHERE id = ?', [req.bo.id]);
+    const clientId = boRow[0]?.client_id;
+    let totalGames = gamesRows[0].total_games || 0;
+    if (clientId) {
+      const [clientGamesCount] = await db.query(
+        'SELECT COUNT(*) as cnt FROM games WHERE client_id = ? AND is_active = 1 AND id NOT IN (SELECT game_id FROM business_owner_games WHERE business_owner_id IN (?))',
+        [clientId, allIds]
+      );
+      totalGames += clientGamesCount[0].cnt || 0;
+    }
+
+    // Total plays (sessions) across all games linked to this brand's branches + client_id games
+    const clientGameIds = clientId ? [clientId] : [];
+    const [playsRows] = await db.query(
+      `SELECT COUNT(*) as total_plays,
+              SUM(CASE WHEN completed = 1 THEN 1 ELSE 0 END) as completed_plays,
+              AVG(score) as avg_score
+       FROM player_sessions ps
+       WHERE ps.game_id IN (
+         SELECT bog.game_id FROM business_owner_games bog WHERE bog.business_owner_id IN (?)
+         ${clientId ? `UNION SELECT g.id FROM games g WHERE g.client_id = ?` : ''}
+       )`,
+      clientId ? [allIds, clientId] : [allIds]
+    );
+
+    // Total participants (unique players)
+    const [participantsRows] = await db.query(
+      `SELECT COUNT(DISTINCT ps.player_data->>'$.email') as total_participants
+       FROM player_sessions ps
+       WHERE ps.completed = 1 AND ps.game_id IN (
+         SELECT bog.game_id FROM business_owner_games bog WHERE bog.business_owner_id IN (?)
+         ${clientId ? `UNION SELECT g.id FROM games g WHERE g.client_id = ?` : ''}
+       )`,
+      clientId ? [allIds, clientId] : [allIds]
+    );
+
+    // Redemption stats across all branches
+    const [redemptionRows] = await db.query(
+      `SELECT
+        COUNT(*) as total_redemptions,
+        SUM(CASE WHEN status IN ('completed','player_confirmed') THEN 1 ELSE 0 END) as completed,
+        SUM(CASE WHEN status IN ('pending','code_revealed','code_entered') THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END) as rejected
+       FROM business_redemptions
+       WHERE business_owner_id IN (?)`,
+      [allIds]
+    );
+
+    // Per-branch breakdown
+    const [branchStats] = await db.query(
+      `SELECT bo.id, bo.business_name,
+        (SELECT COUNT(DISTINCT bog2.game_id) FROM business_owner_games bog2 WHERE bog2.business_owner_id = bo.id) as game_count,
+        (SELECT COUNT(*) FROM player_sessions ps2
+         JOIN games g2 ON ps2.game_id = g2.id
+         JOIN business_owner_games bog3 ON bog3.game_id = g2.id AND bog3.business_owner_id = bo.id) as play_count,
+        (SELECT COUNT(*) FROM business_redemptions br2 WHERE br2.business_owner_id = bo.id) as redemption_count,
+        (SELECT SUM(CASE WHEN br3.status IN ('completed','player_confirmed') THEN 1 ELSE 0 END) FROM business_redemptions br3 WHERE br3.business_owner_id = bo.id) as completed_count
+       FROM business_owners bo
+       WHERE bo.parent_id = ? AND bo.is_active = 1
+       ORDER BY play_count DESC`,
+      [req.bo.id]
+    );
+
+    // Top games by play count (includes both BO-linked and client_id games)
+    const gameFilterClause = clientId
+      ? `ps.game_id IN (
+           SELECT bog.game_id FROM business_owner_games bog WHERE bog.business_owner_id IN (?)
+           UNION
+           SELECT g2.id FROM games g2 WHERE g2.client_id = ?
+         )`
+      : `ps.game_id IN (
+           SELECT bog.game_id FROM business_owner_games bog WHERE bog.business_owner_id IN (?)
+         )`;
+    const topGamesParams = clientId ? [allIds, clientId] : [allIds];
+    const [topGames] = await db.query(
+      `SELECT g.name as game_name, g.game_logo_url, COUNT(ps.id) as play_count,
+              SUM(CASE WHEN ps.completed = 1 THEN 1 ELSE 0 END) as completed_count
+       FROM player_sessions ps
+       JOIN games g ON ps.game_id = g.id
+       WHERE ${gameFilterClause}
+       GROUP BY g.id, g.name, g.game_logo_url
+       ORDER BY play_count DESC
+       LIMIT 10`,
+      topGamesParams
+    );
+
+    // Plays by day (last 7 days)
+    const [playsByDay] = await db.query(
+      `SELECT DATE(ps.created_at) as date, COUNT(*) as plays
+       FROM player_sessions ps
+       WHERE ${gameFilterClause} AND ps.created_at >= DATE_SUB(NOW(), INTERVAL 7 DAY)
+       GROUP BY DATE(ps.created_at)
+       ORDER BY date ASC`,
+      topGamesParams
+    );
+
+    res.json({
+      success: true,
+      brand: { id: req.bo.id, name: req.bo.business_name },
+      totalBranches: children.length,
+      branches: branchStats,
+      kpis: {
+        totalGames: totalGames,
+        totalPlays: playsRows[0].total_plays || 0,
+        completedPlays: playsRows[0].completed_plays || 0,
+        avgScore: Math.round(playsRows[0].avg_score || 0),
+        totalParticipants: participantsRows[0].total_participants || 0,
+        totalRedemptions: redemptionRows[0].total_redemptions || 0,
+        completedRedemptions: redemptionRows[0].completed || 0,
+        pendingRedemptions: redemptionRows[0].pending || 0,
+        rejectedRedemptions: redemptionRows[0].rejected || 0,
+      },
+      topGames,
+      playsByDay,
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ success: false, message: err.message });

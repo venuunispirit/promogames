@@ -1962,8 +1962,7 @@ const handleModalClose = () => {
         gameData={game}
         sessionToken={sessionToken}
         onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
+          // Thank-you page disabled for maze game
         }}
       />
     )
@@ -2079,8 +2078,7 @@ const handleModalClose = () => {
         gameData={game}
         sessionToken={sessionToken}
         onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
+          // Thank-you page disabled for bounce game — game handles its own completion UI
         }}
       />
     )

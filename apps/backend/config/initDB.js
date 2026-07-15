@@ -1059,6 +1059,12 @@ async function initDB() {
   await addColumn(connection, 'options', 'option_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
   await addColumn(connection, 'options', 'option_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
 
+  /* QUESTIONS — open-ended / math question fields */
+  await addColumn(connection, 'questions', 'expected_answer', 'VARCHAR(500) DEFAULT NULL');
+  await addColumn(connection, 'questions', 'comparison_type', "VARCHAR(20) DEFAULT 'exact'");
+  await addColumn(connection, 'questions', 'answer_text', 'VARCHAR(500) DEFAULT NULL');
+  await addColumn(connection, 'questions', 'answer_is_number', 'TINYINT(1) DEFAULT 0');
+
   /* QUIZ SETTINGS */
   await addColumn(connection, 'quiz_settings', 'bg_image_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'thankyou_bg_image_url', 'VARCHAR(500)');
@@ -2352,6 +2358,68 @@ await safeQuery(connection, `
        INDEX idx_notif_user (user_id, user_type, read_at)
      )
    `, 'notifications table');
+
+   /* CHESS SETTINGS */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS chess_settings (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       game_id INT NOT NULL,
+       difficulty ENUM('easy','medium','hard','master') DEFAULT 'medium',
+       time_control INT DEFAULT 0,
+       board_theme VARCHAR(50) DEFAULT 'classic',
+       primary_color VARCHAR(20) DEFAULT '#7B3EFF',
+       bg_color VARCHAR(20) DEFAULT '#0f0f23',
+       intro_text TEXT,
+       outro_text TEXT,
+       show_coordinates TINYINT(1) DEFAULT 1,
+       piece_style VARCHAR(50) DEFAULT 'classic',
+       sound_enabled TINYINT(1) DEFAULT 1,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE KEY uk_chess_game (game_id)
+     )
+   `, 'chess_settings table');
+
+   /* CHESS ROOMS (multiplayer) */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS chess_rooms (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       room_code VARCHAR(6) NOT NULL UNIQUE,
+       game_id INT NOT NULL,
+       player1_id INT DEFAULT NULL,
+       player2_id INT DEFAULT NULL,
+       player1_name VARCHAR(100) DEFAULT 'Player 1',
+       player2_name VARCHAR(100) DEFAULT 'Player 2',
+       status ENUM('waiting','active','finished') DEFAULT 'waiting',
+       current_turn ENUM('white','black') DEFAULT 'white',
+       fen VARCHAR(200) DEFAULT 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+       result ENUM('ongoing','white','black','draw') DEFAULT 'ongoing',
+       time_control INT DEFAULT 0,
+       white_time_left INT DEFAULT 0,
+       black_time_left INT DEFAULT 0,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+       INDEX idx_room_code (room_code),
+       INDEX idx_room_game (game_id),
+       INDEX idx_room_status (status)
+     )
+   `, 'chess_rooms table');
+
+   /* CHESS MOVES */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS chess_moves (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       room_id INT NOT NULL,
+       move_number INT NOT NULL,
+       notation VARCHAR(20) NOT NULL,
+       fen_before VARCHAR(200),
+       fen_after VARCHAR(200),
+       player_id INT DEFAULT NULL,
+       player_color ENUM('white','black') NOT NULL,
+       time_spent INT DEFAULT 0,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       INDEX idx_moves_room (room_id)
+     )
+   `, 'chess_moves table');
 
    console.log('👤 Creating admin user...');
 

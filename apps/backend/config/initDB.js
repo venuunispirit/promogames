@@ -1105,6 +1105,13 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'randomize_questions', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'quiz_settings', 'questions_per_session', 'INT DEFAULT 0');
 
+  /* QUIZ SETTINGS — Mascot & Voice (TTS) */
+  await addColumn(connection, 'quiz_settings', 'enable_mascot', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'enable_speech', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'speech_language', "VARCHAR(20) DEFAULT 'en'");
+  await addColumn(connection, 'quiz_settings', 'speech_rate', 'FLOAT DEFAULT 1');
+  await addColumn(connection, 'quiz_settings', 'speech_pitch', 'FLOAT DEFAULT 1');
+
   /* GAMES */
   await safeQuery(connection,
     `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape') DEFAULT 'quiz'`,

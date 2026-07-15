@@ -36,6 +36,7 @@ import 'carlaunch_game.dart';
 import 'stressbuster_game.dart';
 import 'soundify_game.dart';
 import 'connect4_game.dart';
+import 'chess_game.dart';
 import 'canva_game.dart';
 import 'brickimages_game.dart';
 
@@ -75,6 +76,7 @@ final Map<String, GameBuilder> _builders = {
   'stressbuster': buildStressBusterGame,
   'soundify': buildSoundifyGame,
   'connect4': buildConnect4Game,
+  'chess': buildChessGame,
   'canva': buildCanvaGame,
   'brickimages': buildBrickImagesGame,
 };

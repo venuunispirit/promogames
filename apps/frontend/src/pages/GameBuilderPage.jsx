@@ -1086,7 +1086,8 @@ const [nameInput,     setNameInput]     = useState('')
         'submit_button_text_color','submit_button_bg_color',
         'continue_button_text_color','continue_button_bg_color',
         'next_button_text','next_button_text_color','next_button_bg_color',
-        'randomize_questions','questions_per_session']
+        'randomize_questions','questions_per_session',
+        'enable_mascot','enable_speech','speech_language','speech_rate','speech_pitch']
       for (const f of fields) fd.append(f, settings[f]??'')
       if (settings._bgImageFile)    fd.append('bg_image',           settings._bgImageFile)
       else if (settings.bg_image_url !== undefined) fd.append('bg_image_url',     settings.bg_image_url)
@@ -1819,6 +1820,47 @@ const [nameInput,     setNameInput]     = useState('')
                       <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', color:'#888', marginBottom:3 }}>{window.location.hostname || 'yourdomain.com'}</div>
                       <div style={{ fontSize:13, fontWeight:700, color:'#1a1a2e', marginBottom:4, lineHeight:1.3 }}>{game?.name || 'Untitled'}</div>
                       <div style={{ fontSize:12, color:'#555', lineHeight:1.4 }}>{settings.meta_description || 'Play this game and win exciting rewards!'}</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🗣️ Mascot &amp; Voice (Text-to-Speech)</div>
+                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:14 }}>
+                  When enabled, a mascot appears on the player screen and the game text is read aloud to players in the chosen language (translated automatically).
+                </p>
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
+                  <div>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:12 }}>
+                      <input type="checkbox" checked={!!settings.enable_mascot} onChange={e => setSettings({...settings, enable_mascot: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                      Enable Mascot (shows in question area)
+                    </label>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
+                      <input type="checkbox" checked={!!settings.enable_speech} onChange={e => setSettings({...settings, enable_speech: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                      Enable Speech (read questions aloud)
+                    </label>
+                  </div>
+                  <div>
+                    <div className="gb-fg" style={{ marginBottom:12 }}>
+                      <span className="gb-label">Voice Language</span>
+                      <select value={settings.speech_language || 'en'} onChange={e => setSettings({...settings, speech_language: e.target.value})}
+                        style={{ width:'100%', padding:'8px 10px', borderRadius:8, border:'1px solid var(--gb-border)', fontSize:14 }}>
+                        <option value="en">English</option>
+                        <option value="ja">Japanese</option>
+                        <option value="zh">Chinese</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="de">German</option>
+                        <option value="hi">Hindi</option>
+                      </select>
+                    </div>
+                    <div className="gb-fg" style={{ marginBottom:0 }}>
+                      <span className="gb-label">Speech Rate ({settings.speech_rate || 1})</span>
+                      <input type="range" min="0.5" max="2" step="0.1" value={settings.speech_rate || 1} onChange={e => setSettings({...settings, speech_rate: parseFloat(e.target.value)})} />
+                    </div>
+                    <div className="gb-fg" style={{ marginBottom:0 }}>
+                      <span className="gb-label">Speech Pitch ({settings.speech_pitch || 1})</span>
+                      <input type="range" min="0" max="2" step="0.1" value={settings.speech_pitch || 1} onChange={e => setSettings({...settings, speech_pitch: parseFloat(e.target.value)})} />
                     </div>
                   </div>
                 </div>

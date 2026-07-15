@@ -69,6 +69,8 @@ const { itAuth } = internalTeamRoutes;
 const auth = require("./middleware/auth");
 const notificationsRoutes = require("./routes/notifications");
 const systemRoutes = require("./routes/system");
+const translateRoutes = require("./routes/translate");
+const { startCompanion, stopCompanion } = require("./libretranslateCompanion");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -126,6 +128,7 @@ app.use("/api/internal-team", internalTeamRoutes);
 app.use("/api/notifications", auth, notificationsRoutes);
 app.use("/api/internal-team/notifications", itAuth, notificationsRoutes);
 app.use("/api/system", systemRoutes);
+app.use("/api/translate", translateRoutes);
 
 const { startPCResetCron } = require('./cron/pcReset');
 startPCResetCron();
@@ -246,7 +249,17 @@ initDB()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
+      // Auto-start the translation companion (LibreTranslate) so it comes up
+      // with the backend — no manual step on restart.
+      startCompanion();
     });
+
+    const shutdown = () => {
+      stopCompanion();
+      process.exit(0);
+    };
+    process.on('SIGINT', shutdown);
+    process.on('SIGTERM', shutdown);
   })
   .catch(err => {
     console.error('❌ DB init failed:', err.message);

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import useTTS from '../hooks/useTTS'
 import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import CrosswordPlayerPage from './CrosswordPlayerPage'
@@ -105,6 +106,7 @@ const OVERLAY_STYLES = `
 
   @keyframes spin           { to { transform: rotate(360deg) } }
   @keyframes questionEnter  { from { opacity:0; transform: translateY(18px) scale(0.98) } to { opacity:1; transform: translateY(0) scale(1) } }
+  @keyframes mascotFloat    { 0%,100% { transform: translateY(0px) } 50% { transform: translateY(-8px) } }
   @keyframes scaleIn        { from { opacity:0; transform: scale(0.85) } to { opacity:1; transform: scale(1) } }
   @keyframes bounce         { 0%,100% { transform:scale(1) } 50% { transform:scale(1.2) } }
   @keyframes cffall         { to { transform: translateY(110vh) rotate(720deg); opacity:0 } }
@@ -300,6 +302,7 @@ export default function PlayerPage() {
   const { gameName, companyName } = useParams()
   const [searchParams] = useSearchParams()
   const [phase, setPhase] = useState('loading')
+  const tts = useTTS()
   const [game, setGame] = useState(null)
   const [errorMsg, setErrorMsg] = useState('Game not found')
   const [formData, setFormData] = useState({})
@@ -355,6 +358,42 @@ export default function PlayerPage() {
       autoAdvanceRef.current.doAdvance(currentQ + 1 >= qs, autoAdvanceRef.current.sessionToken)
     }
   }, [timeLeft, answered, currentQ, game?.questions?.length])
+
+  /* ── Text-to-Speech (translate-then-speak) ── */
+  const ttsOpts = (s) => ({
+    lang: (s && s.speech_language) || 'en',
+    rate: parseFloat(s && s.speech_rate) || 1,
+    pitch: parseFloat(s && s.speech_pitch) || 1,
+  })
+
+  // Read question + its options aloud when a question appears
+  useEffect(() => {
+    const s = game?.settings
+    if (!s?.enable_speech || phase !== 'playing') return
+    const q = game?.questions?.[currentQ]
+    if (!q) return
+    const texts = [q.question_text, ...(q.options || []).map(o => o.option_text).filter(Boolean)]
+    tts.speak(texts, ttsOpts(s))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase, currentQ])
+
+  // Read intro/heading when the start (form) screen appears
+  useEffect(() => {
+    const s = game?.settings
+    if (!s?.enable_speech || phase !== 'form') return
+    const texts = [s.heading_1, s.intro_text].filter(Boolean)
+    if (texts.length) tts.speak(texts, ttsOpts(s))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
+
+  // Read the outro when the game finishes (natural intonation)
+  useEffect(() => {
+    const s = game?.settings
+    if (!s?.enable_speech || phase !== 'thankyou') return
+    const text = s.outro_text || 'Yay! You completed the game! Thank you for playing!'
+    tts.speak([text], ttsOpts(s))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
 
   // Overlay state machine
   const [overlayState, setOverlayState] = useState('hidden')
@@ -994,6 +1033,7 @@ export default function PlayerPage() {
   }, [game, stopAllSounds])
 
   const doAdvance = useCallback((isLast, token) => {
+    tts.cancel()
     if (isLast) { completeSession(token) }
     else {
       setCurrentQ(q => q + 1)
@@ -1033,6 +1073,7 @@ export default function PlayerPage() {
 
   const handleOptionSelect = async (opt, token) => {
   if (answered) return
+  tts.cancel()
   setSelectedOpt(opt)
   setAnswered(true)
 
@@ -1105,6 +1146,7 @@ export default function PlayerPage() {
 
   const handleShortAnswerSubmit = async () => {
     if (answered || !shortAnswerText.trim()) return
+    tts.cancel()
     setAnswered(true)
 
     const question = game.questions[currentQ]
@@ -1522,6 +1564,7 @@ export default function PlayerPage() {
                   padding: '14px 14px 0',
                   background: hasBgImage ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.03)',
                   overflow: 'hidden',
+                  position: 'relative',
                   boxSizing: 'border-box',
                 }}>
                   <img
@@ -1542,6 +1585,23 @@ export default function PlayerPage() {
                       transformOrigin: 'center center',
                     }}
                   />
+                  {game?.settings?.enable_mascot && (
+                    <img
+                      src="/mascot.png.png"
+                      alt="Mascot"
+                      style={{
+                        position: 'absolute',
+                        right: 10,
+                        bottom: 10,
+                        width: 64,
+                        height: 'auto',
+                        zIndex: 5,
+                        pointerEvents: 'none',
+                        filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.25))',
+                        animation: 'mascotFloat 3s ease-in-out infinite',
+                      }}
+                    />
+                  )}
                 </div>
               )
             })()}

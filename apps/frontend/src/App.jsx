@@ -50,6 +50,8 @@ import CarLaunchBuilderPage from './pages/CarLaunchBuilderPage'
 import StressBusterBuilderPage from './pages/frustrationbuildertab'
 import SoundifyBuilderPage from './pages/soundifybuilderpage'
 import TicTacToeBuilderPage from './pages/tictactoebuilder'
+import ChessBuilderPage from './pages/ChessBuilderPage'
+import ChessPlayerPage from './pages/ChessPlayerPage'
 import PlayerLayout      from './pages/PlayerLayout'
 import PlayerDashboardPage from './pages/PlayerDashboardPage'
 import PlayerGamesPage   from './pages/PlayerGamesPage'
@@ -111,6 +113,7 @@ function AppRoutes() {
       {/* Player game routes */}
       <Route path="/play/:gameName/:companyName" element={<PlayerPageWrapper />} />
       <Route path="/play/bejeweled/:id" element={<BejeweledPlayerPage />} />
+      <Route path="/play/chess/:gameName/:companyName" element={<ChessPlayerPage />} />
 
       {/* Player dashboard */}
       <Route path="/player" element={<PlayerRoute><PlayerLayout /></PlayerRoute>}>
@@ -164,6 +167,7 @@ function AppRoutes() {
         <Route path="games/:id/frustration-builder"   element={<StressBusterBuilderPage />} />
         <Route path="games/:id/soundify-builder"      element={<SoundifyBuilderPage />} />
         <Route path="games/:id/tictactoe-builder"     element={<TicTacToeBuilderPage />} />
+        <Route path="games/:id/chess-builder"          element={<ChessBuilderPage />} />
         <Route path="players"                         element={<PlayersPage />} />
         <Route path="crm"                             element={<CRMPage />} />
 

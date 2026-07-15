@@ -544,16 +544,24 @@ router.delete('/:id', auth, async (req, res) => {
 // PUT settings/field - quick single-field update (JSON, no multer needed)
 router.put('/:id/settings/field', auth, async (req, res) => {
   try {
-    const allowed = ['randomize_questions', 'show_progress', 'allow_back', 'terms_enabled', 'send_email', 'questions_per_session'];
+    const boolFields = ['randomize_questions', 'show_progress', 'allow_back', 'terms_enabled', 'send_email', 'enable_mascot', 'enable_speech'];
+    const intFields = ['questions_per_session'];
+    const floatFields = ['speech_rate', 'speech_pitch'];
+    const strFields = ['speech_language'];
+    const allowed = [...boolFields, ...intFields, ...floatFields, ...strFields];
     const updates = [];
     const vals = [];
     for (const [key, val] of Object.entries(req.body)) {
       if (allowed.includes(key)) {
         updates.push(`${key} = ?`);
-        if (key === 'questions_per_session') {
-          vals.push(parseInt(val) || 0);
-        } else {
+        if (boolFields.includes(key)) {
           vals.push(val === '1' || val === 1 || val === true ? 1 : 0);
+        } else if (intFields.includes(key)) {
+          vals.push(parseInt(val) || 0);
+        } else if (floatFields.includes(key)) {
+          vals.push(parseFloat(val) || 1);
+        } else {
+          vals.push(val);
         }
       }
     }
@@ -582,7 +590,8 @@ router.put('/:id/settings', auth, upload.fields([
       submit_button_text, submit_button_text_color, submit_button_bg_color,
       continue_button_text, continue_button_text_color, continue_button_bg_color,
       next_button_text, next_button_text_color, next_button_bg_color,
-      randomize_questions, questions_per_session } = req.body;
+      randomize_questions, questions_per_session,
+      enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [req.params.id]);
     const bgImg   = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           !== undefined ? bg_image_url           : (existing[0]?.bg_image_url           || null));
@@ -606,7 +615,12 @@ router.put('/:id/settings', auth, upload.fields([
       continue_button_text || null, continue_button_text_color || null, continue_button_bg_color || null,
       next_button_text || null, next_button_text_color || null, next_button_bg_color || null,
       randomize_questions !== undefined ? (randomize_questions === 1 || randomize_questions === true || randomize_questions === '1' || randomize_questions === 'true' ? 1 : 0) : 0,
-      parseInt(questions_per_session) || 0
+      parseInt(questions_per_session) || 0,
+      enable_mascot !== undefined ? (enable_mascot === 1 || enable_mascot === true || enable_mascot === '1' || enable_mascot === 'true' ? 1 : 0) : 0,
+      enable_speech !== undefined ? (enable_speech === 1 || enable_speech === true || enable_speech === '1' || enable_speech === 'true' ? 1 : 0) : 0,
+      speech_language || 'en',
+      parseFloat(speech_rate) || 1,
+      parseFloat(speech_pitch) || 1
     ];
 
     const [upd] = await db.query(
@@ -621,14 +635,15 @@ router.put('/:id/settings', auth, upload.fields([
        submit_button_text=?, submit_button_text_color=?, submit_button_bg_color=?,
        continue_button_text=?, continue_button_text_color=?, continue_button_bg_color=?,
        next_button_text=?, next_button_text_color=?, next_button_bg_color=?,
-       randomize_questions=?, questions_per_session=? WHERE game_id=?`,
+        randomize_questions=?, questions_per_session=?,
+        enable_mascot=?, enable_speech=?, speech_language=?, speech_rate=?, speech_pitch=? WHERE game_id=?`,
       [...vals.slice(1), req.params.id]
     );
 
     if (upd.affectedRows === 0) {
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         vals
       );
     }

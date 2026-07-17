@@ -2,7 +2,11 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 import BuilderPhoneMockup from '../components/BuilderPhoneMockup'
+import LocationMapManager from '../components/LocationMapManager'
 import PhoneFrame from '../components/PhoneFrame'
+import { isVideoUrl } from '../components/renderMedia'
+
+const MEDIA_ACCEPT = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,video/mp4,video/webm'
 
 /* ─────────────────────────────────────────────
    LIGHT THEME TOKENS  (scoped to .gb-wrap)
@@ -441,7 +445,7 @@ function ColorPicker({ value, onChange, label, noPresets }) {
 }
 
 /* ─────────── ImageUpload ─────────── */
-function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" }) {
+function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,video/mp4,video/webm" }) {
   const ref = useRef()
   return (
     <div>
@@ -450,7 +454,9 @@ function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg
         onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
       <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginTop:4 }}>
         <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => ref.current.click()}>📷 Upload</button>
-        {url && <img src={url} className="gb-thumb" alt="" />}
+        {url && (isVideoUrl(url)
+          ? <video src={url} className="gb-thumb" autoPlay muted loop playsInline style={{ borderRadius: 6, border: '1px solid var(--gb-border)', background: '#000' }} />
+          : <img src={url} className="gb-thumb" alt="" />)}
         {url && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={onClear}>✕</button>}
       </div>
     </div>
@@ -509,10 +515,11 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
             <input value={opt.option_text||''} onChange={e => onUpdate('option_text', e.target.value)}
               placeholder={`Option ${index+1}`} style={{ flex:1 }} />
             {/* option image upload */}
-            <input type="file" ref={imgRef} accept="image/png,image/jpeg,image/jpg" onChange={handleImgFile} style={{ display:'none' }} />
+            <input type="file" ref={imgRef} accept={MEDIA_ACCEPT} onChange={handleImgFile} style={{ display:'none' }} />
             {imgPrev ? (
               <div style={{ position:'relative', flexShrink:0 }}>
-                <img src={imgPrev} alt="" style={{ height:28, width:'auto', borderRadius:4, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9', display:'block' }} />
+                {isVideoUrl(imgPrev) ? <video src={imgPrev} autoPlay muted loop playsInline style={{ height:28, width:'auto', borderRadius:4, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#000', display:'block' }} />
+                  : <img src={imgPrev} alt="" style={{ height:28, width:'auto', borderRadius:4, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9', display:'block' }} />}
                 <button style={{ position:'absolute', top:-5, right:-5, borderRadius:'50%', width:14, height:14, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:8, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'1.5px solid #fff', cursor:'pointer' }}
                   type="button" onClick={() => { setImgPrev(null); onUpdate('option_image_url','') }}>✕</button>
               </div>
@@ -541,12 +548,13 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
           <div style={{ position:'relative', display:'inline-block' }}>
             {overlayPrev && (
               <>
-                <img src={overlayPrev} alt="" style={{ height:64, width:'auto', maxWidth:100, borderRadius:6, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9', display:'block' }} />
+                 {isVideoUrl(overlayPrev) ? <video src={overlayPrev} autoPlay muted loop playsInline style={{ height:64, width:'auto', maxWidth:100, borderRadius:6, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#000', display:'block' }} />
+                   : <img src={overlayPrev} alt="" style={{ height:64, width:'auto', maxWidth:100, borderRadius:6, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9', display:'block' }} />}
                 <button style={{ position:'absolute', top:-6, right:-6, borderRadius:'50%', width:18, height:18, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 4px rgba(0,0,0,0.2)' }}
                   type="button" onClick={() => { setOverlayPrev(null); onUpdate('option_overlay_image_url','') }}>✕</button>
               </>
             )}
-            <input type="file" ref={overlayRef} accept="image/png,image/jpeg,image/jpg" onChange={handleOverlayFile} style={{ display:'none' }} />
+            <input type="file" ref={overlayRef} accept={MEDIA_ACCEPT} onChange={handleOverlayFile} style={{ display:'none' }} />
             {!overlayPrev && (
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
                 <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => overlayRef.current.click()}
@@ -596,7 +604,8 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
     try { await onSave(q) } finally { setSaving(false) }
   }
 
-  const typeLabel = q.question_type === 'opinion' ? 'Opinion' : 'Right/Wrong'
+  const typeLabel = q.question_type === 'opinion' ? 'Opinion' : q.question_type === 'short_answer' ? 'Short Answer'
+    : q.question_type === 'checkbox' ? 'Checkbox (multi)' : q.question_type === 'select' ? 'Select (dropdown)' : 'Right/Wrong'
   const correctCount = (q.options||[]).filter(o => Number(o.is_correct)===1).length
 
   return (
@@ -624,6 +633,9 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             style={{ fontSize:11, padding:'2px 6px', borderRadius:6, border:'1.5px solid var(--gb-border)', background:'var(--gb-surface)', color:'var(--gb-text)', fontWeight:600, cursor:'pointer', outline:'none' }}>
             <option value="right_wrong">Right / Wrong</option>
             <option value="opinion">Opinion</option>
+            <option value="short_answer">Short Answer</option>
+            <option value="checkbox">Checkbox (multi-select)</option>
+            <option value="select">Select (dropdown)</option>
           </select>
           <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" onClick={e => { e.stopPropagation(); onDelete(question) }}>🗑</button>
         </div>
@@ -638,10 +650,11 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                 <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Question Image</span>
                 <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button"
-                  onClick={() => { const inp = document.createElement('input'); inp.type='file'; inp.accept='image/png,image/jpeg,image/jpg'; inp.onchange=e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>{const url=ev.target.result;setImgPreview(url);setQ(prev=>({...prev,_imageFile:f,question_image_url:url}))};r.readAsDataURL(f)}};inp.click() }}
+                  onClick={() => { const inp = document.createElement('input'); inp.type='file'; inp.accept=MEDIA_ACCEPT; inp.onchange=e=>{const f=e.target.files[0];if(f){const url=URL.createObjectURL(f);setImgPreview(url);setQ(prev=>({...prev,_imageFile:f,question_image_url:url}))}};inp.click() }}
                   style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                 {imgPreview && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
-                  <img src={imgPreview} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
+                  {isVideoUrl(imgPreview) ? <video src={imgPreview} autoPlay muted loop playsInline style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#000' }} />
+                    : <img src={imgPreview} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />}
                   <button style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                     type="button" onClick={() => { setImgPreview(null); setQ(prev=>({...prev, _imageFile:null, question_image_url:'' })) }}>✕</button>
                 </div>}
@@ -659,7 +672,7 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
               <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                 <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>BG Image (overrides game BG)</span>
                 <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button"
-                  onClick={() => { const inp = document.createElement('input'); inp.type='file'; inp.accept='image/png,image/jpeg,image/jpg'; inp.onchange=e=>{const f=e.target.files[0];if(f){const r=new FileReader();r.onload=ev=>{const url=ev.target.result;setBgPreview(url);setQ(prev=>({...prev,_bgImageFile:f,question_bg_image_url:url}))};r.readAsDataURL(f)}};inp.click() }}
+                  onClick={() => { const inp = document.createElement('input'); inp.type='file'; inp.accept=MEDIA_ACCEPT; inp.onchange=e=>{const f=e.target.files[0];if(f){const url=URL.createObjectURL(f);setBgPreview(url);setQ(prev=>({...prev,_bgImageFile:f,question_bg_image_url:url}))}};inp.click() }}
                   style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                 {bgPreview && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
                   <img src={bgPreview} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
@@ -682,7 +695,21 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
             </div>
           </div>
 
-          {/* Options */}
+          {/* Options (hidden for short-answer questions) */}
+          {q.question_type === 'short_answer' ? (
+            <div className="gb-section">
+              <div className="gb-section-title" style={{ marginBottom:10 }}>✍️ Short Answer</div>
+              <div style={{ display:'flex', gap:16, flexWrap:'wrap' }}>
+                <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:13 }}>
+                  <input type="checkbox" checked={!!q.answer_is_number} onChange={e => setQ({ ...q, answer_is_number: e.target.checked ? 1 : 0 })} /> Numeric answer
+                </label>
+              </div>
+              <div className="gb-fg" style={{ marginTop:10 }}>
+                <span className="gb-label">Correct Answer (optional)</span>
+                <input value={q.answer_text||''} onChange={e => setQ({ ...q, answer_text: e.target.value })} placeholder="Leave blank to accept any" />
+              </div>
+            </div>
+          ) : (
           <div className="gb-section">
             <div className="gb-section-title" style={{ marginBottom:10 }}>🔘 Answer Options</div>
             {(q.options||[]).length === 0
@@ -699,6 +726,7 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
               <button className="gb-btn gb-btn-primary gb-btn-sm" onClick={addOption}>+ Add Option</button>
             </div>
           </div>
+          )}
 
           {/* overlay animation */}
           <div className="gb-section">
@@ -837,6 +865,12 @@ const [nameInput,     setNameInput]     = useState('')
   const previewTimerRef = useRef(null)
   useEffect(() => { clearTimeout(previewTimerRef.current); setPreviewOverlay(null); setPreviewStage('initial') }, [selectedQuestionId])
   const [redirectUrl,   setRedirectUrl]   = useState('')
+  const [templates,     setTemplates]     = useState([])
+  const [templateId,    setTemplateId]    = useState(null)
+  const [introVideoUrl, setIntroVideoUrl] = useState('')
+  const [introVideoFile,setIntroVideoFile]= useState(null)
+  const [introVideoPrev,setIntroVideoPrev]= useState('')
+  const introVideoInputRef = useRef()
   const [businessTab, setBusinessTab] = useState('preview')
   const [emailSubTab, setEmailSubTab] = useState('player')
   const [boEmailTab, setBoEmailTab] = useState('guest_offer')
@@ -861,6 +895,9 @@ const [nameInput,     setNameInput]     = useState('')
       setSounds(g.sounds||[])
       setSlugInput(g.slug||'')
       setRedirectUrl(g.redirect_url||'')
+      setTemplateId(g.template_id || null)
+      setIntroVideoUrl(g.intro_video_url || '')
+      api.get('/templates').then(res => setTemplates(res.data.templates || [])).catch(() => {})
       api.get(`/games/${id}/email-settings`).then(res => {
         if (res.data.email_settings) setBoEmailSettings(prev => ({ ...prev, ...res.data.email_settings }))
       }).catch(() => {})
@@ -939,9 +976,17 @@ const [nameInput,     setNameInput]     = useState('')
     fd.append('overlay_animation_in', q.overlay_animation_in||'flyFromBottom')
     fd.append('overlay_animation_out',q.overlay_animation_out||'flyToTop')
     fd.append('question_image_animation', q.question_image_animation||'float')
+    fd.append('answer_text', q.answer_text||'')
+    fd.append('answer_is_number', q.answer_is_number ? 1 : 0)
     if (q._imageFile)   fd.append('question_image',    q._imageFile)
     if (q._bgImageFile) fd.append('question_bg_image', q._bgImageFile)
-    await api.put(`/quiz/questions/${q.id}`, fd)
+    try {
+      await api.put(`/quiz/questions/${q.id}`, fd)
+    } catch (err) {
+      console.error('[saveQuestion] upload failed', err?.response?.data || err)
+      showToast(`Error saving question: ${err?.response?.data?.error || err?.message || 'upload failed'}`, 'error')
+      throw err
+    }
 
     // Save options — collect updated options with real IDs
     const savedOptions = []
@@ -1088,7 +1133,15 @@ const [nameInput,     setNameInput]     = useState('')
         'next_button_text','next_button_text_color','next_button_bg_color',
         'randomize_questions','questions_per_session',
         'enable_mascot','enable_speech','speech_language','speech_rate','speech_pitch']
-      for (const f of fields) fd.append(f, settings[f]??'')
+      const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech']
+      const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time']
+      for (const f of fields) {
+        let v = settings[f]
+        if (v === undefined || v === '') v = null
+        if (bools.includes(f)) v = v ? 1 : 0
+        else if (nums.includes(f) && v !== null) v = Number(v)
+        fd.append(f, v ?? '')
+      }
       if (settings._bgImageFile)    fd.append('bg_image',           settings._bgImageFile)
       else if (settings.bg_image_url !== undefined) fd.append('bg_image_url',     settings.bg_image_url)
       if (settings._tyBgImageFile)  fd.append('thankyou_bg_image',  settings._tyBgImageFile)
@@ -1097,8 +1150,24 @@ const [nameInput,     setNameInput]     = useState('')
       else if (settings.submit_confirm_gif_url !== undefined) fd.append('submit_confirm_gif_url', settings.submit_confirm_gif_url||'')
       if (settings._gameLogoFile)   fd.append('game_logo',          settings._gameLogoFile)
       else if (settings.game_logo_url !== undefined) fd.append('game_logo_url', settings.game_logo_url||'')
+      // per-game animation overrides (merged over template in player)
+      const animCfg = {
+        anim_question_in: settings.anim_question_in, anim_question_out: settings.anim_question_out,
+        anim_video_in: settings.anim_video_in, anim_video_out: settings.anim_video_out,
+        anim_overlay_in: settings.anim_overlay_in, anim_overlay_out: settings.anim_overlay_out,
+        idle_overlay_time: settings.idle_overlay_time,
+      }
+      fd.append('anim_config_json', JSON.stringify(animCfg))
       await api.put(`/games/${id}/settings`, fd)
-      await api.put(`/games/${id}`, { redirect_url: redirectUrl, slug: slugInput.trim() || undefined, meta_description: settings.meta_description || undefined })
+      // template + intro video live on the games row — send as FormData so the file uploads
+      const gameUpdates = new FormData()
+      gameUpdates.append('redirect_url', redirectUrl || '')
+      gameUpdates.append('slug', slugInput.trim() || '')
+      gameUpdates.append('meta_description', settings.meta_description || '')
+      gameUpdates.append('template_id', templateId || '')
+      if (introVideoFile) gameUpdates.append('intro_video', introVideoFile)
+      else gameUpdates.append('intro_video_url', introVideoUrl || '')
+      await api.put(`/games/${id}`, gameUpdates)
       showToast('Settings saved ✅')
     } catch (err) { showToast('Error: '+(err.response?.data?.message||err.message), 'error') }
     setSaving(false)
@@ -1503,6 +1572,30 @@ const [nameInput,     setNameInput]     = useState('')
                     </div>
                   </div>
                   <div>
+                    <div className="gb-section-title">🎨 Template & Intro Video</div>
+                    <div className="gb-fg" style={{ marginBottom:12 }}>
+                      <span className="gb-label">Apply Template (skin/animations/voice)</span>
+                      <select className="gb-select" value={templateId || ''} onChange={e => setTemplateId(e.target.value ? parseInt(e.target.value) : null)}>
+                        <option value="">— No template (manual settings) —</option>
+                        {templates.map(t => <option key={t.id} value={t.id}>{t.name}{t.is_default ? ' (default)' : ''}</option>)}
+                      </select>
+                      <div style={{ marginTop:6 }}>
+                        <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => navigate('/dashboard/templates')}>Manage Templates</button>
+                      </div>
+                    </div>
+                    <div className="gb-fg" style={{ marginBottom:10 }}>
+                      <span className="gb-label">Intro Video (plays with audio before questions)</span>
+                      <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+                        <input type="file" accept={MEDIA_ACCEPT} ref={el => introVideoInputRef.current = el} style={{ display:'none' }}
+                          onChange={e => { const f=e.target.files[0]; if(f){ setIntroVideoFile(f); setIntroVideoUrl(''); const r=new FileReader(); r.onload=ev=>setIntroVideoPrev(ev.target.result); r.readAsDataURL(f) } }} />
+                        <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => introVideoInputRef.current?.click()}>📹 Upload</button>
+                        {introVideoPrev && <video src={introVideoPrev} autoPlay muted loop playsInline style={{ height:48, borderRadius:6, border:'1px solid var(--gb-border)', background:'#000' }} />}
+                        {introVideoUrl && !introVideoPrev && <video src={introVideoUrl} autoPlay muted loop playsInline style={{ height:48, borderRadius:6, border:'1px solid var(--gb-border)', background:'#000' }} />}
+                        {(introVideoUrl || introVideoPrev) && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={() => { setIntroVideoFile(null); setIntroVideoUrl(''); setIntroVideoPrev('') }}>✕</button>}
+                      </div>
+                    </div>
+                  </div>
+                  <div>
                     <div className="gb-section-title">🚀 Start Button</div>
                     <div className="gb-fg" style={{ marginBottom:10 }}>
                       <input value={settings.start_button_text||''} onChange={e => setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Quiz →" />
@@ -1714,12 +1807,14 @@ const [nameInput,     setNameInput]     = useState('')
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
                   <div className="gb-section-title">🎊 Submit Confirmation GIF</div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
-                    <input type="file" id="submitGifInput" accept="image/gif,image/png,image/jpeg,image/webp"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f)} }}
+                    <input type="file" id="submitGifInput" accept="image/gif,image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"
+                      onChange={e => { const f=e.target.files[0]; if(f){const url=URL.createObjectURL(f); setSettings({...settings,submit_confirm_gif_url:url,_submitGifFile:f})}} }
                       style={{ display:'none' }} />
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>🎬 Upload GIF / Image</button>
+                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>🎬 Upload GIF / Image / Video</button>
                     {settings.submit_confirm_gif_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
-                      <img src={settings.submit_confirm_gif_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
+                      {isVideoUrl(settings.submit_confirm_gif_url)
+                        ? <video src={settings.submit_confirm_gif_url} autoPlay muted loop playsInline style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#000' }} />
+                        : <img src={settings.submit_confirm_gif_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />}
                       <button
                         style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                         type="button" onClick={() => setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})}>✕</button>
@@ -2058,8 +2153,12 @@ const [nameInput,     setNameInput]     = useState('')
                   opacity: previewStage === 'visible' ? 1 : undefined,
                   transform: previewStage === 'visible' ? 'translateY(0) translateX(0) scale(1)' : undefined,
                 }}>
-                  <img src={previewOverlay.option_overlay_image_url} alt=""
-                    style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  {isVideoUrl(previewOverlay.option_overlay_image_url) ? (
+                    <video src={previewOverlay.option_overlay_image_url} autoPlay muted loop playsInline style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  ) : (
+                    <img src={previewOverlay.option_overlay_image_url} alt=""
+                      style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+                  )}
                 </div>
               )}
               {/* Progress bar */}
@@ -2094,11 +2193,17 @@ const [nameInput,     setNameInput]     = useState('')
                       flex:1, minHeight:0, display:'flex', alignItems:'center', justifyContent:'center',
                       padding:'10px 10px 0', background: hasBg ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.03)', overflow:'hidden',
                     }}>
-                      <img src={previewQ.question_image_url} alt=""
-                        style={{
-                          width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8,
-                          animation: IMAGE_ANIM_MAP[previewQ.question_image_animation] || 'none',
-                        }} />
+                       {isVideoUrl(previewQ.question_image_url) ? (
+                         <video src={previewQ.question_image_url} autoPlay muted loop playsInline
+                           style={{ width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8,
+                             animation: IMAGE_ANIM_MAP[previewQ.question_image_animation] || 'none' }} />
+                       ) : (
+                         <img src={previewQ.question_image_url} alt=""
+                           style={{
+                             width:'100%', height:'100%', objectFit:'contain', display:'block', borderRadius:8,
+                             animation: IMAGE_ANIM_MAP[previewQ.question_image_animation] || 'none',
+                           }} />
+                       )}
                     </div>
                   )}
                   {/* Bottom: question text + options + next button */}
@@ -2122,7 +2227,9 @@ const [nameInput,     setNameInput]     = useState('')
                             overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', minHeight:36,
                           }}>
                           {opt.option_image_url
-                            ? <img src={opt.option_image_url} alt="" style={{ maxWidth:'100%', maxHeight:72, objectFit:'contain', borderRadius:8 }} />
+                            ? (isVideoUrl(opt.option_image_url)
+                                ? <video src={opt.option_image_url} autoPlay muted loop playsInline style={{ maxWidth:'100%', maxHeight:72, objectFit:'contain', borderRadius:8 }} />
+                                : <img src={opt.option_image_url} alt="" style={{ maxWidth:'100%', maxHeight:72, objectFit:'contain', borderRadius:8 }} />)
                             : (opt.option_text || `Option ${i+1}`)
                           }
                         </div>
@@ -2300,24 +2407,10 @@ const [nameInput,     setNameInput]     = useState('')
         </PhoneFrame>
         )}{/* ─ end right col ─ */}
 
-        {/* ─── LOCATIONS PANEL ─── */}
+        {/* ─── LOCATIONS: MAP-BASED MANAGER ─── */}
         {tab === 'locations' && isParentGame && (
-          <div style={{ position:'sticky', top:80, width:340, flexShrink:0, marginRight:20 }}>
-            <BuilderPhoneMockup
-              gameId={id}
-              clientId={game?.client_id}
-              settings={settings}
-              businessTab={businessTab}
-              onBusinessTabChange={setBusinessTab}
-            >
-              <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', background:'#f4f4ff', padding:20 }}>
-                <div style={{ textAlign:'center', color:'#64657a' }}>
-                  <div style={{ fontSize:48, marginBottom:12 }}>📍</div>
-                  <div style={{ fontSize:14, fontWeight:600 }}>Location Manager</div>
-                  <div style={{ fontSize:12, marginTop:4 }}>Switch to Locations tab to manage</div>
-                </div>
-              </div>
-            </BuilderPhoneMockup>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <LocationMapManager gameId={id} clientId={game?.client_id} />
           </div>
         )}
 

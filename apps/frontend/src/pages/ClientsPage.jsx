@@ -342,7 +342,7 @@ function DetailPanel({ client, onClose, onEdit }) {
           <div style={{width:280,borderRight:'1px solid #F3F4F6',display:'flex',flexDirection:'column',flexShrink:0}}>
             <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6'}}>
               <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>
-                {selectedBranch ? `${selectedBranch.business_name} Games` : 'Select a Branch'}
+                {selectedBranch ? `${selectedBranch.business_name} Location Games` : 'Select a Branch'}
               </div>
             </div>
             <div style={{flex:1,overflow:'auto',padding:8}}>
@@ -354,7 +354,7 @@ function DetailPanel({ client, onClose, onEdit }) {
                 Array.from({length:3}).map((_,i) => <div key={i} style={{height:40,background:'#F3F4F6',borderRadius:8,marginBottom:6}} />)
               ) : branchGames.length === 0 ? (
                 <div style={{fontSize:11,color:'#9CA3AF',padding:'20px 0',textAlign:'center'}}>
-                  No games for this branch yet.<br/>
+                  No location games for this branch yet.<br/>
                   <span style={{fontSize:10}}>Create from game builder Locations tab</span>
                 </div>
               ) : (
@@ -380,7 +380,7 @@ function DetailPanel({ client, onClose, onEdit }) {
           {/* Col 4: Game Templates (brand-level games only) */}
           <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,borderRight:'1px solid #F3F4F6'}}>
             <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>Game Templates ({templateGames.length})</div>
+              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>Master Games ({templateGames.length})</div>
             </div>
             <div style={{flex:1,overflow:'auto',padding:8}}>
               {templateGames.map(g => (

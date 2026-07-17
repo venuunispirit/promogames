@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { geocodePincode } = require('../lib/geocode');
 
 function boAuth(req, res, next) {
   const token = (req.headers['authorization'] || '').split(' ')[1];
@@ -191,12 +192,29 @@ router.post('/games/link', async (req, res) => {
 });
 
 // GET /api/business/games/:gameId/locations — Get all locations for a game
+// Enriched with branch pincode + geocoded lat/lng for map plotting.
 router.get('/games/:gameId/locations', async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT * FROM business_owner_games WHERE game_id = ? ORDER BY CASE WHEN parent_id IS NULL THEN 0 ELSE 1 END, created_at',
+      `SELECT bog.*, bo.business_name AS branch_name, bo.pincode, bo.latitude, bo.longitude
+       FROM business_owner_games bog
+       LEFT JOIN business_owners bo ON bo.id = bog.business_owner_id
+       WHERE bog.game_id = ?
+       ORDER BY CASE WHEN bog.parent_id IS NULL THEN 0 ELSE 1 END, bog.created_at`,
       [req.params.gameId]
     );
+    // Geocode any branch missing coords (lazy backfill) so pins always plot.
+    for (const loc of rows) {
+      if (loc.pincode && (loc.latitude == null || loc.longitude == null)) {
+        try {
+          const geo = await geocodePincode(loc.pincode)
+          await db.query('UPDATE business_owners SET latitude=?, longitude=? WHERE id=?',
+            [geo.latitude, geo.longitude, loc.business_owner_id])
+          loc.latitude = geo.latitude
+          loc.longitude = geo.longitude
+        } catch {}
+      }
+    }
     res.json({ success: true, locations: rows });
   } catch (err) {
     console.error(err);

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom'
 import api from '../api'
 import { useAuth } from '../context/AuthContext'
+import { useTheme } from '../pages/ThemeContext'
 import NotificationBell from './NotificationBell'
 
 /* ─────────────────────────────────────────────
@@ -359,6 +360,7 @@ function AvatarDropdown({ user, onLogout }) {
   const [panel,   setPanel]   = useState('menu')  // 'menu' | 'calendar' | 'password'
   const [stats,   setStats]   = useState({ games:0, players:0 })
   const ref = useRef()
+  const { isDark, toggleTheme } = useTheme()
 
   // Close on outside click
   useEffect(() => {
@@ -435,6 +437,31 @@ function AvatarDropdown({ user, onLogout }) {
                     <div style={{ fontSize:11, color:'#9899b8', fontWeight:500 }}>Update your credentials</div>
                   </div>
                 </button>
+
+                <div className="nav-dd-sep" />
+
+                <div className="nav-dd-theme">
+                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                    <span style={{ fontSize:14 }}>☀️</span>
+                    <span style={{ fontSize:13, fontWeight:600, color:'#1f2433' }}>Theme</span>
+                    <span style={{ fontSize:11, color:'#9899b8', fontWeight:500, marginLeft:'auto' }}>{isDark ? 'Dark' : 'Light'}</span>
+                  </div>
+                  <button
+                    onClick={toggleTheme}
+                    aria-label="Toggle theme"
+                    style={{
+                      marginTop:8, width:'100%', height:26, borderRadius:100, padding:3,
+                      border:'1px solid #e5e7eb', background:'#f1f5f9', cursor:'pointer',
+                      position:'relative', transition:'background .2s',
+                    }}
+                  >
+                    <span style={{
+                      position:'absolute', top:3, left: isDark ? 'calc(100% - 22px)' : 3,
+                      width:20, height:20, borderRadius:'50%', background:'#a855f7',
+                      transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.25)',
+                    }} />
+                  </button>
+                </div>
 
                 <div className="nav-dd-sep" />
 

@@ -136,6 +136,16 @@ async function initDB() {
     )
   `, 'clients table');
 
+  /* CANVAS LAYOUT (draggable graph node positions per client) */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS canvas_layout (
+      client_id INT PRIMARY KEY,
+      positions JSON,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE CASCADE
+    )
+  `, 'canvas_layout table');
+
   /* SOUNDS */
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS sounds (
@@ -1077,6 +1087,7 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'lose_sound_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'quiz_settings', 'sound_correct_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'quiz_settings', 'sound_wrong_id', 'INT DEFAULT NULL');
+  await addColumn(connection, 'quiz_settings', 'sound_neutral_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'quiz_settings', 'game_logo_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'font_family', "VARCHAR(100) DEFAULT 'DM Sans'");
   await addColumn(connection, 'quiz_settings', 'submit_confirm_gif_url', 'VARCHAR(500)');
@@ -1129,6 +1140,26 @@ async function initDB() {
   await addColumn(connection, 'games', 'updated_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
   await addColumn(connection, 'games', 'updated_by', 'INT DEFAULT NULL');
   await addColumn(connection, 'games', 'meta_description', 'TEXT');
+
+  /* TEMPLATES — reusable player skins (look, fonts, animations, language, TTS, mascot) */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS templates (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(255) NOT NULL,
+      client_id INT DEFAULT NULL,
+      is_default TINYINT(1) DEFAULT 0,
+      config_json JSON,
+      preview_image_url VARCHAR(500),
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+  `, 'templates table');
+
+  /* GAMES — template link + intro video */
+  await addColumn(connection, 'games', 'template_id', 'INT DEFAULT NULL');
+  await addColumn(connection, 'games', 'intro_video_url', 'VARCHAR(500)');
+
+  /* QUIZ SETTINGS — animation/timing overrides (merged over template) */
+  await addColumn(connection, 'quiz_settings', 'anim_config_json', 'JSON');
 
   /* BUSINESS OWNERS — link to client */
   await addColumn(connection, 'business_owners', 'client_id', 'INT DEFAULT NULL');
@@ -1232,6 +1263,9 @@ async function initDB() {
   await addColumn(connection, 'questions', 'answer_is_number', "TINYINT(1) DEFAULT 0");
   // Change question_type from ENUM to VARCHAR so it can hold 'short_answer'
   await safeQuery(connection, `ALTER TABLE questions MODIFY COLUMN question_type VARCHAR(50) DEFAULT 'right_wrong'`, 'questions.question_type → VARCHAR(50)');
+
+  /* ── PLAYER ANSWERS — multi-select support (checkbox/select capture choices) ── */
+  await addColumn(connection, 'player_answers', 'option_ids', 'JSON');
 
   /* ── BOUNCE GAME TABLES ── */
   await safeQuery(connection, `
@@ -2317,8 +2351,12 @@ await safeQuery(connection, `
    await addColumn(connection, 'business_redemptions', 'accepted_at', 'DATETIME DEFAULT NULL');
    await addColumn(connection, 'business_redemptions', 'rejected_by', 'INT DEFAULT NULL');
    await addColumn(connection, 'business_redemptions', 'rejected_at', 'DATETIME DEFAULT NULL');
-   await addColumn(connection, 'business_redemptions', 'reject_reason', 'VARCHAR(500) DEFAULT NULL');
-   await addColumn(connection, 'business_redemptions', 'table_number', 'VARCHAR(50) DEFAULT NULL');
+  await addColumn(connection, 'business_redemptions', 'reject_reason', 'VARCHAR(500) DEFAULT NULL');
+  await addColumn(connection, 'business_redemptions', 'table_number', 'VARCHAR(50) DEFAULT NULL');
+
+  // ── Geo columns for map-based location manager (pincode → lat/lng) ──
+  await addColumn(connection, 'business_owners', 'latitude', 'DECIMAL(10,7) DEFAULT NULL');
+  await addColumn(connection, 'business_owners', 'longitude', 'DECIMAL(10,7) DEFAULT NULL');
 
    /* GAMES — add email_settings JSON column */
    await addColumn(connection, 'games', 'email_settings', "JSON DEFAULT NULL");

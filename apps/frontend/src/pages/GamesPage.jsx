@@ -1,6 +1,14 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import QRCode from 'qrcode'
+import {
+  Building2, HelpCircle, ClipboardList, BarChart3, FileText, Sparkles,
+  Puzzle, Image, Search, Droplets, Keyboard, Wrench, Calculator,
+  Route, Grid3x3, Snail, ShoppingBasket, Zap, Target, Bird, CircleDot,
+  Gamepad2, Trophy, Brain, Flag, Boxes, Dices, Layers, TowerControl,
+  Bomb, Shuffle, Scissors, Hand, Hammer, Building, Squircle, Rocket,
+  ArrowRight, Frown, Volume2, CircleX, Crown, Car, Crosshair, Box, Copy, Trash2
+} from 'lucide-react'
 import api from '../api'
 
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
@@ -48,7 +56,25 @@ const CATEGORY_META = {
   tictactoe:   { label:'Tic Tac Toe',    bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'❌', desc:'Classic noughts and crosses' },
   chess:      { label:'Chess',          bg:'#F7F7F7', fg:'#1F2937', dot:'#374151', icon:'♟️', desc:'Two-player online chess' },
 }
-const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F4F6', fg:'#374151', dot:'#9CA3AF' }
+const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F6F9', fg:'#374151', dot:'#9CA3AF' }
+
+const CATEGORY_ICON = {
+  quiz:'HelpCircle', survey:'ClipboardList', poll:'BarChart3', registration:'FileText',
+  crossword:'Grid3x3', spin:'Sparkles', memory:'Puzzle', jigsaw:'Image', wordsearch:'Search',
+  pouring:'Droplets', typer:'Keyboard', screw:'Wrench',   math:'Calculator', maze:'Route',
+  '2048':'Grid3x3',   snake:'Snail', catch:'ShoppingBasket', reaction:'Zap', simon:'Target',
+  flappy:'Bird', bounce:'CircleDot', space:'Rocket', connect4:'CircleDot', bejeweled:'Gem' === undefined ? 'Sparkles' : 'Sparkles',
+  tetris:'Layers', stack:'Layers', bowling:'Building', sudoku:'Grid3x3', minesweeper:'Bomb',
+  wordscramble:'Shuffle', rps:'Hand', whackamole:'Hammer', hanoi:'TowerControl', breakout:'Boxes',
+  bubbleshooter:'CircleDot', carlaunch:'Car', arrowescape:'ArrowRight', stressbuster:'Frown',
+  soundify:'Volume2', tictactoe:'CircleX', chess:'Crown', bejeweled:'Sparkles',
+}
+const ICONS = { HelpCircle, ClipboardList, BarChart3, FileText, Grid3x3, Sparkles, Puzzle, Image,
+  Search, Droplets, Keyboard, Wrench, Calculator, Route, Snail, ShoppingBasket, Zap, Target, Bird,
+  CircleDot, Rocket, Building, Layers, Bomb, Shuffle, Hand, Hammer, TowerControl, Boxes,
+  CircleX, Crown, Car, ArrowRight, Frown, Volume2 }
+const catIcon = (cat) => ICONS[CATEGORY_ICON[cat]] || Gamepad2
+const catIconEl = (cat) => { const I = catIcon(cat); return <I size={11} strokeWidth={2.4} /> }
 
 const CSS = `
 @import url('${FONT_URL}');
@@ -644,6 +670,455 @@ function SortTh({ col, sortKey, sortDir, onSort }) {
   )
 }
 
+/* ── Reusable game detail / control modal ── */
+function GameDetailModal({ game, onClose, onBuilder, onResponses, onQr, onCopyLink, onToggle, onStatusToggle, onGameTypeToggle, onDuplicate, onDelete }) {
+  if (!game) return null
+  const cat = catMeta(game.category)
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={onClose}>
+      <div className="gp-modal" style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'90vh',overflow:'auto',padding:'28px 24px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif"}} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
+          <div>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A',marginBottom:4}}>
+              {game.name || game.location_name || game.branch_name || 'Untitled Game'}
+              {game.location_name && game.name && <span style={{color:'#6B7280',fontWeight:500,fontSize:14,marginLeft:8}}>- {game.location_name}</span>}
+            </h2>
+            <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
+              <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:cat.bg,color:cat.fg}}>{cat.label}</span>
+              <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:game.is_active?'#ECFDF5':'#F3F4F6',color:game.is_active?'#059669':'#9CA3AF'}}>{game.status||'Draft'}</span>
+              {game.parent_game_id
+                ? <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'#F5F3FF',color:'#7C3AED'}}>📍 Location{game.branch_name?` · ${game.branch_name}`:''}</span>
+                : <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'#EEF2FF',color:'#4338CA'}}>📦 Master</span>}
+            </div>
+          </div>
+          <button onClick={onClose} style={{border:'none',background:'none',cursor:'pointer',color:'#9CA3AF',padding:4}}>
+            <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div style={{display:'flex',gap:12,marginBottom:16}}>
+          <div style={{flex:1,background:'#F5F3FF',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
+            <div style={{fontSize:18,fontWeight:700,color:'#4F46E5'}}>{game.question_count||0}</div>
+            <div style={{fontSize:9,fontWeight:700,color:'#7C3AED',textTransform:'uppercase'}}>Questions</div>
+          </div>
+          <div style={{flex:1,background:'#ECFDF5',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
+            <div style={{fontSize:18,fontWeight:700,color:'#059669'}}>{game.play_count||0}</div>
+            <div style={{fontSize:9,fontWeight:700,color:'#10B981',textTransform:'uppercase'}}>Plays</div>
+          </div>
+          {game.branch_pincode && (
+            <div style={{flex:1,background:'#FFF7ED',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
+              <div style={{fontSize:16,fontWeight:700,color:'#B45309'}}>{game.branch_pincode}</div>
+              <div style={{fontSize:9,fontWeight:700,color:'#B45309',textTransform:'uppercase'}}>Pincode</div>
+            </div>
+          )}
+        </div>
+
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Quick Actions</div>
+          <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
+            <button onClick={()=>{onBuilder(game);onClose()}} style={mBtn}>🔧 Open Builder</button>
+            <button onClick={()=>{onResponses(game);onClose()}} style={mBtn}>📊 Responses</button>
+            <button onClick={()=>{onQr(game);onClose()}} style={mBtn}>📱 Show QR</button>
+            <button onClick={()=>{onCopyLink(game);onClose()}} style={mBtn}>🔗 Copy Link</button>
+          </div>
+        </div>
+
+        <div style={{marginBottom:16}}>
+          <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Settings</div>
+          {[
+            {label:'Active',field:'is_active',disabled:game.status!=='live'},
+            {label:'Show in Play Page',field:'show_in_play_page'},
+            {label:'Show in Hero Page',field:'show_in_hero_page'},
+          ].map(t => (
+            <div key={t.field} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #F3F4F6'}}>
+              <span style={{fontSize:13,color:'#374151'}}>{t.label}</span>
+              <button disabled={t.disabled} onClick={()=>onToggle(game,t.field)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:t.disabled?'not-allowed':'pointer',background:game[t.field]?'#059669':'#D1D5DB',position:'relative',transition:'background .15s',opacity:t.disabled?0.4:1}}>
+                <span style={{position:'absolute',top:3,left:game[t.field]?21:3,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+              </button>
+            </div>
+          ))}
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #F3F4F6'}}>
+            <span style={{fontSize:13,color:'#374151'}}>Game Type</span>
+            <button onClick={()=>onGameTypeToggle(game)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',background:game.game_type==='branded'?'#059669':'#D1D5DB',position:'relative',transition:'background .15s'}}>
+              <span style={{position:'absolute',top:3,left:game.game_type==='branded'?21:3,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+            </button>
+          </div>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0'}}>
+            <span style={{fontSize:13,color:'#374151'}}>Status</span>
+            <button onClick={()=>onStatusToggle(game)} style={{padding:'3px 10px',borderRadius:6,border:'1.5px solid #E5E7EB',background:'#fff',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',color:'#6B7280'}}>Cycle →</button>
+          </div>
+        </div>
+
+        <div style={{display:'flex',gap:8}}>
+          <button onClick={()=>{onDuplicate(game.id);onClose()}} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit'}}><Copy size={14} strokeWidth={2.2}/> Duplicate</button>
+          <button onClick={()=>{if(confirm('Delete this game?')){onDelete(game.id);onClose()}}} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px',borderRadius:8,border:'1px solid #FECACA',background:'#FEF2F2',cursor:'pointer',fontSize:12,fontWeight:600,color:'#DC2626',fontFamily:'inherit'}}><Trash2 size={14} strokeWidth={2.2}/> Delete</button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+const mBtn = {padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}
+
+/* ── Graphical client tree (timeline) ── */
+function GraphNode({ x, y, w, h, game, kind, onClick, canvasRef, nodeKey, onDrag, onPersist, innerRef }) {
+  const isClient = kind === 'client'
+  const isLoc = kind === 'location'
+  const Icon = isClient ? Building2 : catIcon(game.category)
+  const meta = isClient ? { label:'Client', bg:'#7C3AED', fg:'#fff', dot:'#A78BFA' }
+    : catMeta(game.category)
+  const accent = meta.dot
+  const softBg = meta.bg
+  const fg = meta.fg
+  const titleColor = isClient ? '#fff' : fg
+  const subColor = isClient ? 'rgba(255,255,255,.82)' : fg
+  const title = isClient ? game.name
+    : (isLoc ? (game.branch_name || game.location_name || game.name) : game.name)
+  const STATUS_META = {
+    development: { label:'Development', bg:'#F1F5F9', fg:'#64748B' },
+    testing:     { label:'Testing',     bg:'#FEF3C7', fg:'#D97706' },
+    live:        { label:'Live',        bg:'#DCFCE7', fg:'#16A34A' },
+  }
+  const st = STATUS_META[game.status] || STATUS_META.development
+
+  const onMouseDown = (e) => {
+    if (e.button !== 0) return
+    e.preventDefault()
+    const rect = canvasRef.current.getBoundingClientRect()
+    const sx = e.clientX, sy = e.clientY
+    const dx = sx - rect.left - x, dy = sy - rect.top - y
+    let moved = false
+    const move = (ev) => {
+      const nx = Math.max(0, ev.clientX - rect.left - dx)
+      const ny = Math.max(0, ev.clientY - rect.top - dy)
+      if (Math.abs(ev.clientX - sx) > 3 || Math.abs(ev.clientY - sy) > 3) moved = true
+      onDrag(nodeKey, nx, ny)
+    }
+    const up = () => {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+      if (moved) onPersist()
+      else if (!isClient && onClick) onClick(game)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
+
+  // client node: slim rectangular pill, auto width, single line
+  if (isClient) {
+    return (
+      <div ref={innerRef} onMouseDown={onMouseDown}
+        style={{
+          position:'absolute', left:x, top:y, boxSizing:'border-box',
+          display:'flex', alignItems:'center', gap:10,
+          background:'linear-gradient(135deg, #7C3AED, #6366F1)',
+          color:'#fff', padding:'14px 18px', borderRadius:16, cursor:'grab',
+          minHeight:h, boxShadow:'0 6px 18px rgba(99,102,241,.35)',
+          transition:'box-shadow .15s ease, transform .15s ease',
+          userSelect:'none', whiteSpace:'nowrap',
+        }}
+        onMouseEnter={e=>{ e.currentTarget.style.boxShadow='0 12px 30px rgba(99,102,241,.5)'; e.currentTarget.style.transform='translateY(-2px)' }}
+        onMouseLeave={e=>{ e.currentTarget.style.boxShadow='0 6px 18px rgba(99,102,241,.35)'; e.currentTarget.style.transform='translateY(0)' }}
+      >
+        <div style={{width:36,height:36,borderRadius:10,background:'rgba(255,255,255,.2)',display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
+          <Building2 size={20} strokeWidth={2.4} />
+        </div>
+        <div style={{display:'flex',flexDirection:'column',alignItems:'flex-start',lineHeight:1.3}}>
+          <div style={{fontWeight:700,fontSize:14}}>{title}</div>
+          <div style={{fontSize:11,opacity:.85,fontWeight:500}}>{game._count||''}</div>
+        </div>
+      </div>
+    )
+  }
+
+  // game node: liquid-glass square tile tinted with the category color (connectors show through)
+  return (
+    <div onMouseDown={onMouseDown}
+      style={{
+        position:'absolute', left:x, top:y, width:w, height:h, boxSizing:'border-box',
+        background:`linear-gradient(135deg, ${accent}26, ${accent}0D 60%, rgba(255,255,255,0.45))`,
+        backdropFilter:'blur(14px) saturate(140%)', WebkitBackdropFilter:'blur(14px) saturate(140%)',
+        border:`1px solid ${accent}66`,
+        borderRadius:16, padding:'14px 12px', cursor:'grab', overflow:'hidden',
+        display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center',
+        boxShadow:`0 4px 16px ${accent}22, inset 0 1px 0 rgba(255,255,255,0.6)`,
+        transition:'box-shadow .15s ease, transform .15s ease',
+        userSelect:'none',
+      }}
+      onMouseEnter={e=>{ e.currentTarget.style.boxShadow=`0 12px 30px ${accent}55, inset 0 1px 0 rgba(255,255,255,0.7)`; e.currentTarget.style.transform='translateY(-3px)' }}
+      onMouseLeave={e=>{ e.currentTarget.style.boxShadow='0 4px 16px rgba(16,24,40,.08)'; e.currentTarget.style.transform='translateY(0)' }}
+    >
+      {/* icon chip */}
+      <div style={{
+        width:40, height:40, borderRadius:12, flexShrink:0,
+        background:`${softBg}`, color: fg,
+        display:'flex', alignItems:'center', justifyContent:'center',
+        boxShadow:`0 1px 3px ${accent}33`, marginBottom:8,
+      }}>
+        <Icon size={20} strokeWidth={2.2} />
+      </div>
+
+      {/* game name */}
+      <div style={{fontWeight:700,fontSize:13, color:titleColor, width:'100%', whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis', lineHeight:1.25}}>
+        {title}
+      </div>
+
+      {/* type label (header) */}
+      <div style={{fontSize:9.5,fontWeight:600,letterSpacing:'.04em',textTransform:'uppercase',color:subColor,marginTop:3}}>
+        {isLoc ? 'LOCATION' : meta.label}
+      </div>
+
+      {/* client name row */}
+      <div style={{fontSize:10.5,color:subColor,marginTop:6,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',width:'100%'}}>
+        {game.company_name || '—'}
+      </div>
+
+      {/* spacer pushes stats + footer to bottom */}
+      <div style={{flex:1}} />
+
+      {/* plays / redemptions row */}
+      <div style={{display:'flex',justifyContent:'center',gap:14,fontSize:10,color:subColor,fontWeight:600,width:'100%'}}>
+        <span>{game.play_count||0} plays</span>
+        <span>{game.redemption_count||0} redemptions</span>
+      </div>
+
+      {/* footer: status cycle + master/location */}
+      <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginTop:8,width:'100%'}}>
+        <span style={{fontSize:8.5,fontWeight:700,padding:'3px 8px',borderRadius:100,background:st.bg,color:st.fg,whiteSpace:'nowrap'}}>{st.label}</span>
+        <span style={{fontSize:8.5,fontWeight:700,padding:'3px 8px',borderRadius:100,background:'rgba(0,0,0,.05)',color:fg,whiteSpace:'nowrap'}}>
+          {isLoc ? 'Location' : 'Master'}
+        </span>
+      </div>
+
+      <span style={{position:'absolute',left:0,top:'50%',transform:'translateY(-50%)',width:4,height:26,background:accent,borderRadius:'0 4px 4px 0'}} />
+    </div>
+  )
+}
+
+function ClientGraph({ client, games, onSelect }) {
+  const [clientW, setClientW] = useState(176)
+  const canvasRef = useRef(null)
+  const clientRef = useRef(null)
+  const masters = games.filter(g => !g.parent_game_id && g.client_id === client.id)
+    .sort((a,b)=> new Date(a.created_at) - new Date(b.created_at))
+  const locationsOf = m => games.filter(g => g.parent_game_id === m.id)
+    .sort((a,b)=> new Date(a.created_at) - new Date(b.created_at))
+
+  if (masters.length === 0) return null
+
+  const NW = 176, NH = 176
+  // COLUMN-WISE layout: client on the left, masters stacked vertically,
+  // each master's locations branch out to the right.
+  const GAP_Y = 30          // vertical gap between stacked masters
+  const GAP_X = 70          // horizontal gap between columns (client→master→locations)
+  const PAD = 28
+  // strict-column masters = those that have location children (keep readable tree)
+  const strictMasters = masters.filter(m => locationsOf(m).length > 0)
+  const looseMasters = masters.filter(m => locationsOf(m).length === 0)
+  const SHUFFLE = masters.length > 5
+  const strictMaxLocs = Math.max(0, ...strictMasters.map(m => locationsOf(m).length))
+  const clientX = PAD
+  const masterX = clientX + clientW + GAP_X
+  const isClientH = NH
+
+  const masterY = i => PAD + i * (NH + GAP_Y)
+  const locX = j => masterX + NW + GAP_X + j * (NW + GAP_X)
+  const colCount = SHUFFLE ? strictMasters.length : masters.length
+  const clientY = masterY(Math.max(0, colCount - 1) / 2) + (NH - isClientH) / 2
+
+  // deterministic pseudo-random scatter for childless masters (stable across reloads)
+  const seedOf = id => { let s = 0; const str = String(id); for (let i=0;i<str.length;i++) s = (s*31 + str.charCodeAt(i)) >>> 0; return s }
+  const rand = s => { const x = Math.sin(s * 999.13) * 43758.5453; return x - Math.floor(x) }
+
+  const autoH = SHUFFLE
+    ? Math.max(360, PAD + Math.ceil(looseMasters.length / 4) * (NH + GAP_Y) + (strictMasters.length * (NH + GAP_Y)))
+    : Math.max(320, PAD + masters.length * (NH + GAP_Y))
+  const autoW = SHUFFLE
+    ? Math.max(700, PAD + 4 * (NW + GAP_X) + 40)
+    : Math.max(640, masterX + NW + (strictMaxLocs > 0 ? strictMaxLocs * (NW + GAP_X) : 0) + PAD)
+
+  // node key helpers
+  const cKey = `client-${client.id}`
+  const mKey = id => `game-${id}`
+  const allKeys = [cKey, ...masters.map(m => mKey(m.id)), ...masters.flatMap(m => locationsOf(m).map(l => mKey(l.id)))]
+  const defaultPos = key => {
+    if (key === cKey) return { x: clientX, y: clientY }
+    // column masters = all when not shuffling, else only strict (child-having) masters
+    const colMasters = SHUFFLE ? strictMasters : masters
+    for (let i = 0; i < colMasters.length; i++) {
+      const m = colMasters[i]
+      if (mKey(m.id) === key) return { x: masterX, y: masterY(i) }
+      const j = locationsOf(m).findIndex(l => mKey(l.id) === key)
+      if (j >= 0) return { x: locX(j), y: masterY(i) }
+    }
+    // loose (childless) masters → scattered grid with jitter (only when shuffling)
+    const li = looseMasters.findIndex(m => mKey(m.id) === key)
+    if (li >= 0) {
+      const perRow = 4
+      const col = li % perRow, row = Math.floor(li / perRow)
+      const baseX = PAD + col * (NW + GAP_X)
+      const baseY = PAD + strictMasters.length * (NH + GAP_Y) + row * (NH + GAP_Y)
+      const s = seedOf(key)
+      const jx = (rand(s) - 0.5) * 36
+      const jy = (rand(s + 7) - 0.5) * 28
+      return { x: baseX + jx, y: baseY + jy }
+    }
+    return { x: 40, y: 40 }
+  }
+
+  const [positions, setPositions] = useState({})
+  const posRef = useRef({})
+  const saveTimer = useRef(null)
+
+  const fromSavedRef = useRef(false)
+  useEffect(() => {
+    let cancelled = false
+    api.get(`/clients/${client.id}/canvas`).then(({data}) => {
+      if (cancelled) return
+      const saved = data.positions || {}
+      fromSavedRef.current = Object.keys(saved).length > 0
+      const init = {}
+      allKeys.forEach(k => { init[k] = saved[k] || defaultPos(k) })
+      posRef.current = init
+      setPositions(init)
+    }).catch(() => {
+      fromSavedRef.current = false
+      const init = {}
+      allKeys.forEach(k => { init[k] = defaultPos(k) })
+      posRef.current = init
+      setPositions(init)
+    })
+    return () => { cancelled = true }
+  }, [client.id])
+
+  // measure client tile width so masters position to its right (column-wise layout)
+  useEffect(() => {
+    if (!clientRef.current) return
+    setClientW(clientRef.current.offsetWidth)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // descendants of a key (for moving subtree when a parent is dragged)
+  const descendantsOf = key => {
+    if (key === cKey) {
+      // client: all masters + all locations
+      return masters.flatMap(m => [mKey(m.id), ...locationsOf(m).map(l => mKey(l.id))])
+    }
+    // master: its locations
+    const m = masters.find(mm => mKey(mm.id) === key)
+    if (m) return locationsOf(m).map(l => mKey(l.id))
+    return []
+  }
+
+  const persist = () => {
+    api.put(`/clients/${client.id}/canvas`, { positions: posRef.current }).catch(() => {})
+  }
+
+  const resetLayout = () => {
+    const init = {}
+    allKeys.forEach(k => { init[k] = defaultPos(k) })
+    posRef.current = init
+    setPositions(init)
+    api.delete(`/clients/${client.id}/canvas`).catch(() => {})
+  }
+
+  // drag a node: move node + its descendants by the same delta, keep latest in ref, debounce-save
+  const onNodeDrag = (key, x, y) => {
+    setPositions(p => {
+      const prev = p[key] || defaultPos(key)
+      const dx = x - prev.x, dy = y - prev.y
+      const next = { ...p, [key]: { x, y } }
+      descendantsOf(key).forEach(d => {
+        if (next[d]) next[d] = { x: next[d].x + dx, y: next[d].y + dy }
+      })
+      posRef.current = next
+      return next
+    })
+    if (saveTimer.current) clearTimeout(saveTimer.current)
+    saveTimer.current = setTimeout(persist, 400)
+  }
+
+  // live bounds
+  const keys = Object.keys(positions)
+  const maxX = keys.length ? Math.max(...keys.map(k => positions[k].x + NW)) : autoW
+  const maxY = keys.length ? Math.max(...keys.map(k => positions[k].y + NH)) : autoH
+  const canvasW = Math.max(autoW, maxX + 40)
+  const canvasH = Math.max(autoH, maxY + 40)
+  const path = (x1,y1,x2,y2) => `M${x1},${y1} C${x1},${(y1+y2)/2} ${x2},${(y1+y2)/2} ${x2},${y2}`
+  const hpath = (x1,y1,x2,y2) => `M${x1},${y1} C${(x1+x2)/2},${y1} ${(x1+x2)/2},${y2} ${x2},${y2}`
+  const posOf = key => positions[key] || defaultPos(key)
+
+  return (
+    <div style={{marginBottom:36}}>
+      <div style={{display:'flex',alignItems:'center',gap:10,margin:'0 0 14px 6px'}}>
+        <div style={{width:30,height:30,borderRadius:9,background:'linear-gradient(135deg,#7C3AED,#6366F1)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,flexShrink:0}}>
+          {client.company_name?.charAt(0)?.toUpperCase() || '?'}
+        </div>
+        <div style={{fontWeight:700,fontSize:15,color:'#0D0D1A'}}>{client.company_name}</div>
+        <div style={{fontSize:11,color:'#9CA3AF'}}>{masters.length} master · {games.filter(g=>g.parent_game_id&&g.client_id===client.id).length} location · drag a node to move it and its subtree</div>
+        <button onClick={resetLayout}
+          style={{marginLeft:'auto',fontSize:11,fontWeight:600,color:'#6366F1',background:'#EEF2FF',border:'1px solid #E0E7FF',borderRadius:8,padding:'6px 12px',cursor:'pointer'}}>
+          ↺ Auto Layout
+        </button>
+      </div>
+      <div ref={canvasRef} style={{position:'relative', width:'100%', height:canvasH, overflow:'hidden', borderRadius:14,
+        background:'#FBFBFD', backgroundImage:'radial-gradient(#E3E6EF 1px, transparent 1px)', backgroundSize:'22px 22px', border:'1px solid #ECEEF3'}}>
+        <svg width={canvasW} height={canvasH} style={{position:'absolute',inset:0,pointerEvents:'none'}}>
+          {masters.map(m => {
+            const cp = positions[cKey] || defaultPos(cKey)
+            const mp = positions[mKey(m.id)] || defaultPos(mKey(m.id))
+            const dot = catMeta(m.category).dot
+            return (
+              <g key={m.id}>
+                <path d={hpath(cp.x+clientW, cp.y+NH/2, mp.x, mp.y+NH/2)} stroke={dot} strokeOpacity="0.55" strokeWidth="2" fill="none" />
+                {locationsOf(m).map(loc => {
+                  const lp = positions[mKey(loc.id)] || defaultPos(mKey(loc.id))
+                  return <path key={loc.id} d={hpath(mp.x+NW, mp.y+NH/2, lp.x, lp.y+NH/2)} stroke={dot} strokeOpacity="0.4" strokeWidth="2" fill="none" />
+                })}
+              </g>
+            )
+          })}
+        </svg>
+        <GraphNode x={posOf(cKey).x} y={posOf(cKey).y} w={NW} h={NH} canvasRef={canvasRef} innerRef={clientRef}
+          game={{ name: client.company_name, _count: `${masters.length} master · ${games.filter(g=>g.parent_game_id&&g.client_id===client.id).length} location` }}
+          kind="client" nodeKey={cKey} onDrag={onNodeDrag} onPersist={persist} />
+        {masters.map(m => (
+          <div key={m.id}>
+            <GraphNode x={posOf(mKey(m.id)).x} y={posOf(mKey(m.id)).y} w={NW} h={NH} canvasRef={canvasRef}
+              game={m} kind="master" nodeKey={mKey(m.id)} onClick={onSelect} onDrag={onNodeDrag} onPersist={persist} />
+            {locationsOf(m).map(loc => (
+              <GraphNode key={loc.id} x={posOf(mKey(loc.id)).x} y={posOf(mKey(loc.id)).y} w={NW} h={NH} canvasRef={canvasRef}
+                game={loc} kind="location" nodeKey={mKey(loc.id)} onClick={onSelect} onDrag={onNodeDrag} onPersist={persist} />
+            ))}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function GraphView({ clients, games, onSelect }) {
+  const withGames = clients.filter(c => games.some(g => g.client_id === c.id))
+  const unassigned = games.filter(g => !g.client_id && !g.parent_game_id)
+  return (
+    <div style={{
+      borderRadius:16, padding:'28px 20px', minHeight:420,
+      background:'#FBFBFD',
+      backgroundImage:'radial-gradient(#E3E6EF 1px, transparent 1px)',
+      backgroundSize:'22px 22px',
+      border:'1px solid #ECEEF3',
+    }}>
+      {withGames.length === 0 && unassigned.length === 0 && (
+        <div style={{textAlign:'center',padding:'60px 0',color:'#9CA3AF',fontSize:14}}>No games to graph.</div>
+      )}
+      {withGames.map(c => <ClientGraph key={c.id} client={c} games={games} onSelect={onSelect} />)}
+      {unassigned.length > 0 && (
+        <ClientGraph client={{id:0, company_name:'Unassigned'}} games={unassigned} onSelect={onSelect} />
+      )}
+    </div>
+  )
+}
+
 export default function GamesPage() {
   const [games, setGames] = useState([])
   const [clients, setClients] = useState([])
@@ -660,12 +1135,17 @@ export default function GamesPage() {
   const [selectedGame, setSelectedGame] = useState(null)
   const [selectedClient, setSelectedClient] = useState(null)
   const [expandedParents, setExpandedParents] = useState({})
+  const [graphClient, setGraphClient] = useState('all')
   const navigate = useNavigate()
 
   const load = () =>
     Promise.all([api.get('/games'), api.get('/clients')])
       .then(([gr,cr]) => { setGames(gr.data.games||[]); setClients(cr.data.clients||[]) })
       .finally(() => setLoading(false))
+
+  // re-sync the open modal's game with the freshly loaded list so updates show immediately
+  const refreshSelected = () => setSelectedGame(s => s ? games.find(g => g.id === s.id) || s : s)
+  useEffect(() => { if (selectedGame) refreshSelected() }, [games]) // eslint-disable-line
 
   useEffect(() => { load() }, [])
 
@@ -705,7 +1185,7 @@ export default function GamesPage() {
   }
 
   const handleStatusToggle = async (game, e) => {
-    e.stopPropagation()
+    if (e && e.stopPropagation) e.stopPropagation()
     const currentIndex = STATUS_CYCLE.indexOf(game.status)
     const nextStatus = STATUS_CYCLE[(currentIndex + 1) % STATUS_CYCLE.length]
     try {
@@ -717,7 +1197,7 @@ export default function GamesPage() {
   }
 
   const handleGameTypeToggle = async (game, e) => {
-    e.stopPropagation()
+    if (e && e.stopPropagation) e.stopPropagation()
     const newType = game.game_type === 'branded' ? 'promogames' : 'branded'
     try {
       await api.put(`/games/${game.id}`, { game_type: newType })
@@ -728,8 +1208,12 @@ export default function GamesPage() {
   }
 
   const copyLink = (game, e) => {
-    e.stopPropagation()
-    const link = `${window.location.origin}/play/${game.slug}/${game.client_slug}`
+    if (e && e.stopPropagation) e.stopPropagation()
+    // location games play via their master (parent) template, scoped to the branch
+    const parent = game.parent_game_id ? games.find(g => g.id === game.parent_game_id) : null
+    const slug = parent?.slug || game.slug
+    const clientSlug = parent?.client_slug || game.client_slug
+    const link = `${window.location.origin}/play/${slug}/${clientSlug}`
     navigator.clipboard.writeText(link)
     if (!game.is_active) showToast('Link copied — game is currently inactive.','error')
     else showToast('Game link copied!')
@@ -800,6 +1284,23 @@ export default function GamesPage() {
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                     Grid
                   </button>
+                  <button onClick={() => setViewMode('graph')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='graph'?'#fff':'transparent',cursor:'pointer',boxShadow:viewMode==='graph'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='graph'?'#4F46E5':'#6B7280',fontFamily:'inherit'}}>
+                    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M5 8.5v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3M12 13.5V15.5"/></svg>
+                    Graph
+                  </button>
+                  {viewMode === 'graph' && (
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginLeft:8,paddingLeft:10,borderLeft:'1px solid #E5E7EB'}}>
+                      <svg width="13" height="13" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+                      <select value={graphClient} onChange={e => setGraphClient(e.target.value)} style={{
+                        border:'1px solid #E5E7EB',background:'#fff',borderRadius:8,padding:'6px 28px 6px 10px',fontSize:11.5,fontWeight:600,color:'#374151',fontFamily:'inherit',cursor:'pointer',outline:'none',appearance:'none',
+                        backgroundImage:'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'none\' stroke=\'%239CA3AF\' stroke-width=\'2\' viewBox=\'0 0 24 24\'><path d=\'m6 9 6 6 6-6\'/></svg>")',
+                        backgroundRepeat:'no-repeat',backgroundPosition:'right 9px center',
+                      }}>
+                        <option value="all">All Clients</option>
+                        {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
               </div>
           )}
@@ -835,7 +1336,7 @@ export default function GamesPage() {
                   {COLUMNS.map(col => (
                     <SortTh key={col.key} col={col} sortKey={sortKey} sortDir={sortDir} onSort={handleSort} />
                   ))}
-                </tr>
+                 </tr>
               </thead>
               <tbody>
                 {sorted.map((game, i) => {
@@ -1062,6 +1563,13 @@ export default function GamesPage() {
             ))}
           </div>
           </>
+        ) : viewMode === 'graph' ? (
+          /* ─── GRAPHICAL TIMELINE TREE ─── */
+          <GraphView
+            clients={graphClient === 'all' ? clients : clients.filter(c => c.id === Number(graphClient))}
+            games={sorted}
+            onSelect={(g) => setSelectedGame(g)}
+          />
         ) : (
           /* ─── TREE VIEW (Masonry Grid by Client) ─── */
           <div style={{columnCount:4,columnGap:16}}>
@@ -1079,7 +1587,7 @@ export default function GamesPage() {
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{fontWeight:700,fontSize:13,color:'#0D0D1A',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{client.company_name}</div>
-                      <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>{templates.length} template{templates.length!==1?'s':''} · {locations.length} location{locations.length!==1?'s':''}</div>
+                       <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>{templates.length} master game{templates.length!==1?'s':''} · {locations.length} location{locations.length!==1?'s':''}</div>
                     </div>
                   </div>
                   {/* Action buttons */}
@@ -1139,97 +1647,21 @@ export default function GamesPage() {
         )}
       </div>
 
-      {/* Game Detail Modal */}
+      {/* Game Detail / Control Modal (reused by table, tree & graph) */}
       {selectedGame && (
-        <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={()=>setSelectedGame(null)}>
-          <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'90vh',overflow:'auto',padding:'28px 24px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif"}} onClick={e=>e.stopPropagation()}>
-            {/* Header */}
-            <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
-              <div>
-                <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A',marginBottom:4}}>
-                  {selectedGame.name}
-                  {selectedGame.location_name && <span style={{color:'#6B7280',fontWeight:500,fontSize:14,marginLeft:8}}>- {selectedGame.location_name}</span>}
-                </h2>
-                <div style={{display:'flex',gap:8,alignItems:'center'}}>
-                  <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:catMeta(selectedGame.category).bg,color:catMeta(selectedGame.category).fg}}>
-                    {selectedGame.category}
-                  </span>
-                  <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:selectedGame.is_active?'#ECFDF5':'#F3F4F6',color:selectedGame.is_active?'#059669':'#9CA3AF'}}>
-                    {selectedGame.status||'Draft'}
-                  </span>
-                </div>
-              </div>
-              <button onClick={()=>setSelectedGame(null)} style={{border:'none',background:'none',cursor:'pointer',color:'#9CA3AF',padding:4}}>
-                <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
-              </button>
-            </div>
-
-            {/* Stats */}
-            <div style={{display:'flex',gap:12,marginBottom:16}}>
-              <div style={{flex:1,background:'#F5F3FF',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
-                <div style={{fontSize:18,fontWeight:700,color:'#4F46E5'}}>{selectedGame.question_count||0}</div>
-                <div style={{fontSize:9,fontWeight:700,color:'#7C3AED',textTransform:'uppercase'}}>Questions</div>
-              </div>
-              <div style={{flex:1,background:'#ECFDF5',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
-                <div style={{fontSize:18,fontWeight:700,color:'#059669'}}>{selectedGame.play_count||0}</div>
-                <div style={{fontSize:9,fontWeight:700,color:'#10B981',textTransform:'uppercase'}}>Plays</div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div style={{marginBottom:16}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Quick Actions</div>
-              <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
-                <button onClick={()=>{navigateBuilder(selectedGame);setSelectedGame(null)}} style={{padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}}>
-                  🔧 Open Builder
-                </button>
-                <button onClick={()=>{navigate(`/dashboard/games/${selectedGame.id}/responses`);setSelectedGame(null)}} style={{padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}}>
-                  📊 Responses
-                </button>
-                <button onClick={()=>{setQrModalGame(selectedGame);setSelectedGame(null)}} style={{padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}}>
-                  📱 Show QR
-                </button>
-                <button onClick={()=>{copyLink(selectedGame);setSelectedGame(null)}} style={{padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}}>
-                  🔗 Copy Link
-                </button>
-              </div>
-            </div>
-
-            {/* Settings Toggles */}
-            <div style={{marginBottom:16}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Settings</div>
-              {[
-                {label:'Active',field:'is_active',disabled:selectedGame.status!=='live'},
-                {label:'Show in Play Page',field:'show_in_play_page'},
-                {label:'Show in Hero Page',field:'show_in_hero_page'},
-              ].map(t => (
-                <div key={t.field} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #F3F4F6'}}>
-                  <span style={{fontSize:13,color:'#374151'}}>{t.label}</span>
-                  <button disabled={t.disabled} onClick={()=>toggleField(selectedGame,t.field)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:t.disabled?'not-allowed':'pointer',background:selectedGame[t.field]?'#059669':'#D1D5DB',position:'relative',transition:'background .15s',opacity:t.disabled?0.4:1}}>
-                    <span style={{position:'absolute',top:3,left:selectedGame[t.field]?21:3,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
-                  </button>
-                </div>
-              ))}
-              {/* Game Type */}
-              <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #F3F4F6'}}>
-                <span style={{fontSize:13,color:'#374151'}}>Game Type</span>
-                <button onClick={()=>handleGameTypeToggle(selectedGame)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',background:selectedGame.game_type==='branded'?'#059669':'#D1D5DB',position:'relative',transition:'background .15s'}}>
-                  <span style={{position:'absolute',top:3,left:selectedGame.game_type==='branded'?21:3,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
-                </button>
-              </div>
-            </div>
-
-            {/* Danger zone */}
-            <div style={{display:'flex',gap:8}}>
-              <button onClick={()=>{handleDuplicate(selectedGame.id);setSelectedGame(null)}} style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit'}}>
-                📋 Duplicate
-              </button>
-              <button onClick={()=>{if(confirm('Delete this game?')){handleDelete(selectedGame.id);setSelectedGame(null)}}} style={{flex:1,padding:'8px',borderRadius:8,border:'1px solid #FECACA',background:'#FEF2F2',cursor:'pointer',fontSize:12,fontWeight:600,color:'#DC2626',fontFamily:'inherit'}}>
-                🗑 Delete
-              </button>
-            </div>
-          </div>
-        </div>
+        <GameDetailModal
+          game={selectedGame}
+          onClose={() => setSelectedGame(null)}
+          onBuilder={navigateBuilder}
+          onResponses={(g) => navigate(`/dashboard/games/${g.id}/responses`)}
+          onQr={(g) => setQrModalGame(g)}
+          onCopyLink={copyLink}
+          onToggle={toggleField}
+          onStatusToggle={handleStatusToggle}
+          onGameTypeToggle={handleGameTypeToggle}
+          onDuplicate={handleDuplicate}
+          onDelete={handleDelete}
+        />
       )}
 
       {showForm && !showClientForm && (

@@ -62,7 +62,9 @@ router.put('/questions/:id', auth, upload.fields([
   const { question_text, question_type, question_color, question_order, num_options,
     sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id,
     overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out,
-    question_image_animation } = req.body;
+    question_image_animation, answer_text, answer_is_number } = req.body;
+  const toIntOrNull = (v) => (v === '' || v === null || v === undefined) ? null : parseInt(v, 10);
+  const toInt = (v, d = 0) => (v === '' || v === null || v === undefined) ? d : parseInt(v, 10);
   try {
     const [existing] = await db.query('SELECT * FROM questions WHERE id = ?', [req.params.id]);
     if (existing.length === 0) return res.status(404).json({ success: false, message: 'Question not found' });
@@ -88,12 +90,11 @@ router.put('/questions/:id', auth, upload.fields([
       `UPDATE questions SET question_text=?, question_image_url=?, question_bg_image_url=?, question_type=?, question_color=?, question_order=?, num_options=?,
        sound_correct=?, sound_wrong=?, sound_neutral=?, sound_correct_id=?, sound_wrong_id=?, sound_neutral_id=?,
        overlay_duration=?, overlay_idle_time=?, overlay_animation_in=?, overlay_animation_out=?,
-       question_image_animation=? WHERE id=?`,
-      [question_text, img_url, bg_url, question_type, question_color, question_order, num_options,
-       sound_correct, sound_wrong, sound_neutral, sound_correct_id || null, sound_wrong_id || null, sound_neutral_id || null,
-       overlay_duration || 3, overlay_idle_time || 3, overlay_animation_in || 'flyFromBottom', overlay_animation_out || 'flyToTop',
-       question_image_animation || 'float',
-       req.params.id]
+       question_image_animation=?, answer_text=?, answer_is_number=? WHERE id=?`,
+       [question_text, img_url, bg_url, question_type, question_color, question_order, toInt(num_options),
+        sound_correct, sound_wrong, sound_neutral, toIntOrNull(sound_correct_id), toIntOrNull(sound_wrong_id), toIntOrNull(sound_neutral_id),
+        toInt(overlay_duration, 3), toInt(overlay_idle_time, 3), overlay_animation_in, overlay_animation_out,
+        question_image_animation, answer_text || null, answer_is_number ? 1 : 0, req.params.id]
     );
     const [updated] = await db.query('SELECT * FROM questions WHERE id = ?', [req.params.id]);
     const [options] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [req.params.id]);

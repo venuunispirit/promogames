@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import useTTS from '../hooks/useTTS'
+import renderMedia, { isVideoUrl } from '../components/renderMedia'
+import { inAnim } from '../components/animations'
 import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import CrosswordPlayerPage from './CrosswordPlayerPage'
@@ -302,6 +304,7 @@ export default function PlayerPage() {
   const { gameName, companyName } = useParams()
   const [searchParams] = useSearchParams()
   const [phase, setPhase] = useState('loading')
+  const [showIntroNext, setShowIntroNext] = useState(false)
   const tts = useTTS()
   const [game, setGame] = useState(null)
   const [errorMsg, setErrorMsg] = useState('Game not found')
@@ -312,6 +315,8 @@ export default function PlayerPage() {
   const [sessionId,    setSessionId]    = useState(null)
   const [currentQ, setCurrentQ] = useState(0)
   const [selectedOpt, setSelectedOpt] = useState(null)
+  const [checkedOpts, setCheckedOpts] = useState([])
+  const [selectValue, setSelectValue] = useState('')
   const [shortAnswerText, setShortAnswerText] = useState('')
   const [answered, setAnswered] = useState(false)
   const [score, setScore] = useState(0)
@@ -395,6 +400,69 @@ export default function PlayerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [phase])
 
+  // ── Preload all media (intro + question/overlay videos) while the form is shown ──
+  useEffect(() => {
+    if (phase !== 'form') return
+    const list = game?.media_list || []
+    if (!list.length) return
+    const cache = []
+    for (const url of list) {
+      if (isVideoUrl(url)) {
+        const v = document.createElement('video')
+        v.preload = 'auto'; v.muted = true; v.src = url
+        cache.push(v)
+      } else {
+        const img = new Image(); img.src = url
+        cache.push(img)
+      }
+    }
+    return () => { cache.forEach(c => { try { c.src = '' } catch {} }) }
+  }, [phase, game?.media_list])
+
+  // Ensure the question image video (with audio) actually starts playing.
+  // Questions render under phase === 'playing'. Browsers block unmuted autoplay,
+  // so we explicitly call play() after the user gesture and retry until it starts.
+  useEffect(() => {
+    if (phase !== 'playing') return
+    const q = game?.questions?.[currentQ]
+    if (!q?.question_image_url || !isVideoUrl(q.question_image_url)) return
+    const el = qImgWrapRef.current?.querySelector('video')
+    if (!el) return
+    el.muted = false
+    let attempts = 0
+    let timer
+    const tryPlay = () => {
+      el.play()
+        .then(() => { if (timer) clearInterval(timer) })
+        .catch(() => {})
+      attempts += 1
+      if (attempts >= 20) clearInterval(timer)
+    }
+    tryPlay()
+    timer = setInterval(tryPlay, 250)
+    return () => { if (timer) clearInterval(timer) }
+  }, [phase, currentQ, game?.questions])
+
+  // When an option is selected, stop the question video (freeze + mute) so the
+  // overlay video's audio takes over instead of overlapping.
+  useEffect(() => {
+    if (!answered) return
+    const el = qImgWrapRef.current?.querySelector('video')
+    if (el) { try { el.pause() } catch {} }
+  }, [answered])
+
+  // Ensure thankyou-page videos (bg + confirmation) play with audio after a gesture.
+  useEffect(() => {
+    if (phase !== 'thankyou') return
+    const root = tyWrapRef.current
+    if (!root) return
+    const vids = root.querySelectorAll('video')
+    const playAll = () => vids.forEach(v => { v.muted = false; v.play().catch(() => {}) })
+    playAll()
+    const t = setTimeout(playAll, 300)
+    return () => clearTimeout(t)
+  }, [phase])
+
   // Overlay state machine
   const [overlayState, setOverlayState] = useState('hidden')
   const [overlayData, setOverlayData] = useState(null)
@@ -407,6 +475,8 @@ export default function PlayerPage() {
   const completingRef = useRef(false)
   const overlayTimerRef = useRef(null)
   const advanceRef = useRef(null)
+  const qImgWrapRef = useRef(null)
+  const tyWrapRef = useRef(null)
 
   // ── Known field mapping from player profile ──────────────────────────────
   const KNOWN_FIELD_MAP = {
@@ -864,10 +934,26 @@ export default function PlayerPage() {
     stopAllSounds()
     try {
       const audio = new Audio(url)
-      audio.play().catch(() => {})
+      audio.volume = 1
+      audio.preload = 'auto'
       activeSoundsRef.current.push(audio)
+      audio.play().catch(() => {})
       return audio
-    } catch { return null }
+    } catch (e) { console.warn('playSound failed:', url, e); return null }
+  }, [])
+
+  // Satisfy the browser autoplay policy: unlock audio on the first user gesture
+  // anywhere on the page so backend-assigned answer sounds can actually play.
+  // This is not a player toggle — sounds still only play when the backend assigns them.
+  useEffect(() => {
+    const unlock = () => {
+      try { const a = new Audio('data:audio/wav;base64,UklGRigAAABXQVZFm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQQAAAD//w=='); a.volume = 0; a.play().catch(() => {}) } catch {}
+      window.removeEventListener('pointerdown', unlock)
+      window.removeEventListener('keydown', unlock)
+    }
+    window.addEventListener('pointerdown', unlock)
+    window.addEventListener('keydown', unlock)
+    return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock) }
   }, [])
 
   const handleFieldChange = (label, value, fieldType, isRequired) => {
@@ -984,7 +1070,7 @@ export default function PlayerPage() {
       } else if (game.category === 'tictactoe') {
         setPhase('tictactoe')
       } else {
-        setPhase('playing')
+        setPhase(game.intro_video ? 'intro' : 'playing')
       }
     } catch (err) {
       const data = err.response?.data
@@ -1038,6 +1124,8 @@ export default function PlayerPage() {
     else {
       setCurrentQ(q => q + 1)
       setSelectedOpt(null)
+      setCheckedOpts([])
+      setSelectValue('')
       setShortAnswerText('')
       setAnswered(false)
       setQuestionKey(k => k + 1)
@@ -1083,6 +1171,12 @@ export default function PlayerPage() {
   const soundMap = game.soundMap || {}
   const settingsObj = game.settings || {}
 
+  // TEMP DEBUG
+  const dbgUrl = resolveSound(isCorrect ? settingsObj.sound_correct_id : settingsObj.sound_wrong_id, soundMap)
+  console.log('[SOUND DEBUG] type=', question.question_type, 'isCorrect=', isCorrect,
+    'correct_id=', settingsObj.sound_correct_id, 'wrong_id=', settingsObj.sound_wrong_id,
+    'resolved=', dbgUrl, 'soundMapKeys=', Object.keys(soundMap))
+
   if (question.question_type === 'right_wrong') {
     if (isCorrect) {
       playSound(resolveSound(settingsObj.sound_correct_id, soundMap))
@@ -1103,9 +1197,10 @@ export default function PlayerPage() {
 
   // ── Overlay or advance ──
   if (opt.option_overlay_image_url) {
-    const animIn = question.overlay_animation_in || 'flyFromBottom'
-    const animOut = question.overlay_animation_out || 'flyToTop'
-    const idleTime = (question.overlay_idle_time ?? 3) * 1000
+    const tpl = s.templateConfig || {}
+    const animIn = tpl.anim_overlay_in || question.overlay_animation_in || 'flyFromBottom'
+    const animOut = tpl.anim_overlay_out || question.overlay_animation_out || 'flyToTop'
+    const idleTime = ((tpl.idle_overlay_time ?? question.overlay_idle_time ?? 3)) * 1000
 
     setOverlayState('preparing')
     overlayTimerRef.current = setTimeout(() => {
@@ -1144,6 +1239,43 @@ export default function PlayerPage() {
   }
 }
 
+  // ── Checkbox (multi-select, opinion-only: capture chosen set) ──
+  const handleCheckboxToggle = (opt) => {
+    if (answered) return
+    setCheckedOpts(prev => prev.some(o => o.id === opt.id) ? prev.filter(o => o.id !== opt.id) : [...prev, opt])
+  }
+  const handleCheckboxSubmit = async (token) => {
+    if (answered || checkedOpts.length === 0) return
+    tts.cancel()
+    setAnswered(true)
+    const question = game.questions[currentQ]
+    const isLastQ = currentQ + 1 >= game.questions.length
+    try {
+      await api.post('/play/session/answer', {
+        session_token: token, question_id: question.id,
+        option_ids: checkedOpts.map(o => o.id), question_type: 'checkbox'
+      })
+    } catch {}
+    setTimeout(() => doAdvance(isLastQ, token), 1200)
+  }
+
+  // ── Select (dropdown, opinion-only: capture chosen option) ──
+  const handleSelectSubmit = async (token) => {
+    if (answered || !selectValue) return
+    tts.cancel()
+    setAnswered(true)
+    const question = game.questions[currentQ]
+    const isLastQ = currentQ + 1 >= game.questions.length
+    const opt = (question.options || []).find(o => String(o.id) === String(selectValue))
+    try {
+      await api.post('/play/session/answer', {
+        session_token: token, question_id: question.id,
+        option_id: opt ? opt.id : null, question_type: 'select'
+      })
+    } catch {}
+    setTimeout(() => doAdvance(isLastQ, token), 1200)
+  }
+
   const handleShortAnswerSubmit = async () => {
     if (answered || !shortAnswerText.trim()) return
     tts.cancel()
@@ -1177,8 +1309,12 @@ export default function PlayerPage() {
   }
 
   const s = game?.settings || {}
-  const primaryColor = s.primary_color || '#7c6ff7'
-  const fontFamily = s.font_family || 'DM Sans'
+  const tpl = s.templateConfig || {}
+  const primaryColor = s.primary_color || tpl.primary_color || '#7c6ff7'
+  const fontFamily = s.font_family || tpl.font_family || 'DM Sans'
+  const optionTextColor = tpl.option_text_color || '#ffffff'
+  const optionBgColor = tpl.option_color || '#1a1a2e'
+  const optionBorderColor = tpl.border_color || 'transparent'
   const gameLogo = s.game_logo_url || game?.client_logo
   const ff = `'${fontFamily}', sans-serif`
 
@@ -1190,7 +1326,7 @@ export default function PlayerPage() {
 
   // ── CHANGE: getOptionStyle now accepts selectedOpt as param for wrong-answer correct reveal ──
   const getOptionStyle = (opt, question, currentSelectedOpt) => {
-    if (!answered) return { bg: opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: '2px solid transparent', shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
+    if (!answered) return { bg: opt.option_color || optionBgColor, text: opt.option_text_color || optionTextColor, border: `2px solid ${optionBorderColor}`, shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
 
     const isRightWrong = question.question_type === 'right_wrong'
     const isSelected = currentSelectedOpt?.id === opt.id
@@ -1244,6 +1380,28 @@ export default function PlayerPage() {
       <style>{OVERLAY_STYLES}</style>
     </div>
   )
+
+  /* ── INTRO VIDEO ── */
+  if (phase === 'intro') {
+    const tpl = s.templateConfig || {}
+    const nextText = tpl.next_button_text || s.next_button_text || 'Next →'
+    return (
+      <div style={{ minHeight: '100dvh', background: '#000', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20, padding: 16, fontFamily: ff }}>
+        {game.intro_video && isVideoUrl(game.intro_video) ? (
+          <video src={game.intro_video} autoPlay muted={false} controls={false} playsInline
+            style={{ width: '100%', maxWidth: 900, maxHeight: '78dvh', objectFit: 'contain', borderRadius: 12, background: '#000' }}
+            onEnded={() => setShowIntroNext(true)} />
+        ) : null}
+        {showIntroNext && (
+          <button onClick={() => setPhase('playing')}
+            style={{ background: tpl.next_button_bg_color || s.next_button_bg_color || primaryColor, color: tpl.next_button_text_color || s.next_button_text_color || '#fff', border: 'none', borderRadius: 10, padding: '14px 34px', fontSize: 16, fontWeight: 700, cursor: 'pointer' }}>
+            {nextText}
+          </button>
+        )}
+        <style>{OVERLAY_STYLES}</style>
+      </div>
+    )
+  }
 
   /* ── FORM ── */
   if (phase === 'form') {
@@ -1396,6 +1554,15 @@ export default function PlayerPage() {
         boxSizing: 'border-box',
       }}>
 
+        {/* ── Question background video (if qBg is a video, replaces CSS bg) ── */}
+        {qBg && isVideoUrl(qBg) && (
+          <video
+            src={qBg}
+            autoPlay muted loop playsInline
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+          />
+        )}
+
         {/* ── OVERLAY — covers entire screen, image shown fully without cropping ── */}
         {isOverlayActive && overlayData && (
           <div style={{
@@ -1414,17 +1581,13 @@ export default function PlayerPage() {
               Image: width+height both 100% of viewport, object-fit:contain
               ensures full image is always visible regardless of its aspect ratio or screen size
             */}
-            <img
-              src={overlayData.src}
-              alt=""
-              style={{
-                width: '100vw',
-                height: '100dvh',
-                objectFit: 'contain',
-                display: 'block',
-                ...getOverlayImgStyle()
-              }}
-            />
+            {renderMedia(overlayData.src, {
+              width: '100vw',
+              height: '100dvh',
+              objectFit: 'contain',
+              display: 'block',
+              ...getOverlayImgStyle()
+            }, { autoPlay: true, muted: false, loop: false, controls: false })}
             {showNextBtn && (
               <button
                 onClick={() => flyOutRef.current?.()}
@@ -1551,11 +1714,12 @@ export default function PlayerPage() {
                     return map[qImgAnimKey] || map.float
                   })()
                 : null
+              const entranceAnim = inAnim(tpl.anim_question_in || 'floatIn', 0.5)
               const combinedAnim = idleAnimDef
-                ? `qImgEntrance 0.5s 0.05s both cubic-bezier(0.34,1.3,0.64,1), ${idleAnimDef}`
-                : `qImgEntrance 0.5s 0.05s both cubic-bezier(0.34,1.3,0.64,1)`
+                ? `${entranceAnim}, ${idleAnimDef}`
+                : entranceAnim
               return (
-                <div style={{
+                <div ref={qImgWrapRef} style={{
                   flex: 1,
                   minHeight: 0,
                   display: 'flex',
@@ -1567,24 +1731,29 @@ export default function PlayerPage() {
                   position: 'relative',
                   boxSizing: 'border-box',
                 }}>
-                  <img
-                    src={question.question_image_url}
-                    alt=""
-                    style={{
-                      /*
-                        width:100% fills horizontally, height:100% fills vertically (within the flex container),
-                        object-fit:contain ensures the full image is always visible — no cropping ever.
-                        This works on any screen size automatically.
-                      */
-                      width: '100%',
-                      height: '100%',
-                      objectFit: 'contain',
-                      display: 'block',
-                      borderRadius: 10,
-                      animation: combinedAnim,
-                      transformOrigin: 'center center',
-                    }}
-                  />
+                  {renderMedia(question.question_image_url, {
+                    /*
+                      width:100% fills horizontally, height:100% fills vertically (within the flex container),
+                      object-fit:contain ensures the full image is always visible — no cropping ever.
+                      This works on any screen size automatically.
+                    */
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    display: 'block',
+                    borderRadius: 10,
+                    animation: combinedAnim,
+                    transformOrigin: 'center center',
+                  }, {
+                    autoPlay: true, muted: false, loop: false, playsInline: true,
+                    onTimeUpdate: (e) => {
+                      const v = e.currentTarget
+                      // Freeze on the frame at the 7-second mark.
+                      if (v.currentTime >= 7) {
+                        try { v.pause() } catch {}
+                      }
+                    }
+                  })}
                   {game?.settings?.enable_mascot && (
                     <img
                       src="/mascot.png.png"
@@ -1649,7 +1818,69 @@ export default function PlayerPage() {
                 flexDirection: 'column',
                 gap: 8,
               }}>
-                {question.question_type === 'short_answer' ? (
+                {question.question_type === 'select' ? (
+                  <div style={{ display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
+                    <select
+                      value={selectValue}
+                      onChange={e => setSelectValue(e.target.value)}
+                      disabled={answered}
+                      style={{
+                        width: '100%', maxWidth: 420, padding: '14px 18px', borderRadius: 14,
+                        border: `2px solid ${primaryColor}40`, background: 'rgba(255,255,255,0.95)',
+                        fontSize: 'clamp(15px,4vw,18px)', fontWeight: 600, color: '#1a1a2e',
+                        textAlign: 'center', fontFamily: ff, outline: 'none',
+                      }}>
+                      <option value="">— Select an option —</option>
+                      {(question.options || []).map(o => (
+                        <option key={o.id} value={o.id}>{o.option_text}</option>
+                      ))}
+                    </select>
+                    {!answered && (
+                      <button onClick={() => handleSelectSubmit(sessionToken)}
+                        disabled={!selectValue}
+                        style={{
+                          background: selectValue ? `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` : '#ccc',
+                          color: '#fff', border: 'none', borderRadius: 50, padding: '14px 40px',
+                          fontSize: 16, fontWeight: 700, cursor: selectValue ? 'pointer' : 'not-allowed', fontFamily: ff,
+                        }}>
+                        Submit →
+                      </button>
+                    )}
+                    {answered && <div style={{ marginTop:8, padding:'10px 18px', borderRadius:12, background:'rgba(34,197,94,0.1)', border:'1.5px solid rgba(34,197,94,0.3)', color:'#16a34a', fontSize:14, fontWeight:600 }}>✓ Recorded</div>}
+                  </div>
+                ) : question.question_type === 'checkbox' ? (
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                    {(question.options || []).map(opt => {
+                      const checked = checkedOpts.some(o => o.id === opt.id)
+                      return (
+                        <button key={opt.id} onClick={() => handleCheckboxToggle(opt)}
+                          disabled={answered}
+                          style={{
+                            display:'flex', alignItems:'center', gap:12, textAlign:'left',
+                            background: checked ? `${primaryColor}1a` : 'rgba(255,255,255,0.95)',
+                            border: `2px solid ${checked ? primaryColor : '#e3e6f0'}`,
+                            borderRadius: 14, padding:'14px 18px', cursor: answered ? 'default' : 'pointer', fontFamily: ff,
+                          }}>
+                          <span style={{ width:22, height:22, borderRadius:6, border:`2px solid ${checked ? primaryColor : '#cbd0dd'}`, display:'flex', alignItems:'center', justifyContent:'center', background: checked ? primaryColor : '#fff', color:'#fff', fontWeight:800, fontSize:14 }}>{checked ? '✓' : ''}</span>
+                          <span style={{ fontSize:'clamp(15px,4vw,18px)', fontWeight:600, color:'#1a1a2e' }}>{opt.option_text}</span>
+                        </button>
+                      )
+                    })}
+                    {!answered && (
+                      <button onClick={() => handleCheckboxSubmit(sessionToken)}
+                        disabled={checkedOpts.length === 0}
+                        style={{
+                          alignSelf:'center', marginTop:6,
+                          background: checkedOpts.length ? `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` : '#ccc',
+                          color: '#fff', border: 'none', borderRadius: 50, padding: '14px 40px',
+                          fontSize: 16, fontWeight: 700, cursor: checkedOpts.length ? 'pointer' : 'not-allowed', fontFamily: ff,
+                        }}>
+                        Submit →
+                      </button>
+                    )}
+                    {answered && <div style={{ alignSelf:'center', marginTop:8, padding:'10px 18px', borderRadius:12, background:'rgba(34,197,94,0.1)', border:'1.5px solid rgba(34,197,94,0.3)', color:'#16a34a', fontSize:14, fontWeight:600 }}>✓ Recorded</div>}
+                  </div>
+                ) : question.question_type === 'short_answer' ? (
                   <div style={{ display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
                     <input
                       type={question.answer_is_number ? 'number' : 'text'}
@@ -1755,7 +1986,7 @@ export default function PlayerPage() {
                         padding: '0 14px',
                         boxSizing: 'border-box',
                       }}>
-                      {opt.option_image_url && <img src={opt.option_image_url} alt="" style={{ width: 'auto', height: 32, objectFit: 'contain', borderRadius: 8, flexShrink: 0 }} />}
+                      {opt.option_image_url && renderMedia(opt.option_image_url, { width: 'auto', height: 32, objectFit: 'contain', borderRadius: 8, flexShrink: 0 })}
                       <span style={{ flex: 1, textAlign: 'center' }}>{opt.option_text}</span>
                     </button>
                   )
@@ -1813,10 +2044,14 @@ export default function PlayerPage() {
   if (phase === 'thankyou') {
     const tyBg = s.thankyou_bg_image_url
     const gameBg = s.bg_image_url
-    const bgStyle = getPageBg(tyBg, gameBg, s.bg_color || '#f4f4ff')
+    const tyBgIsVideo = isVideoUrl(tyBg)
+    // When the thankyou background is a video, we render an actual <video> layer
+    // (CSS background-image cannot play video/audio), so fall back to gameBg/solid here.
+    const bgStyle = tyBgIsVideo ? getPageBg(null, gameBg, s.bg_color || '#f4f4ff') : getPageBg(tyBg, gameBg, s.bg_color || '#f4f4ff')
     const hasScore = totalScoreable > 0
     const hasBgImage = !!(tyBg || gameBg)
     const confirmGifUrl = s.submit_confirm_gif_url || null
+    const confirmIsVideo = isVideoUrl(confirmGifUrl)
 
 const handleSubmitExplore = () => {
   setShowSubmitModal(true)
@@ -1840,7 +2075,17 @@ const handleModalClose = () => {
 }
 
     return (
-      <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box' }}>
+      <div ref={tyWrapRef} style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box' }}>
+        {tyBgIsVideo && (
+          <video
+            src={tyBg}
+            autoPlay
+            muted={false}
+            loop
+            playsInline
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
+          />
+        )}
         <Confetti />
 
         {showSubmitModal && (
@@ -1862,6 +2107,11 @@ const handleModalClose = () => {
             <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
               <img src={gameLogo} alt="Logo" style={{ maxWidth: '80%', maxHeight: 280, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 10 }} />
             </div>
+          )}
+          {confirmGifUrl && (
+            confirmIsVideo
+              ? <video src={confirmGifUrl} autoPlay muted={false} loop playsInline style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 16, marginBottom: 16 }} />
+              : <img src={confirmGifUrl} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 16, marginBottom: 16 }} />
           )}
           <div style={{ fontSize: 60, marginBottom: 12, animation: 'bounce 0.6s 0.3s ease both' }}>🎉</div>
           <h1 style={{ fontFamily: ff, fontSize: 'clamp(20px,6vw,30px)', color: s.outro_text_color||'#1a1a2e', marginBottom: 20, lineHeight: 1.25, textShadow: hasBgImage ? '0 2px 8px rgba(0,0,0,0.3)' : 'none', fontWeight: 800 }}>

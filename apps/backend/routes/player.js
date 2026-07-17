@@ -676,7 +676,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       });
     }
 
-    // ── QUIZ / SURVEY branch (unchanged) ─────────────────────────────────────
+    // ── QUIZ / SURVEY branch ─────────────────────────────────────────────────
     const [settings]   = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [game.id]);
     const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
     const [questions]  = await db.query('SELECT * FROM questions WHERE game_id = ? ORDER BY question_order', [game.id]);
@@ -690,10 +690,47 @@ router.get('/:gameName/:companyName', async (req, res) => {
     const soundMap = {};
     for (const s of sounds) soundMap[s.id] = toAbs(s.url);
 
-    const safeSettings = settings[0] ? { ...settings[0] } : null;
+    const safeSettings = settings[0] ? { ...settings[0] } : {};
     if (safeSettings) {
       for (const f of ['bg_image_url','thankyou_bg_image_url','game_logo_url','submit_confirm_gif_url']) {
         safeSettings[f] = toAbs(safeSettings[f]);
+      }
+    }
+
+    // ── Merge template config over settings (settings win) ──
+    let templateConfig = {};
+    if (game.template_id) {
+      const [tpl] = await db.query('SELECT config_json FROM templates WHERE id = ?', [game.template_id]);
+      if (tpl[0] && tpl[0].config_json) {
+        try { templateConfig = typeof tpl[0].config_json === 'string' ? JSON.parse(tpl[0].config_json) : tpl[0].config_json; }
+        catch { templateConfig = {}; }
+      }
+    }
+    // per-game animation overrides
+    let animOverrides = {};
+    if (safeSettings.anim_config_json) {
+      try { animOverrides = typeof safeSettings.anim_config_json === 'string' ? JSON.parse(safeSettings.anim_config_json) : safeSettings.anim_config_json; }
+      catch { animOverrides = {}; }
+    }
+    const mergedConfig = { ...templateConfig, ...animOverrides };
+    // explicit quiz_settings color/font/language/tts fields override template
+    for (const k of ['primary_color','bg_color','font_family','option_text_color','option_color','border_color','enable_mascot','enable_speech','speech_language','speech_rate','speech_pitch','next_button_text','next_button_text_color','next_button_bg_color','start_button_text']) {
+      if (safeSettings[k] !== undefined && safeSettings[k] !== null && safeSettings[k] !== '') mergedConfig[k] = safeSettings[k];
+    }
+    safeSettings.templateConfig = mergedConfig;
+
+    // ── Media list for preloading (intro + every question/overlay video) ──
+    const mediaList = [];
+    const introVideo = game.intro_video_url ? toAbs(game.intro_video_url) : (mergedConfig.intro_video_url ? toAbs(mergedConfig.intro_video_url) : null);
+    if (introVideo) mediaList.push(introVideo);
+    for (const q of questions) {
+      for (const f of ['question_image_url','question_bg_image_url']) {
+        const u = toAbs(q[f]); if (u) mediaList.push(u);
+      }
+      for (const opt of (q.options || [])) {
+        for (const f of ['option_image_url','option_overlay_image_url']) {
+          const u = toAbs(opt[f]); if (u) mediaList.push(u);
+        }
       }
     }
 
@@ -711,6 +748,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
         description: game.description, redirect_url: game.redirect_url,
         client_logo: toAbs(game.client_logo),
         company_name: game.company_name,
+        intro_video: introVideo,
+        media_list: mediaList,
         settings: safeSettings, formFields, questions, soundMap,
       },
     });
@@ -792,14 +831,15 @@ router.post('/session/start', async (req, res) => {
 
 // ── Quiz / survey answer ──────────────────────────────────────────────────────
 router.post('/session/answer', async (req, res) => {
-  const { session_token, question_id, option_id, is_correct, question_type, answer_text } = req.body;
+  const { session_token, question_id, option_id, option_ids, is_correct, question_type, answer_text } = req.body;
   try {
     const [sessions] = await db.query('SELECT * FROM player_sessions WHERE session_token = ?', [session_token]);
     if (sessions.length === 0) return res.status(404).json({ success: false, message: 'Session not found' });
     const session = sessions[0];
+    const storeOptionIds = Array.isArray(option_ids) ? JSON.stringify(option_ids) : (option_ids ? JSON.stringify([option_ids]) : null);
     await db.query(
-      'INSERT INTO player_answers (session_id, question_id, option_id, answer_text, is_correct, question_type) VALUES (?, ?, ?, ?, ?, ?)',
-      [session.id, question_id, option_id || null, answer_text || null, is_correct === true ? 1 : 0, question_type || null]
+      'INSERT INTO player_answers (session_id, question_id, option_id, option_ids, answer_text, is_correct, question_type) VALUES (?, ?, ?, ?, ?, ?, ?)',
+      [session.id, question_id, option_id || null, storeOptionIds, answer_text || null, is_correct === true ? 1 : 0, question_type || null]
     );
     if (question_type === 'right_wrong' && is_correct) {
       await db.query('UPDATE player_sessions SET score = score + 1 WHERE id = ?', [session.id]);

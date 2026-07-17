@@ -2,12 +2,15 @@ import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { ThemeProvider } from "./pages/ThemeContext"
 import './pages/Theme.css'
+import './pages/theme-override.css'
 import LoginPage         from './pages/LoginPage'
 import DashboardLayout   from './components/DashboardLayout'
 import DashboardHome     from './pages/DashboardHome'
 import ClientsPage       from './pages/ClientsPage'
 import GamesPage         from './pages/GamesPage'
 import GameBuilderPage   from './pages/GameBuilderPage'
+import TemplateBuilderPage from './pages/TemplateBuilderPage'
+import TemplatesPage from './pages/TemplatesPage'
 import SpaceBuilderPage from './pages/SpaceBuilderPage'
 import Connect4BuilderPage from './pages/Connect4BuilderPage'
 import ArrowEscapeBuilderPage from './pages/ArrowEscapeBuilderPage'
@@ -128,6 +131,9 @@ function AppRoutes() {
         <Route index                                  element={<DashboardHome />} />
         <Route path="clients"                         element={<ClientsPage />} />
         <Route path="games"                           element={<GamesPage />} />
+        <Route path="templates"                       element={<TemplatesPage />} />
+        <Route path="templates/new"                   element={<TemplateBuilderPage />} />
+        <Route path="templates/:id"                   element={<TemplateBuilderPage />} />
         <Route path="games/:id/crossword-builder"     element={<CrosswordBuilderPage />} />
         <Route path="games/:id/builder"               element={<GameBuilderPage />} />
         <Route path="games/:id/space-builder"          element={<SpaceBuilderPage />} />

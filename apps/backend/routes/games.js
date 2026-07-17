@@ -32,10 +32,12 @@ router.get('/', auth, async (req, res) => {
     const [rows] = await db.query(`
       SELECT g.*, c.company_name, c.slug as client_slug,
       u.name as updated_by_name,
+      bo.business_name as branch_name, bo.pincode as branch_pincode,
       (SELECT COUNT(*) FROM questions q WHERE q.game_id = g.id) as question_count,
       (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
       FROM games g LEFT JOIN clients c ON g.client_id = c.id
       LEFT JOIN users u ON g.updated_by = u.id
+      LEFT JOIN business_owners bo ON g.business_owner_id = bo.id
       ORDER BY g.created_at DESC
     `);
     res.json({ success: true, games: rows });
@@ -83,16 +85,28 @@ router.post('/', auth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
-router.put('/:id', auth, async (req, res) => {
+router.put('/:id', auth, upload.single('intro_video'), async (req, res) => {
   try {
-    const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type','status'];
+    const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type','status','template_id','intro_video_url'];
     const booleans = ['is_active','show_in_play_page','show_in_hero_page'];
     const fields = []; const values = [];
     for (const key of allowed) {
-      if (req.body[key] !== undefined) {
-        fields.push(`${key}=?`);
-        values.push(booleans.includes(key) ? (req.body[key] ? 1 : 0) : req.body[key]);
+      if (req.body[key] === undefined) continue;
+      if (key === 'intro_video_url') continue; // handled below (file takes precedence)
+      if (key === 'template_id') {
+        const tv = req.body[key];
+        if (tv === '' || tv === 'null' || tv === null || tv === undefined) { fields.push('template_id=?'); values.push(null); }
+        else { fields.push('template_id=?'); values.push(parseInt(tv) || null); }
+        continue;
       }
+      fields.push(`${key}=?`);
+      values.push(booleans.includes(key) ? (req.body[key] ? 1 : 0) : req.body[key]);
+    }
+    if (req.file) {
+      const url = `/uploads/images/${req.file.filename}`;
+      fields.push('intro_video_url=?'); values.push(url);
+    } else if (req.body.intro_video_url !== undefined) {
+      fields.push('intro_video_url=?'); values.push(req.body.intro_video_url ? req.body.intro_video_url : null);
     }
     fields.push('updated_by=?');
     values.push(req.user.id);
@@ -603,8 +617,13 @@ router.put('/:id/settings', auth, upload.fields([
     // UPDATE existing row first; if no row exists, INSERT a new one.
     // This avoids relying on UNIQUE KEY + ON DUPLICATE KEY UPDATE which
     // silently fails when duplicate rows already exist.
+    const coerceBool = (v) => (v === 1 || v === true || v === '1' || v === 'true') ? 1 : 0
+    const coerceInt = (v) => { const n = parseInt(v); return Number.isFinite(n) ? n : 0 }
+    const showProgress = show_progress === '' || show_progress === undefined || show_progress === null ? 0 : coerceBool(show_progress)
+    const allowBack = allow_back === '' || allow_back === undefined || allow_back === null ? 0 : coerceBool(allow_back)
+    const timePerQ = time_per_question === '' || time_per_question === undefined || time_per_question === null ? 0 : coerceInt(time_per_question)
     const vals = [
-      req.params.id, bg_color, primary_color, show_progress, allow_back, time_per_question,
+      req.params.id, bg_color, primary_color, showProgress, allowBack, timePerQ,
       heading_1 || null, heading_2 || null, intro_text, outro_text,
       win_sound_url, bgImg, tyImg,       terms_enabled !== '0' ? 1 : 0, terms_text, terms_url, send_email !== '0' ? 1 : 0,
       win_sound_id || null, lose_sound_id || null, sound_correct_id || null, sound_wrong_id || null,

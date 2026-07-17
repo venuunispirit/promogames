@@ -10,7 +10,7 @@ if (!fs.existsSync(soundsDir)) fs.mkdirSync(soundsDir, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, imagesDir);
+    if (file.mimetype.startsWith('image/') || file.mimetype.startsWith('video/')) cb(null, imagesDir);
     else if (file.mimetype.startsWith('audio/')) cb(null, soundsDir);
     else cb(null, path.join(__dirname, '../uploads'));
   },
@@ -22,10 +22,14 @@ const storage = multer.diskStorage({
 
 const fileFilter = (req, file, cb) => {
   const allowedImages = ['image/jpeg','image/jpg','image/png','image/gif','image/webp'];
+  const allowedVideo  = ['video/mp4','video/webm','video/quicktime','video/x-m4v','application/octet-stream'];
   const allowedAudio  = ['audio/mpeg','audio/mp3','audio/wav','audio/ogg','audio/x-wav','audio/wave','audio/x-m4a','audio/mp4'];
-  if (allowedImages.includes(file.mimetype) || allowedAudio.includes(file.mimetype)) cb(null, true);
+  const allowedExt = ['.jpg','.jpeg','.png','.gif','.webp','.mp4','.webm','.mov','.m4v','.ogg','.wav','.mp3','.m4a'];
+  const ext = (file.originalname || '').toLowerCase().split('.').pop();
+  const extOk = allowedExt.includes('.' + ext);
+  if (allowedImages.includes(file.mimetype) || allowedVideo.includes(file.mimetype) || allowedAudio.includes(file.mimetype) || extOk) cb(null, true);
   else cb(new Error(`File type not allowed: ${file.mimetype}`), false);
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 10 * 1024 * 1024 } });
+const upload = multer({ storage, fileFilter, limits: { fileSize: 100 * 1024 * 1024 } });
 module.exports = upload;

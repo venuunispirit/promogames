@@ -4,6 +4,7 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const auth = require('../middleware/auth');
 const multer = require('multer');
+const { geocodePincode } = require('../lib/geocode');
 const path = require('path');
 
 const storage = multer.diskStorage({
@@ -181,11 +182,16 @@ router.post('/:id/branches', auth, async (req, res) => {
     );
     if (existing.length > 0) return res.status(409).json({ success: false, message: 'Branch name already exists for this client' });
 
+    // Geocode pincode → lat/lng for the map (free OSM, fallback to Karnataka centroid)
+    let geo = {}
+    try { geo = pincode ? await geocodePincode(pincode) : {} }
+    catch { geo = {} }
+
     // Phone is the login password
     const hashedPw = await bcrypt.hash(phone, 10);
     const [result] = await db.query(
-      'INSERT INTO business_owners (business_name, email, password, phone, pincode, parent_id, client_id) VALUES (?, ?, ?, ?, ?, ?, ?)',
-      [branch_name, email, hashedPw, phone, pincode || null, parentRows[0].id, req.params.id]
+      'INSERT INTO business_owners (business_name, email, password, phone, pincode, parent_id, client_id, latitude, longitude) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [branch_name, email, hashedPw, phone, pincode || null, parentRows[0].id, req.params.id, geo.latitude || null, geo.longitude || null]
     );
     res.status(201).json({ success: true, id: result.insertId, message: 'Branch created' });
   } catch (err) {
@@ -216,6 +222,41 @@ router.put('/:id/branches/:branchId', auth, async (req, res) => {
 router.delete('/:id/branches/:branchId', auth, async (req, res) => {
   try {
     await db.query('DELETE FROM business_owners WHERE id = ? AND client_id = ?', [req.params.branchId, req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// GET canvas node positions for a client
+router.get('/:id/canvas', auth, async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT positions FROM canvas_layout WHERE client_id = ?', [req.params.id]);
+    res.json({ success: true, positions: rows[0]?.positions || {} });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// PUT (save) canvas node positions for a client
+router.put('/:id/canvas', auth, async (req, res) => {
+  try {
+    const positions = req.body.positions || {};
+    await db.query(
+      `INSERT INTO canvas_layout (client_id, positions) VALUES (?, ?)
+       ON DUPLICATE KEY UPDATE positions = VALUES(positions)`,
+      [req.params.id, JSON.stringify(positions)]
+    );
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// DELETE (reset) canvas node positions for a client -> reverts to auto layout
+router.delete('/:id/canvas', auth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM canvas_layout WHERE client_id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

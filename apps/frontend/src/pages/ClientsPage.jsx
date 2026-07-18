@@ -5,7 +5,7 @@ import api from '../api'
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
 const AVATAR_PALETTE = [
-  { bg: '#EEF2FF', fg: '#4338CA' }, { bg: '#F0FDF4', fg: '#15803D' },
+  { bg: 'var(--primary-bg)', fg: '#4338CA' }, { bg: '#F0FDF4', fg: '#15803D' },
   { bg: '#FFF7ED', fg: '#C2410C' }, { bg: '#FDF4FF', fg: '#9333EA' },
   { bg: '#ECFDF5', fg: '#0F766E' }, { bg: '#FEF2F2', fg: '#DC2626' },
 ]
@@ -15,37 +15,37 @@ const initials = (name = '') => name.trim().split(/\s+/).map(w => w[0]).join('')
 const CSS = `
 @import url('${FONT_URL}');
 .cp *,.cp *::before,.cp *::after{box-sizing:border-box;margin:0;padding:0}
-.cp{font-family:'DM Sans',sans-serif;color:#111827;background:#F8F9FB;min-height:100vh}
+.cp{font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg-secondary);min-height:100vh}
 @keyframes cpFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes cpSlideIn{from{opacity:0;transform:translateX(28px)}to{opacity:1;transform:none}}
 @keyframes cpModalIn{from{opacity:0;transform:scale(0.96)translateY(6px)}to{opacity:1;transform:none}}
 @keyframes cpToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes cpSpin{to{transform:rotate(360deg)}}
-.cp-card{width:100%;background:#fff;border-radius:16px;border:1.5px solid #EAECF0;padding:22px 22px 18px;cursor:pointer;transition:border-color .18s,box-shadow .18s,transform .18s;animation:cpFadeUp .3s ease both}
-.cp-card:hover{border-color:#A5B4FC;box-shadow:0 6px 28px rgba(99,102,241,.1);transform:translateY(-2px)}
+.cp-card{width:100%;background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:22px 22px 18px;cursor:pointer;transition:border-color .18s,box-shadow .18s,transform .18s;animation:cpFadeUp .3s ease both}
+.cp-card:hover{border-color:var(--primary);box-shadow:0 6px 28px var(--primary-bg);transform:translateY(-2px)}
 .cp-card:hover .cp-actions{opacity:1}
 .cp-actions{opacity:0;transition:opacity .15s;display:flex;gap:5px}
-.cp-icon-btn{width:30px;height:30px;border-radius:8px;border:1px solid #E5E7EB;background:#F9FAFB;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#374151;transition:background .13s,border-color .13s}
-.cp-icon-btn:hover{background:#EDEDF0;border-color:#D1D5DB}
-.cp-icon-btn.del{border-color:#FEE2E2;background:#FFF5F5;color:#DC2626}
-.cp-icon-btn.del:hover{background:#FEE2E2}
-.cp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color:#111;background:#FAFAFA;outline:none;transition:border-color .15s,background .15s}
-.cp-input:focus{border-color:#818CF8;background:#fff}
-.cp-label{display:block;font-size:10.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+.cp-icon-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);transition:background .13s,border-color .13s}
+.cp-icon-btn:hover{background:var(--border-light);border-color:var(--border-light)}
+.cp-icon-btn.del{border-color:var(--error-border);background:var(--error-bg);color:var(--error)}
+.cp-icon-btn.del:hover{background:var(--error-border)}
+.cp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s,background .15s}
+.cp-input:focus{border-color:var(--primary);background:var(--surface)}
+.cp-label{display:block;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
 .cp-field{margin-bottom:16px}
-.cp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:#18181B;color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
-.cp-primary-btn:hover{background:#27272A}
+.cp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--text);color:var(--bg);font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
+.cp-primary-btn:hover{background:var(--text2)}
 .cp-primary-btn:active{transform:scale(.98)}
 .cp-primary-btn:disabled{opacity:.55;cursor:not-allowed}
-.cp-ghost-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:1.5px solid #E5E7EB;background:#fff;color:#374151;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s}
-.cp-ghost-btn:hover{background:#F3F4F6}
+.cp-ghost-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s}
+.cp-ghost-btn:hover{background:var(--surface2)}
 .cp-sm-btn{display:inline-flex;align-items:center;gap:4px;padding:4px 8px;border-radius:6px;border:none;font-size:10px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;transition:background .13s}
-.cp-sm-btn.primary{background:#EEF2FF;color:#4F46E5}
-.cp-sm-btn.primary:hover{background:#DDE4FF}
-.cp-sm-btn.danger{background:#FEF2F2;color:#DC2626}
-.cp-sm-btn.danger:hover{background:#FEE2E2}
-.cp-add-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;border:1px solid #E0E7FF;background:#EEF2FF;font-size:10px;font-weight:600;cursor:pointer;color:#4F46E5;font-family:'DM Sans',sans-serif;transition:background .13s}
-.cp-add-btn:hover{background:#DDE4FF}
+.cp-sm-btn.primary{background:var(--primary-bg);color:var(--primary)}
+.cp-sm-btn.primary:hover{background:var(--primary-light)}
+.cp-sm-btn.danger{background:var(--error-bg);color:var(--error)}
+.cp-sm-btn.danger:hover{background:var(--error-border)}
+.cp-add-btn{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:7px;border:1px solid var(--primary-light);background:var(--primary-bg);font-size:10px;font-weight:600;cursor:pointer;color:var(--primary);font-family:'DM Sans',sans-serif;transition:background .13s}
+.cp-add-btn:hover{background:var(--primary-light)}
 `
 
 const Ico = {
@@ -97,19 +97,19 @@ function ClientCard({ client, onClick, onEdit, onDelete, delay }) {
   return (
     <div className="cp-card" style={{animationDelay:`${delay}ms`}} onClick={() => onClick(client)}>
       {client.logo_url && (
-        <div style={{margin:-22,marginBottom:14,borderRadius:'16px 16px 0 0',overflow:'hidden',background:'#F9FAFB',textAlign:'center'}}>
+        <div style={{margin:-22,marginBottom:14,borderRadius:'16px 16px 0 0',overflow:'hidden',background:'var(--surface2)',textAlign:'center'}}>
           <img src={client.logo_url} alt={client.company_name}
-            style={{width:'100%',maxHeight:140,objectFit:'contain',background:'#F9FAFB',display:'block'}}
+            style={{width:'100%',maxHeight:140,objectFit:'contain',background:'var(--surface2)',display:'block'}}
             onError={e => { e.target.style.display='none' }} />
         </div>
       )}
       <div style={{display:'flex',alignItems:'flex-start',gap:13}}>
         <Avatar name={client.company_name} logo={client.logo_url} />
         <div style={{flex:1,minWidth:0}}>
-          <div style={{fontWeight:700,fontSize:15,color:'#0D0D1A',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-0.015em'}}>
+          <div style={{fontWeight:700,fontSize:15,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis',letterSpacing:'-0.015em'}}>
             {client.company_name}
           </div>
-          {client.contact_name && <div style={{fontSize:12.5,color:'#6B7280',marginTop:3}}>{client.contact_name}</div>}
+          {client.contact_name && <div style={{fontSize:12.5,color:'var(--text2)',marginTop:3}}>{client.contact_name}</div>}
         </div>
         <div className="cp-actions" onClick={e => e.stopPropagation()}>
           <button className="cp-icon-btn" title="Edit" onClick={() => onEdit(client)}><Ico.edit/></button>
@@ -117,14 +117,14 @@ function ClientCard({ client, onClick, onEdit, onDelete, delay }) {
         </div>
       </div>
       <div style={{display:'flex',flexDirection:'column',gap:5,marginBottom:16,marginTop:14}}>
-        {client.email && <div style={{display:'flex',alignItems:'center',gap:7,color:'#6B7280',fontSize:12.5}}><span style={{color:'#9CA3AF'}}><Ico.mail/></span><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{client.email}</span></div>}
-        {client.phone && <div style={{display:'flex',alignItems:'center',gap:7,color:'#6B7280',fontSize:12.5}}><span style={{color:'#9CA3AF'}}><Ico.phone/></span>{client.phone}</div>}
+        {client.email && <div style={{display:'flex',alignItems:'center',gap:7,color:'var(--text2)',fontSize:12.5}}><span style={{color:'var(--text3)'}}><Ico.mail/></span><span style={{overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap'}}>{client.email}</span></div>}
+        {client.phone && <div style={{display:'flex',alignItems:'center',gap:7,color:'var(--text2)',fontSize:12.5}}><span style={{color:'var(--text3)'}}><Ico.phone/></span>{client.phone}</div>}
       </div>
-      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:14,borderTop:'1px solid #F3F4F6'}}>
-        <span style={{display:'inline-flex',alignItems:'center',gap:5,background:'#EEF2FF',color:'#4338CA',fontSize:11.5,fontWeight:600,padding:'4px 10px',borderRadius:100}}>
+      <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:14,borderTop:'1px solid var(--border-light)'}}>
+        <span style={{display:'inline-flex',alignItems:'center',gap:5,background:'var(--primary-bg)',color:'#4338CA',fontSize:11.5,fontWeight:600,padding:'4px 10px',borderRadius:100}}>
           <Ico.game/> {client.game_count||0} {client.game_count===1?'game':'games'}
         </span>
-        <span style={{fontSize:12,color:'#9CA3AF',display:'flex',alignItems:'center',gap:4}}>View <Ico.arrow/></span>
+        <span style={{fontSize:12,color:'var(--text3)',display:'flex',alignItems:'center',gap:4}}>View <Ico.arrow/></span>
       </div>
     </div>
   )
@@ -255,15 +255,15 @@ function DetailPanel({ client, onClose, onEdit }) {
 
   return (
     <><div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:16,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={onClose}>
-      <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:1100,maxHeight:'92vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif"}} onClick={e => e.stopPropagation()}>
+      <div style={{background:'var(--surface)',borderRadius:20,width:'100%',maxWidth:1100,maxHeight:'92vh',overflow:'hidden',display:'flex',flexDirection:'column',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif"}} onClick={e => e.stopPropagation()}>
 
         {/* Header */}
-        <div style={{padding:'18px 24px',borderBottom:'1px solid #F3F4F6',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
+        <div style={{padding:'18px 24px',borderBottom:'1px solid var(--border-light)',display:'flex',justifyContent:'space-between',alignItems:'center',flexShrink:0}}>
           <div style={{display:'flex',gap:12,alignItems:'center'}}>
             <Avatar name={client.company_name} logo={client.logo_url} size={40} />
             <div>
-              <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A'}}>{client.company_name}</h2>
-              <div style={{fontSize:12,color:'#9CA3AF'}}>{client.email} · {games.length} games · {branches.length} branches</div>
+              <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'var(--text)'}}>{client.company_name}</h2>
+              <div style={{fontSize:12,color:'var(--text3)'}}>{client.email} · {games.length} games · {branches.length} branches</div>
             </div>
           </div>
           <div style={{display:'flex',gap:8,alignItems:'center'}}>
@@ -278,13 +278,13 @@ function DetailPanel({ client, onClose, onEdit }) {
         <div style={{display:'flex',flex:1,overflow:'hidden'}}>
 
           {/* Col 1: Client Info */}
-          <div style={{width:240,borderRight:'1px solid #F3F4F6',padding:'16px',overflow:'auto',flexShrink:0}}>
-            <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Client Details</div>
+          <div style={{width:240,borderRight:'1px solid var(--border-light)',padding:'16px',overflow:'auto',flexShrink:0}}>
+            <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:10}}>Client Details</div>
             {[{icon:<Ico.mail/>,label:'Email',val:client.email},{icon:<Ico.phone/>,label:'Phone',val:client.phone},{icon:null,label:'Address',val:client.address},{icon:null,label:'Notes',val:client.notes}]
               .filter(r=>r.val).map((row,i) => (
-              <div key={i} style={{padding:'8px 0',borderBottom:'1px solid #F3F4F6'}}>
-                <div style={{fontSize:9,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:2}}>{row.label}</div>
-                <div style={{fontSize:12,color:'#1F2937',wordBreak:'break-word'}}>{row.val}</div>
+              <div key={i} style={{padding:'8px 0',borderBottom:'1px solid var(--border-light)'}}>
+                <div style={{fontSize:9,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em',marginBottom:2}}>{row.label}</div>
+                <div style={{fontSize:12,color:'var(--text)',wordBreak:'break-word'}}>{row.val}</div>
               </div>
             ))}
             <div style={{marginTop:14,padding:'10px',background:'#F5F3FF',borderRadius:8,textAlign:'center'}}>
@@ -301,31 +301,31 @@ function DetailPanel({ client, onClose, onEdit }) {
           </div>
 
           {/* Col 2: Branches */}
-          <div style={{width:260,borderRight:'1px solid #F3F4F6',display:'flex',flexDirection:'column',flexShrink:0}}>
-            <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>Branches</div>
+          <div style={{width:260,borderRight:'1px solid var(--border-light)',display:'flex',flexDirection:'column',flexShrink:0}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border-light)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.08em'}}>Branches</div>
               <button className="cp-add-btn" onClick={() => { setEditBranch(null); setBranchForm({name:'',email:'',phone:'',pincode:''}); setShowBranchForm(true) }}>+ Add</button>
             </div>
             <div style={{flex:1,overflow:'auto',padding:8}}>
               {loadingBranches ? (
-                Array.from({length:3}).map((_,i) => <div key={i} style={{height:48,background:'#F3F4F6',borderRadius:8,marginBottom:6}} />)
+                Array.from({length:3}).map((_,i) => <div key={i} style={{height:48,background:'var(--border-light)',borderRadius:8,marginBottom:6}} />)
               ) : branches.length === 0 ? (
-                <div style={{fontSize:11,color:'#9CA3AF',padding:'20px 0',textAlign:'center'}}>No branches yet</div>
+                <div style={{fontSize:11,color:'var(--text3)',padding:'20px 0',textAlign:'center'}}>No branches yet</div>
               ) : (
                 branches.map(b => (
                   <div key={b.id} onClick={() => setSelectedBranch(selectedBranch?.id === b.id ? null : b)}
-                    style={{padding:'10px 12px',borderRadius:8,marginBottom:4,cursor:'pointer',border:selectedBranch?.id===b.id?'2px solid #4F46E5':'1.5px solid #F3F4F6',background:selectedBranch?.id===b.id?'#EEF2FF':'#fff',transition:'all .15s'}}>
+                    style={{padding:'10px 12px',borderRadius:8,marginBottom:4,cursor:'pointer',border:selectedBranch?.id===b.id?'2px solid #4F46E5':'1.5px solid var(--border-light)',background:selectedBranch?.id===b.id?'var(--primary-bg)':'var(--surface)',transition:'all .15s'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <div style={{fontWeight:700,fontSize:12,color:'#1F2937'}}>{b.business_name}</div>
+                      <div style={{fontWeight:700,fontSize:12,color:'var(--text)'}}>{b.business_name}</div>
                       <div style={{display:'flex',alignItems:'center',gap:6}}>
-                        <span style={{fontSize:9,fontWeight:700,padding:'1px 7px',borderRadius:100,background:'#EEF2FF',color:'#4F46E5'}}>{branchGameCounts[b.id]||0}</span>
-                        <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:b.is_active?'#ECFDF5':'#F3F4F6',color:b.is_active?'#059669':'#9CA3AF',cursor:'pointer'}}
+                        <span style={{fontSize:9,fontWeight:700,padding:'1px 7px',borderRadius:100,background:'var(--primary-bg)',color:'#4F46E5'}}>{branchGameCounts[b.id]||0}</span>
+                        <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:b.is_active?'#ECFDF5':'var(--border-light)',color:b.is_active?'#059669':'var(--text3)',cursor:'pointer'}}
                           onClick={e => { e.stopPropagation(); handleToggleBranch(b.id, b.is_active) }}>
                           {b.is_active ? 'On' : 'Off'}
                         </span>
                       </div>
                     </div>
-                    <div style={{fontSize:10,color:'#9CA3AF',marginTop:2}}>
+                    <div style={{fontSize:10,color:'var(--text3)',marginTop:2}}>
                       {b.email}{b.pincode && <span> · {b.pincode}</span>}
                     </div>
                     <div style={{display:'flex',gap:4,marginTop:6}}>
@@ -339,38 +339,38 @@ function DetailPanel({ client, onClose, onEdit }) {
           </div>
 
           {/* Col 3: Branch Games (selected branch) */}
-          <div style={{width:280,borderRight:'1px solid #F3F4F6',display:'flex',flexDirection:'column',flexShrink:0}}>
-            <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6'}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>
+          <div style={{width:280,borderRight:'1px solid var(--border-light)',display:'flex',flexDirection:'column',flexShrink:0}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border-light)'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.08em'}}>
                 {selectedBranch ? `${selectedBranch.business_name} Location Games` : 'Select a Branch'}
               </div>
             </div>
             <div style={{flex:1,overflow:'auto',padding:8}}>
               {!selectedBranch ? (
-                <div style={{fontSize:11,color:'#9CA3AF',padding:'30px 16px',textAlign:'center'}}>
+                <div style={{fontSize:11,color:'var(--text3)',padding:'30px 16px',textAlign:'center'}}>
                   Click a branch on the left to see its games
                 </div>
               ) : loadingBranchGames ? (
-                Array.from({length:3}).map((_,i) => <div key={i} style={{height:40,background:'#F3F4F6',borderRadius:8,marginBottom:6}} />)
+                Array.from({length:3}).map((_,i) => <div key={i} style={{height:40,background:'var(--border-light)',borderRadius:8,marginBottom:6}} />)
               ) : branchGames.length === 0 ? (
-                <div style={{fontSize:11,color:'#9CA3AF',padding:'20px 0',textAlign:'center'}}>
+                <div style={{fontSize:11,color:'var(--text3)',padding:'20px 0',textAlign:'center'}}>
                   No location games for this branch yet.<br/>
                   <span style={{fontSize:10}}>Create from game builder Locations tab</span>
                 </div>
               ) : (
                 branchGames.map(g => (
-                  <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1px solid #F3F4F6',background:'#FAFAFA',cursor:'pointer',transition:'all .12s'}}
+                  <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1px solid var(--border-light)',background:'var(--surface2)',cursor:'pointer',transition:'all .12s'}}
                     onClick={() => navigateBuilder(g)}
-                    onMouseEnter={e => {e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='#EEF2FF'}}
-                    onMouseLeave={e => {e.currentTarget.style.borderColor='#F3F4F6';e.currentTarget.style.background='#FAFAFA'}}>
+                    onMouseEnter={e => {e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='var(--primary-bg)'}}
+                    onMouseLeave={e => {e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.background='var(--surface2)'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                      <div style={{fontWeight:700,fontSize:11,color:'#1F2937'}}>{g.name}</div>
-                      <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'#F3F4F6',color:g.is_active?'#059669':'#9CA3AF'}}>
+                      <div style={{fontWeight:700,fontSize:11,color:'var(--text)'}}>{g.name}</div>
+                      <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'var(--border-light)',color:g.is_active?'#059669':'var(--text3)'}}>
                         {g.is_active ? 'Live' : 'Draft'}
                       </span>
                     </div>
-                    {g.location_name && <div style={{fontSize:10,color:'#6B7280',marginTop:1}}>📍 {g.location_name}</div>}
-                    <div style={{fontSize:9,color:'#9CA3AF',marginTop:2}}>{g.question_count||0} questions · {g.play_count||0} plays</div>
+                    {g.location_name && <div style={{fontSize:10,color:'var(--text2)',marginTop:1}}>📍 {g.location_name}</div>}
+                    <div style={{fontSize:9,color:'var(--text3)',marginTop:2}}>{g.question_count||0} questions · {g.play_count||0} plays</div>
                   </div>
                 ))
               )}
@@ -378,57 +378,57 @@ function DetailPanel({ client, onClose, onEdit }) {
           </div>
 
           {/* Col 4: Game Templates (brand-level games only) */}
-          <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,borderRight:'1px solid #F3F4F6'}}>
-            <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>Master Games ({templateGames.length})</div>
+          <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,borderRight:'1px solid var(--border-light)'}}>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border-light)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.08em'}}>Master Games ({templateGames.length})</div>
             </div>
             <div style={{flex:1,overflow:'auto',padding:8}}>
               {templateGames.map(g => (
-                <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1.5px solid #E0E7FF',background:'#FAFAFA',cursor:'pointer',transition:'all .12s'}}
+                <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1.5px solid #E0E7FF',background:'var(--surface2)',cursor:'pointer',transition:'all .12s'}}
                   onClick={() => navigateBuilder(g)}
-                  onMouseEnter={e => {e.currentTarget.style.borderColor='#818CF8';e.currentTarget.style.background='#EEF2FF'}}
-                  onMouseLeave={e => {e.currentTarget.style.borderColor='#E0E7FF';e.currentTarget.style.background='#FAFAFA'}}>
+                  onMouseEnter={e => {e.currentTarget.style.borderColor='#818CF8';e.currentTarget.style.background='var(--primary-bg)'}}
+                  onMouseLeave={e => {e.currentTarget.style.borderColor='#E0E7FF';e.currentTarget.style.background='var(--surface2)'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{fontWeight:700,fontSize:11,color:'#1F2937',display:'flex',alignItems:'center',gap:4}}>{g.name}</div>
-                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'#F3F4F6',color:g.is_active?'#059669':'#9CA3AF'}}>
+                    <div style={{fontWeight:700,fontSize:11,color:'var(--text)',display:'flex',alignItems:'center',gap:4}}>{g.name}</div>
+                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'var(--border-light)',color:g.is_active?'#059669':'var(--text3)'}}>
                       {g.is_active ? 'Live' : 'Draft'}
                     </span>
                   </div>
-                  <div style={{fontSize:10,color:'#6B7280',textTransform:'capitalize',marginTop:1}}>{g.category}</div>
-                  <div style={{fontSize:9,color:'#9CA3AF',marginTop:2}}>{g.question_count||0} questions · {g.play_count||0} plays</div>
+                  <div style={{fontSize:10,color:'var(--text2)',textTransform:'capitalize',marginTop:1}}>{g.category}</div>
+                  <div style={{fontSize:9,color:'var(--text3)',marginTop:2}}>{g.question_count||0} questions · {g.play_count||0} plays</div>
                 </div>
               ))}
               {templateGames.length === 0 && (
-                <div style={{fontSize:11,color:'#9CA3AF',padding:'30px 16px',textAlign:'center'}}>No template games yet</div>
+                <div style={{fontSize:11,color:'var(--text3)',padding:'30px 16px',textAlign:'center'}}>No template games yet</div>
               )}
             </div>
           </div>
 
           {/* Col 5: All Games (includes branch-level games) */}
           <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0}}>
-            <div style={{padding:'12px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-              <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em'}}>All Games ({games.length})</div>
+            <div style={{padding:'12px 16px',borderBottom:'1px solid var(--border-light)',display:'flex',justifyContent:'space-between',alignItems:'center'}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.08em'}}>All Games ({games.length})</div>
             </div>
             <div style={{flex:1,overflow:'auto',padding:8}}>
               {games.map(g => (
-                <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1.5px solid #E5E7EB',background:'#fff',cursor:'pointer',transition:'all .12s'}}
+                <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1.5px solid var(--border)',background:'var(--surface)',cursor:'pointer',transition:'all .12s'}}
                   onClick={() => navigateBuilder(g)}
                   onMouseEnter={e => {e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='#F5F3FF'}}
-                  onMouseLeave={e => {e.currentTarget.style.borderColor='#E5E7EB';e.currentTarget.style.background='#fff'}}>
+                  onMouseLeave={e => {e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--surface)'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                    <div style={{fontWeight:700,fontSize:11,color:'#1F2937',display:'flex',alignItems:'center',gap:4}}>{g.name}</div>
-                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'#F3F4F6',color:g.is_active?'#059669':'#9CA3AF'}}>
+                    <div style={{fontWeight:700,fontSize:11,color:'var(--text)',display:'flex',alignItems:'center',gap:4}}>{g.name}</div>
+                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'var(--border-light)',color:g.is_active?'#059669':'var(--text3)'}}>
                       {g.is_active ? 'Live' : 'Draft'}
                     </span>
                   </div>
-                  <div style={{fontSize:10,color:'#6B7280',textTransform:'capitalize',marginTop:1}}>
+                  <div style={{fontSize:10,color:'var(--text2)',textTransform:'capitalize',marginTop:1}}>
                     {g.parent_game_id ? '📍 Branch' : '📦 Template'} · {g.category}
                   </div>
-                  <div style={{fontSize:9,color:'#9CA3AF',marginTop:2}}>{g.question_count||0} questions · {g.play_count||0} plays</div>
+                  <div style={{fontSize:9,color:'var(--text3)',marginTop:2}}>{g.question_count||0} questions · {g.play_count||0} plays</div>
                 </div>
               ))}
               {games.length === 0 && (
-                <div style={{fontSize:11,color:'#9CA3AF',padding:'30px 16px',textAlign:'center'}}>No games yet</div>
+                <div style={{fontSize:11,color:'var(--text3)',padding:'30px 16px',textAlign:'center'}}>No games yet</div>
               )}
             </div>
           </div>
@@ -438,9 +438,9 @@ function DetailPanel({ client, onClose, onEdit }) {
     </div>
       {showBranchForm && (
         <div style={{position:'fixed',inset:0,zIndex:700,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={resetBranchForm}>
-          <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'92vh',overflow:'auto',padding:'30px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif",animation:'cpModalIn .22s cubic-bezier(.22,1,.36,1)'}} onClick={e => e.stopPropagation()}>
+          <div style={{background:'var(--surface)',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'92vh',overflow:'auto',padding:'30px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif",animation:'cpModalIn .22s cubic-bezier(.22,1,.36,1)'}} onClick={e => e.stopPropagation()}>
             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:22}}>
-              <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A'}}>{editBranch ? 'Edit Branch' : 'New Branch'}</h2>
+              <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'var(--text)'}}>{editBranch ? 'Edit Branch' : 'New Branch'}</h2>
               <button className="cp-icon-btn" onClick={resetBranchForm}><Ico.close/></button>
             </div>
             {!editBranch && (
@@ -514,32 +514,32 @@ function FormModal({ editClient, onClose, onSaved, onError }) {
 
   return (
     <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
-      <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:520,maxHeight:'92vh',overflow:'auto',padding:'34px 30px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'cpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{background:'var(--surface)',borderRadius:20,width:'100%',maxWidth:520,maxHeight:'92vh',overflow:'auto',padding:'34px 30px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'cpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:28}}>
           <div>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:22,color:'#0D0D1A',letterSpacing:'-0.02em'}}>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:22,color:'var(--text)',letterSpacing:'-0.02em'}}>
               {editClient ? 'Edit Client' : 'New Client'}
             </h2>
-            <p style={{color:'#9CA3AF',fontSize:13,marginTop:5}}>{editClient ? 'Update the client record below.' : 'Fill in the details to add a new client.'}</p>
+            <p style={{color:'var(--text3)',fontSize:13,marginTop:5}}>{editClient ? 'Update the client record below.' : 'Fill in the details to add a new client.'}</p>
           </div>
           <button className="cp-icon-btn" onClick={onClose}><Ico.close/></button>
         </div>
         <form onSubmit={handleSubmit}>
-          <div style={{marginBottom:20,border:'1.5px dashed #E5E7EB',borderRadius:12,padding:16,textAlign:'center'}}>
+          <div style={{marginBottom:20,border:'1.5px dashed var(--border)',borderRadius:12,padding:16,textAlign:'center'}}>
             <label className="cp-label" style={{marginBottom:8}}>Logo</label>
             {logoPreview ? (
               <div style={{marginBottom:10}}>
                 <img src={logoPreview} alt="Logo preview" style={{maxWidth:120,maxHeight:80,borderRadius:8,objectFit:'contain'}} />
               </div>
             ) : (
-              <div style={{width:72,height:72,borderRadius:12,background:'#F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 8px',color:'#9CA3AF',fontSize:10}}>No logo</div>
+              <div style={{width:72,height:72,borderRadius:12,background:'var(--border-light)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 8px',color:'var(--text3)',fontSize:10}}>No logo</div>
             )}
             <div style={{display:'flex',gap:8,justifyContent:'center'}}>
               <label className="cp-primary-btn" style={{fontSize:11,padding:'6px 14px',cursor:'pointer'}}>
                 Upload File
                 <input type="file" accept="image/*" style={{display:'none'}} onChange={e => { const f = e.target.files[0]; if (f) setLogoFile(f); e.target.value='' }} />
               </label>
-              <span style={{color:'#9CA3AF',fontSize:11,alignSelf:'center'}}>or</span>
+              <span style={{color:'var(--text3)',fontSize:11,alignSelf:'center'}}>or</span>
               <input className="cp-input" style={{width:180,fontSize:11}} placeholder="Paste logo URL…" value={form.logo_url} onChange={e => { setLogoFile(null); setForm(f => ({...f, logo_url: e.target.value})) }} />
             </div>
           </div>
@@ -640,18 +640,18 @@ export default function ClientsPage() {
 
         <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:32,flexWrap:'wrap',gap:16}}>
           <div>
-            <p style={{fontSize:11,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Management</p>
-            <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:'#0D0D1A',letterSpacing:'-0.03em',lineHeight:1}}>
+            <p style={{fontSize:11,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Management</p>
+            <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:'var(--text)',letterSpacing:'-0.03em',lineHeight:1}}>
               Clients
             </h1>
-            <p style={{fontSize:13.5,color:'#9CA3AF',marginTop:8}}>
+            <p style={{fontSize:13.5,color:'var(--text3)',marginTop:8}}>
               {clients.length} client{clients.length!==1?'s':''} in your workspace
             </p>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             {clients.length > 0 && (
               <div style={{position:'relative',minWidth:220}}>
-                <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:'#9CA3AF'}}><Ico.search/></span>
+                <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:'var(--text3)'}}><Ico.search/></span>
                 <input className="cp-input" style={{paddingLeft:40}} placeholder="Search by name or email…" value={search} onChange={e=>setSearch(e.target.value)} />
               </div>
             )}
@@ -660,7 +660,7 @@ export default function ClientsPage() {
         </div>
 
         {loading ? (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:'#9CA3AF',fontSize:14}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:'var(--text3)',fontSize:14}}>
             <Ico.spin/> Loading clients…
           </div>
         ) : clients.length === 0 ? (
@@ -668,13 +668,13 @@ export default function ClientsPage() {
             <div style={{width:72,height:72,borderRadius:18,background:'#F5F3FF',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
               <svg width="30" height="30" fill="none" stroke="#6366F1" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
-            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A',marginBottom:8}}>No clients yet</h3>
-            <p style={{color:'#9CA3AF',fontSize:14,marginBottom:24}}>Add your first client to get started.</p>
+            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'var(--text)',marginBottom:8}}>No clients yet</h3>
+            <p style={{color:'var(--text3)',fontSize:14,marginBottom:24}}>Add your first client to get started.</p>
             <button className="cp-primary-btn" onClick={openAdd}><Ico.plus/> Add Client</button>
           </div>
         ) : filtered.length === 0 ? (
-          <div style={{textAlign:'center',padding:'60px 0',color:'#9CA3AF',fontSize:14}}>
-            No results for "<strong style={{color:'#374151'}}>{search}</strong>"
+          <div style={{textAlign:'center',padding:'60px 0',color:'var(--text3)',fontSize:14}}>
+            No results for "<strong style={{color:'var(--text)'}}>{search}</strong>"
           </div>
         ) : (
           <MasonryGrid gap={16} minColWidth={290}>

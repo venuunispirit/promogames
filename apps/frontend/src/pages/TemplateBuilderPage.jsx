@@ -4,16 +4,16 @@ import api from '../api'
 import { ANIM_OPTIONS } from '../components/animations'
 
 const LIGHT = `
-:root{ --gb-bg:#f5f6fb; --gb-card:#fff; --gb-border:#e3e6f0; --gb-text:#1a1a2e; --gb-text2:#6b7280; --gb-primary:#9210f6; --gb-radius:12px; }
+:root{ --gb-bg:#f5f6fb; --gb-card:var(--surface); --gb-border:#e3e6f0; --gb-text:#1a1a2e; --gb-text2:#6b7280; --gb-primary:#9210f6; --gb-radius:12px; }
 .gb-wrap{ background:var(--gb-bg); min-height:100vh; font-family:'DM Sans',system-ui,sans-serif; color:var(--gb-text); }
 .gb-card{ background:var(--gb-card); border:1px solid var(--gb-border); border-radius:var(--gb-radius); padding:18px; }
 .gb-label{ font-size:12px; font-weight:600; color:var(--gb-text2); }
-.gb-btn{ border:1px solid var(--gb-border); background:#fff; color:var(--gb-text); border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; font-size:13px; }
+.gb-btn{ border:1px solid var(--gb-border); background:var(--surface); color:var(--gb-text); border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; font-size:13px; }
 .gb-btn-primary{ background:var(--gb-primary); color:#fff; border-color:var(--gb-primary); }
 .gb-btn-ghost{ background:transparent; }
 .gb-row{ display:flex; gap:16px; flex-wrap:wrap; }
 .gb-field{ display:flex; flex-direction:column; gap:6px; min-width:180px; }
-.gb-input, .gb-select{ border:1px solid var(--gb-border); border-radius:8px; padding:8px 10px; font-size:13px; background:#fff; color:var(--gb-text); }
+.gb-input, .gb-select{ border:1px solid var(--gb-border); border-radius:8px; padding:8px 10px; font-size:13px; background:var(--surface); color:var(--gb-text); }
 .gb-section-title{ font-size:13px; font-weight:700; margin-bottom:10px; color:var(--gb-text); }
 `
 
@@ -22,7 +22,7 @@ function ColorField({ label, value, onChange }) {
     <div className="gb-field">
       <span className="gb-label">{label}</span>
       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <input type="color" value={value || '#000000'} onChange={e => onChange(e.target.value)} style={{ width:38, height:34, border:'1px solid var(--gb-border)', borderRadius:8, background:'#fff', padding:2, cursor:'pointer' }} />
+        <input type="color" value={value || '#000000'} onChange={e => onChange(e.target.value)} style={{ width:38, height:34, border:'1px solid var(--gb-border)', borderRadius:8, background:'var(--surface)', padding:2, cursor:'pointer' }} />
         <input className="gb-input" value={value || ''} onChange={e => onChange(e.target.value)} style={{ flex:1 }} />
       </div>
     </div>

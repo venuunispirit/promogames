@@ -7,23 +7,6 @@ import api from '../api'
 ───────────────────────────────────────────── */
 const LIGHT = `
 .cb-wrap {
-  --gb-bg:        #f4f6fb;
-  --gb-surface:   #ffffff;
-  --gb-surface2:  #f0f2f8;
-  --gb-border:    #e2e6f0;
-  --gb-border2:   #cdd3e0;
-  --gb-primary:   #6366f1;
-  --gb-primary-d: #4f46e5;
-  --gb-primary-g: rgba(99,102,241,0.15);
-  --gb-success:   #16a34a;
-  --gb-danger:    #dc2626;
-  --gb-text:      #1e1e2e;
-  --gb-text2:     #64657a;
-  --gb-text3:     #9899ae;
-  --gb-shadow:    0 2px 12px rgba(0,0,0,0.08);
-  --gb-shadow-md: 0 4px 24px rgba(0,0,0,0.10);
-  --gb-radius:    12px;
-  --gb-radius-sm: 8px;
   font-family: 'DM Sans', sans-serif;
   background: var(--gb-bg);
   color: var(--gb-text);

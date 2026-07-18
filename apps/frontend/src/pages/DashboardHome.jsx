@@ -17,16 +17,16 @@ const C = {
   PIE    : ['#7c6ff7','#10b981','#f59e0b','#ef4444','#ec4899','#3b82f6'],
 }
 
-// ─── Light-theme design tokens (hardcoded — never inherits dark theme) ────────
+// ─── Theme tokens (resolve from global CSS variables so dark/pink themes apply) ────────
 const T = {
-  bg      : '#F4F5F7',
-  surface : '#FFFFFF',
-  surf2   : '#F8F9FB',
-  border  : '#E8EAF0',
-  text    : '#0D0D1A',
-  text2   : '#6B7280',
-  text3   : '#9CA3AF',
-  primary : '#7c6ff7',
+  bg      : 'var(--bg-secondary)',
+  surface : 'var(--surface)',
+  surf2   : 'var(--surface2)',
+  border  : 'var(--border)',
+  text    : 'var(--text)',
+  text2   : 'var(--text2)',
+  text3   : 'var(--text3)',
+  primary : 'var(--primary)',
 }
 
 // ─── CSS ──────────────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ const CSS = `
 .dh {
   font-family:'DM Sans',sans-serif;
   min-height:100vh;
-  color:#0D0D1A;
+  color:var(--text);
   position:relative;
 
   background:
@@ -58,8 +58,8 @@ const CSS = `
     ),
     linear-gradient(
       180deg,
-      #fafbff 0%,
-      #f4f5f7 100%
+      var(--bg) 0%,
+      var(--bg-secondary) 100%
     );
 }
 
@@ -70,7 +70,7 @@ const CSS = `
   backdrop-filter:blur(400px) !important;
   -webkit-backdrop-filter:blur(40px);
 
-  border:1px solid rgba(255,255,255,0.55);
+  border:1px solid var(--border);
 
   border-radius:18px;
   overflow:hidden;
@@ -78,7 +78,7 @@ const CSS = `
   box-shadow:
     0 10px 40px rgba(124,111,247,0.08),
     0 2px 10px rgba(0,0,0,0.04),
-    inset 0 1px 0 rgba(255,255,255,0.7);
+    inset 0 1px 0 rgba(255,255,255,0.15);
 
   transition:all .25s ease;
 }
@@ -149,7 +149,7 @@ const CSS = `
   cursor:pointer;font-family:'DM Sans',sans-serif;
   transition:background .13s,border-color .13s;
 }
-.dh-btn-ghost:hover { background:${T.surf2}; border-color:#d1d5db; }
+.dh-btn-ghost:hover { background:${T.surf2}; border-color:var(--border); }
 
 .dh-btn-primary {
   display:inline-flex;align-items:center;gap:6px;
@@ -716,7 +716,7 @@ export default function DashboardHome() {
                   cursor:'pointer',textAlign:'left',width:'100%',
                   fontFamily:"'DM Sans',sans-serif",transition:'background .13s',
                 }}
-                onMouseEnter={e => e.currentTarget.style.background='#EEF0F8'}
+                onMouseEnter={e => e.currentTarget.style.background='var(--surface2)'}
                 onMouseLeave={e => e.currentTarget.style.background=T.surf2}>
                   <div style={{width:32,height:32,borderRadius:8,background:`${a.accent}18`,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
                     <span style={{width:10,height:10,borderRadius:'50%',background:a.accent,display:'inline-block'}}/>

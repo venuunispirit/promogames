@@ -4,7 +4,7 @@ import api from '../api'
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
 const AVATAR_PALETTE = [
-  { bg:'#EEF2FF', fg:'#4338CA' }, { bg:'#F0FDF4', fg:'#15803D' },
+  { bg:'var(--primary-bg)', fg:'#4338CA' }, { bg:'#F0FDF4', fg:'#15803D' },
   { bg:'#FFF7ED', fg:'#C2410C' }, { bg:'#FDF4FF', fg:'#9333EA' },
   { bg:'#ECFDF5', fg:'#0F766E' }, { bg:'#FEF2F2', fg:'#DC2626' },
   { bg:'#F5F3FF', fg:'#7C3AED' }, { bg:'#FFFAF0', fg:'#B45309' },
@@ -23,24 +23,24 @@ const PERMISSIONS = [
 const CSS = `
 @import url('${FONT_URL}');
 .crm *,.crm *::before,.crm *::after{box-sizing:border-box;margin:0;padding:0}
-.crm{font-family:'DM Sans',sans-serif;color:#111827;background:#F8F9FB;min-height:100vh}
+.crm{font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg-secondary);min-height:100vh}
 @keyframes crmFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes crmModalIn{from{opacity:0;transform:scale(0.96)translateY(6px)}to{opacity:1;transform:none}}
 @keyframes crmToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes crmSpin{to{transform:rotate(360deg)}}
-.crm-card{background:#fff;border-radius:16px;border:1.5px solid #EAECF0;padding:22px 22px 18px;transition:border-color .18s,box-shadow .18s,transform .18s;animation:crmFadeUp .3s ease both}
+.crm-card{background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:22px 22px 18px;transition:border-color .18s,box-shadow .18s,transform .18s;animation:crmFadeUp .3s ease both}
 .crm-card:hover{border-color:#A5B4FC;box-shadow:0 6px 28px rgba(99,102,241,.1);transform:translateY(-2px)}
-.crm-icon-btn{width:30px;height:30px;border-radius:8px;border:1px solid #E5E7EB;background:#F9FAFB;display:flex;align-items:center;justifyContent:center;cursor:pointer;color:#374151;transition:background .13s}
-.crm-icon-btn:hover{background:#EDEDF0}
-.crm-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color:#111;background:#FAFAFA;outline:none;transition:border-color .15s}
-.crm-input:focus{border-color:#818CF8;background:#fff}
-.crm-label{display:block;font-size:10.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+.crm-icon-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justifyContent:center;cursor:pointer;color:var(--text);transition:background .13s}
+.crm-icon-btn:hover{background:var(--border-light)}
+.crm-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s}
+.crm-input:focus{border-color:#818CF8;background:var(--surface)}
+.crm-label{display:block;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
 .crm-field{margin-bottom:16px}
-.crm-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:#18181B;color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:background .14s}
+.crm-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--text);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:background .14s}
 .crm-primary-btn:hover{background:#27272A}
 .crm-primary-btn:disabled{opacity:.55;cursor:not-allowed}
-.crm-ghost-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:1.5px solid #E5E7EB;background:#fff;color:#374151;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s}
-.crm-ghost-btn:hover{background:#F3F4F6}
+.crm-ghost-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s}
+.crm-ghost-btn:hover{background:var(--border-light)}
 .crm-badge{padding:4px 10px;border-radius:100px;font-size:11px;font-weight:700;display:inline-block}
 .crm-empty-state{text-align:center;padding:80px 0}
 `
@@ -196,18 +196,18 @@ export default function CRMPage() {
         {/* Header */}
         <div style={{display:'flex',alignItems:'flex-end',justifyContent:'space-between',marginBottom:32,flexWrap:'wrap',gap:16}}>
           <div>
-            <p style={{fontSize:11,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Administration</p>
-            <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:'#0D0D1A',letterSpacing:'-0.03em',lineHeight:1}}>
+            <p style={{fontSize:11,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.1em',marginBottom:8}}>Administration</p>
+            <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:'var(--text)',letterSpacing:'-0.03em',lineHeight:1}}>
               Internal Team
             </h1>
-            <p style={{fontSize:13.5,color:'#9CA3AF',marginTop:8}}>
+            <p style={{fontSize:13.5,color:'var(--text3)',marginTop:8}}>
               {team.length} member{team.length!==1?'s':''} · Role-based access control
             </p>
           </div>
           <div style={{display:'flex',alignItems:'center',gap:12}}>
             <div style={{position:'relative'}}>
               <input className="crm-input" placeholder="Search..." value={search} onChange={e => setSearch(e.target.value)} style={{width:220,paddingLeft:36}} />
-              <svg width="14" height="14" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24" style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)'}}>
+              <svg width="14" height="14" fill="none" stroke="var(--text3)" strokeWidth="2" viewBox="0 0 24 24" style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)'}}>
                 <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
               </svg>
             </div>
@@ -218,16 +218,16 @@ export default function CRMPage() {
         </div>
 
         {loading ? (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:'#9CA3AF',fontSize:14}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:'var(--text3)',fontSize:14}}>
             <Ico.spin/> Loading…
           </div>
         ) : filtered.length === 0 ? (
           <div className="crm-empty-state">
-            <div style={{width:72,height:72,borderRadius:18,background:'#EEF2FF',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',fontSize:28}}>👥</div>
-            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A',marginBottom:8}}>
+            <div style={{width:72,height:72,borderRadius:18,background:'var(--primary-bg)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px',fontSize:28}}>👥</div>
+            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'var(--text)',marginBottom:8}}>
               {search ? 'No matches' : 'No team members yet'}
             </h3>
-            <p style={{color:'#9CA3AF',fontSize:14,marginBottom:24}}>
+            <p style={{color:'var(--text3)',fontSize:14,marginBottom:24}}>
               {search ? 'Try a different search term' : 'Add your first team member with role-based permissions.'}
             </p>
             {!search && <button className="crm-primary-btn" onClick={() => { setShowForm(true); setEditMember(null) }}><Ico.plus/> Add Member</button>}
@@ -241,9 +241,9 @@ export default function CRMPage() {
                   <div style={{display:'flex',alignItems:'flex-start',gap:13,marginBottom:14}}>
                     <Avatar name={member.name} />
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:15,color:'#0D0D1A',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{member.name}</div>
-                      <div style={{fontSize:12.5,color:'#6B7280',marginTop:2}}>{member.email}</div>
-                      <div style={{fontSize:12,color:'#9CA3AF',marginTop:2}}>{member.phone}</div>
+                      <div style={{fontWeight:700,fontSize:15,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{member.name}</div>
+                      <div style={{fontSize:12.5,color:'var(--text2)',marginTop:2}}>{member.email}</div>
+                      <div style={{fontSize:12,color:'var(--text3)',marginTop:2}}>{member.phone}</div>
                     </div>
                     <div style={{display:'flex',gap:4,flexShrink:0}}>
                       <button className="crm-icon-btn" onClick={() => handleEdit(member)} title="Edit"><Ico.edit/></button>
@@ -252,17 +252,17 @@ export default function CRMPage() {
                   </div>
 
                   {/* Permissions */}
-                  <div style={{paddingTop:12,borderTop:'1px solid #F3F4F6'}}>
-                    <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Permissions</div>
+                  <div style={{paddingTop:12,borderTop:'1px solid var(--border-light)'}}>
+                    <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Permissions</div>
                     <div style={{display:'flex',flexWrap:'wrap',gap:4}}>
                       {PERMISSIONS.map(p => {
                         const active = perms.includes(p.key)
                         return (
                           <button key={p.key} onClick={() => handleTogglePerm(member.id, p.key)} style={{
                             padding:'3px 8px',borderRadius:6,fontSize:10,fontWeight:600,cursor:'pointer',
-                            border:`1px solid ${active ? '#C7D2FE' : '#E5E7EB'}`,
-                            background:active ? '#EEF2FF' : '#F9FAFB',
-                            color:active ? '#4338CA' : '#9CA3AF',
+                            border:`1px solid ${active ? '#C7D2FE' : 'var(--border)'}`,
+                            background:active ? 'var(--primary-bg)' : 'var(--surface2)',
+                            color:active ? '#4338CA' : 'var(--text3)',
                             fontFamily:'inherit',transition:'all .12s',
                           }}>
                             {active ? '✓ ' : ''}{p.label}
@@ -280,11 +280,11 @@ export default function CRMPage() {
         {/* Create/Edit Modal */}
         {showForm && (
           <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={() => { setShowForm(false); setEditMember(null) }}>
-            <div style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'90vh',overflow:'auto',padding:'32px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'crmModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}} onClick={e => e.stopPropagation()}>
-              <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A',textAlign:'center',marginBottom:4}}>
+            <div style={{background:'var(--surface)',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'90vh',overflow:'auto',padding:'32px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'crmModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}} onClick={e => e.stopPropagation()}>
+              <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'var(--text)',textAlign:'center',marginBottom:4}}>
                 {editMember ? 'Edit Member' : 'Add Team Member'}
               </h2>
-              <p style={{color:'#9CA3AF',fontSize:13,textAlign:'center',marginBottom:24}}>
+              <p style={{color:'var(--text3)',fontSize:13,textAlign:'center',marginBottom:24}}>
                 {editMember ? 'Update member details and permissions' : 'Phone number is used as login password'}
               </p>
 
@@ -306,14 +306,14 @@ export default function CRMPage() {
                 <div style={{display:'flex',flexDirection:'column',gap:8}}>
                   {PERMISSIONS.map(p => (
                     <label key={p.key} style={{display:'flex',alignItems:'center',justifyContent:'space-between',padding:'10px 14px',background:'#F9FAFA',borderRadius:10,cursor:'pointer',transition:'background .12s'}}
-                      onMouseEnter={e => e.currentTarget.style.background='#F3F4F6'}
+                      onMouseEnter={e => e.currentTarget.style.background='var(--border-light)'}
                       onMouseLeave={e => e.currentTarget.style.background='#F9FAFA'}>
-                      <span style={{fontSize:13,fontWeight:500,color:'#374151'}}>{p.label}</span>
+                      <span style={{fontSize:13,fontWeight:500,color:'var(--text)'}}>{p.label}</span>
                       <button type="button" onClick={() => togglePerm(p.key)} style={{
                         width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',position:'relative',
-                        background:formFields.permissions.includes(p.key)?'#059669':'#D1D5DB',transition:'background .15s',flexShrink:0,
+                        background:formFields.permissions.includes(p.key)?'#059669':'var(--border-light)',transition:'background .15s',flexShrink:0,
                       }}>
-                        <span style={{position:'absolute',top:3,left:formFields.permissions.includes(p.key)?21:3,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}} />
+                        <span style={{position:'absolute',top:3,left:formFields.permissions.includes(p.key)?21:3,width:18,height:18,borderRadius:9,background:'var(--surface)',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}} />
                       </button>
                     </label>
                   ))}

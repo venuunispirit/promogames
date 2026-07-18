@@ -9,27 +9,13 @@ import { isVideoUrl } from '../components/renderMedia'
 const MEDIA_ACCEPT = 'image/png,image/jpeg,image/jpg,image/gif,image/webp,video/mp4,video/webm'
 
 /* ─────────────────────────────────────────────
-   LIGHT THEME TOKENS  (scoped to .gb-wrap)
+   BUILDER TOKENS — inherit global theme tokens.
+   The --gb-* aliases are defined in Theme.css under
+   [data-theme='light'] / [data-theme='dark'] so the
+   whole builder follows the admin theme (incl. dark).
 ───────────────────────────────────────────── */
 const LIGHT = `
 .gb-wrap {
-  --gb-bg:        #f4f6fb;
-  --gb-surface:   #ffffff;
-  --gb-surface2:  #f0f2f8;
-  --gb-border:    #e2e6f0;
-  --gb-border2:   #cdd3e0;
-  --gb-primary:   #6366f1;
-  --gb-primary-d: #4f46e5;
-  --gb-primary-g: rgba(99,102,241,0.15);
-  --gb-success:   #16a34a;
-  --gb-danger:    #dc2626;
-  --gb-text:      #1e1e2e;
-  --gb-text2:     #64657a;
-  --gb-text3:     #9899ae;
-  --gb-shadow:    0 2px 12px rgba(0,0,0,0.08);
-  --gb-shadow-md: 0 4px 24px rgba(0,0,0,0.10);
-  --gb-radius:    12px;
-  --gb-radius-sm: 8px;
   font-family: 'DM Sans', sans-serif;
   background: var(--gb-bg);
   color: var(--gb-text);
@@ -58,10 +44,10 @@ const LIGHT = `
 .gb-wrap input:not([type=checkbox]):not([type=file]):not([type=color]):not([type=range]):focus,
 .gb-wrap select:focus,
 .gb-wrap textarea:focus {
-  border-bottom-color: #22c55e;
+  border-bottom-color: var(--gb-success);
   border-bottom-width: 2px;
 }
-.gb-wrap select option { background: #fff; color: #1e1e2e; }
+.gb-wrap select option { background: var(--gb-surface); color: var(--gb-text); }
 
 /* buttons */
 .gb-btn {
@@ -75,10 +61,10 @@ const LIGHT = `
 .gb-btn-primary:not(:disabled):hover { background: var(--gb-primary-d); transform: translateY(-1px); box-shadow: 0 4px 12px var(--gb-primary-g); }
 .gb-btn-ghost { background: var(--gb-surface); color: var(--gb-text2); border: 1.5px solid var(--gb-border); }
 .gb-btn-ghost:not(:disabled):hover { border-color: var(--gb-primary); color: var(--gb-primary); }
-.gb-btn-danger { background: #fee2e2; color: var(--gb-danger); border: 1.5px solid #fecaca; }
-.gb-btn-danger:not(:disabled):hover { background: #fecaca; }
-.gb-btn-success { background: #dcfce7; color: var(--gb-success); border: 1.5px solid #bbf7d0; }
-.gb-btn-success:not(:disabled):hover { background: #bbf7d0; }
+.gb-btn-danger { background: var(--error-bg); color: var(--gb-danger); border: 1.5px solid var(--error-border); }
+.gb-btn-danger:not(:disabled):hover { background: var(--error-border); }
+.gb-btn-success { background: var(--success-bg); color: var(--gb-success); border: 1.5px solid var(--success-border); }
+.gb-btn-success:not(:disabled):hover { background: var(--success-border); }
 .gb-btn-sm { padding: 5px 10px; font-size: 12px; }
 .gb-btn-icon { padding: 6px; border-radius: 6px; }
 
@@ -123,7 +109,7 @@ const LIGHT = `
   margin-bottom: -2px; transition: color .15s; white-space: nowrap;
   font-family: inherit;
 }
-.gb-tab.active { color: #9210f6; border-bottom-color: #9210f6; }
+.gb-tab.active { color: var(--gb-primary); border-bottom-color: var(--gb-primary); }
 .gb-tab:hover:not(.active) { color: var(--gb-text); }
 
 /* toast */
@@ -192,7 +178,7 @@ const LIGHT = `
 /* phone mockup */
 .gb-phone {
   width: 220px; min-height: 380px; border-radius: 28px;
-  border: 3px solid #d1d5db; background: #f9f9fb;
+  border: 3px solid var(--gb-border2); background: var(--gb-surface2);
   overflow: hidden; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,.12);
 }
 
@@ -1224,7 +1210,7 @@ const [nameInput,     setNameInput]     = useState('')
     <div className="gb-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
       <style>{LIGHT}</style>
       <div style={{ textAlign:'center', color:'var(--gb-text2)' }}>
-        <div style={{ width:40,height:40,borderRadius:'50%',border:'3px solid #e2e6f0',borderTopColor:'#6366f1',animation:'spin .8s linear infinite',margin:'0 auto 16px' }} />
+        <div style={{ width:40,height:40,borderRadius:'50%',border:'3px solid var(--gb-border)',borderTopColor:'var(--gb-primary)',animation:'spin .8s linear infinite',margin:'0 auto 16px' }} />
         Loading builder…
         <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
       </div>
@@ -1375,7 +1361,7 @@ const [nameInput,     setNameInput]     = useState('')
                             style={{
                               width:'100%', boxSizing:'border-box',
                               padding:'8px 10px', borderRadius:8, cursor:'grab', fontSize:13,
-                              background: isDragging ? '#e8e8ff' : isSelected ? '#eef0ff' : '#fff',
+                              background: isDragging ? 'var(--gb-primary-bg)' : isSelected ? 'var(--gb-primary-bg)' : 'var(--gb-surface)',
                               border:`1.5px solid ${isSelected ? 'var(--gb-primary)' : 'var(--gb-border)'}`,
                               opacity: isDragging ? 0.6 : 1,
                               transition:'all .12s',
@@ -1887,10 +1873,10 @@ const [nameInput,     setNameInput]     = useState('')
                           <div key={font} onClick={() => setSettings({...settings,font_family:font})}
                             style={{ padding:'6px 8px', borderRadius:6, cursor:'pointer', fontSize:12,
                               border:`1.5px solid ${settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? 'var(--gb-primary)' : 'var(--gb-border)'}`,
-                              background: settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? '#eef0ff' : '#fff',
+                              background: settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? 'var(--gb-primary-bg)' : 'var(--gb-surface)',
                               transition:'all .12s', fontFamily: "'" + font + "', sans-serif" }}>
                             <div style={{ fontWeight:700, lineHeight:1.3 }}>{font}</div>
-                            <div style={{ color:'#888', fontWeight:400, lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>The quick brown fox</div>
+                            <div style={{ color:'var(--gb-text3)', fontWeight:400, lineHeight:1.2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>The quick brown fox</div>
                           </div>
                         ))}
                       </div>

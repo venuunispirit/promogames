@@ -7,21 +7,21 @@ const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wgh
 const CSS = `
 @import url('${FONT_URL}');
 .gp *,.gp *::before,.gp *::after{box-sizing:border-box;margin:0;padding:0}
-.gp{font-family:'DM Sans',sans-serif;color:#111827;background:#F8F9FB;min-height:100vh}
+.gp{font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg-secondary);min-height:100vh}
 @keyframes gpFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes gpModalIn{from{opacity:0;transform:scale(0.96)translateY(6px)}to{opacity:1;transform:none}}
 @keyframes gpToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes gpSpin{to{transform:rotate(360deg)}}
 @keyframes gpPulse{0%,100%{opacity:1}50%{opacity:.5}}
-.gp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color:#111;background:#FAFAFA;outline:none;transition:border-color .15s,background .15s}
-.gp-input:focus{border-color:#818CF8;background:#fff}
-.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:#18181B;color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
+.gp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s,background .15s}
+.gp-input:focus{border-color:#818CF8;background:var(--surface)}
+.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--text);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
 .gp-primary-btn:hover{background:#27272A}
 .gp-primary-btn:active{transform:scale(.98)}
 .gp-primary-btn:disabled{opacity:.55;cursor:not-allowed}
-.gp-ghost-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:1.5px solid #E5E7EB;background:#fff;color:#374151;font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s;white-space:nowrap}
-.gp-ghost-btn:hover{background:#F3F4F6;border-color:#D1D5DB}
-.gp-stat-card{background:#fff;border-radius:14px;border:1.5px solid #EAECF0;padding:18px 20px;transition:border-color .18s,box-shadow .18s,transform .18s;animation:gpFadeUp .3s ease both}
+.gp-ghost-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s;white-space:nowrap}
+.gp-ghost-btn:hover{background:var(--border-light);border-color:var(--border-light)}
+.gp-stat-card{background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:18px 20px;transition:border-color .18s,box-shadow .18s,transform .18s;animation:gpFadeUp .3s ease both}
 .gp-stat-card:hover{border-color:#C7D2FE;box-shadow:0 4px 20px rgba(99,102,241,.08);transform:translateY(-1px)}
 `
 
@@ -153,7 +153,7 @@ export default function GameResponsesPage() {
   }
 
   const SortIcon = ({ field }) => {
-    if (sortField !== field) return <span style={{color:'#9CA3AF',marginLeft:4}}><Ico.arrowSort/></span>
+    if (sortField !== field) return <span style={{color:'var(--text3)',marginLeft:4}}><Ico.arrowSort/></span>
     return <span style={{color:'#4F46E5',marginLeft:4}}>{sortDir === 'asc' ? <Ico.arrowUp/> : <Ico.arrowDown/>}</span>
   }
 
@@ -216,7 +216,7 @@ export default function GameResponsesPage() {
     return (
       <div className="gp">
         <style>{CSS}</style>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',gap:10,color:'#9CA3AF',fontSize:14}}>
+        <div style={{display:'flex',alignItems:'center',justifyContent:'center',height:'100vh',gap:10,color:'var(--text3)',fontSize:14}}>
           <Ico.spin/> Loading responses…
         </div>
       </div>
@@ -245,9 +245,9 @@ export default function GameResponsesPage() {
           <div style={{display:'flex',alignItems:'center',gap:14}}>
             <button
               style={{
-                width:36,height:36,borderRadius:8,border:'1.5px solid #E5E7EB',
-                background:'#F9FAFB',display:'flex',alignItems:'center',
-                justifyContent:'center',cursor:'pointer',color:'#374151',flexShrink:0
+                width:36,height:36,borderRadius:8,border:'1.5px solid var(--border)',
+                background:'var(--surface2)',display:'flex',alignItems:'center',
+                justifyContent:'center',cursor:'pointer',color:'var(--text)',flexShrink:0
               }}
               onClick={() => navigate('/dashboard/games')}
               title="Back to Games"
@@ -255,7 +255,7 @@ export default function GameResponsesPage() {
               <Ico.back/>
             </button>
             <div>
-              <div style={{fontSize:16,fontWeight:700,color:'#0D0D1A',fontFamily:"'Fraunces',serif",lineHeight:1.2}}>
+              <div style={{fontSize:16,fontWeight:700,color:'var(--text)',fontFamily:"'Fraunces',serif",lineHeight:1.2}}>
                 {game?.name}
               </div>
               <div style={{fontSize:10,fontWeight:700,color:'#6366F1',textTransform:'uppercase',letterSpacing:'.08em',marginTop:2}}>
@@ -272,18 +272,18 @@ export default function GameResponsesPage() {
               { label:'Avg Score', value: avgScore, color:'#F59E0B' },
             ].map(s => (
               <div key={s.label} style={{
-                flex:1,background:'#fff',borderRadius:10,border:'1.5px solid #EAECF0',
+                flex:1,background:'var(--surface)',borderRadius:10,border:'1.5px solid var(--border)',
                 padding:'6px 14px',display:'flex',alignItems:'center',gap:8,height:38
               }}>
                 <div style={{fontSize:17,fontWeight:700,color:s.color,fontFamily:"'Fraunces',serif",lineHeight:1,flex:1}}>{s.value}</div>
-                <div style={{fontSize:8.5,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.05em',whiteSpace:'nowrap',flexShrink:0}}>{s.label}</div>
+                <div style={{fontSize:8.5,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.05em',whiteSpace:'nowrap',flexShrink:0}}>{s.label}</div>
               </div>
             ))}
           </div>
 
           {/* Col 3: Search */}
           <div style={{position:'relative'}}>
-            <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:'#9CA3AF',zIndex:1}}>
+            <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:'var(--text3)',zIndex:1}}>
               <Ico.search/>
             </span>
             <input
@@ -317,20 +317,20 @@ export default function GameResponsesPage() {
                 <path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2M9 5a2 2 0 0 0 2 2h2a2 2 0 0 0 2-2M9 5a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2"/>
               </svg>
             </div>
-            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A',marginBottom:8}}>
+            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'var(--text)',marginBottom:8}}>
               No responses yet
             </h3>
-            <p style={{color:'#9CA3AF',fontSize:14}}>
+            <p style={{color:'var(--text3)',fontSize:14}}>
               Players who complete the game will appear here.
             </p>
           </div>
         ) : sorted.length === 0 && search ? (
           <div style={{textAlign:'center',padding:'60px 0'}}>
             <div style={{fontSize:48,marginBottom:16}}>🔍</div>
-            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:18,color:'#0D0D1A',marginBottom:8}}>
+            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:18,color:'var(--text)',marginBottom:8}}>
               No matching responses
             </h3>
-            <p style={{color:'#9CA3AF',fontSize:14}}>
+            <p style={{color:'var(--text3)',fontSize:14}}>
               Try adjusting your search terms
             </p>
           </div>
@@ -339,19 +339,19 @@ export default function GameResponsesPage() {
             <div style={{
               overflowX:'auto',
               borderRadius:14,
-              border:'1.5px solid #EAECF0',
-              background:'#fff',
+              border:'1.5px solid var(--border)',
+              background:'var(--surface)',
               boxShadow:'0 4px 16px rgba(0,0,0,0.04)'
             }}>
               <table style={{width:'100%',borderCollapse:'collapse'}}>
                 <thead>
-                  <tr style={{background:'#F8F9FB',borderBottom:'2px solid #EAECF0'}}>
+                  <tr style={{background:'var(--bg-secondary)',borderBottom:'2px solid var(--border)'}}>
                     <th style={{
                       padding:'14px 16px',
                       textAlign:'left',
                       fontSize:11,
                       fontWeight:700,
-                      color:'#6B7280',
+                      color:'var(--text2)',
                       textTransform:'uppercase',
                       letterSpacing:'.08em',
                       whiteSpace:'nowrap'
@@ -367,7 +367,7 @@ export default function GameResponsesPage() {
                           textAlign:'left',
                           fontSize:11,
                           fontWeight:700,
-                          color:'#6B7280',
+                          color:'var(--text2)',
                           textTransform:'uppercase',
                           letterSpacing:'.08em',
                           cursor:'pointer',
@@ -376,7 +376,7 @@ export default function GameResponsesPage() {
                           transition:'color .15s'
                         }}
                         onMouseEnter={e => e.currentTarget.style.color = '#4F46E5'}
-                        onMouseLeave={e => e.currentTarget.style.color = sortField === k ? '#4F46E5' : '#6B7280'}
+                        onMouseLeave={e => e.currentTarget.style.color = sortField === k ? '#4F46E5' : 'var(--text2)'}
                       >
                         <div style={{display:'inline-flex',alignItems:'center'}}>
                           {k}
@@ -391,7 +391,7 @@ export default function GameResponsesPage() {
                         textAlign:'center',
                         fontSize:11,
                         fontWeight:700,
-                        color:'#6B7280',
+                        color:'var(--text2)',
                         textTransform:'uppercase',
                         letterSpacing:'.08em',
                         cursor:'pointer',
@@ -400,7 +400,7 @@ export default function GameResponsesPage() {
                         transition:'color .15s'
                       }}
                       onMouseEnter={e => e.currentTarget.style.color = '#4F46E5'}
-                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'score' ? '#4F46E5' : '#6B7280'}
+                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'score' ? '#4F46E5' : 'var(--text2)'}
                     >
                       <div style={{display:'inline-flex',alignItems:'center'}}>
                         Score
@@ -416,7 +416,7 @@ export default function GameResponsesPage() {
                           textAlign:'center',
                           fontSize:11,
                           fontWeight:700,
-                          color:'#6B7280',
+                          color:'var(--text2)',
                           textTransform:'uppercase',
                           letterSpacing:'.08em',
                           whiteSpace:'nowrap'
@@ -432,7 +432,7 @@ export default function GameResponsesPage() {
                         textAlign:'left',
                         fontSize:11,
                         fontWeight:700,
-                        color:'#6B7280',
+                        color:'var(--text2)',
                         textTransform:'uppercase',
                         letterSpacing:'.08em',
                         cursor:'pointer',
@@ -441,7 +441,7 @@ export default function GameResponsesPage() {
                         transition:'color .15s'
                       }}
                       onMouseEnter={e => e.currentTarget.style.color = '#4F46E5'}
-                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'completed_at' ? '#4F46E5' : '#6B7280'}
+                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'completed_at' ? '#4F46E5' : 'var(--text2)'}
                     >
                       <div style={{display:'inline-flex',alignItems:'center'}}>
                         Completed
@@ -456,7 +456,7 @@ export default function GameResponsesPage() {
                         textAlign:'center',
                         fontSize:11,
                         fontWeight:700,
-                        color:'#6B7280',
+                        color:'var(--text2)',
                         textTransform:'uppercase',
                         letterSpacing:'.08em',
                         cursor:'pointer',
@@ -465,7 +465,7 @@ export default function GameResponsesPage() {
                         transition:'color .15s'
                       }}
                       onMouseEnter={e => e.currentTarget.style.color = '#4F46E5'}
-                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'source_type' ? '#4F46E5' : '#6B7280'}
+                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'source_type' ? '#4F46E5' : 'var(--text2)'}
                     >
                       <div style={{display:'inline-flex',alignItems:'center'}}>
                         Source
@@ -477,7 +477,7 @@ export default function GameResponsesPage() {
                       textAlign:'center',
                       fontSize:11,
                       fontWeight:700,
-                      color:'#6B7280',
+                      color:'var(--text2)',
                       textTransform:'uppercase',
                       letterSpacing:'.08em',
                       whiteSpace:'nowrap'
@@ -494,17 +494,17 @@ export default function GameResponsesPage() {
                       <tr
                         key={r.session.id}
                         style={{
-                          borderBottom:'1px solid #F3F4F6',
+                          borderBottom:'1px solid var(--border-light)',
                           transition:'background .13s',
-                          background: idx % 2 === 0 ? '#fff' : '#FAFAFA'
+                          background: idx % 2 === 0 ? 'var(--surface)' : 'var(--surface2)'
                         }}
-                        onMouseEnter={e => e.currentTarget.style.background = '#F8F9FB'}
-                        onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? '#fff' : '#FAFAFA'}
+                        onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-secondary)'}
+                        onMouseLeave={e => e.currentTarget.style.background = idx % 2 === 0 ? 'var(--surface)' : 'var(--surface2)'}
                       >
                         <td style={{
                           padding:'12px 16px',
                           fontSize:13,
-                          color:'#9CA3AF',
+                          color:'var(--text3)',
                           fontWeight:600,
                           fontFamily:'monospace'
                         }}>
@@ -517,14 +517,14 @@ export default function GameResponsesPage() {
                             style={{
                               padding:'12px 16px',
                               fontSize:13.5,
-                              color:'#374151',
+                              color:'var(--text)',
                               maxWidth:200,
                               overflow:'hidden',
                               textOverflow:'ellipsis',
                               whiteSpace:'nowrap'
                             }}
                           >
-                            {pd[k] || <span style={{color:'#D1D5DB'}}>—</span>}
+                            {pd[k] || <span style={{color:'var(--border-light)'}}>—</span>}
                           </td>
                         ))}
                         <td style={{
@@ -536,7 +536,7 @@ export default function GameResponsesPage() {
                         }}>
                           {r.session.score || 0}
                           {r.session.total_scoreable > 0 && (
-                            <span style={{color:'#9CA3AF',fontWeight:400,fontSize:12}}>
+                            <span style={{color:'var(--text3)',fontWeight:400,fontSize:12}}>
                               /{r.session.total_scoreable}
                             </span>
                           )}
@@ -544,7 +544,7 @@ export default function GameResponsesPage() {
                         {questions.map(q => {
                           const a = ansMap[q.id]
                           if (!a) return (
-                            <td key={q.id} style={{padding:'12px 16px',color:'#D1D5DB',textAlign:'center',fontSize:13}}>
+                            <td key={q.id} style={{padding:'12px 16px',color:'var(--border-light)',textAlign:'center',fontSize:13}}>
                               —
                             </td>
                           )
@@ -568,7 +568,7 @@ export default function GameResponsesPage() {
                                   textOverflow:'ellipsis',
                                   whiteSpace:'nowrap',
                                   fontSize:12.5,
-                                  color:'#6B7280'
+                                  color:'var(--text2)'
                                 }}>
                                   {a.option_text || `#${a.option_id}`}
                                 </span>
@@ -579,7 +579,7 @@ export default function GameResponsesPage() {
                         <td style={{
                           padding:'12px 16px',
                           fontSize:12.5,
-                          color:'#6B7280',
+                          color:'var(--text2)',
                           whiteSpace:'nowrap'
                         }}>
                           {r.session.completed_at
@@ -589,12 +589,12 @@ export default function GameResponsesPage() {
                                 hour: '2-digit',
                                 minute: '2-digit'
                               })
-                            : <span style={{color:'#D1D5DB'}}>—</span>}
+                            : <span style={{color:'var(--border-light)'}}>—</span>}
                         </td>
                         {/* SOURCE COLUMN CELL */}
                         <td style={{padding:'12px 16px',textAlign:'center'}}>
                           {r.session.source_type === 'direct'
-                            ? <span style={{background:'#EEF2FF',color:'#4338CA',padding:'2px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>🌐 Website</span>
+                            ? <span style={{background:'var(--primary-bg)',color:'#4338CA',padding:'2px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>🌐 Website</span>
                             : <span style={{background:'#F0FDF4',color:'#15803D',padding:'2px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>🔗 Link</span>}
                         </td>
                         <td style={{padding:'12px 16px',textAlign:'center'}}>
@@ -614,7 +614,7 @@ export default function GameResponsesPage() {
                               ✓
                             </span>
                           ) : (
-                            <span style={{color:'#D1D5DB'}}>—</span>
+                            <span style={{color:'var(--border-light)'}}>—</span>
                           )}
                         </td>
                       </tr>
@@ -627,7 +627,7 @@ export default function GameResponsesPage() {
             <div style={{
               marginTop:16,
               fontSize:12.5,
-              color:'#9CA3AF',
+              color:'var(--text3)',
               textAlign:'right',
               fontWeight:500
             }}>

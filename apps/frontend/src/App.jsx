@@ -2,7 +2,6 @@ import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { ThemeProvider } from "./pages/ThemeContext"
 import './pages/Theme.css'
-import './pages/theme-override.css'
 import LoginPage         from './pages/LoginPage'
 import DashboardLayout   from './components/DashboardLayout'
 import DashboardHome     from './pages/DashboardHome'

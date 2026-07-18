@@ -7,7 +7,7 @@ import api from '../api'
 // ── Purple pin icon ──
 const purpleIcon = L.divIcon({
   className: 'loc-pin',
-  html: `<div style="background:#7c3aed;width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);"></div>`,
+  html: `<div style="background:#7c3aed;width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);border:3px solid var(--surface);box-shadow:0 2px 6px rgba(0,0,0,.4);"></div>`,
   iconSize: [22, 22],
   iconAnchor: [11, 22],
   popupAnchor: [0, -22],
@@ -124,7 +124,7 @@ export default function LocationMapManager({ gameId, clientId }) {
 
       {/* ── Floating Location Manager card (z-index 2) ── */}
       <div style={{ position: 'absolute', top: 16, right: 16, width: 290, maxHeight: 'calc(100% - 32px)', overflow: 'auto', zIndex: 2,
-        background: '#fff', borderRadius: 14, border: '1px solid #e2e6f0', boxShadow: '0 6px 24px rgba(0,0,0,0.12)', padding: 14, fontFamily: 'inherit' }}>
+        background: 'var(--surface)', borderRadius: 14, border: '1px solid #e2e6f0', boxShadow: '0 6px 24px rgba(0,0,0,0.12)', padding: 14, fontFamily: 'inherit' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <div style={{ fontSize: 14, fontWeight: 800, color: '#1e1e2e' }}>📍 Location Manager</div>
           <span style={{ fontSize: 11, fontWeight: 700, color: '#7c3aed', background: '#f3e8ff', padding: '2px 8px', borderRadius: 6 }}>{locations.length}</span>
@@ -159,7 +159,7 @@ export default function LocationMapManager({ gameId, clientId }) {
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
                   <button onClick={(e) => { e.stopPropagation(); if (l.game_id) window.open(`/dashboard/games/${l.game_id}/builder`, '_blank') }}
-                    style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid #e2e6f0', background: '#fff', cursor: 'pointer', fontSize: 10, fontWeight: 600, color: '#7c3aed', fontFamily: 'inherit' }}>Edit</button>
+                    style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid #e2e6f0', background: 'var(--surface)', cursor: 'pointer', fontSize: 10, fontWeight: 600, color: '#7c3aed', fontFamily: 'inherit' }}>Edit</button>
                   <button onClick={(e) => { e.stopPropagation(); handleDelete(l) }}
                     style={{ padding: '3px 8px', borderRadius: 6, border: '1px solid #fecaca', background: '#fef2f2', cursor: 'pointer', fontSize: 10, fontWeight: 600, color: '#dc2626', fontFamily: 'inherit' }}>✕</button>
                 </div>
@@ -171,7 +171,7 @@ export default function LocationMapManager({ gameId, clientId }) {
       </div>
 
       {/* ── Floating Add Location card (z-index 2) ── */}
-      <div style={{ position: 'absolute', bottom: 16, left: 16, width: 290, background: '#fff', borderRadius: 14, zIndex: 2,
+      <div style={{ position: 'absolute', bottom: 16, left: 16, width: 290, background: 'var(--surface)', borderRadius: 14, zIndex: 2,
         border: '1px solid #e2e6f0', boxShadow: '0 6px 24px rgba(0,0,0,0.12)', padding: 14, fontFamily: 'inherit' }}>
         {!showAdd ? (
           <button onClick={() => setShowAdd(true)}
@@ -198,7 +198,7 @@ export default function LocationMapManager({ gameId, clientId }) {
                 {saving ? 'Creating…' : 'Create & Drop Pin'}
               </button>
               <button onClick={() => { setShowAdd(false); setSelBranch(''); setReward('') }}
-                style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1.5px solid #e2e6f0', background: '#fff', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
+                style={{ flex: 1, padding: '9px', borderRadius: 8, border: '1.5px solid #e2e6f0', background: 'var(--surface)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>Cancel</button>
             </div>
           </div>
         )}

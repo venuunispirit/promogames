@@ -10,11 +10,12 @@ import {
   ArrowRight, Frown, Volume2, CircleX, Crown, Car, Crosshair, Box, Copy, Trash2
 } from 'lucide-react'
 import api from '../api'
+import { useTheme } from './ThemeContext'
 
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
 const CATEGORY_META = {
-  quiz:      { label:'Quiz',          bg:'#EEF2FF', fg:'#4338CA', dot:'#818CF8', icon:'🧠', desc:'Test knowledge with questions' },
+  quiz:      { label:'Quiz',          bg:'var(--primary-bg)', fg:'#4338CA', dot:'#818CF8', icon:'🧠', desc:'Test knowledge with questions' },
   survey:    { label:'Survey',        bg:'#F0FDF4', fg:'#15803D', dot:'#4ADE80', icon:'📋', desc:'Collect feedback & opinions' },
   poll:      { label:'Poll',          bg:'#FFF7ED', fg:'#C2410C', dot:'#FB923C', icon:'📊', desc:'Quick audience polls' },
   registration:{ label:'Registration',bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'📝', desc:'Collect user registrations' },
@@ -27,19 +28,19 @@ const CATEGORY_META = {
   typer:     { label:'Speed Typer',   bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'⌨️', desc:'Type falling words fast' },
   screw:     { label:'Screw & Reveal',bg:'#FEF3C7', fg:'#92400E', dot:'#D97706', icon:'🔩', desc:'Unscrew blocks to reveal' },
   math:      { label:'Math Game',     bg:'#F0FDF4', fg:'#15803D', dot:'#22C55E', icon:'🔢', desc:'Solve math questions' },
-  maze:      { label:'Maze Game',     bg:'#EEF2FF', fg:'#4338CA', dot:'#6366F1', icon:'🌀', desc:'Navigate the maze' },
+  maze:      { label:'Maze Game',     bg:'var(--primary-bg)', fg:'#4338CA', dot:'#6366F1', icon:'🌀', desc:'Navigate the maze' },
   '2048':    { label:'2048',           bg:'#FFF7ED', fg:'#C2410C', dot:'#FB923C', icon:'🔢', desc:'Merge tiles to reach 2048' },
   snake:     { label:'Snake',          bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'🐍', desc:'Classic snake game' },
   catch:     { label:'Catch',          bg:'#F5F3FF', fg:'#7C3AED', dot:'#A78BFA', icon:'🧺', desc:'Catch falling objects' },
   reaction:  { label:'Reaction',       bg:'#FDF2F8', fg:'#BE185D', dot:'#EC4899', icon:'⚡', desc:'Test reaction speed' },
-  simon:     { label:'Simon Says',     bg:'#EEF2FF', fg:'#4338CA', dot:'#818CF8', icon:'🎯', desc:'Repeat the color sequence' },
+  simon:     { label:'Simon Says',     bg:'var(--primary-bg)', fg:'#4338CA', dot:'#818CF8', icon:'🎯', desc:'Repeat the color sequence' },
   flappy:    { label:'Flappy Bird',    bg:'#FFFBEB', fg:'#B45309', dot:'#F59E0B', icon:'🐦', desc:'Fly through the pipes' },
   bounce:    { label:'Bounce Ball',    bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'🏀', desc:'Bounce ball through levels' },
-  space:     { label:'Space Fighter',  bg:'#0F172A', fg:'#38BDF8', dot:'#0EA5E9', icon:'🚀', desc:'Shoot enemies in space' },
+  space:     { label:'Space Fighter',  bg:'var(--text)', fg:'#38BDF8', dot:'#0EA5E9', icon:'🚀', desc:'Shoot enemies in space' },
   connect4:  { label:'Connect 4',      bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'🔴', desc:'Connect 4 in a row to win' },
   bejeweled: { label:'Bejeweled',      bg:'#FDF2F8', fg:'#BE185D', dot:'#EC4899', icon:'💎', desc:'Match gems in a grid' },
-  tetris:    { label:'Tetris',         bg:'#0F172A', fg:'#00f0f0', dot:'#00f0f0', icon:'🧱', desc:'Classic block-stacking puzzle' },
-  stack:     { label:'Stack',          bg:'#0F172A', fg:'#6366f1', dot:'#818CF8', icon:'📦', desc:'Stack blocks as high as you can' },
+  tetris:    { label:'Tetris',         bg:'var(--text)', fg:'#00f0f0', dot:'#00f0f0', icon:'🧱', desc:'Classic block-stacking puzzle' },
+  stack:     { label:'Stack',          bg:'var(--text)', fg:'#6366f1', dot:'#818CF8', icon:'📦', desc:'Stack blocks as high as you can' },
   bowling:   { label:'Bowling',        bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'🎳', desc:'Roll strikes and spares' },
   sudoku:    { label:'Sudoku',         bg:'#EFF6FF', fg:'#1E40AF', dot:'#3B82F6', icon:'🔢', desc:'Fill the grid with numbers' },
   minesweeper:{ label:'Minesweeper',   bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'💣', desc:'Find all safe cells' },
@@ -47,16 +48,16 @@ const CATEGORY_META = {
   rps:       { label:'Rock Paper Scissors', bg:'#FEE2E2', fg:'#991B1B', dot:'#EF4444', icon:'✊', desc:'Beat the AI in RPS' },
   whackamole:{ label:'Whack a Mole',       bg:'#FEF3C7', fg:'#B45309', dot:'#F59E0B', icon:'🔨', desc:'Whack moles in the grid' },
   hanoi:     { label:'Hanoi Tower',        bg:'#F5F3FF', fg:'#6D28D9', dot:'#A78BFA', icon:'🗼', desc:'Move disks between pegs' },
-  breakout:  { label:'Breakout',           bg:'#0F172A', fg:'#f43f5e', dot:'#f43f5e', icon:'🧱', desc:'Break bricks with a ball' },
+  breakout:  { label:'Breakout',           bg:'var(--text)', fg:'#f43f5e', dot:'#f43f5e', icon:'🧱', desc:'Break bricks with a ball' },
   bubbleshooter:{ label:'Bubble Shooter',  bg:'#ECFEFF', fg:'#0E7490', dot:'#06B6D4', icon:'🫧', desc:'Pop matching bubbles' },
-  carlaunch:   { label:'Car Launch',       bg:'#0F172A', fg:'#ef4444', dot:'#ef4444', icon:'🏎️', desc:'3D car configurator + drag race' },
+  carlaunch:   { label:'Car Launch',       bg:'var(--text)', fg:'#ef4444', dot:'#ef4444', icon:'🏎️', desc:'3D car configurator + drag race' },
   arrowescape:{ label:'Arrow Escape',    bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'➡️', desc:'Guide arrows through mazes' },
   stressbuster:{ label:'Stress Buster',  bg:'#FEF2F2', fg:'#991B1B', dot:'#F87171', icon:'😤', desc:'Click-based stress relief game' },
   soundify:    { label:'Soundify',       bg:'#F5F3FF', fg:'#6D28D9', dot:'#A78BFA', icon:'🔊', desc:'Sound-based interactive quiz' },
   tictactoe:   { label:'Tic Tac Toe',    bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'❌', desc:'Classic noughts and crosses' },
-  chess:      { label:'Chess',          bg:'#F7F7F7', fg:'#1F2937', dot:'#374151', icon:'♟️', desc:'Two-player online chess' },
+  chess:      { label:'Chess',          bg:'#F7F7F7', fg:'var(--text)', dot:'var(--text)', icon:'♟️', desc:'Two-player online chess' },
 }
-const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F6F9', fg:'#374151', dot:'#9CA3AF' }
+const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F6F9', fg:'var(--text)', dot:'var(--text3)' }
 
 const CATEGORY_ICON = {
   quiz:'HelpCircle', survey:'ClipboardList', poll:'BarChart3', registration:'FileText',
@@ -84,7 +85,7 @@ const CSS = `
 @media(max-width:820px){.gp [style*="column-count:4"]{column-count:3!important}}
 @media(max-width:600px){.gp [style*="column-count:4"]{column-count:2!important}}
 @media(max-width:440px){.gp [style*="column-count:4"]{column-count:1!important}}
-.gp{font-family:'DM Sans',sans-serif;color: #111827;background: #F8F9FB;min-height:100vh}
+.gp{font-family:'DM Sans',sans-serif;color: var(--text);background: var(--bg-secondary);min-height:100vh}
 @keyframes gpFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 @keyframes gpModalIn{from{opacity:0;transform:scale(0.96)translateY(6px)}to{opacity:1;transform:none}}
 @keyframes gpToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
@@ -93,50 +94,50 @@ const CSS = `
 @keyframes gpRowIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* Inputs & selects */
-.gp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid  #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color: #111;background: #FAFAFA;outline:none;transition:border-color .15s,background .15s}
-.gp-input:focus{border-color: #818CF8;background: #fff}
-.gp-select{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid  #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color: #111;background: #FAFAFA;outline:none;appearance:none;cursor:pointer;transition:border-color .15s}
+.gp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid  var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color: var(--text);background: var(--surface2);outline:none;transition:border-color .15s,background .15s}
+.gp-input:focus{border-color: #818CF8;background: var(--surface)}
+.gp-select{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid  var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color: var(--text);background: var(--surface2);outline:none;appearance:none;cursor:pointer;transition:border-color .15s}
 .gp-select:focus{border-color: #818CF8}
-.gp-label{display:block;font-size:10.5px;font-weight:700;color: #9CA3AF;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
+.gp-label{display:block;font-size:10.5px;font-weight:700;color: var(--text3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
 .gp-field{margin-bottom:16px}
 
 /* Buttons */
-.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background: #18181B;color: #fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
+.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background: var(--text);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
 .gp-primary-btn:hover{background: #27272A}
 .gp-primary-btn:active{transform:scale(.98)}
 .gp-primary-btn:disabled{opacity:.55;cursor:not-allowed}
-.gp-ghost-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1.5px solid  #E5E7EB;background: #fff;color: #374151;font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s;white-space:nowrap}
-.gp-ghost-btn:hover{background: #F3F4F6;border-color: #D1D5DB}
-.gp-icon-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid  #E5E7EB;background: #F9FAFB;display:flex;align-items:center;justify-content:center;cursor:pointer;color: #374151;transition:background .13s;flex-shrink:0}
+.gp-ghost-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1.5px solid  var(--border);background: var(--surface);color: var(--text);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s;white-space:nowrap}
+.gp-ghost-btn:hover{background: var(--border-light);border-color: var(--border-light)}
+.gp-icon-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid  var(--border);background: var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;color: var(--text);transition:background .13s;flex-shrink:0}
 .gp-icon-btn:hover{background: #F0F0F0}
 .gp-icon-btn.del{border-color: #FEE2E2;background: #FFF5F5;color: #DC2626}
 .gp-icon-btn.del:hover{background: #FEE2E2}
 
 /* Toggle */
 .gp-toggle{width:34px;height:20px;border-radius:100px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;padding:0}
-.gp-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background: #fff;transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.gp-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background: var(--surface);transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
 .gp-toggle.on{background: #4F46E5}
 .gp-toggle.on::after{transform:translateX(14px)}
-.gp-toggle.off{background: #D1D5DB}
+.gp-toggle.off{background: var(--border-light)}
 
 /* Table */
-.gp-table-wrap{background: #fff;border-radius:16px;border:1.5px solid  #EAECF0;overflow:hidden;animation:gpFadeUp .3s ease both}
+.gp-table-wrap{background: var(--surface);border-radius:16px;border:1.5px solid  var(--border);overflow:hidden;animation:gpFadeUp .3s ease both}
 .gp-table{width:100%;border-collapse:collapse;font-family:'DM Sans',sans-serif}
-.gp-table thead tr{background: #F9FAFB;border-bottom:1.5px solid  #EAECF0}
-.gp-table thead th{padding:11px 14px;text-align:center;font-size:11px;font-weight:700;color: #6B7280;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;user-select:none}
-.gp-table tbody tr{border-bottom:1px solid  #F3F4F6;transition:background .13s;animation:gpRowIn .25s ease both}
+.gp-table thead tr{background: var(--surface2);border-bottom:1.5px solid  var(--border)}
+.gp-table thead th{padding:11px 14px;text-align:center;font-size:11px;font-weight:700;color: var(--text2);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;user-select:none}
+.gp-table tbody tr{border-bottom:1px solid  var(--border-light);transition:background .13s;animation:gpRowIn .25s ease both}
 .gp-table tbody tr:last-child{border-bottom:none}
 .gp-table tbody tr:hover{background: #FAFBFF}
 .gp-table tbody tr.inactive-row{opacity:.7}
-.gp-table tbody td{padding:13px 14px;font-size:13px;color: #374151;vertical-align:middle;text-align:center}
+.gp-table tbody td{padding:13px 14px;font-size:13px;color: var(--text);vertical-align:middle;text-align:center}
 
 /* Sort caret */
-.gp-th-btn{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color: #6B7280;text-transform:uppercase;letter-spacing:.08em;padding:0;font-family:'DM Sans',sans-serif}
-.gp-th-btn:hover{color: #374151}
+.gp-th-btn{background:none;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;color: var(--text2);text-transform:uppercase;letter-spacing:.08em;padding:0;font-family:'DM Sans',sans-serif}
+.gp-th-btn:hover{color: var(--text)}
 
 /* Tooltip toggle label */
 .gp-toggle-wrap{display:flex;flex-direction:column;align-items:center;gap:3px}
-.gp-toggle-label{font-size:10px;color: #9CA3AF;font-weight:500;white-space:nowrap}
+.gp-toggle-label{font-size:10px;color: var(--text3);font-weight:500;white-space:nowrap}
 `
 
 const Ico = {
@@ -165,7 +166,7 @@ function Toast({ msg, type, onClose }) {
   return (
     <div style={{
       position:'fixed',bottom:28,right:28,zIndex:9999,
-      background: ok ? ' #052E16' : ' #450A0A', color:' #fff',
+      background: ok ? ' #052E16' : ' #450A0A', color:' var(--surface)',
       padding:'13px 20px 13px 16px',borderRadius:12,fontSize:13.5,
       fontFamily:"'DM Sans',sans-serif",fontWeight:500,
       display:'flex',alignItems:'center',gap:10,
@@ -213,7 +214,7 @@ function QRCodeModal({ game, onClose, onError }) {
     QRCode.toDataURL(link, {
       width: 260,
       margin: 2,
-      color: { dark:'#0D0D1A', light:'#FFFFFF' }
+      color: { dark:'var(--text)', light:'#FFFFFF' }
     }).then(setQrDataUrl).catch(() => onError('Failed to generate QR'))
   }, [])
 
@@ -238,19 +239,19 @@ function QRCodeModal({ game, onClose, onError }) {
 
   return (
     <div style={{position:'fixed',inset:0,zIndex:800,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
-      <div style={{position:'relative',background:' #fff',borderRadius:24,width:'100%',maxWidth:400,padding:'34px 28px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif",textAlign:'center'}}>
+      <div style={{position:'relative',background:' var(--surface)',borderRadius:24,width:'100%',maxWidth:400,padding:'34px 28px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif",textAlign:'center'}}>
         <button className="gp-icon-btn" onClick={onClose} style={{position:'absolute',top:14,right:14}}><Ico.close/></button>
         <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:22}}>
           <img src="/favicon3.png" alt="" style={{width:30,height:30,borderRadius:8,objectFit:'cover'}} onError={e=>{e.target.style.display='none'}} />
-          <span style={{fontSize:15,fontWeight:700,color:' #0D0D1A',letterSpacing:'-0.01em'}}>{game.company_name}</span>
+          <span style={{fontSize:15,fontWeight:700,color:' var(--text)',letterSpacing:'-0.01em'}}>{game.company_name}</span>
         </div>
         {qrDataUrl ? (
-          <img src={qrDataUrl} alt="QR Code" style={{width:200,height:200,borderRadius:16,margin:'0 auto 20px',display:'block',padding:12,background:' #FAFAFA',border:'1px solid  #EAECF0'}} />
+          <img src={qrDataUrl} alt="QR Code" style={{width:200,height:200,borderRadius:16,margin:'0 auto 20px',display:'block',padding:12,background:' var(--surface2)',border:'1px solid  var(--border)'}} />
         ) : (
-          <div style={{width:200,height:200,borderRadius:16,margin:'0 auto 20px',background:' #F3F4F6',display:'flex',alignItems:'center',justifyContent:'center',color:' #9CA3AF'}}><Ico.spin/></div>
+          <div style={{width:200,height:200,borderRadius:16,margin:'0 auto 20px',background:' var(--border-light)',display:'flex',alignItems:'center',justifyContent:'center',color:' var(--text3)'}}><Ico.spin/></div>
         )}
-        <p style={{fontSize:13.5,fontWeight:600,color:' #0D0D1A',marginBottom:4}}>{game.name}</p>
-        <p style={{fontSize:12,color:' #9CA3AF',marginBottom:24,wordBreak:'break-all'}}>{link}</p>
+        <p style={{fontSize:13.5,fontWeight:600,color:' var(--text)',marginBottom:4}}>{game.name}</p>
+        <p style={{fontSize:12,color:' var(--text3)',marginBottom:24,wordBreak:'break-all'}}>{link}</p>
         <div style={{display:'flex',flexDirection:'column',gap:8}}>
           <button className="gp-primary-btn" onClick={handleCopyQr} disabled={!qrDataUrl} style={{justifyContent:'center',padding:'11px 0',borderRadius:10,fontSize:13.5}}><Ico.copy/> Copy QR Image</button>
           <button className="gp-ghost-btn" onClick={handleCopyLink} style={{justifyContent:'center',padding:'10px 0',borderRadius:10,fontSize:13}}><Ico.link/> Copy Game Link</button>
@@ -282,11 +283,11 @@ function QuickAddClientModal({ onClose, onCreated, onError }) {
 
   return (
     <div style={{position:'fixed',inset:0,zIndex:700,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
-      <div style={{background:' #fff',borderRadius:20,width:'100%',maxWidth:480,padding:'34px 30px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
+      <div style={{background:' var(--surface)',borderRadius:20,width:'100%',maxWidth:480,padding:'34px 30px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif"}}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:24}}>
           <div>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:' #0D0D1A',letterSpacing:'-0.02em'}}>Add Client</h2>
-            <p style={{color:' #9CA3AF',fontSize:13,marginTop:4}}>Create a client to associate this game with.</p>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:' var(--text)',letterSpacing:'-0.02em'}}>Add Client</h2>
+            <p style={{color:' var(--text3)',fontSize:13,marginTop:4}}>Create a client to associate this game with.</p>
           </div>
           <button className="gp-icon-btn" onClick={onClose}><Ico.close/></button>
         </div>
@@ -320,6 +321,7 @@ function QuickAddClientModal({ onClose, onCreated, onError }) {
 }
 
 function CreateModal({ clients, onClose, onCreated, onError, onAddClient }) {
+  const { isDark } = useTheme()
   const [form, setForm] = useState({client_id:'',name:'',category:'quiz',description:'',redirect_url:''})
   const [submitting, setSubmitting] = useState(false)
   const [gameTypeSearch, setGameTypeSearch] = useState('')
@@ -425,12 +427,12 @@ const handleSubmit = async e => {
   return (
     <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(15,23,42,.65)',backdropFilter:'blur(20px) saturate(1.3)',WebkitBackdropFilter:'blur(20px) saturate(1.3)',animation:'gpFadeIn .3s ease'}}>
       {/* Decorative orbs */}
-      <div style={{position:'fixed',top:'15%',left:'10%',width:350,height:350,borderRadius:'50%',background:'radial-gradient(circle, rgba(255,255,255,.06) 0%, transparent 70%)',filter:'blur(70px)',pointerEvents:'none',animation:'gpOrbFloat 12s ease-in-out infinite'}} />
-      <div style={{position:'fixed',bottom:'5%',right:'8%',width:280,height:280,borderRadius:'50%',background:'radial-gradient(circle, rgba(255,255,255,.04) 0%, transparent 70%)',filter:'blur(60px)',pointerEvents:'none',animation:'gpOrbFloat 15s ease-in-out infinite reverse'}} />
+      <div style={{position:'fixed',top:'15%',left:'10%',width:350,height:350,borderRadius:'50%',background: isDark ? 'radial-gradient(circle, rgba(168,85,247,.12) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(255,255,255,.06) 0%, transparent 70%)',filter:'blur(70px)',pointerEvents:'none',animation:'gpOrbFloat 12s ease-in-out infinite'}} />
+      <div style={{position:'fixed',bottom:'5%',right:'8%',width:280,height:280,borderRadius:'50%',background: isDark ? 'radial-gradient(circle, rgba(99,102,241,.10) 0%, transparent 70%)' : 'radial-gradient(circle, rgba(255,255,255,.04) 0%, transparent 70%)',filter:'blur(60px)',pointerEvents:'none',animation:'gpOrbFloat 15s ease-in-out infinite reverse'}} />
 
       {/* ── Glass Modal ── */}
       <div className="gp-no-scrollbar" style={{
-        background:'rgba(255,255,255,0.78)',
+        background: isDark ? 'rgba(26,26,26,0.82)' : 'rgba(255,255,255,0.78)',
         backdropFilter:'blur(32px) saturate(1.5)',
         WebkitBackdropFilter:'blur(32px) saturate(1.5)',
         borderRadius:28,width:'85vw',maxWidth:1100,maxHeight:'92vh',overflow:'auto',
@@ -451,16 +453,16 @@ const handleSubmit = async e => {
             <div style={{display:'flex',alignItems:'center',gap:14}}>
               <span style={{fontSize:28}}>🎮</span>
               <div>
-                <h2 style={{fontWeight:800,fontSize:22,color:'#111827',margin:0,lineHeight:1.2,letterSpacing:'-0.02em'}}>New Game</h2>
-                <p style={{color:'#6B7280',fontSize:13,marginTop:3}}>Choose a game type to get started</p>
+                <h2 style={{fontWeight:800,fontSize:22,color:'var(--text)',margin:0,lineHeight:1.2,letterSpacing:'-0.02em'}}>New Game</h2>
+                <p style={{color:'var(--text2)',fontSize:13,marginTop:3}}>Choose a game type to get started</p>
               </div>
             </div>
             <button onClick={onClose} style={{
               width:36,height:36,borderRadius:10,
               border:'1px solid rgba(0,0,0,0.1)',background:'rgba(255,255,255,0.6)',
               display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer',
-              color:'#9CA3AF',fontSize:16,transition:'all .15s',flexShrink:0,
-            }} onMouseOver={e=>{e.currentTarget.style.background='rgba(255,255,255,0.9)';e.currentTarget.style.color='#374151'}} onMouseOut={e=>{e.currentTarget.style.background='rgba(255,255,255,0.6)';e.currentTarget.style.color='#9CA3AF'}}><Ico.close/></button>
+              color:'var(--text3)',fontSize:16,transition:'all .15s',flexShrink:0,
+            }} onMouseOver={e=>{e.currentTarget.style.background='rgba(255,255,255,0.9)';e.currentTarget.style.color='var(--text)'}} onMouseOut={e=>{e.currentTarget.style.background='rgba(255,255,255,0.6)';e.currentTarget.style.color='var(--text3)'}}><Ico.close/></button>
           </div>
         </div>
 
@@ -469,20 +471,20 @@ const handleSubmit = async e => {
 
           {/* Client */}
           <div style={{marginBottom:18}}>
-            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>Client <span style={{color:'#EF4444'}}>*</span></label>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text)',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>Client <span style={{color:'#EF4444'}}>*</span></label>
             <div style={{display:'flex',gap:8,alignItems:'center'}}>
               <div style={{position:'relative',flex:1}}>
                 <select value={form.client_id} onChange={set('client_id')} required style={{
                   width:'100%',padding:'9px 36px 9px 12px',borderRadius:8,
                   border:'1.5px solid rgba(0,0,0,0.08)',
                   background:'rgba(255,255,255,0.6)',
-                  fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+                  fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'var(--text)',outline:'none',
                   appearance:'none',cursor:'pointer',transition:'all .2s',
                 }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}}>
                   <option value="">Select a client…</option>
                   {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
                 </select>
-                <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'#9CA3AF'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+                <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'var(--text3)'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
               </div>
               <button type="button" onClick={onAddClient} style={{
                 padding:'9px 12px',whiteSpace:'nowrap',fontSize:12,fontWeight:600,
@@ -496,21 +498,21 @@ const handleSubmit = async e => {
 
           {/* Game Name */}
           <div style={{marginBottom:18}}>
-            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>Game Name <span style={{color:'#EF4444'}}>*</span></label>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text)',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>Game Name <span style={{color:'#EF4444'}}>*</span></label>
             <input value={form.name} onChange={set('name')} placeholder="e.g. Product Knowledge Quiz" required style={{
               width:'100%',padding:'11px 14px',borderRadius:10,
               border:'1.5px solid rgba(0,0,0,0.08)',
               background:'rgba(255,255,255,0.6)',
-              fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+              fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'var(--text)',outline:'none',
               transition:'all .2s',
             }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}} />
           </div>
 
           {/* Category Grid */}
           <div style={{marginBottom:20}}>
-            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}>Choose Game Type</label>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text)',marginBottom:10,textTransform:'uppercase',letterSpacing:'.05em'}}>Choose Game Type</label>
             <div style={{position:'relative',marginBottom:12}}>
-              <svg style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'#9CA3AF'}} width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <svg style={{position:'absolute',left:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'var(--text3)'}} width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
               <input
                 type="text"
                 placeholder="Search game types..."
@@ -520,14 +522,14 @@ const handleSubmit = async e => {
                   width:'100%',padding:'9px 12px 9px 36px',borderRadius:8,
                   border:'1.5px solid rgba(0,0,0,0.08)',
                   background:'rgba(255,255,255,0.6)',
-                  fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+                  fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'var(--text)',outline:'none',
                   transition:'all .2s',
                 }}
                 onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}}
                 onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}}
               />
               {gameTypeSearch && (
-                <button type="button" onClick={() => setGameTypeSearch('')} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'#9CA3AF',padding:2,fontSize:14,lineHeight:1}}>×</button>
+                <button type="button" onClick={() => setGameTypeSearch('')} style={{position:'absolute',right:8,top:'50%',transform:'translateY(-50%)',background:'none',border:'none',cursor:'pointer',color:'var(--text3)',padding:2,fontSize:14,lineHeight:1}}>×</button>
               )}
             </div>
             <div style={{display:'grid',gridTemplateColumns:'repeat(auto-fill, minmax(155px, 1fr))',gap:12}}>
@@ -557,10 +559,10 @@ const handleSubmit = async e => {
                       animation:'gpBounceIn .3s ease',zIndex:2,
                     }}>✓</div>}
                     <span style={{fontSize:30,lineHeight:1}}>{v.icon}</span>
-                    <span style={{fontSize:12,fontWeight:700,color:selected?'#6D28D9':'#1F2937',lineHeight:1.2}}>
+                    <span style={{fontSize:12,fontWeight:700,color:selected?'#6D28D9':'var(--text)',lineHeight:1.2}}>
                       {v.label}
                     </span>
-                    <span style={{fontSize:9.5,color:selected?'#7C3AED':'#9CA3AF',lineHeight:1.3,textAlign:'center'}}>
+                    <span style={{fontSize:9.5,color:selected?'#7C3AED':'var(--text3)',lineHeight:1.3,textAlign:'center'}}>
                       {v.desc}
                     </span>
                   </button>
@@ -571,26 +573,26 @@ const handleSubmit = async e => {
 
           {/* Description */}
           <div style={{marginBottom:18}}>
-            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>Description</label>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text)',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>Description</label>
             <textarea rows={2} value={form.description} onChange={set('description')} placeholder="Optional game description" style={{
               width:'100%',padding:'11px 14px',borderRadius:10,
               border:'1.5px solid rgba(0,0,0,0.08)',
               background:'rgba(255,255,255,0.6)',
-              fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+              fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'var(--text)',outline:'none',
               resize:'vertical',transition:'all .2s',
             }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}} />
           </div>
 
           {/* Redirect URL */}
           <div style={{marginBottom:24}}>
-            <label style={{display:'block',fontSize:11,fontWeight:700,color:'#374151',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>
-              Redirect URL <span style={{color:'#9CA3AF',fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:10}}>(after game ends)</span>
+            <label style={{display:'block',fontSize:11,fontWeight:700,color:'var(--text)',marginBottom:6,textTransform:'uppercase',letterSpacing:'.05em'}}>
+              Redirect URL <span style={{color:'var(--text3)',fontWeight:400,textTransform:'none',letterSpacing:0,fontSize:10}}>(after game ends)</span>
             </label>
             <input type="url" value={form.redirect_url} onChange={set('redirect_url')} placeholder="https://yoursite.com/thankyou" style={{
               width:'100%',padding:'11px 14px',borderRadius:10,
               border:'1.5px solid rgba(0,0,0,0.08)',
               background:'rgba(255,255,255,0.6)',
-              fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'#111',outline:'none',
+              fontSize:14,fontFamily:"'DM Sans',sans-serif",color:'var(--text)',outline:'none',
               transition:'all .2s',
             }} onFocus={e=>{e.target.style.borderColor='#8B5CF6';e.target.style.boxShadow='0 0 0 3px rgba(139,92,246,0.1)';e.target.style.background='rgba(255,255,255,0.9)'}} onBlur={e=>{e.target.style.borderColor='rgba(0,0,0,0.08)';e.target.style.boxShadow='none';e.target.style.background='rgba(255,255,255,0.6)'}} />
           </div>
@@ -600,14 +602,14 @@ const handleSubmit = async e => {
             <button type="button" onClick={onClose} style={{
               flex:1,justifyContent:'center',padding:'12px 0',fontSize:14,fontWeight:600,
               borderRadius:10,border:'1.5px solid rgba(0,0,0,0.08)',background:'rgba(255,255,255,0.5)',
-              color:'#6B7280',cursor:'pointer',transition:'all .15s',fontFamily:"'DM Sans',sans-serif",
+              color:'var(--text2)',cursor:'pointer',transition:'all .15s',fontFamily:"'DM Sans',sans-serif",
             }} onMouseOver={e=>{e.currentTarget.style.background='rgba(255,255,255,0.8)';e.currentTarget.style.borderColor='rgba(0,0,0,0.12)'}} onMouseOut={e=>{e.currentTarget.style.background='rgba(255,255,255,0.5)';e.currentTarget.style.borderColor='rgba(0,0,0,0.08)'}}>
               Cancel
             </button>
             <button type="submit" disabled={submitting} style={{
               flex:2,justifyContent:'center',padding:'12px 0',borderRadius:10,border:'none',
               background:submitting ? 'rgba(0,0,0,0.15)' : 'linear-gradient(135deg, #8B5CF6 0%, #7C3AED 100%)',
-              color:submitting?'#9CA3AF':'#fff',fontSize:14,fontWeight:700,
+              color:submitting?'var(--text3)':'var(--surface)',fontSize:14,fontWeight:700,
               cursor:submitting?'not-allowed':'pointer',
               fontFamily:"'DM Sans',sans-serif",transition:'all .2s',
               boxShadow:submitting?'none':'0 4px 16px rgba(139,92,246,0.3)',
@@ -657,12 +659,12 @@ function SortTh({ col, sortKey, sortDir, onSort }) {
         <button className="gp-th-btn" onClick={() => onSort(col.key)}
           style={active ? {color:' #4338CA'} : {}}>
           {col.label}
-          <span style={{color: active ? ' #4338CA' : ' #D1D5DB', marginLeft:2}}>
+          <span style={{color: active ? ' #4338CA' : ' var(--border-light)', marginLeft:2}}>
             {active && sortDir === 'asc' ? <Ico.caretUp/> : <Ico.caretDn/>}
           </span>
         </button>
       ) : (
-        <span style={{fontSize:11,fontWeight:700,color:' #6B7280',textTransform:'uppercase',letterSpacing:'.08em'}}>
+        <span style={{fontSize:11,fontWeight:700,color:' var(--text2)',textTransform:'uppercase',letterSpacing:'.08em'}}>
           {col.label}
         </span>
       )}
@@ -676,22 +678,22 @@ function GameDetailModal({ game, onClose, onBuilder, onResponses, onQr, onCopyLi
   const cat = catMeta(game.category)
   return (
     <div style={{position:'fixed',inset:0,zIndex:600,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}} onClick={onClose}>
-      <div className="gp-modal" style={{background:'#fff',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'90vh',overflow:'auto',padding:'28px 24px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif"}} onClick={e=>e.stopPropagation()}>
+      <div className="gp-modal" style={{background:'var(--surface)',borderRadius:20,width:'100%',maxWidth:480,maxHeight:'90vh',overflow:'auto',padding:'28px 24px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',fontFamily:"'DM Sans',sans-serif"}} onClick={e=>e.stopPropagation()}>
         <div style={{display:'flex',justifyContent:'space-between',alignItems:'flex-start',marginBottom:16}}>
           <div>
-            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'#0D0D1A',marginBottom:4}}>
+            <h2 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'var(--text)',marginBottom:4}}>
               {game.name || game.location_name || game.branch_name || 'Untitled Game'}
-              {game.location_name && game.name && <span style={{color:'#6B7280',fontWeight:500,fontSize:14,marginLeft:8}}>- {game.location_name}</span>}
+              {game.location_name && game.name && <span style={{color:'var(--text2)',fontWeight:500,fontSize:14,marginLeft:8}}>- {game.location_name}</span>}
             </h2>
             <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
               <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:cat.bg,color:cat.fg}}>{cat.label}</span>
-              <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:game.is_active?'#ECFDF5':'#F3F4F6',color:game.is_active?'#059669':'#9CA3AF'}}>{game.status||'Draft'}</span>
+              <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:game.is_active?'#ECFDF5':'var(--border-light)',color:game.is_active?'#059669':'var(--text3)'}}>{game.status||'Draft'}</span>
               {game.parent_game_id
                 ? <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'#F5F3FF',color:'#7C3AED'}}>📍 Location{game.branch_name?` · ${game.branch_name}`:''}</span>
-                : <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'#EEF2FF',color:'#4338CA'}}>📦 Master</span>}
+                : <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'var(--primary-bg)',color:'#4338CA'}}>📦 Master</span>}
             </div>
           </div>
-          <button onClick={onClose} style={{border:'none',background:'none',cursor:'pointer',color:'#9CA3AF',padding:4}}>
+          <button onClick={onClose} style={{border:'none',background:'none',cursor:'pointer',color:'var(--text3)',padding:4}}>
             <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M6 18L18 6M6 6l12 12"/></svg>
           </button>
         </div>
@@ -714,7 +716,7 @@ function GameDetailModal({ game, onClose, onBuilder, onResponses, onQr, onCopyLi
         </div>
 
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Quick Actions</div>
+          <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Quick Actions</div>
           <div style={{display:'grid',gridTemplateColumns:'1fr 1fr',gap:8}}>
             <button onClick={()=>{onBuilder(game);onClose()}} style={mBtn}>🔧 Open Builder</button>
             <button onClick={()=>{onResponses(game);onClose()}} style={mBtn}>📊 Responses</button>
@@ -724,33 +726,33 @@ function GameDetailModal({ game, onClose, onBuilder, onResponses, onQr, onCopyLi
         </div>
 
         <div style={{marginBottom:16}}>
-          <div style={{fontSize:10,fontWeight:700,color:'#9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Settings</div>
+          <div style={{fontSize:10,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:8}}>Settings</div>
           {[
             {label:'Active',field:'is_active',disabled:game.status!=='live'},
             {label:'Show in Play Page',field:'show_in_play_page'},
             {label:'Show in Hero Page',field:'show_in_hero_page'},
           ].map(t => (
-            <div key={t.field} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #F3F4F6'}}>
-              <span style={{fontSize:13,color:'#374151'}}>{t.label}</span>
-              <button disabled={t.disabled} onClick={()=>onToggle(game,t.field)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:t.disabled?'not-allowed':'pointer',background:game[t.field]?'#059669':'#D1D5DB',position:'relative',transition:'background .15s',opacity:t.disabled?0.4:1}}>
-                <span style={{position:'absolute',top:3,left:game[t.field]?21:3,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+            <div key={t.field} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border-light)'}}>
+              <span style={{fontSize:13,color:'var(--text)'}}>{t.label}</span>
+              <button disabled={t.disabled} onClick={()=>onToggle(game,t.field)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:t.disabled?'not-allowed':'pointer',background:game[t.field]?'#059669':'var(--border-light)',position:'relative',transition:'background .15s',opacity:t.disabled?0.4:1}}>
+                <span style={{position:'absolute',top:3,left:game[t.field]?21:3,width:18,height:18,borderRadius:9,background:'var(--surface)',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
               </button>
             </div>
           ))}
-          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid #F3F4F6'}}>
-            <span style={{fontSize:13,color:'#374151'}}>Game Type</span>
-            <button onClick={()=>onGameTypeToggle(game)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',background:game.game_type==='branded'?'#059669':'#D1D5DB',position:'relative',transition:'background .15s'}}>
-              <span style={{position:'absolute',top:3,left:game.game_type==='branded'?21:3,width:18,height:18,borderRadius:9,background:'#fff',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
+          <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border-light)'}}>
+            <span style={{fontSize:13,color:'var(--text)'}}>Game Type</span>
+            <button onClick={()=>onGameTypeToggle(game)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',background:game.game_type==='branded'?'#059669':'var(--border-light)',position:'relative',transition:'background .15s'}}>
+              <span style={{position:'absolute',top:3,left:game.game_type==='branded'?21:3,width:18,height:18,borderRadius:9,background:'var(--surface)',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
             </button>
           </div>
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0'}}>
-            <span style={{fontSize:13,color:'#374151'}}>Status</span>
-            <button onClick={()=>onStatusToggle(game)} style={{padding:'3px 10px',borderRadius:6,border:'1.5px solid #E5E7EB',background:'#fff',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',color:'#6B7280'}}>Cycle →</button>
+            <span style={{fontSize:13,color:'var(--text)'}}>Status</span>
+            <button onClick={()=>onStatusToggle(game)} style={{padding:'3px 10px',borderRadius:6,border:'1.5px solid var(--border)',background:'var(--surface)',fontSize:10,fontWeight:600,cursor:'pointer',fontFamily:'DM Sans',color:'var(--text2)'}}>Cycle →</button>
           </div>
         </div>
 
         <div style={{display:'flex',gap:8}}>
-          <button onClick={()=>{onDuplicate(game.id);onClose()}} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit'}}><Copy size={14} strokeWidth={2.2}/> Duplicate</button>
+          <button onClick={()=>{onDuplicate(game.id);onClose()}} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface)',cursor:'pointer',fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:'inherit'}}><Copy size={14} strokeWidth={2.2}/> Duplicate</button>
           <button onClick={()=>{if(confirm('Delete this game?')){onDelete(game.id);onClose()}}} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px',borderRadius:8,border:'1px solid #FECACA',background:'#FEF2F2',cursor:'pointer',fontSize:12,fontWeight:600,color:'#DC2626',fontFamily:'inherit'}}><Trash2 size={14} strokeWidth={2.2}/> Delete</button>
         </div>
       </div>
@@ -758,20 +760,21 @@ function GameDetailModal({ game, onClose, onBuilder, onResponses, onQr, onCopyLi
   )
 }
 
-const mBtn = {padding:'10px',borderRadius:8,border:'1px solid #E5E7EB',background:'#fff',cursor:'pointer',fontSize:12,fontWeight:600,color:'#374151',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}
+const mBtn = {padding:'10px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface)',cursor:'pointer',fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:'inherit',transition:'all .12s',textAlign:'center'}
 
 /* ── Graphical client tree (timeline) ── */
 function GraphNode({ x, y, w, h, game, kind, onClick, canvasRef, nodeKey, onDrag, onPersist, innerRef }) {
+  const { isDark } = useTheme()
   const isClient = kind === 'client'
   const isLoc = kind === 'location'
   const Icon = isClient ? Building2 : catIcon(game.category)
-  const meta = isClient ? { label:'Client', bg:'#7C3AED', fg:'#fff', dot:'#A78BFA' }
+  const meta = isClient ? { label:'Client', bg:'#7C3AED', fg:'var(--surface)', dot:'#A78BFA' }
     : catMeta(game.category)
   const accent = meta.dot
   const softBg = meta.bg
   const fg = meta.fg
-  const titleColor = isClient ? '#fff' : fg
-  const subColor = isClient ? 'rgba(255,255,255,.82)' : fg
+  const titleColor = isClient ? 'var(--surface)' : (isDark ? 'var(--text)' : fg)
+  const subColor = isClient ? 'rgba(255,255,255,.82)' : (isDark ? 'var(--text2)' : fg)
   const title = isClient ? game.name
     : (isLoc ? (game.branch_name || game.location_name || game.name) : game.name)
   const STATUS_META = {
@@ -836,17 +839,17 @@ function GraphNode({ x, y, w, h, game, kind, onClick, canvasRef, nodeKey, onDrag
     <div onMouseDown={onMouseDown}
       style={{
         position:'absolute', left:x, top:y, width:w, height:h, boxSizing:'border-box',
-        background:`linear-gradient(135deg, ${accent}26, ${accent}0D 60%, rgba(255,255,255,0.45))`,
+        background:`linear-gradient(135deg, ${accent}26, ${accent}0D 60%, ${isDark ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.45)'})`,
         backdropFilter:'blur(14px) saturate(140%)', WebkitBackdropFilter:'blur(14px) saturate(140%)',
         border:`1px solid ${accent}66`,
         borderRadius:16, padding:'14px 12px', cursor:'grab', overflow:'hidden',
         display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center',
-        boxShadow:`0 4px 16px ${accent}22, inset 0 1px 0 rgba(255,255,255,0.6)`,
+        boxShadow:`0 4px 16px ${accent}22, inset 0 1px 0 ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`,
         transition:'box-shadow .15s ease, transform .15s ease',
         userSelect:'none',
       }}
-      onMouseEnter={e=>{ e.currentTarget.style.boxShadow=`0 12px 30px ${accent}55, inset 0 1px 0 rgba(255,255,255,0.7)`; e.currentTarget.style.transform='translateY(-3px)' }}
-      onMouseLeave={e=>{ e.currentTarget.style.boxShadow='0 4px 16px rgba(16,24,40,.08)'; e.currentTarget.style.transform='translateY(0)' }}
+      onMouseEnter={e=>{ e.currentTarget.style.boxShadow=`0 12px 30px ${accent}55, inset 0 1px 0 ${isDark ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.7)'}`; e.currentTarget.style.transform='translateY(-3px)' }}
+      onMouseLeave={e=>{ e.currentTarget.style.boxShadow=`0 4px 16px ${accent}22, inset 0 1px 0 ${isDark ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.6)'}`; e.currentTarget.style.transform='translateY(0)' }}
     >
       {/* icon chip */}
       <div style={{
@@ -885,7 +888,7 @@ function GraphNode({ x, y, w, h, game, kind, onClick, canvasRef, nodeKey, onDrag
       {/* footer: status cycle + master/location */}
       <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:6,marginTop:8,width:'100%'}}>
         <span style={{fontSize:8.5,fontWeight:700,padding:'3px 8px',borderRadius:100,background:st.bg,color:st.fg,whiteSpace:'nowrap'}}>{st.label}</span>
-        <span style={{fontSize:8.5,fontWeight:700,padding:'3px 8px',borderRadius:100,background:'rgba(0,0,0,.05)',color:fg,whiteSpace:'nowrap'}}>
+        <span style={{fontSize:8.5,fontWeight:700,padding:'3px 8px',borderRadius:100,background:isDark?'rgba(255,255,255,.08)':'rgba(0,0,0,.05)',color:isDark?'var(--text)':fg,whiteSpace:'nowrap'}}>
           {isLoc ? 'Location' : 'Master'}
         </span>
       </div>
@@ -896,6 +899,7 @@ function GraphNode({ x, y, w, h, game, kind, onClick, canvasRef, nodeKey, onDrag
 }
 
 function ClientGraph({ client, games, onSelect }) {
+  const { isDark } = useTheme()
   const [clientW, setClientW] = useState(176)
   const canvasRef = useRef(null)
   const clientRef = useRef(null)
@@ -1054,15 +1058,15 @@ function ClientGraph({ client, games, onSelect }) {
         <div style={{width:30,height:30,borderRadius:9,background:'linear-gradient(135deg,#7C3AED,#6366F1)',color:'#fff',display:'flex',alignItems:'center',justifyContent:'center',fontWeight:700,fontSize:13,flexShrink:0}}>
           {client.company_name?.charAt(0)?.toUpperCase() || '?'}
         </div>
-        <div style={{fontWeight:700,fontSize:15,color:'#0D0D1A'}}>{client.company_name}</div>
-        <div style={{fontSize:11,color:'#9CA3AF'}}>{masters.length} master · {games.filter(g=>g.parent_game_id&&g.client_id===client.id).length} location · drag a node to move it and its subtree</div>
+        <div style={{fontWeight:700,fontSize:15,color:'var(--text)'}}>{client.company_name}</div>
+        <div style={{fontSize:11,color:'var(--text3)'}}>{masters.length} master · {games.filter(g=>g.parent_game_id&&g.client_id===client.id).length} location · drag a node to move it and its subtree</div>
         <button onClick={resetLayout}
-          style={{marginLeft:'auto',fontSize:11,fontWeight:600,color:'#6366F1',background:'#EEF2FF',border:'1px solid #E0E7FF',borderRadius:8,padding:'6px 12px',cursor:'pointer'}}>
+          style={{marginLeft:'auto',fontSize:11,fontWeight:600,color:'#6366F1',background:'var(--primary-bg)',border:'1px solid #E0E7FF',borderRadius:8,padding:'6px 12px',cursor:'pointer'}}>
           ↺ Auto Layout
         </button>
       </div>
       <div ref={canvasRef} style={{position:'relative', width:'100%', height:canvasH, overflow:'hidden', borderRadius:14,
-        background:'#FBFBFD', backgroundImage:'radial-gradient(#E3E6EF 1px, transparent 1px)', backgroundSize:'22px 22px', border:'1px solid #ECEEF3'}}>
+        background:'var(--surface)', backgroundImage:`radial-gradient(${isDark ? '#3a3a3a' : '#E3E6EF'} 1px, transparent 1px)`, backgroundSize:'22px 22px', border:'1px solid var(--border-light)'}}>
         <svg width={canvasW} height={canvasH} style={{position:'absolute',inset:0,pointerEvents:'none'}}>
           {masters.map(m => {
             const cp = positions[cKey] || defaultPos(cKey)
@@ -1070,10 +1074,10 @@ function ClientGraph({ client, games, onSelect }) {
             const dot = catMeta(m.category).dot
             return (
               <g key={m.id}>
-                <path d={hpath(cp.x+clientW, cp.y+NH/2, mp.x, mp.y+NH/2)} stroke={dot} strokeOpacity="0.55" strokeWidth="2" fill="none" />
+                <path d={hpath(cp.x+clientW, cp.y+NH/2, mp.x, mp.y+NH/2)} stroke={dot} strokeOpacity={isDark ? 0.85 : 0.55} strokeWidth="2" fill="none" />
                 {locationsOf(m).map(loc => {
                   const lp = positions[mKey(loc.id)] || defaultPos(mKey(loc.id))
-                  return <path key={loc.id} d={hpath(mp.x+NW, mp.y+NH/2, lp.x, lp.y+NH/2)} stroke={dot} strokeOpacity="0.4" strokeWidth="2" fill="none" />
+                  return <path key={loc.id} d={hpath(mp.x+NW, mp.y+NH/2, lp.x, lp.y+NH/2)} stroke={dot} strokeOpacity={isDark ? 0.7 : 0.4} strokeWidth="2" fill="none" />
                 })}
               </g>
             )
@@ -1103,13 +1107,11 @@ function GraphView({ clients, games, onSelect }) {
   return (
     <div style={{
       borderRadius:16, padding:'28px 20px', minHeight:420,
-      background:'#FBFBFD',
-      backgroundImage:'radial-gradient(#E3E6EF 1px, transparent 1px)',
-      backgroundSize:'22px 22px',
-      border:'1px solid #ECEEF3',
+      background:'var(--surface)',
+      border:'1px solid var(--border-light)',
     }}>
       {withGames.length === 0 && unassigned.length === 0 && (
-        <div style={{textAlign:'center',padding:'60px 0',color:'#9CA3AF',fontSize:14}}>No games to graph.</div>
+        <div style={{textAlign:'center',padding:'60px 0',color:'var(--text3)',fontSize:14}}>No games to graph.</div>
       )}
       {withGames.map(c => <ClientGraph key={c.id} client={c} games={games} onSelect={onSelect} />)}
       {unassigned.length > 0 && (
@@ -1265,34 +1267,34 @@ export default function GamesPage() {
 
         {/* Header — 3-col: Title | Search | Add Game */}
         <div style={{display:'grid',gridTemplateColumns:'1fr 1.5fr 1fr',alignItems:'center',marginBottom:28,gap:16}}>
-          <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:' #0D0D1A',letterSpacing:'-0.03em',lineHeight:1}}>
+          <h1 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:36,color:' var(--text)',letterSpacing:'-0.03em',lineHeight:1}}>
             Games
           </h1>
           {games.length > 0 && (
             <div style={{display:'flex',alignItems:'center',gap:12}}>
               <div style={{position:'relative',flex:1}}>
-                <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:' #9CA3AF'}}><Ico.search/></span>
+                <span style={{position:'absolute',left:13,top:'50%',transform:'translateY(-50%)',color:' var(--text3)'}}><Ico.search/></span>
                 <input className="gp-input" style={{paddingLeft:40,height:38,padding:'0 14px 0 40px',width:'100%'}} placeholder="Search games or client…" value={search} onChange={e=>setSearch(e.target.value)} />
               </div>
               {/* View toggle */}
-              <div style={{display:'flex',background:'#F3F4F6',borderRadius:8,padding:3,gap:2}}>
-                <button onClick={() => setViewMode('list')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='list'?'#fff':'transparent',cursor:'pointer',boxShadow:viewMode==='list'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='list'?'#4F46E5':'#6B7280',fontFamily:'inherit'}}>
+              <div style={{display:'flex',background:'var(--border-light)',borderRadius:8,padding:3,gap:2}}>
+                <button onClick={() => setViewMode('list')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='list'?'var(--surface)':'transparent',cursor:'pointer',boxShadow:viewMode==='list'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='list'?'#4F46E5':'var(--text2)',fontFamily:'inherit'}}>
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                     List
                   </button>
-                  <button onClick={() => setViewMode('tree')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='tree'?'#fff':'transparent',cursor:'pointer',boxShadow:viewMode==='tree'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='tree'?'#4F46E5':'#6B7280',fontFamily:'inherit'}}>
+                  <button onClick={() => setViewMode('tree')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='tree'?'var(--surface)':'transparent',cursor:'pointer',boxShadow:viewMode==='tree'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='tree'?'#4F46E5':'var(--text2)',fontFamily:'inherit'}}>
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                     Grid
                   </button>
-                  <button onClick={() => setViewMode('graph')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='graph'?'#fff':'transparent',cursor:'pointer',boxShadow:viewMode==='graph'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='graph'?'#4F46E5':'#6B7280',fontFamily:'inherit'}}>
+                  <button onClick={() => setViewMode('graph')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='graph'?'var(--surface)':'transparent',cursor:'pointer',boxShadow:viewMode==='graph'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='graph'?'#4F46E5':'var(--text2)',fontFamily:'inherit'}}>
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M5 8.5v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3M12 13.5V15.5"/></svg>
                     Graph
                   </button>
                   {viewMode === 'graph' && (
-                    <div style={{display:'flex',alignItems:'center',gap:6,marginLeft:8,paddingLeft:10,borderLeft:'1px solid #E5E7EB'}}>
-                      <svg width="13" height="13" fill="none" stroke="#9CA3AF" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+                    <div style={{display:'flex',alignItems:'center',gap:6,marginLeft:8,paddingLeft:10,borderLeft:'1px solid var(--border)'}}>
+                      <svg width="13" height="13" fill="none" stroke="var(--text3)" strokeWidth="2" viewBox="0 0 24 24"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
                       <select value={graphClient} onChange={e => setGraphClient(e.target.value)} style={{
-                        border:'1px solid #E5E7EB',background:'#fff',borderRadius:8,padding:'6px 28px 6px 10px',fontSize:11.5,fontWeight:600,color:'#374151',fontFamily:'inherit',cursor:'pointer',outline:'none',appearance:'none',
+                        border:'1px solid var(--border)',background:'var(--surface)',borderRadius:8,padding:'6px 28px 6px 10px',fontSize:11.5,fontWeight:600,color:'var(--text)',fontFamily:'inherit',cursor:'pointer',outline:'none',appearance:'none',
                         backgroundImage:'url("data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'12\' height=\'12\' fill=\'none\' stroke=\'%239CA3AF\' stroke-width=\'2\' viewBox=\'0 0 24 24\'><path d=\'m6 9 6 6 6-6\'/></svg>")',
                         backgroundRepeat:'no-repeat',backgroundPosition:'right 9px center',
                       }}>
@@ -1311,7 +1313,7 @@ export default function GamesPage() {
 
         {/* Table */}
         {loading ? (
-          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:' #9CA3AF',fontSize:14}}>
+          <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:' var(--text3)',fontSize:14}}>
             <Ico.spin/> Loading games…
           </div>
         ) : games.length === 0 ? (
@@ -1319,12 +1321,12 @@ export default function GamesPage() {
             <div style={{width:72,height:72,borderRadius:18,background:' #F5F3FF',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
               <svg width="30" height="30" fill="none" stroke=" #6366F1" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg>
             </div>
-            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:' #0D0D1A',marginBottom:8}}>No games yet</h3>
-            <p style={{color:' #9CA3AF',fontSize:14,marginBottom:24}}>Create your first game to get started.</p>
+            <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:' var(--text)',marginBottom:8}}>No games yet</h3>
+            <p style={{color:' var(--text3)',fontSize:14,marginBottom:24}}>Create your first game to get started.</p>
             <button className="gp-primary-btn" onClick={()=>setShowForm(true)}><Ico.plus/> Create Game</button>
           </div>
         ) : sorted.length === 0 ? (
-          <div style={{textAlign:'center',padding:'60px 0',color:' #9CA3AF',fontSize:14}}>
+          <div style={{textAlign:'center',padding:'60px 0',color:' var(--text3)',fontSize:14}}>
             No games match your filters.
           </div>
         ) : viewMode === 'list' ? (
@@ -1350,10 +1352,10 @@ export default function GamesPage() {
                     >
                       {/* Game + Client */}
                       <td style={{minWidth:160}}>
-                        <div style={{fontWeight:600,color:' #0D0D1A',fontSize:13.5,fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>
+                        <div style={{fontWeight:600,color:' var(--text)',fontSize:13.5,fontFamily:"'DM Sans',sans-serif",marginBottom:4}}>
                           {game.name}
                         </div>
-                        <div style={{fontSize:11.5,color:' #6B7280',fontWeight:500}}>
+                        <div style={{fontSize:11.5,color:' var(--text2)',fontWeight:500}}>
                           {game.company_name || '—'}
                         </div>
                       </td>
@@ -1367,9 +1369,9 @@ export default function GamesPage() {
 
                       {/* Qty / Plays */}
                       <td className="center" style={{minWidth:90}}>
-                        <span style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,fontSize:12,color:' #374151'}}>
+                        <span style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3,fontSize:12,color:' var(--text)'}}>
                           <span style={{display:'flex',alignItems:'center',gap:4,fontWeight:600}}><Ico.question/> {game.question_count||0}</span>
-                          <span style={{display:'flex',alignItems:'center',gap:4,color:' #6B7280'}}><Ico.play/> {(game.play_count||0).toLocaleString()}</span>
+                          <span style={{display:'flex',alignItems:'center',gap:4,color:' var(--text2)'}}><Ico.play/> {(game.play_count||0).toLocaleString()}</span>
                         </span>
                       </td>
 
@@ -1436,13 +1438,13 @@ export default function GamesPage() {
                           </span>
                           <button
                             style={{
-                              padding:'3px 8px', borderRadius:6, border:'1.5px solid #E5E7EB',
-                              background:'#fff', fontSize:10, fontWeight:600, cursor:'pointer',
-                              fontFamily:'DM Sans', color:'#6B7280', transition:'all .13s',
+                              padding:'3px 8px', borderRadius:6, border:'1.5px solid var(--border)',
+                              background:'var(--surface)', fontSize:10, fontWeight:600, cursor:'pointer',
+                              fontFamily:'DM Sans', color:'var(--text2)', transition:'all .13s',
                             }}
                             onClick={e => handleStatusToggle(game, e)}
                             onMouseOver={e=>{e.currentTarget.style.borderColor='#818CF8';e.currentTarget.style.color='#4F46E5'}}
-                            onMouseOut={e=>{e.currentTarget.style.borderColor='#E5E7EB';e.currentTarget.style.color='#6B7280'}}
+                            onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text2)'}}
                           >
                             Cycle →
                           </button>
@@ -1450,10 +1452,10 @@ export default function GamesPage() {
                       </td>
 
                       {/* Created / Edited */}
-                      <td style={{minWidth:130,fontSize:11.5,color:' #9CA3AF',whiteSpace:'nowrap'}}>
+                      <td style={{minWidth:130,fontSize:11.5,color:' var(--text3)',whiteSpace:'nowrap'}}>
                         <div>Created {fmtDate(game.created_at)}</div>
                         {game.updated_at && new Date(game.updated_at).getTime() !== new Date(game.created_at).getTime() && (
-                          <div style={{color:' #6B7280',marginTop:2}}>
+                          <div style={{color:' var(--text2)',marginTop:2}}>
                             Edited {fmtDate(game.updated_at)}
                             {game.updated_by_name && <span> by {game.updated_by_name}</span>}
                           </div>
@@ -1467,7 +1469,7 @@ export default function GamesPage() {
                             <button className="gp-icon-btn" onClick={e => { e.stopPropagation(); handleDuplicate(game.id) }} title="Duplicate">
                               <Ico.copy/>
                             </button>
-                            <button className="gp-ghost-btn" style={{background:' #18181B',color:' #fff',borderColor:' #18181B',padding:'4px 10px',justifyContent:'center',fontSize:10.5,gap:3}}
+                            <button className="gp-ghost-btn" style={{background:' var(--text)',color:' var(--surface)',borderColor:' var(--text)',padding:'4px 10px',justifyContent:'center',fontSize:10.5,gap:3}}
                               onClick={() => {
                                 if (game.category === 'crossword') navigate(`/dashboard/games/${game.id}/crossword-builder`)
                                 else if (game.category === 'spin') navigate(`/dashboard/games/${game.id}/spin-builder`)
@@ -1538,8 +1540,8 @@ export default function GamesPage() {
             </table>
 
             {/* Table footer */}
-            <div style={{padding:'12px 16px',borderTop:'1px solid  #F3F4F6',display:'flex',alignItems:'center',justifyContent:'space-between',background:' #FAFAFA'}}>
-              <span style={{fontSize:12,color:' #9CA3AF'}}>
+            <div style={{padding:'12px 16px',borderTop:'1px solid  var(--border-light)',display:'flex',alignItems:'center',justifyContent:'space-between',background:' var(--surface2)'}}>
+              <span style={{fontSize:12,color:' var(--text3)'}}>
                 Showing {sorted.length} of {games.length} game{games.length!==1?'s':''}
               </span>
             </div>
@@ -1551,13 +1553,13 @@ export default function GamesPage() {
               { label:'Active Games', value: stats.active, color:' #4F46E5' },
               { label:'On Play Page', value: stats.onPlayPage, color:' #059669' },
               { label:'On Hero', value: stats.onHero, color:' #D97706' },
-              { label:'Total Plays', value: stats.plays.toLocaleString(), color:' #0D0D1A' },
+              { label:'Total Plays', value: stats.plays.toLocaleString(), color:' var(--text)' },
               { label:'Branded', value: stats.branded, color:' #15803D' },
               { label:'PromoGames', value: stats.promogames, color:' #B45309' },
               { label:'Live', value: games.filter(g=>g.status==='live').length, color:' #059669' },
             ].map(s => (
-              <div key={s.label} style={{background:' #fff',borderRadius:12,border:'1.5px solid  #EAECF0',padding:'16px 20px'}}>
-                <div style={{fontSize:11,fontWeight:700,color:' #9CA3AF',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>{s.label}</div>
+              <div key={s.label} style={{background:' var(--surface)',borderRadius:12,border:'1.5px solid  var(--border)',padding:'16px 20px'}}>
+                <div style={{fontSize:11,fontWeight:700,color:' var(--text3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>{s.label}</div>
                 <div style={{fontSize:22,fontWeight:700,color:s.color,fontFamily:"'Fraunces',serif"}}>{s.value}</div>
               </div>
             ))}
@@ -1579,23 +1581,23 @@ export default function GamesPage() {
               const locations = clientGames.filter(g => g.parent_game_id)
               if (clientGames.length === 0) return null
               return (
-                <div key={client.id} style={{breakInside:'avoid',marginBottom:16,background:'#fff',borderRadius:16,border:'1.5px solid #EAECF0',overflow:'hidden',animation:`crmFadeUp .3s ease ${ci*40}ms both`}}>
+                <div key={client.id} style={{breakInside:'avoid',marginBottom:16,background:'var(--surface)',borderRadius:16,border:'1.5px solid var(--border)',overflow:'hidden',animation:`crmFadeUp .3s ease ${ci*40}ms both`}}>
                   {/* Client header */}
-                  <div style={{padding:'14px 16px',borderBottom:'1px solid #F3F4F6',display:'flex',alignItems:'center',gap:10}}>
+                  <div style={{padding:'14px 16px',borderBottom:'1px solid var(--border-light)',display:'flex',alignItems:'center',gap:10}}>
                     <div style={{width:36,height:36,borderRadius:8,background:'linear-gradient(135deg,#6366f1,#4f46e5)',display:'flex',alignItems:'center',justifyContent:'center',color:'#fff',fontSize:14,fontWeight:700,flexShrink:0}}>
                       {client.company_name?.charAt(0)?.toUpperCase() || '?'}
                     </div>
                     <div style={{flex:1,minWidth:0}}>
-                      <div style={{fontWeight:700,fontSize:13,color:'#0D0D1A',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{client.company_name}</div>
-                       <div style={{fontSize:10,color:'#9CA3AF',marginTop:1}}>{templates.length} master game{templates.length!==1?'s':''} · {locations.length} location{locations.length!==1?'s':''}</div>
+                      <div style={{fontWeight:700,fontSize:13,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>{client.company_name}</div>
+                       <div style={{fontSize:10,color:'var(--text3)',marginTop:1}}>{templates.length} master game{templates.length!==1?'s':''} · {locations.length} location{locations.length!==1?'s':''}</div>
                     </div>
                   </div>
                   {/* Action buttons */}
-                  <div style={{padding:'8px 12px',display:'flex',gap:6,borderBottom:'1px solid #F3F4F6'}}>
-                    <button onClick={() => navigate(`/dashboard/games/${templates[0]?.id}/responses`)} style={{flex:1,padding:'6px 0',borderRadius:6,border:'1px solid #E5E7EB',background:'#fff',fontSize:10,fontWeight:600,cursor:'pointer',color:'#374151',fontFamily:'inherit'}}>
+                  <div style={{padding:'8px 12px',display:'flex',gap:6,borderBottom:'1px solid var(--border-light)'}}>
+                    <button onClick={() => navigate(`/dashboard/games/${templates[0]?.id}/responses`)} style={{flex:1,padding:'6px 0',borderRadius:6,border:'1px solid var(--border)',background:'var(--surface)',fontSize:10,fontWeight:600,cursor:'pointer',color:'var(--text)',fontFamily:'inherit'}}>
                       📊 Responses
                     </button>
-                    <button onClick={() => setSelectedClient(selectedClient?.id===client.id?null:client)} style={{flex:1,padding:'6px 0',borderRadius:6,border:`1px solid ${selectedClient?.id===client.id?'#4F46E5':'#E5E7EB'}`,background:selectedClient?.id===client.id?'#EEF2FF':'#fff',fontSize:10,fontWeight:600,cursor:'pointer',color:selectedClient?.id===client.id?'#4F46E5':'#374151',fontFamily:'inherit'}}>
+                    <button onClick={() => setSelectedClient(selectedClient?.id===client.id?null:client)} style={{flex:1,padding:'6px 0',borderRadius:6,border:`1px solid ${selectedClient?.id===client.id?'#4F46E5':'var(--border)'}`,background:selectedClient?.id===client.id?'var(--primary-bg)':'var(--surface)',fontSize:10,fontWeight:600,cursor:'pointer',color:selectedClient?.id===client.id?'#4F46E5':'var(--text)',fontFamily:'inherit'}}>
                       {selectedClient?.id===client.id?'▾ Expanded':'▸ Expand'}
                     </button>
                   </div>
@@ -1608,35 +1610,35 @@ export default function GamesPage() {
                       return (
                         <div key={g.id}>
                           <div onClick={() => childLocs.length > 0 ? setExpandedParents(p => ({...p,[g.id]:!p[g.id]})) : setSelectedGame(g)}
-                            style={{padding:'7px 8px',borderRadius:6,marginBottom:3,cursor:'pointer',border:'1px solid #F3F4F6',background:'#FAFAFA',transition:'all .12s'}}
-                            onMouseEnter={e=>{e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='#EEF2FF'}}
-                            onMouseLeave={e=>{e.currentTarget.style.borderColor='#F3F4F6';e.currentTarget.style.background='#FAFAFA'}}>
+                            style={{padding:'7px 8px',borderRadius:6,marginBottom:3,cursor:'pointer',border:'1px solid var(--border-light)',background:'var(--surface2)',transition:'all .12s'}}
+                            onMouseEnter={e=>{e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='var(--primary-bg)'}}
+                            onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.background='var(--surface2)'}}>
                             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                              <div style={{fontWeight:700,fontSize:11,color:'#1F2937',display:'flex',alignItems:'center',gap:4}}>
-                                {childLocs.length > 0 && <span style={{fontSize:8,color:'#9CA3AF',transition:'transform .2s',transform:isExpanded?'rotate(90deg)':'rotate(0deg)',display:'inline-block'}}>▶</span>}
+                              <div style={{fontWeight:700,fontSize:11,color:'var(--text)',display:'flex',alignItems:'center',gap:4}}>
+                                {childLocs.length > 0 && <span style={{fontSize:8,color:'var(--text3)',transition:'transform .2s',transform:isExpanded?'rotate(90deg)':'rotate(0deg)',display:'inline-block'}}>▶</span>}
                                 {g.name}
                               </div>
-                              <span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:3,background:g.is_active?'#ECFDF5':'#F3F4F6',color:g.is_active?'#059669':'#9CA3AF'}}>{g.status||'Draft'}</span>
+                              <span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:3,background:g.is_active?'#ECFDF5':'var(--border-light)',color:g.is_active?'#059669':'var(--text3)'}}>{g.status||'Draft'}</span>
                             </div>
-                            <div style={{fontSize:9,color:'#6B7280',marginTop:1}}>{g.category} · {g.question_count||0}q · {g.play_count||0}p</div>
+                            <div style={{fontSize:9,color:'var(--text2)',marginTop:1}}>{g.category} · {g.question_count||0}q · {g.play_count||0}p</div>
                           </div>
                           {isExpanded && childLocs.map(loc => (
                             <div key={loc.id} onClick={() => setSelectedGame(loc)}
-                              style={{marginLeft:12,marginBottom:3,padding:'5px 8px',borderRadius:5,border:'1px solid #F3F4F6',background:'#F9FAFB',cursor:'pointer',transition:'all .12s'}}
-                              onMouseEnter={e=>{e.currentTarget.style.borderColor='#C7D2FE';e.currentTarget.style.background='#EEF2FF'}}
-                              onMouseLeave={e=>{e.currentTarget.style.borderColor='#F3F4F6';e.currentTarget.style.background='#F9FAFB'}}>
+                              style={{marginLeft:12,marginBottom:3,padding:'5px 8px',borderRadius:5,border:'1px solid var(--border-light)',background:'var(--surface2)',cursor:'pointer',transition:'all .12s'}}
+                              onMouseEnter={e=>{e.currentTarget.style.borderColor='#C7D2FE';e.currentTarget.style.background='var(--primary-bg)'}}
+                              onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.background='var(--surface2)'}}>
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
-                                <div style={{fontSize:10,fontWeight:600,color:'#374151'}}>↳ {loc.location_name||loc.name}</div>
-                                <span style={{fontSize:7,fontWeight:700,padding:'1px 4px',borderRadius:3,background:loc.is_active?'#ECFDF5':'#F3F4F6',color:loc.is_active?'#059669':'#9CA3AF'}}>{loc.status||'Draft'}</span>
+                                <div style={{fontSize:10,fontWeight:600,color:'var(--text)'}}>↳ {loc.location_name||loc.name}</div>
+                                <span style={{fontSize:7,fontWeight:700,padding:'1px 4px',borderRadius:3,background:loc.is_active?'#ECFDF5':'var(--border-light)',color:loc.is_active?'#059669':'var(--text3)'}}>{loc.status||'Draft'}</span>
                               </div>
-                              <div style={{fontSize:8,color:'#9CA3AF',marginTop:1}}>{loc.question_count||0}q · {loc.play_count||0}p</div>
+                              <div style={{fontSize:8,color:'var(--text3)',marginTop:1}}>{loc.question_count||0}q · {loc.play_count||0}p</div>
                             </div>
                           ))}
                         </div>
                       )
                     })}
                     {templates.length === 0 && (
-                      <div style={{fontSize:10,color:'#9CA3AF',padding:'8px 0',textAlign:'center'}}>No games</div>
+                      <div style={{fontSize:10,color:'var(--text3)',padding:'8px 0',textAlign:'center'}}>No games</div>
                     )}
                   </div>
                   )}

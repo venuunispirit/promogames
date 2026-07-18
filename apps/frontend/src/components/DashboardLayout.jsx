@@ -16,8 +16,8 @@ const NAV_CSS = `
 @keyframes nav-spin { to { transform:rotate(360deg) } }
 
 .nav-root {
-  background: #ffffff;
-  border-bottom: 1.5px solid #e8eaf0;
+  background: var(--surface);
+  border-bottom: 1.5px solid var(--border);
   height: 62px;
   padding: 0 28px;
   display: grid;
@@ -59,19 +59,19 @@ const NAV_CSS = `
   border-radius: 0px;
   font-size: 13px;
   font-weight: 600;
-  color: #6b7280;
+  color: var(--text2);
   text-decoration: none;
   transition: all .15s;
   white-space: nowrap;
   border: none;
 }
 .nav-link:hover {
-  color: #1a1a2e;
+  color: var(--text);
   background: transparent;
   border-color: none;
 }
 .nav-link.active {
-  color: #8f38ce;
+  color: var(--primary);
   background: transparent;
   border-color: none;
   border-radius: 12px;
@@ -93,13 +93,13 @@ const NAV_CSS = `
 }
 .nav-greeting-msg {
   font-size: 11px;
-  color: #59188f;
+  color: var(--primary);
   font-weight: 500;
 }
 .nav-greeting-name {
   font-size: 13px;
   font-weight: 700;
-  color: #1e1e2e;
+  color: var(--text);
 }
 
 /* ── avatar button ── */
@@ -107,7 +107,7 @@ const NAV_CSS = `
   width: 38px;
   height: 38px;
   border-radius: 50%;
-  border: 2px solid #e8eaf0;
+  border: 2px solid var(--border);
   background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%);
   color: #fff;
   font-size: 14px;
@@ -132,8 +132,8 @@ const NAV_CSS = `
   top: calc(100% + 10px);
   right: 0;
   width: 360px;
-  background: #ffffff;
-  border: 1.5px solid #e8eaf0;
+  background: var(--surface);
+  border: 1.5px solid var(--border);
   border-radius: 16px;
   box-shadow: 0 8px 40px rgba(0,0,0,0.12);
   animation: nav-fade-down .18s ease;
@@ -161,20 +161,20 @@ const NAV_CSS = `
 .nav-dd-role  { display:inline-flex; align-items:center; padding:2px 8px; background:rgba(255,255,255,0.2); border-radius:20px; font-size:10px; font-weight:700; color:#fff; margin-top:4px; letter-spacing:.04em; text-transform:uppercase; }
 
 .nav-dd-body  { padding: 12px; }
-.nav-dd-sep   { height: 1px; background: #f0f2f8; margin: 8px 0; }
+.nav-dd-sep   { height: 1px; background: var(--border-light); margin: 8px 0; }
 
 .nav-dd-item {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 12px; border-radius: 10px; cursor: pointer;
-  font-size: 13px; font-weight: 600; color: #3a3b52;
+  font-size: 13px; font-weight: 600; color: var(--text);
   transition: background .12s;
   border: none; background: none; width: 100%; text-align: left;
   font-family: inherit;
 }
-.nav-dd-item:hover { background: #f4f5fb; color: #6366f1; }
-.nav-dd-item.danger:hover { background: #fee2e2; color: #dc2626; }
-.nav-dd-icon { font-size: 16px; width: 28px; height: 28px; display:flex; align-items:center; justify-content:center; background:#f4f5fb; border-radius:8px; flex-shrink:0; }
-.nav-dd-item.danger .nav-dd-icon { background: #fee2e2; }
+.nav-dd-item:hover { background: var(--surface2); color: var(--primary); }
+.nav-dd-item.danger:hover { background: var(--error-bg); color: var(--error); }
+.nav-dd-icon { font-size: 16px; width: 28px; height: 28px; display:flex; align-items:center; justify-content:center; background:var(--surface2); border-radius:8px; flex-shrink:0; }
+.nav-dd-item.danger .nav-dd-icon { background: var(--error-bg); }
 
 /* ── calendar panel ── */
 .nav-cal {
@@ -182,44 +182,44 @@ const NAV_CSS = `
 }
 .nav-cal-header {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 10px 4px 8px; font-size: 13px; font-weight: 700; color: #1e1e2e;
+  padding: 10px 4px 8px; font-size: 13px; font-weight: 700; color: var(--text);
 }
 .nav-cal-nav {
-  background: none; border: 1px solid #e8eaf0; border-radius: 6px;
+  background: none; border: 1px solid var(--border); border-radius: 6px;
   width: 26px; height: 26px; cursor: pointer; font-size: 12px;
   display: flex; align-items: center; justify-content: center;
-  color: #6b7280; transition: all .12s;
+  color: var(--text2); transition: all .12s;
 }
-.nav-cal-nav:hover { background: #f4f5fb; color: #6366f1; border-color: #c7d2fe; }
+.nav-cal-nav:hover { background: var(--surface2); color: var(--primary); border-color: #c7d2fe; }
 .nav-cal-grid {
   display: grid; grid-template-columns: repeat(7,1fr); gap: 2px;
 }
 .nav-cal-dow {
   text-align: center; font-size: 10px; font-weight: 700;
-  color: #9899b8; padding: 4px 0; letter-spacing:.04em;
+  color: var(--text3); padding: 4px 0; letter-spacing:.04em;
 }
 .nav-cal-day {
   text-align: center; font-size: 12px; font-weight: 500;
   padding: 5px 2px; border-radius: 6px; cursor: default;
-  color: #3a3b52; line-height: 1;
+  color: var(--text); line-height: 1;
 }
 .nav-cal-day.today {
   background: #6366f1; color: #fff; font-weight: 800;
   box-shadow: 0 2px 6px rgba(99,102,241,0.3);
 }
-.nav-cal-day.other-month { color: #c9cad8; }
+.nav-cal-day.other-month { color: var(--text3); }
 .nav-cal-day.weekend { color: #a855f7; }
 .nav-cal-day.today.weekend { color: #fff; }
 
 /* ── password form ── */
 .nav-pw-form { padding: 0 12px 12px; display: flex; flex-direction: column; gap: 8px; }
 .nav-pw-input {
-  width: 100%; padding: 9px 12px; border: 1.5px solid #e8eaf0;
+  width: 100%; padding: 9px 12px; border: 1.5px solid var(--border);
   border-radius: 8px; font-size: 13px; font-family: inherit;
-  color: #1e1e2e; background: #f8f9ff; outline: none;
+  color: var(--text); background: var(--surface2); outline: none;
   transition: border-color .14s;
 }
-.nav-pw-input:focus { border-color: #6366f1; background: #fff; }
+.nav-pw-input:focus { border-color: #6366f1; background: var(--surface); }
 .nav-pw-btn {
   padding: 9px; border-radius: 8px; border: none; cursor: pointer;
   font-size: 13px; font-weight: 700; font-family: inherit;
@@ -228,14 +228,14 @@ const NAV_CSS = `
 .nav-pw-btn:hover:not(:disabled) { background: #4f46e5; }
 .nav-pw-btn:disabled { opacity:.5; cursor:not-allowed; }
 .nav-pw-msg { font-size: 12px; font-weight: 600; padding: 6px 10px; border-radius: 7px; }
-.nav-pw-msg.ok  { background: #dcfce7; color: #15803d; }
-.nav-pw-msg.err { background: #fee2e2; color: #dc2626; }
+.nav-pw-msg.ok  { background: var(--success-bg); color: var(--success); }
+.nav-pw-msg.err { background: var(--error-bg); color: var(--error); }
 
 /* ── quick stat chips ── */
 .nav-stats { display:flex; gap:6px; padding: 0 12px 12px; }
-.nav-stat { flex:1; background:#f4f5fb; border-radius:10px; padding:10px 8px; text-align:center; }
+.nav-stat { flex:1; background:var(--surface2); border-radius:10px; padding:10px 8px; text-align:center; }
 .nav-stat-val { font-size:16px; font-weight:800; color:#6366f1; }
-.nav-stat-lbl { font-size:10px; color:#9899b8; font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+.nav-stat-lbl { font-size:10px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
 `
 
 /* ─────── helpers ─────── */
@@ -331,12 +331,12 @@ function ChangePasswordForm({ onClose }) {
       <div style={{ position:'relative' }}>
         <input className="nav-pw-input" type={showOld?'text':'password'} placeholder="Current password"
           value={oldPw} onChange={e => setOldPw(e.target.value)} />
-        <span onClick={() => setShowOld(s=>!s)} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', cursor:'pointer', fontSize:14, color:'#9899b8' }}>{showOld?'🙈':'👁'}</span>
+        <span onClick={() => setShowOld(s=>!s)} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', cursor:'pointer', fontSize:14, color:'var(--text3)' }}>{showOld?'🙈':'👁'}</span>
       </div>
       <div style={{ position:'relative' }}>
         <input className="nav-pw-input" type={showNew?'text':'password'} placeholder="New password (min 6 chars)"
           value={newPw} onChange={e => setNewPw(e.target.value)} />
-        <span onClick={() => setShowNew(s=>!s)} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', cursor:'pointer', fontSize:14, color:'#9899b8' }}>{showNew?'🙈':'👁'}</span>
+        <span onClick={() => setShowNew(s=>!s)} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', cursor:'pointer', fontSize:14, color:'var(--text3)' }}>{showNew?'🙈':'👁'}</span>
       </div>
       <input className="nav-pw-input" type="password" placeholder="Confirm new password"
         value={confPw} onChange={e => setConfPw(e.target.value)}
@@ -346,7 +346,7 @@ function ChangePasswordForm({ onClose }) {
         <button className="nav-pw-btn" onClick={submit} disabled={busy} style={{ flex:1 }}>
           {busy ? 'Saving…' : '🔐 Update Password'}
         </button>
-        <button className="nav-pw-btn" onClick={onClose} style={{ background:'#f0f2f8', color:'#6b7280', flex:'0 0 auto', padding:'9px 14px' }}>
+        <button className="nav-pw-btn" onClick={onClose} style={{ background:'var(--surface2)', color:'var(--text2)', flex:'0 0 auto', padding:'9px 14px' }}>
           Cancel
         </button>
       </div>
@@ -426,7 +426,7 @@ function AvatarDropdown({ user, onLogout }) {
                   <span className="nav-dd-icon">📅</span>
                   <div>
                     <div>Calendar</div>
-                    <div style={{ fontSize:11, color:'#9899b8', fontWeight:500 }}>{new Date().toDateString()}</div>
+                    <div style={{ fontSize:11, color:'var(--text3)', fontWeight:500 }}>{new Date().toDateString()}</div>
                   </div>
                 </button>
 
@@ -434,27 +434,27 @@ function AvatarDropdown({ user, onLogout }) {
                   <span className="nav-dd-icon">🔐</span>
                   <div>
                     <div>Change Password</div>
-                    <div style={{ fontSize:11, color:'#9899b8', fontWeight:500 }}>Update your credentials</div>
+                    <div style={{ fontSize:11, color:'var(--text3)', fontWeight:500 }}>Update your credentials</div>
                   </div>
                 </button>
 
                 <div className="nav-dd-sep" />
 
                 <div className="nav-dd-theme">
-                  <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                    <span style={{ fontSize:14 }}>☀️</span>
-                    <span style={{ fontSize:13, fontWeight:600, color:'#1f2433' }}>Theme</span>
-                    <span style={{ fontSize:11, color:'#9899b8', fontWeight:500, marginLeft:'auto' }}>{isDark ? 'Dark' : 'Light'}</span>
-                  </div>
-                  <button
-                    onClick={toggleTheme}
-                    aria-label="Toggle theme"
-                    style={{
-                      marginTop:8, width:'100%', height:26, borderRadius:100, padding:3,
-                      border:'1px solid #e5e7eb', background:'#f1f5f9', cursor:'pointer',
-                      position:'relative', transition:'background .2s',
-                    }}
-                  >
+                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
+                     <span style={{ fontSize:14 }}>☀️</span>
+                     <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>Theme</span>
+                     <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500, marginLeft:'auto' }}>{isDark ? 'Dark' : 'Light'}</span>
+                   </div>
+                   <button
+                     onClick={toggleTheme}
+                     aria-label="Toggle theme"
+                     style={{
+                       marginTop:8, width:'100%', height:26, borderRadius:100, padding:3,
+                       border:'1px solid var(--border)', background:'var(--surface2)', cursor:'pointer',
+                       position:'relative', transition:'background .2s',
+                     }}
+                   >
                     <span style={{
                       position:'absolute', top:3, left: isDark ? 'calc(100% - 22px)' : 3,
                       width:20, height:20, borderRadius:'50%', background:'#a855f7',

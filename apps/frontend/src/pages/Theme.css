@@ -46,6 +46,31 @@
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+  /* Builder-local token aliases (map to global theme tokens) */
+  --gb-bg:        var(--bg-secondary);
+  --gb-surface:   var(--surface);
+  --gb-surface2:  var(--surface2);
+  --gb-border:    var(--border);
+  --gb-border2:   var(--border-light);
+  --gb-primary:   var(--primary);
+  --gb-primary-d: var(--primary-hover);
+  --gb-primary-g: var(--primary-bg);
+  --gb-success:   var(--success);
+  --gb-danger:    var(--error);
+  --gb-radius:    12px;
+  --gb-radius-sm: 8px;
+  --gb-radius:    12px;
+  --gb-radius-sm: 8px;
+  --gb-card:      var(--surface);
+  --gb-primary-bg: var(--primary-bg);
+  --gb-card:      var(--surface);
+  --gb-primary-bg: var(--primary-bg);
+  --gb-text:      var(--text);
+  --gb-text2:     var(--text2);
+  --gb-text3:     var(--text3);
+  --gb-shadow:    var(--shadow);
+  --gb-shadow-md: var(--shadow-lg);
 }
 
 /* Dark Theme */
@@ -85,6 +110,23 @@
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
+
+  /* Builder-local token aliases (so builders can map to global theme) */
+  --gb-bg:        var(--bg-secondary);
+  --gb-surface:   var(--surface);
+  --gb-surface2:  var(--surface2);
+  --gb-border:    var(--border);
+  --gb-border2:   var(--border-light);
+  --gb-primary:   var(--primary);
+  --gb-primary-d: var(--primary-hover);
+  --gb-primary-g: var(--primary-bg);
+  --gb-success:   var(--success);
+  --gb-danger:    var(--error);
+  --gb-text:      var(--text);
+  --gb-text2:     var(--text2);
+  --gb-text3:     var(--text3);
+  --gb-shadow:    var(--shadow);
+  --gb-shadow-md: var(--shadow-lg);
 }
 
 body {

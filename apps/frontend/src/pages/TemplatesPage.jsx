@@ -4,11 +4,11 @@ import api from '../api'
 
 const LIGHT = `
 .gb-wrap{ background:#f5f6fb; min-height:100vh; font-family:'DM Sans',system-ui,sans-serif; color:#1a1a2e; padding:24px; }
-.gb-card{ background:#fff; border:1px solid #e3e6f0; border-radius:12px; padding:18px; max-width:980px; margin:0 auto; }
+.gb-card{ background:var(--surface); border:1px solid #e3e6f0; border-radius:12px; padding:18px; max-width:980px; margin:0 auto; }
 .gb-grid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:16px; }
-.gb-tpl{ border:1px solid #e3e6f0; border-radius:12px; padding:14px; background:#fff; cursor:pointer; }
+.gb-tpl{ border:1px solid #e3e6f0; border-radius:12px; padding:14px; background:var(--surface); cursor:pointer; }
 .gb-tpl:hover{ border-color:#9210f6; }
-.gb-btn{ border:1px solid #e3e6f0; background:#fff; color:#1a1a2e; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; font-size:13px; }
+.gb-btn{ border:1px solid #e3e6f0; background:var(--surface); color:#1a1a2e; border-radius:8px; padding:8px 14px; font-weight:600; cursor:pointer; font-size:13px; }
 .gb-btn-primary{ background:#9210f6; color:#fff; border-color:#9210f6; }
 `
 

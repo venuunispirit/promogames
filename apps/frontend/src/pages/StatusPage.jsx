@@ -94,7 +94,7 @@ export default function StatusPage() {
         .st-page {
           padding: 32px;
           font-family: 'DM Sans', 'Inter', sans-serif;
-          color: #1e1e2e;
+          color: var(--text);
           max-width: 1200px;
           margin: 0 auto;
         }
@@ -112,7 +112,7 @@ export default function StatusPage() {
           margin: 0 0 4px;
         }
         .st-header-left p {
-          color: #6b7280;
+          color: var(--text2);
           margin: 0;
           font-size: 14px;
         }
@@ -147,14 +147,14 @@ export default function StatusPage() {
         .st-btn {
           padding: 8px 18px;
           border-radius: 8px;
-          border: 1.5px solid #e8eaf0;
-          background: #fff;
+          border: 1.5px solid var(--border);
+          background: var(--surface);
           font-weight: 600;
           font-size: 13px;
           cursor: pointer;
           font-family: inherit;
           transition: all .12s;
-          color: #374151;
+          color: var(--text);
           display: inline-flex;
           align-items: center;
           gap: 6px;
@@ -174,8 +174,8 @@ export default function StatusPage() {
           margin-bottom: 24px;
         }
         .st-summary-item {
-          background: #fff;
-          border: 1.5px solid #e8eaf0;
+          background: var(--surface);
+          border: 1.5px solid var(--border);
           border-radius: 12px;
           padding: 16px 20px;
           text-align: center;
@@ -187,7 +187,7 @@ export default function StatusPage() {
         }
         .st-summary-label {
           font-size: 12px;
-          color: #9ca3af;
+          color: var(--text3);
           font-weight: 600;
           text-transform: uppercase;
           letter-spacing: .04em;
@@ -198,8 +198,8 @@ export default function StatusPage() {
         .st-summary-value.warn { color: #d97706; }
         .st-summary-value.total { color: #6366f1; }
         .st-card {
-          background: #fff;
-          border: 1.5px solid #e8eaf0;
+          background: var(--surface);
+          border: 1.5px solid var(--border);
           border-radius: 12px;
           margin-bottom: 10px;
           overflow: hidden;
@@ -216,7 +216,7 @@ export default function StatusPage() {
           font-family: inherit;
           transition: background .1s;
         }
-        .st-card-header:hover { background: #f9fafb; }
+        .st-card-header:hover { background: var(--surface2); }
         .st-card-title-row {
           display: flex;
           align-items: center;
@@ -226,7 +226,7 @@ export default function StatusPage() {
         .st-card-title {
           font-size: 15px;
           font-weight: 700;
-          color: #1e1e2e;
+          color: var(--text);
         }
         .st-card-badges { display: flex; gap: 6px; flex-wrap: wrap; }
         .st-badge {
@@ -241,11 +241,11 @@ export default function StatusPage() {
         .st-badge-warn { background: #fef3c7; color: #b45309; }
         .st-chevron {
           font-size: 11px;
-          color: #9ca3af;
+          color: var(--text3);
           transition: transform .2s;
         }
         .st-chevron.st-expanded { transform: rotate(180deg); }
-        .st-card-body { border-top: 1px solid #f0f2f8; }
+        .st-card-body { border-top: 1px solid var(--surface2); }
         .st-test-row {
           display: grid;
           grid-template-columns: 28px 1fr 200px;
@@ -253,7 +253,7 @@ export default function StatusPage() {
           align-items: center;
           padding: 10px 20px;
           font-size: 13px;
-          border-bottom: 1px solid #f5f6fa;
+          border-bottom: 1px solid var(--surface2);
         }
         .st-test-row:last-child { border-bottom: none; }
         .st-test-pass { background: #fafff7; }
@@ -272,21 +272,21 @@ export default function StatusPage() {
         }
         .st-test-name {
           font-weight: 600;
-          color: #1e1e2e;
+          color: var(--text);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .st-test-msg {
           font-size: 12px;
-          color: #6b7280;
+          color: var(--text2);
           white-space: nowrap;
           overflow: hidden;
           text-overflow: ellipsis;
         }
         .st-test-expected {
           font-size: 11px;
-          color: #9ca3af;
+          color: var(--text3);
           text-align: right;
           white-space: nowrap;
           overflow: hidden;
@@ -297,7 +297,7 @@ export default function StatusPage() {
           align-items: center;
           justify-content: center;
           padding: 80px;
-          color: #6b7280;
+          color: var(--text2);
         }
         .st-loading-overlay {
           position: fixed;
@@ -314,18 +314,18 @@ export default function StatusPage() {
           display: flex;
           align-items: center;
           gap: 12px;
-          background: #fff;
+          background: var(--surface);
           padding: 16px 28px;
           border-radius: 12px;
           box-shadow: 0 8px 32px rgba(0,0,0,0.12);
           font-weight: 600;
-          color: #374151;
+          color: var(--text);
           font-size: 15px;
         }
         .st-spin {
           width: 28px;
           height: 28px;
-          border: 3px solid #e8eaf0;
+          border: 3px solid var(--border);
           border-top-color: #6366f1;
           border-radius: 50%;
           animation: st-spin .6s linear infinite;
@@ -341,7 +341,7 @@ export default function StatusPage() {
         }
         .st-timestamp {
           font-size: 12px;
-          color: #9ca3af;
+          color: var(--text3);
           margin-top: 16px;
           text-align: center;
         }
@@ -350,7 +350,7 @@ export default function StatusPage() {
           align-items: center;
           gap: 6px;
           font-size: 13px;
-          color: #6b7280;
+          color: var(--text2);
           cursor: pointer;
           user-select: none;
         }

@@ -5,8 +5,22 @@ const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const authMiddleware = require('../middleware/auth');
 
+// Brute-force protection for login (in-memory, per-IP)
+const loginHits = new Map();
+setInterval(() => loginHits.clear(), 15 * 60 * 1000).unref();
+const loginLimiter = (req, res, next) => {
+  const key = req.ip || req.socket.remoteAddress || 'unknown';
+  const count = (loginHits.get(key) || 0) + 1;
+  loginHits.set(key, count);
+  if (count > 10) return res.status(429).json({ success: false, message: 'Too many attempts, try again later.' });
+  next();
+};
+
+// Enforce a server-side password policy (frontend also checks, this is the backstop)
+const isStrongPassword = (p) => typeof p === 'string' && p.length >= 8;
+
 // POST /api/auth/login
-router.post('/login', async (req, res) => {
+router.post('/login', loginLimiter, async (req, res) => {
   const { email, password } = req.body;
 
   if (!email || !password) {
@@ -55,6 +69,9 @@ router.get('/me', authMiddleware, async (req, res) => {
 // POST /api/auth/change-password
 router.post('/change-password', authMiddleware, async (req, res) => {
   const { oldPassword, newPassword } = req.body;
+  if (!isStrongPassword(newPassword)) {
+    return res.status(400).json({ success: false, message: 'New password must be at least 8 characters.' });
+  }
   try {
     const [rows] = await db.query('SELECT password FROM users WHERE id = ?', [req.user.id]);
     const isMatch = await bcrypt.compare(oldPassword, rows[0].password);

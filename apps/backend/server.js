@@ -6,11 +6,64 @@ require("dotenv").config();
 
 const app = express();
 
-app.use(cors());
+// ── Layer 1+2: CORS lockdown + security headers ─────────────────────────────
+// The frontend calls the API same-origin (baseURL '/api'), so we only allow
+// known origins. Set ALLOWED_ORIGINS (comma-separated) in .env for production.
+const allowedOrigins = (process.env.ALLOWED_ORIGINS || "")
+  .split(",").map(s => s.trim()).filter(Boolean);
+const corsOptions = {
+  origin: (origin, cb) => {
+    // allow same-origin requests (origin undefined) and listed origins
+    if (!origin || allowedOrigins.length === 0 || allowedOrigins.includes(origin)) {
+      cb(null, true);
+    } else {
+      cb(new Error("CORS origin not allowed"));
+    }
+  },
+  credentials: true,
+  optionsSuccessStatus: 200,
+};
+app.use(cors(corsOptions));
+
+// Security headers (defense-in-depth; a reverse proxy should also set these)
+app.use((req, res, next) => {
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-XSS-Protection", "1; mode=block");
+  res.setHeader("Referrer-Policy", "no-referrer");
+  res.setHeader(
+    "Content-Security-Policy",
+    "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'"
+  );
+  next();
+});
+
+// ── Minimal in-memory rate limiter (no extra dependency) ────────────────────
+function rateLimit({ windowMs = 60000, max = 100 } = {}) {
+  const hits = new Map();
+  setInterval(() => hits.clear(), windowMs).unref();
+  return (req, res, next) => {
+    const key = req.ip || req.socket.remoteAddress || "unknown";
+    const count = (hits.get(key) || 0) + 1;
+    hits.set(key, count);
+    if (count > max) {
+      return res.status(429).json({ success: false, message: "Too many requests, slow down." });
+    }
+    next();
+  };
+}
+const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }); // 10/15min per IP
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
+  // Prevent browsers from executing uploaded files; force download/sniff-safe
+  setHeaders: (res) => {
+    res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("Content-Disposition", "inline");
+  },
+}));
 
 const authRoutes = require("./routes/auth");
 const pauthRoutes = require("./routes/Pauth");
@@ -68,6 +121,7 @@ const franchiseRoutes = require("./routes/franchise");
 const internalTeamRoutes = require("./routes/internalTeam");
 const { itAuth } = internalTeamRoutes;
 const auth = require("./middleware/auth");
+const { requireAdmin } = require("./middleware/auth");
 const notificationsRoutes = require("./routes/notifications");
 const systemRoutes = require("./routes/system");
 const translateRoutes = require("./routes/translate");
@@ -75,62 +129,62 @@ const { startCompanion, stopCompanion } = require("./libretranslateCompanion");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
-app.use("/api/games", gamesRoutes);
-app.use("/api/templates", templateRoutes);
-app.use("/api/sounds", soundsRoutes);
-app.use("/api/upload", uploadRoutes);
-app.use("/api/quiz", quizRoutes);
+app.use("/api/games", requireAdmin, gamesRoutes);
+app.use("/api/templates", requireAdmin, templateRoutes);
+app.use("/api/sounds", requireAdmin, soundsRoutes);
+app.use("/api/upload", requireAdmin, uploadRoutes);
+app.use("/api/quiz", requireAdmin, quizRoutes);
 app.use("/api/play", playerRoutes);
-app.use("/api/clients", clientsRoutes);
-app.use("/api/spin", spinRoutes);
-app.use("/api/crossword", crosswordRoutes);
+app.use("/api/clients", requireAdmin, clientsRoutes);
+app.use("/api/spin", requireAdmin, spinRoutes);
+app.use("/api/crossword", requireAdmin, crosswordRoutes);
 app.use("/api/leaderboard", leaderboardRoutes);
-app.use("/api/players-admin", playersAdminRoutes);
-app.use("/api/memory", memoryRoutes);
-app.use("/api/jigsaw", jigsawRoutes);
-app.use("/api/wordsearch", wordsearchRoutes);
-app.use("/api/pouring", pouringRoutes);
-app.use("/api/typer", typerRoutes);
-app.use("/api/screw", screwRoutes);
-app.use("/api/snake", snakeRoutes);
-app.use("/api/catch", catchRoutes);
-app.use("/api/reaction", reactionRoutes);
-app.use("/api/math", mathRoutes);
-app.use("/api/maze", mazeRoutes);
+app.use("/api/players-admin", requireAdmin, playersAdminRoutes);
+app.use("/api/memory", requireAdmin, memoryRoutes);
+app.use("/api/jigsaw", requireAdmin, jigsawRoutes);
+app.use("/api/wordsearch", requireAdmin, wordsearchRoutes);
+app.use("/api/pouring", requireAdmin, pouringRoutes);
+app.use("/api/typer", requireAdmin, typerRoutes);
+app.use("/api/screw", requireAdmin, screwRoutes);
+app.use("/api/snake", requireAdmin, snakeRoutes);
+app.use("/api/catch", requireAdmin, catchRoutes);
+app.use("/api/reaction", requireAdmin, reactionRoutes);
+app.use("/api/math", requireAdmin, mathRoutes);
+app.use("/api/maze", requireAdmin, mazeRoutes);
 app.use("/api/2048", game2048Routes);
-app.use("/api/simon", simonRoutes);
-app.use("/api/bounce", bounceRoutes);
-app.use("/api/flappy", flappyRoutes);
-app.use("/api/canva", canvaRoutes);
+app.use("/api/simon", requireAdmin, simonRoutes);
+app.use("/api/bounce", requireAdmin, bounceRoutes);
+app.use("/api/flappy", requireAdmin, flappyRoutes);
+app.use("/api/canva", requireAdmin, canvaRoutes);
 app.use("/api/connect4", connect4Routes);
-app.use("/api/brick-images", brickImagesRoutes);
-app.use("/api/bowling", bowlingRoutes);
-app.use("/api/sudoku", sudokuRoutes);
-app.use("/api/minesweeper", minesweeperRoutes);
-app.use("/api/wordscramble", wordscrambleRoutes);
-app.use("/api/rps", rpsRoutes);
-app.use("/api/arrowescape", arrowescapeRoutes);
-app.use("/api/space", spaceRoutes);
-app.use("/api/bejeweled", bejeweledRoutes);
-app.use("/api/tetris", tetrisRoutes);
-app.use("/api/stack", stackRoutes);
-app.use("/api/whackamole", whackamoleRoutes);
-app.use("/api/hanoi", hanoiRoutes);
-app.use("/api/breakout", breakoutRoutes);
-app.use("/api/bubbleshooter", bubbleshooterRoutes);
-app.use("/api/carlaunch", carlaunchRoutes);
-app.use("/api/stressbuster", stressbusterRoutes);
-app.use("/api/soundify", soundifyRoutes);
-app.use("/api/tictactoe", tictactoeRoutes);
-app.use("/api/chess", chessRoutes);
+app.use("/api/brick-images", requireAdmin, brickImagesRoutes);
+app.use("/api/bowling", requireAdmin, bowlingRoutes);
+app.use("/api/sudoku", requireAdmin, sudokuRoutes);
+app.use("/api/minesweeper", requireAdmin, minesweeperRoutes);
+app.use("/api/wordscramble", requireAdmin, wordscrambleRoutes);
+app.use("/api/rps", requireAdmin, rpsRoutes);
+app.use("/api/arrowescape", requireAdmin, arrowescapeRoutes);
+app.use("/api/space", requireAdmin, spaceRoutes);
+app.use("/api/bejeweled", requireAdmin, bejeweledRoutes);
+app.use("/api/tetris", requireAdmin, tetrisRoutes);
+app.use("/api/stack", requireAdmin, stackRoutes);
+app.use("/api/whackamole", requireAdmin, whackamoleRoutes);
+app.use("/api/hanoi", requireAdmin, hanoiRoutes);
+app.use("/api/breakout", requireAdmin, breakoutRoutes);
+app.use("/api/bubbleshooter", requireAdmin, bubbleshooterRoutes);
+app.use("/api/carlaunch", requireAdmin, carlaunchRoutes);
+app.use("/api/stressbuster", requireAdmin, stressbusterRoutes);
+app.use("/api/soundify", requireAdmin, soundifyRoutes);
+app.use("/api/tictactoe", requireAdmin, tictactoeRoutes);
+app.use("/api/chess", requireAdmin, chessRoutes);
 app.use("/api/bd", businessDevRoutes);
 app.use("/api/business", businessOwnerRoutes);
 app.use("/api/franchise", franchiseRoutes);
 app.use("/api/internal-team", internalTeamRoutes);
 app.use("/api/notifications", auth, notificationsRoutes);
 app.use("/api/internal-team/notifications", itAuth, notificationsRoutes);
-app.use("/api/system", systemRoutes);
-app.use("/api/translate", translateRoutes);
+app.use("/api/system", requireAdmin, systemRoutes);
+app.use("/api/translate", auth, translateRoutes);
 
 const { startPCResetCron } = require('./cron/pcReset');
 startPCResetCron();
@@ -139,8 +193,7 @@ app.get("/api/check-code", (req, res) => {
   res.json({ 
     success: true, 
     message: "LATEST_VERSION_V5_BACKEND", 
-    timestamp: new Date(),
-    file: __filename
+    timestamp: new Date()
   });
 });
 
@@ -241,6 +294,15 @@ app.get('/{*splat}', (req, res) => {
     return res.sendFile(INDEX_HTML_PATH);
   }
   res.send('Backend Running');
+});
+
+// ── Global error handler (Layer 5): never leak stack traces / internal errors ──
+app.use((err, req, res, next) => {
+  if (err && err.message === 'CORS origin not allowed') {
+    return res.status(403).json({ success: false, message: 'Origin not allowed' });
+  }
+  console.error('Unhandled error:', err && err.message);
+  res.status(500).json({ success: false, message: 'Internal server error' });
 });
 
 const PORT = process.env.PORT || 8080;

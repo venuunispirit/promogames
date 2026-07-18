@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const auth = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/auth');
 const multer = require('multer');
 const { geocodePincode } = require('../lib/geocode');
 const path = require('path');
@@ -20,7 +21,7 @@ function slugify(text) {
 }
 
 // GET all clients
-router.get('/', auth, async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT c.*, u.name as created_by_name,
@@ -36,7 +37,7 @@ router.get('/', auth, async (req, res) => {
 });
 
 // GET single client
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', requireAdmin, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM clients WHERE id = ?', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Client not found' });
@@ -47,7 +48,7 @@ router.get('/:id', auth, async (req, res) => {
 });
 
 // POST create client
-router.post('/', auth, upload.single('logo'), async (req, res) => {
+router.post('/', requireAdmin, upload.single('logo'), async (req, res) => {
   const { company_name, contact_name, email, phone, address, notes } = req.body;
   if (!company_name) return res.status(400).json({ success: false, message: 'Company name required' });
 
@@ -85,7 +86,7 @@ router.post('/', auth, upload.single('logo'), async (req, res) => {
 });
 
 // PUT update client
-router.put('/:id', auth, upload.single('logo'), async (req, res) => {
+router.put('/:id', requireAdmin, upload.single('logo'), async (req, res) => {
   const { company_name, contact_name, email, phone, address, notes } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM clients WHERE id = ?', [req.params.id]);
@@ -105,7 +106,7 @@ router.put('/:id', auth, upload.single('logo'), async (req, res) => {
 });
 
 // GET games for a client
-router.get('/:id/games', auth, async (req, res) => {
+router.get('/:id/games', requireAdmin, async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT g.id, g.name, g.slug, g.category, g.is_active, g.game_logo_url, g.created_at,
@@ -121,7 +122,7 @@ router.get('/:id/games', auth, async (req, res) => {
 });
 
 // DELETE client
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     // Also delete associated business owners
     await db.query('DELETE FROM business_owners WHERE client_id = ?', [req.params.id]);
@@ -133,7 +134,7 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // GET branches for a client
-router.get('/:id/branches', auth, async (req, res) => {
+router.get('/:id/branches', requireAdmin, async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT bo.id, bo.business_name, bo.email, bo.phone, bo.pincode, bo.is_active, bo.created_at,
@@ -150,7 +151,7 @@ router.get('/:id/branches', auth, async (req, res) => {
 });
 
 // POST create a branch under a client
-router.post('/:id/branches', auth, async (req, res) => {
+router.post('/:id/branches', requireAdmin, async (req, res) => {
   const { branch_name, email, phone, pincode } = req.body;
   if (!branch_name || !email || !phone) return res.status(400).json({ success: false, message: 'Branch name, email, and phone required' });
   try {
@@ -200,7 +201,7 @@ router.post('/:id/branches', auth, async (req, res) => {
 });
 
 // PUT update a branch
-router.put('/:id/branches/:branchId', auth, async (req, res) => {
+router.put('/:id/branches/:branchId', requireAdmin, async (req, res) => {
   const { is_active, phone, pincode } = req.body;
   try {
     const updates = [];
@@ -219,7 +220,7 @@ router.put('/:id/branches/:branchId', auth, async (req, res) => {
 });
 
 // DELETE a branch
-router.delete('/:id/branches/:branchId', auth, async (req, res) => {
+router.delete('/:id/branches/:branchId', requireAdmin, async (req, res) => {
   try {
     await db.query('DELETE FROM business_owners WHERE id = ? AND client_id = ?', [req.params.branchId, req.params.id]);
     res.json({ success: true });
@@ -229,7 +230,7 @@ router.delete('/:id/branches/:branchId', auth, async (req, res) => {
 });
 
 // GET canvas node positions for a client
-router.get('/:id/canvas', auth, async (req, res) => {
+router.get('/:id/canvas', requireAdmin, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT positions FROM canvas_layout WHERE client_id = ?', [req.params.id]);
     res.json({ success: true, positions: rows[0]?.positions || {} });
@@ -239,7 +240,7 @@ router.get('/:id/canvas', auth, async (req, res) => {
 });
 
 // PUT (save) canvas node positions for a client
-router.put('/:id/canvas', auth, async (req, res) => {
+router.put('/:id/canvas', requireAdmin, async (req, res) => {
   try {
     const positions = req.body.positions || {};
     await db.query(
@@ -254,7 +255,7 @@ router.put('/:id/canvas', auth, async (req, res) => {
 });
 
 // DELETE (reset) canvas node positions for a client -> reverts to auto layout
-router.delete('/:id/canvas', auth, async (req, res) => {
+router.delete('/:id/canvas', requireAdmin, async (req, res) => {
   try {
     await db.query('DELETE FROM canvas_layout WHERE client_id = ?', [req.params.id]);
     res.json({ success: true });

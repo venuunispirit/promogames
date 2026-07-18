@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { requireAdmin } = require('../middleware/auth');
 const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
@@ -27,7 +28,7 @@ function slugify(text) {
     .replace(/^-+/, '').replace(/-+$/, '');
 }
 
-router.get('/', auth, async (req, res) => {
+router.get('/', requireAdmin, async (req, res) => {
   try {
     const [rows] = await db.query(`
       SELECT g.*, c.company_name, c.slug as client_slug,
@@ -44,7 +45,7 @@ router.get('/', auth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
-router.get('/:id', auth, async (req, res) => {
+router.get('/:id', requireAdmin, async (req, res) => {
   try {
     const [games] = await db.query(`SELECT g.*, c.company_name, c.slug as client_slug FROM games g LEFT JOIN clients c ON g.client_id = c.id WHERE g.id = ?`, [req.params.id]);
     if (games.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
@@ -62,7 +63,7 @@ router.get('/:id', auth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
-router.post('/', auth, async (req, res) => {
+router.post('/', requireAdmin, async (req, res) => {
   const { client_id, name, category, description, redirect_url } = req.body;
   if (!client_id || !name) return res.status(400).json({ success: false, message: 'Client and game name required' });
   try {
@@ -85,7 +86,7 @@ router.post('/', auth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
-router.put('/:id', auth, upload.single('intro_video'), async (req, res) => {
+router.put('/:id', requireAdmin, upload.single('intro_video'), async (req, res) => {
   try {
     const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type','status','template_id','intro_video_url'];
     const booleans = ['is_active','show_in_play_page','show_in_hero_page'];
@@ -118,7 +119,7 @@ router.put('/:id', auth, upload.single('intro_video'), async (req, res) => {
 });
 
 // GET /api/games/:id/locations — list child location games
-router.get('/:id/locations', auth, async (req, res) => {
+router.get('/:id/locations', requireAdmin, async (req, res) => {
   try {
     const [rows] = await db.query(
       `SELECT g.id, g.name, g.slug, g.location_name, g.business_owner_id, g.is_active,
@@ -131,7 +132,7 @@ router.get('/:id/locations', auth, async (req, res) => {
 });
 
 // DELETE /api/games/:id/locations/:childId — delete a location game
-router.delete('/:id/locations/:childId', auth, async (req, res) => {
+router.delete('/:id/locations/:childId', requireAdmin, async (req, res) => {
   try {
     await db.query('DELETE FROM games WHERE id = ? AND parent_game_id = ?', [req.params.childId, req.params.id]);
     res.json({ success: true });
@@ -139,7 +140,7 @@ router.delete('/:id/locations/:childId', auth, async (req, res) => {
 });
 
 // POST /api/games/:id/duplicate — clone a game with all settings, questions, options, form fields
-router.post('/:id/duplicate', auth, async (req, res) => {
+router.post('/:id/duplicate', requireAdmin, async (req, res) => {
   try {
     const gameId = req.params.id;
     const [games] = await db.query('SELECT * FROM games WHERE id = ?', [gameId]);
@@ -506,7 +507,7 @@ router.post('/:id/duplicate', auth, async (req, res) => {
   }
 });
 
-router.delete('/:id', auth, async (req, res) => {
+router.delete('/:id', requireAdmin, async (req, res) => {
   try {
     const gameId = req.params.id;
 
@@ -556,7 +557,7 @@ router.delete('/:id', auth, async (req, res) => {
 });
 
 // PUT settings/field - quick single-field update (JSON, no multer needed)
-router.put('/:id/settings/field', auth, async (req, res) => {
+router.put('/:id/settings/field', requireAdmin, async (req, res) => {
   try {
     const boolFields = ['randomize_questions', 'show_progress', 'allow_back', 'terms_enabled', 'send_email', 'enable_mascot', 'enable_speech'];
     const intFields = ['questions_per_session'];
@@ -587,7 +588,7 @@ router.put('/:id/settings/field', auth, async (req, res) => {
 });
 
 // PUT settings - with image upload support
-router.put('/:id/settings', auth, upload.fields([
+router.put('/:id/settings', requireAdmin, upload.fields([
   { name: 'bg_image', maxCount: 1 },
   { name: 'thankyou_bg_image', maxCount: 1 },
   { name: 'game_logo', maxCount: 1 },
@@ -680,7 +681,7 @@ router.put('/:id/settings', auth, upload.fields([
 });
 
 // PUT email template - NO SMTP fields
-router.put('/:id/email-template', auth, async (req, res) => {
+router.put('/:id/email-template', requireAdmin, async (req, res) => {
   const { sender_name, sender_email, subject, header_color, header_text, body_html, footer_text, is_enabled } = req.body;
   try {
     await db.query(
@@ -695,7 +696,7 @@ router.put('/:id/email-template', auth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
-router.put('/:id/form-fields', auth, async (req, res) => {
+router.put('/:id/form-fields', requireAdmin, async (req, res) => {
   const { fields } = req.body;
   try {
     await db.query('DELETE FROM form_fields WHERE game_id = ?', [req.params.id]);
@@ -710,7 +711,7 @@ router.put('/:id/form-fields', auth, async (req, res) => {
   } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
 });
 
-router.get('/:id/stats', auth, async (req, res) => {
+router.get('/:id/stats', requireAdmin, async (req, res) => {
   try {
     const [sessions] = await db.query('SELECT COUNT(*) as total, SUM(completed) as completed, AVG(score) as avg_score FROM player_sessions WHERE game_id = ?', [req.params.id]);
     const [recent] = await db.query('SELECT player_data, score, total_scoreable, completed_at FROM player_sessions WHERE game_id = ? AND completed = 1 ORDER BY completed_at DESC LIMIT 20', [req.params.id]);
@@ -720,7 +721,7 @@ router.get('/:id/stats', auth, async (req, res) => {
 
 
 // GET all completed sessions with answers for a game (for responses page)
-router.get('/:id/responses', auth, async (req, res) => {
+router.get('/:id/responses', requireAdmin, async (req, res) => {
   try {
     const [sessions] = await db.query(
       `SELECT * FROM player_sessions WHERE game_id = ? AND completed = 1 ORDER BY completed_at DESC`,
@@ -747,7 +748,7 @@ router.get('/:id/responses', auth, async (req, res) => {
 });
 
 // PUT /api/games/:id/status — change game status (development/testing/live)
-router.put('/:id/status', auth, async (req, res) => {
+router.put('/:id/status', requireAdmin, async (req, res) => {
   const { status } = req.body;
   const allowed = ['development','testing','live'];
   if (!allowed.includes(status)) return res.status(400).json({ success: false, message: 'Invalid status' });
@@ -787,7 +788,7 @@ router.put('/:id/status', auth, async (req, res) => {
 });
 
 // PUT /games/:id/email-settings — Save email templates for a game
-router.put('/:id/email-settings', auth, async (req, res) => {
+router.put('/:id/email-settings', requireAdmin, async (req, res) => {
   const { email_settings } = req.body;
   if (!email_settings) return res.status(400).json({ success: false, message: 'email_settings required' });
   try {
@@ -800,7 +801,7 @@ router.put('/:id/email-settings', auth, async (req, res) => {
 });
 
 // GET /games/:id/email-settings — Get email templates for a game
-router.get('/:id/email-settings', auth, async (req, res) => {
+router.get('/:id/email-settings', requireAdmin, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT email_settings FROM games WHERE id = ?', [req.params.id]);
     const settings = rows[0]?.email_settings || {};

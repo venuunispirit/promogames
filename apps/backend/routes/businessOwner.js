@@ -175,6 +175,17 @@ router.post('/games/link', async (req, res) => {
   const { business_owner_id, game_id, location_name, reward_text } = req.body;
   if (!business_owner_id || !game_id) return res.status(400).json({ success: false, message: 'business_owner_id and game_id required' });
   try {
+    // Ensure the branch has plottable coords so the new pin shows on the map.
+    try {
+      const [[bo]] = await db.query('SELECT pincode, latitude, longitude FROM business_owners WHERE id = ?', [business_owner_id])
+      if (bo && (bo.latitude == null || bo.longitude == null)) {
+        let geo = bo.pincode ? await geocodePincode(bo.pincode).catch(() => null) : null
+        if (!geo) geo = fallbackCoords(location_name || business_owner_id)
+        await db.query('UPDATE business_owners SET latitude=?, longitude=? WHERE id=?',
+          [geo.latitude, geo.longitude, business_owner_id])
+      }
+    } catch {}
+
     const [existing] = await db.query('SELECT id FROM business_owner_games WHERE business_owner_id = ? AND game_id = ?', [business_owner_id, game_id]);
     if (existing.length > 0) {
       await db.query('UPDATE business_owner_games SET location_name = ?, reward_text = ? WHERE id = ?', [location_name || '', reward_text || '', existing[0].id]);
@@ -193,6 +204,22 @@ router.post('/games/link', async (req, res) => {
 
 // GET /api/business/games/:gameId/locations — Get all locations for a game
 // Enriched with branch pincode + geocoded lat/lng for map plotting.
+// Coords are ALWAYS populated so the map can plot every pin: geocode from
+// pincode when present, otherwise fall back to a deterministic Karnataka
+// position derived from the location identity (so pins still appear).
+const KARNATAKA_CENTER = { lat: 12.9716, lng: 77.5946 }
+function fallbackCoords(seed) {
+  const s = String(seed || '')
+  let h = 0
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) % 100000
+  const latOff = ((h % 9000) / 10000) - 0.45
+  const lngOff = (((h >> 4) % 9000) / 10000) - 0.45
+  return {
+    latitude: +(KARNATAKA_CENTER.lat + latOff).toFixed(6),
+    longitude: +(KARNATAKA_CENTER.lng + lngOff).toFixed(6),
+  }
+}
+
 router.get('/games/:gameId/locations', async (req, res) => {
   try {
     const [rows] = await db.query(
@@ -203,16 +230,26 @@ router.get('/games/:gameId/locations', async (req, res) => {
        ORDER BY CASE WHEN bog.parent_id IS NULL THEN 0 ELSE 1 END, bog.created_at`,
       [req.params.gameId]
     );
-    // Geocode any branch missing coords (lazy backfill) so pins always plot.
+    // Ensure every location has plottable coords (lazy backfill + persist).
     for (const loc of rows) {
-      if (loc.pincode && (loc.latitude == null || loc.longitude == null)) {
-        try {
-          const geo = await geocodePincode(loc.pincode)
-          await db.query('UPDATE business_owners SET latitude=?, longitude=? WHERE id=?',
-            [geo.latitude, geo.longitude, loc.business_owner_id])
-          loc.latitude = geo.latitude
-          loc.longitude = geo.longitude
-        } catch {}
+      const hasCoords = loc.latitude != null && loc.longitude != null
+      if (!hasCoords) {
+        let geo = null
+        if (loc.pincode) {
+          try { geo = await geocodePincode(loc.pincode) } catch { geo = null }
+        }
+        if (!geo) geo = fallbackCoords(loc.location_name || loc.id)
+        if (loc.business_owner_id) {
+          try {
+            await db.query('UPDATE business_owners SET latitude=?, longitude=? WHERE id=?',
+              [geo.latitude, geo.longitude, loc.business_owner_id])
+          } catch {}
+        }
+        loc.latitude = geo.latitude
+        loc.longitude = geo.longitude
+        loc.approximated = !loc.pincode
+      } else {
+        loc.approximated = false
       }
     }
     res.json({ success: true, locations: rows });
@@ -227,6 +264,18 @@ router.post('/games/locations', async (req, res) => {
   const { game_id, business_owner_id, location_name, reward_text, parent_id } = req.body;
   if (!game_id || !location_name) return res.status(400).json({ success: false, message: 'game_id and location_name required' });
   try {
+    // Ensure the branch has plottable coords so the new pin shows on the map.
+    if (business_owner_id) {
+      try {
+        const [[bo]] = await db.query('SELECT pincode, latitude, longitude FROM business_owners WHERE id = ?', [business_owner_id])
+        if (bo && (bo.latitude == null || bo.longitude == null)) {
+          let geo = bo.pincode ? await geocodePincode(bo.pincode).catch(() => null) : null
+          if (!geo) geo = fallbackCoords(location_name || business_owner_id)
+          await db.query('UPDATE business_owners SET latitude=?, longitude=? WHERE id=?',
+            [geo.latitude, geo.longitude, business_owner_id])
+        }
+      } catch {}
+    }
     const [result] = await db.query(
       'INSERT INTO business_owner_games (business_owner_id, game_id, location_name, reward_text, parent_id) VALUES (?, ?, ?, ?, ?)',
       [business_owner_id || 1, game_id, location_name, reward_text || '', parent_id || null]

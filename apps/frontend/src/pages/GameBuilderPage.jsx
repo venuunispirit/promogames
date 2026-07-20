@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 import BuilderPhoneMockup from '../components/BuilderPhoneMockup'
 import LocationMapManager from '../components/LocationMapManager'
 import PhoneFrame from '../components/PhoneFrame'
@@ -431,10 +432,10 @@ function ColorPicker({ value, onChange, label, noPresets }) {
 }
 
 /* ─────────── ImageUpload ─────────── */
-function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,video/mp4,video/webm" }) {
+function ImageUpload({ label, url, onFile, onClear, error, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,video/mp4,video/webm" }) {
   const ref = useRef()
   return (
-    <div>
+    <div className={error ? 'gb-img-error' : ''}>
       {label && <span className="gb-label">{label}</span>}
       <input type="file" ref={ref} accept={accept} style={{ display:'none' }}
         onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
@@ -445,6 +446,7 @@ function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg
           : <img src={url} className="gb-thumb" alt="" />)}
         {url && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={onClear}>✕</button>}
       </div>
+      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -765,6 +767,9 @@ export default function GameBuilderPage() {
   const [fetchError,    setFetchError]    = useState(null)
   const [tab,           setTab]           = useState('form')
   const [toast,         setToast]         = useState(null)
+  const [headerBottom,  setHeaderBottom]  = useState(120)
+  const upload = useUploadErrors()
+  const headerRef = useRef(null)
   const [questions,     setQuestions]     = useState([])
   const [formFields,    setFormFields]    = useState([])
   const [emailTemplate, setEmailTemplate] = useState({})
@@ -893,6 +898,17 @@ const [nameInput,     setNameInput]     = useState('')
   }, [id])
 
   useEffect(() => { loadGame() }, [loadGame])
+
+  /* ─── Measure header bottom so the map fills exactly below it ─── */
+  useEffect(() => {
+    const measure = () => {
+      const el = headerRef.current
+      if (el) setHeaderBottom(el.getBoundingClientRect().bottom)
+    }
+    measure()
+    window.addEventListener('resize', measure)
+    return () => window.removeEventListener('resize', measure)
+  }, [])
 
   /* ─── Load font for preview ─── */
   useEffect(() => {
@@ -1104,6 +1120,7 @@ const [nameInput,     setNameInput]     = useState('')
   /* ─── Settings ─── */
   const saveSettings = async () => {
     setSaving(true)
+    upload.clearAll()
     try {
       const fd = new FormData()
       const fields = ['bg_color','primary_color','show_progress','time_per_question',
@@ -1155,7 +1172,22 @@ const [nameInput,     setNameInput]     = useState('')
       else gameUpdates.append('intro_video_url', introVideoUrl || '')
       await api.put(`/games/${id}`, gameUpdates)
       showToast('Settings saved ✅')
-    } catch (err) { showToast('Error: '+(err.response?.data?.message||err.message), 'error') }
+    } catch (err) {
+      const msg = uploadErrorMessage(err)
+      // attribute the error to the most likely offending field
+      if (err?.response?.status === 413) {
+        if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
+        if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
+        if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+        if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
+        if (introVideoFile) upload.setFieldError('intro_video_url', msg)
+        if (!settings._bgImageFile && !settings._tyBgImageFile && !settings._submitGifFile && !settings._gameLogoFile && !introVideoFile)
+          upload.setFieldError('bg_image_url', msg)
+      } else {
+        upload.setFieldError('bg_image_url', msg)
+      }
+      showToast(msg, 'error')
+    }
     setSaving(false)
   }
 
@@ -1206,6 +1238,14 @@ const [nameInput,     setNameInput]     = useState('')
     ...(isParentGame ? [{ id:'locations', label:'📍 Locations' }] : []),
   ]
 
+  // Which image/video fields live in each tab (for red-dot error indication)
+  const TAB_FIELDS = {
+    questions: ['question_image_url', 'question_bg_image_url', 'option_image_url', 'option_overlay_image_url'],
+    thankyou:  ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+    settings:  ['bg_image_url', 'game_logo_url', 'intro_video_url'],
+  }
+
+
   if (loading) return (
     <div className="gb-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
       <style>{LIGHT}</style>
@@ -1237,11 +1277,11 @@ const [nameInput,     setNameInput]     = useState('')
       <style>{LIGHT}</style>
 
       {/* ─── Header (3‑col grid) ─── */}
-      <div style={{
+      <div ref={headerRef} style={{
         display:'grid', gridTemplateColumns:'1fr auto 1fr',
         background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)',
         padding:'10px 28px', gap:'4px 20px', alignItems:'center',
-        position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
+        position:'sticky', top:'62px', zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
       }}>
         {/* Col 1: Back icon + Name + Builder badge */}
         <div style={{ display:'flex', gap:6, alignItems:'flex-start', justifySelf:'start' }}>
@@ -1268,12 +1308,16 @@ const [nameInput,     setNameInput]     = useState('')
 
         {/* Col 2: Tabs */}
         <div className="gb-tabs" style={{ marginBottom:0, borderBottom:'none', justifySelf:'center' }}>
-          {TABS.map(t => (
-            <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
-              style={{ padding:'6px 14px', fontSize:12.5 }}>
-              {t.label}
-            </button>
-          ))}
+          {TABS.map(t => {
+            const tabFields = TAB_FIELDS[t.id] || []
+            const hasErr = upload.tabHasError(t.id, tabFields)
+            return (
+              <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
+                style={{ padding:'6px 14px', fontSize:12.5 }}>
+                {t.label}{hasErr && <span className="gb-tab-err-dot" />}
+              </button>
+            )
+          })}
         </div>
 
         {/* Col 3: Copy + Preview (2D icons) */}
@@ -1448,32 +1492,34 @@ const [nameInput,     setNameInput]     = useState('')
             <div>
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">🎨 Visuals</div>
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
+                  <div className={`${upload.hasError('bg_image_url') ? 'gb-img-error' : ''}`} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Background Image</span>
                     <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { upload.clearFieldError('bg_image_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                     {settings.bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
                       <img src={settings.bg_image_url} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
                       <button
                         style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
-                        type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})}>✕</button>
+                        type="button" onClick={() => { setSettings({...settings,bg_image_url:'',_bgImageFile:null}); upload.clearFieldError('bg_image_url') }}>✕</button>
                     </div>}
+                    {upload.hasError('bg_image_url') && <div className="gb-img-error-msg">⚠️ {upload.errors['bg_image_url']}</div>}
                   </div>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                  <div className={`${upload.hasError('game_logo_url') ? 'gb-img-error' : ''}`} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Logo</span>
                     <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { upload.clearFieldError('game_logo_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                     {settings.game_logo_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
                       <img src={settings.game_logo_url} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#fff' }} />
                       <button
                         style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
-                        type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})}>✕</button>
+                        type="button" onClick={() => { setSettings({...settings,game_logo_url:'',_gameLogoFile:null}); upload.clearFieldError('game_logo_url') }}>✕</button>
                     </div>}
+                    {upload.hasError('game_logo_url') && <div className="gb-img-error-msg">⚠️ {upload.errors['game_logo_url']}</div>}
                   </div>
                 </div>
               </div>
@@ -1569,16 +1615,17 @@ const [nameInput,     setNameInput]     = useState('')
                         <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => navigate('/dashboard/templates')}>Manage Templates</button>
                       </div>
                     </div>
-                    <div className="gb-fg" style={{ marginBottom:10 }}>
+                    <div className={`gb-fg ${upload.hasError('intro_video_url') ? 'gb-img-error' : ''}`} style={{ marginBottom:10 }}>
                       <span className="gb-label">Intro Video (plays with audio before questions)</span>
                       <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
                         <input type="file" accept={MEDIA_ACCEPT} ref={el => introVideoInputRef.current = el} style={{ display:'none' }}
-                          onChange={e => { const f=e.target.files[0]; if(f){ setIntroVideoFile(f); setIntroVideoUrl(''); const r=new FileReader(); r.onload=ev=>setIntroVideoPrev(ev.target.result); r.readAsDataURL(f) } }} />
+                          onChange={e => { upload.clearFieldError('intro_video_url'); const f=e.target.files[0]; if(f){ setIntroVideoFile(f); setIntroVideoUrl(''); const r=new FileReader(); r.onload=ev=>setIntroVideoPrev(ev.target.result); r.readAsDataURL(f) } }} />
                         <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => introVideoInputRef.current?.click()}>📹 Upload</button>
                         {introVideoPrev && <video src={introVideoPrev} autoPlay muted loop playsInline style={{ height:48, borderRadius:6, border:'1px solid var(--gb-border)', background:'#000' }} />}
                         {introVideoUrl && !introVideoPrev && <video src={introVideoUrl} autoPlay muted loop playsInline style={{ height:48, borderRadius:6, border:'1px solid var(--gb-border)', background:'#000' }} />}
-                        {(introVideoUrl || introVideoPrev) && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={() => { setIntroVideoFile(null); setIntroVideoUrl(''); setIntroVideoPrev('') }}>✕</button>}
+                        {(introVideoUrl || introVideoPrev) && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={() => { setIntroVideoFile(null); setIntroVideoUrl(''); setIntroVideoPrev(''); upload.clearFieldError('intro_video_url') }}>✕</button>}
                       </div>
+                      {upload.hasError('intro_video_url') && <div className="gb-img-error-msg">⚠️ {upload.errors['intro_video_url']}</div>}
                     </div>
                   </div>
                   <div>
@@ -1748,17 +1795,18 @@ const [nameInput,     setNameInput]     = useState('')
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
                   <div className="gb-section-title">🎊 Thankyou Page Background</div>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                  <div className={`${upload.hasError('thankyou_bg_image_url') ? 'gb-img-error' : ''}`} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <input type="file" ref={tyBgImgRef} accept="image/png,image/jpeg,image/jpg"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { upload.clearFieldError('thankyou_bg_image_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => tyBgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                     {settings.thankyou_bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
                       <img src={settings.thankyou_bg_image_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
                       <button
                         style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
-                        type="button" onClick={() => setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})}>✕</button>
+                        type="button" onClick={() => { setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null}); upload.clearFieldError('thankyou_bg_image_url') }}>✕</button>
                     </div>}
+                    {upload.hasError('thankyou_bg_image_url') && <div className="gb-img-error-msg">⚠️ {upload.errors['thankyou_bg_image_url']}</div>}
                   </div>
                 </div>
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
@@ -1791,10 +1839,10 @@ const [nameInput,     setNameInput]     = useState('')
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
-                  <div className="gb-section-title">🎊 Submit Confirmation GIF</div>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                   <div className="gb-section-title">🎊 Submit Confirmation GIF</div>
+                  <div className={`${upload.hasError('submit_confirm_gif_url') ? 'gb-img-error' : ''}`} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <input type="file" id="submitGifInput" accept="image/gif,image/png,image/jpeg,image/webp,video/mp4,video/webm,video/quicktime"
-                      onChange={e => { const f=e.target.files[0]; if(f){const url=URL.createObjectURL(f); setSettings({...settings,submit_confirm_gif_url:url,_submitGifFile:f})}} }
+                      onChange={e => { upload.clearFieldError('submit_confirm_gif_url'); const f=e.target.files[0]; if(f){const url=URL.createObjectURL(f); setSettings({...settings,submit_confirm_gif_url:url,_submitGifFile:f})}} }
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>🎬 Upload GIF / Image / Video</button>
                     {settings.submit_confirm_gif_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
@@ -1803,8 +1851,9 @@ const [nameInput,     setNameInput]     = useState('')
                         : <img src={settings.submit_confirm_gif_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />}
                       <button
                         style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
-                        type="button" onClick={() => setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})}>✕</button>
+                        type="button" onClick={() => { setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null}); upload.clearFieldError('submit_confirm_gif_url') }}>✕</button>
                     </div>}
+                    {upload.hasError('submit_confirm_gif_url') && <div className="gb-img-error-msg">⚠️ {upload.errors['submit_confirm_gif_url']}</div>}
                   </div>
                 </div>
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
@@ -2393,15 +2442,14 @@ const [nameInput,     setNameInput]     = useState('')
         </PhoneFrame>
         )}{/* ─ end right col ─ */}
 
-        {/* ─── LOCATIONS: MAP-BASED MANAGER ─── */}
-        {tab === 'locations' && isParentGame && (
-          <div style={{ flex: 1, minWidth: 0 }}>
-            <LocationMapManager gameId={id} clientId={game?.client_id} />
-          </div>
-        )}
-
-
       </div>
+
+      {/* ─── LOCATIONS: MAP-BASED MANAGER (fills exactly below header) ─── */}
+      {tab === 'locations' && isParentGame && (
+        <div style={{ position: 'fixed', top: headerBottom, left: 0, right: 0, bottom: 0, zIndex: 10, overflow: 'hidden' }}>
+          <LocationMapManager gameId={id} clientId={game?.client_id} />
+        </div>
+      )}
 
       {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>

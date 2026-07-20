@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 import { Toast, ColorPicker, ImageUpload, SoundSelector } from '../components/SharedBuilderComponents'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 function normalizePath(value) {
   try {
@@ -352,12 +353,18 @@ const TABS = [
   { id:'settings',   label:'⚙️ Settings' },
 ]
 
+const TAB_FIELDS = {
+  display:  ['bg_image_url', 'game_logo_url', 'center_image_url'],
+  thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+}
+
 /* ═══════════════════════════════════════════
    MAIN PAGE
 ═══════════════════════════════════════════ */
 export default function SpinBuilderTab() {
   const { id: gameId } = useParams(), navigate = useNavigate()
   const [tab, setTab] = useState('display')
+  const upload = useUploadErrors()
   const [settings, setSettings] = useState(null), [segments, setSegments] = useState([]), [sounds, setSounds] = useState([])
   const [loading, setLoading] = useState(true), [saving, setSaving] = useState(false)
   const [modal, setModal] = useState(null), [toast, setToast] = useState(null)
@@ -420,7 +427,7 @@ export default function SpinBuilderTab() {
 
   const setS=(k,v)=>setSForm(f=>({...f,[k]:v}))
 
-  const saveSettings=async()=>{setSaving(true);try{const hasFiles=centerFile||bgFile||tyFile||logoFile||submitGifFile;let res;const sv=v=>v===undefined||v===null?null:(typeof v==='string'&&v.trim()===''?null:v);if(hasFiles){const fd=new FormData();const ik=['center_image_url'];Object.entries(sForm).forEach(([k,v])=>{const safe=sv(v);if(safe!==undefined&&safe!==null&&!ik.includes(k))fd.append(k,String(safe))});fd.append('redirect_url',sv(redirectUrl)||'');if(!centerFile)fd.append('center_image_url',normalizePath(sUrls.center)||'');if(!bgFile)fd.append('bg_image_url',normalizePath(sUrls.bg)||'');if(!tyFile)fd.append('thankyou_bg_image_url',normalizePath(sUrls.ty)||'');if(!logoFile)fd.append('game_logo_url',normalizePath(sUrls.logo)||'');if(!submitGifFile)fd.append('submit_confirm_gif_url',normalizePath(sUrls.submitGif)||'');if(centerFile)fd.append('center_image',centerFile);if(bgFile)fd.append('bg_image',bgFile);if(tyFile)fd.append('thankyou_bg_image',tyFile);if(logoFile)fd.append('game_logo',logoFile);if(submitGifFile)fd.append('submit_confirm_gif',submitGifFile);res=await api.put(`/spin/${gameId}/settings`,fd)}else{const body={};Object.entries(sForm).forEach(([k,v])=>{const safe=sv(v);if(safe!==undefined&&safe!==null)body[k]=safe});body.center_image_url=normalizePath(sUrls.center)||null;body.bg_image_url=normalizePath(sUrls.bg)||null;body.thankyou_bg_image_url=normalizePath(sUrls.ty)||null;body.game_logo_url=normalizePath(sUrls.logo)||null;body.submit_confirm_gif_url=normalizePath(sUrls.submitGif)||null;body.redirect_url=sv(redirectUrl)||null;res=await api.put(`/spin/${gameId}/settings`,body)}setSettings(res.data.settings);const s=res.data.settings;setSUrls({bg:normalizePath(s.bg_image_url),ty:normalizePath(s.thankyou_bg_image_url),logo:normalizePath(s.game_logo_url),center:normalizePath(s.center_image_url),submitGif:normalizePath(s.submit_confirm_gif_url)});console.log('[DEBUG SAVE] Center Button Image:', s.center_image_url);console.log('[DEBUG SAVE] Game Logo:', s.game_logo_url);console.log('[DEBUG SAVE] Background Image:', s.bg_image_url);console.log('[DEBUG SAVE] Thank You BG:', s.thankyou_bg_image_url);console.log('[DEBUG SAVE] Loaded Config:', s);setCenterFile(null);setBgFile(null);setTyFile(null);setLogoFile(null);setSubmitGifFile(null);showToast('Settings saved ✅')}catch(err){showToast(err.response?.data?.message||'Failed to save','error')}finally{setSaving(false)}}
+  const saveSettings=async()=>{setSaving(true);try{const hasFiles=centerFile||bgFile||tyFile||logoFile||submitGifFile;let res;const sv=v=>v===undefined||v===null?null:(typeof v==='string'&&v.trim()===''?null:v);if(hasFiles){const fd=new FormData();const ik=['center_image_url'];Object.entries(sForm).forEach(([k,v])=>{const safe=sv(v);if(safe!==undefined&&safe!==null&&!ik.includes(k))fd.append(k,String(safe))});fd.append('redirect_url',sv(redirectUrl)||'');if(!centerFile)fd.append('center_image_url',normalizePath(sUrls.center)||'');if(!bgFile)fd.append('bg_image_url',normalizePath(sUrls.bg)||'');if(!tyFile)fd.append('thankyou_bg_image_url',normalizePath(sUrls.ty)||'');if(!logoFile)fd.append('game_logo_url',normalizePath(sUrls.logo)||'');if(!submitGifFile)fd.append('submit_confirm_gif_url',normalizePath(sUrls.submitGif)||'');if(centerFile)fd.append('center_image',centerFile);if(bgFile)fd.append('bg_image',bgFile);if(tyFile)fd.append('thankyou_bg_image',tyFile);if(logoFile)fd.append('game_logo',logoFile);if(submitGifFile)fd.append('submit_confirm_gif',submitGifFile);res=await api.put(`/spin/${gameId}/settings`,fd)}else{const body={};Object.entries(sForm).forEach(([k,v])=>{const safe=sv(v);if(safe!==undefined&&safe!==null)body[k]=safe});body.center_image_url=normalizePath(sUrls.center)||null;body.bg_image_url=normalizePath(sUrls.bg)||null;body.thankyou_bg_image_url=normalizePath(sUrls.ty)||null;body.game_logo_url=normalizePath(sUrls.logo)||null;body.submit_confirm_gif_url=normalizePath(sUrls.submitGif)||null;body.redirect_url=sv(redirectUrl)||null;res=await api.put(`/spin/${gameId}/settings`,body)}setSettings(res.data.settings);const s=res.data.settings;setSUrls({bg:normalizePath(s.bg_image_url),ty:normalizePath(s.thankyou_bg_image_url),logo:normalizePath(s.game_logo_url),center:normalizePath(s.center_image_url),submitGif:normalizePath(s.submit_confirm_gif_url)});console.log('[DEBUG SAVE] Center Button Image:', s.center_image_url);console.log('[DEBUG SAVE] Game Logo:', s.game_logo_url);console.log('[DEBUG SAVE] Background Image:', s.bg_image_url);console.log('[DEBUG SAVE] Thank You BG:', s.thankyou_bg_image_url);console.log('[DEBUG SAVE] Loaded Config:', s);setCenterFile(null);setBgFile(null);setTyFile(null);setLogoFile(null);setSubmitGifFile(null);showToast('Settings saved ✅')}catch(err){const m=uploadErrorMessage(err);if(err?.response?.status===413){if(bgFile)upload.setFieldError('bg_image_url',m);if(logoFile)upload.setFieldError('game_logo_url',m);if(centerFile)upload.setFieldError('center_image_url',m);if(tyFile)upload.setFieldError('thankyou_bg_image_url',m);if(submitGifFile)upload.setFieldError('submit_confirm_gif_url',m);if(!bgFile&&!logoFile&&!centerFile&&!tyFile&&!submitGifFile)upload.setFieldError('bg_image_url',m)}else{upload.setFieldError('bg_image_url',m)}showToast(err.response?.data?.message||'Failed to save','error')}finally{setSaving(false)}}
 
   const saveEmailTemplate=async()=>{setSaving(true);try{await api.put(`/games/${gameId}/email-template`,emailTemplate);showToast('Email template saved ✅')}catch(err){showToast(err.response?.data?.message||'Failed to save email','error')}finally{setSaving(false)}}
 
@@ -498,7 +505,7 @@ export default function SpinBuilderTab() {
         display:'grid', gridTemplateColumns:'1fr auto 1fr',
         background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)',
         padding:'10px 28px', gap:'4px 20px', alignItems:'center',
-        position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
+        position:'sticky', top:'62px', zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
       }}>
         <div style={{ display:'flex', gap:6, alignItems:'flex-start', justifySelf:'start' }}>
           <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={()=>navigate('/dashboard/games')} style={{ padding:'6px 8px', fontSize:16, lineHeight:1, marginTop:1 }} title="Back to games">←</button>
@@ -521,7 +528,7 @@ export default function SpinBuilderTab() {
           </div>
         </div>
         <div className="gb-tabs" style={{ marginBottom:0, borderBottom:'none', justifySelf:'center' }}>
-          {TABS.map(t=><button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)} style={{ padding:'6px 14px', fontSize:12.5 }}>{t.label}</button>)}
+          {TABS.map(t=>{const hasErr=upload.tabHasError(t.id,TAB_FIELDS[t.id]||[]);return <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)} style={{ padding:'6px 14px', fontSize:12.5 }}>{t.label}{hasErr && <span className="gb-tab-err-dot" />}</button>})}
         </div>
         <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'end' }}>
           <button className="gb-btn gb-btn-ghost gb-btn-sm" style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }} onClick={()=>{navigator.clipboard.writeText(gameLink);showToast('Link copied!')}} title="Copy link">🔗</button>
@@ -540,13 +547,13 @@ export default function SpinBuilderTab() {
             <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
               <div className="gb-section-title">🖼️ Visuals</div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                <div className={upload.hasError('game_logo_url')?'gb-img-error':''} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                   <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Logo</span>
-                  <ImageUpload label="" url={logoFile?URL.createObjectURL(logoFile):normalizePath(sUrls.logo)} onFile={f=>setLogoFile(f)} onClear={()=>{setLogoFile(null);setSUrls(u=>({...u,logo:null}))}} />
+                  <ImageUpload label="" url={logoFile?URL.createObjectURL(logoFile):normalizePath(sUrls.logo)} onFile={f=>{upload.clearFieldError('game_logo_url');setLogoFile(f)}} onClear={()=>{setLogoFile(null);setSUrls(u=>({...u,logo:null}));upload.clearFieldError('game_logo_url')}} />
                 </div>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                <div className={upload.hasError('bg_image_url')?'gb-img-error':''} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                   <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Background Image</span>
-                  <ImageUpload label="" url={bgFile?URL.createObjectURL(bgFile):normalizePath(sUrls.bg)} onFile={f=>{setBgFile(f);setSUrls(u=>({...u,bg:URL.createObjectURL(f)}))}} onClear={()=>{setBgFile(null);setSUrls(u=>({...u,bg:null}))}} />
+                  <ImageUpload label="" url={bgFile?URL.createObjectURL(bgFile):normalizePath(sUrls.bg)} onFile={f=>{upload.clearFieldError('bg_image_url');setBgFile(f);setSUrls(u=>({...u,bg:URL.createObjectURL(f)}))}} onClear={()=>{setBgFile(null);setSUrls(u=>({...u,bg:null}));upload.clearFieldError('bg_image_url')}} />
                 </div>
               </div>
             </div>
@@ -788,8 +795,8 @@ export default function SpinBuilderTab() {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
               <div className="gb-card" style={{ padding:16, margin:0 }}>
                 <div className="gb-section-title">📸 Thankyou Page Background</div>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
-                  <ImageUpload label="" url={tyFile?URL.createObjectURL(tyFile):normalizePath(sUrls.ty)} onFile={f=>setTyFile(f)} onClear={()=>{setTyFile(null);setSUrls(u=>({...u,ty:null}))}} />
+                <div className={upload.hasError('thankyou_bg_image_url')?'gb-img-error':''} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                  <ImageUpload label="" url={tyFile?URL.createObjectURL(tyFile):normalizePath(sUrls.ty)} onFile={f=>{upload.clearFieldError('thankyou_bg_image_url');setTyFile(f)}} onClear={()=>{setTyFile(null);setSUrls(u=>({...u,ty:null}));upload.clearFieldError('thankyou_bg_image_url')}} />
                 </div>
               </div>
               <div className="gb-card" style={{ padding:16, margin:0 }}>
@@ -815,8 +822,8 @@ export default function SpinBuilderTab() {
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
               <div className="gb-card" style={{ padding:16, margin:0 }}>
                 <div className="gb-section-title">🎉 Submit Confirmation GIF</div>
-                <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
-                  <ImageUpload label="" url={submitGifFile?URL.createObjectURL(submitGifFile):normalizePath(sUrls.submitGif)} onFile={f=>setSubmitGifFile(f)} onClear={()=>{setSubmitGifFile(null);setSUrls(u=>({...u,submitGif:null}))}} accept="image/gif,image/png,image/jpeg,image/webp" />
+                <div className={upload.hasError('submit_confirm_gif_url')?'gb-img-error':''} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                  <ImageUpload label="" url={submitGifFile?URL.createObjectURL(submitGifFile):normalizePath(sUrls.submitGif)} onFile={f=>{upload.clearFieldError('submit_confirm_gif_url');setSubmitGifFile(f)}} onClear={()=>{setSubmitGifFile(null);setSUrls(u=>({...u,submitGif:null}));upload.clearFieldError('submit_confirm_gif_url')}} accept="image/gif,image/png,image/jpeg,image/webp" />
                 </div>
               </div>
               <div className="gb-card" style={{ padding:16, margin:0 }}>

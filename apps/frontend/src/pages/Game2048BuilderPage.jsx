@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 /* ─────────────────────────────────────────────
    LIGHT THEME TOKENS  (scoped to .gb-wrap)
@@ -519,6 +520,7 @@ export default function Game2048BuilderPage() {
   const [soundUploading,setSoundUploading]= useState(false)
   const [redirectUrl,   setRedirectUrl]   = useState('')
 
+  const upload = useUploadErrors()
   const soundUploadRef = useRef()
   const bgImgRef       = useRef()
   const tyBgImgRef     = useRef()
@@ -636,7 +638,15 @@ export default function Game2048BuilderPage() {
       await api.put(`/games/${id}/settings`, fd)
       await api.put(`/games/${id}`, { redirect_url: redirectUrl, slug: slugInput.trim() || undefined })
       showToast('Settings saved ✅')
-    } catch (err) { showToast('Error: '+(err.response?.data?.message||err.message), 'error') }
+    } catch (err) {
+      const msg = uploadErrorMessage(err)
+      if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
+      if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
+      if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
+      if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+      if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile && !settings._submitGifFile) upload.setFieldError('bg_image_url', msg)
+      showToast(msg, 'error')
+    }
     setSaving(false)
   }
 
@@ -687,6 +697,10 @@ export default function Game2048BuilderPage() {
     { id:'sounds',    label:'Audio' },
     { id:'settings',  label:'Settings' },
   ]
+  const TAB_FIELDS = {
+    form: ['bg_image_url', 'game_logo_url'],
+    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+  }
 
   const tileColorsObj = parseTileColors(game2048.tile_colors)
 
@@ -725,7 +739,7 @@ export default function Game2048BuilderPage() {
         display:'grid', gridTemplateColumns:'1fr auto 1fr',
         background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)',
         padding:'10px 28px', gap:'4px 20px', alignItems:'center',
-        position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
+        position:'sticky', top:'62px', zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
       }}>
         {/* Col 1: Back icon + Name + Builder badge */}
         <div style={{ display:'flex', gap:6, alignItems:'flex-start', justifySelf:'start' }}>
@@ -752,12 +766,15 @@ export default function Game2048BuilderPage() {
 
         {/* Col 2: Tabs */}
         <div className="gb-tabs" style={{ marginBottom:0, borderBottom:'none', justifySelf:'center' }}>
-          {TABS.map(t => (
-            <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
-              style={{ padding:'6px 14px', fontSize:12.5 }}>
-              {t.label}
-            </button>
-          ))}
+          {TABS.map(t => {
+            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
+            return (
+              <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
+                style={{ padding:'6px 14px', fontSize:12.5 }}>
+                {t.label}{hasErr && <span className="gb-tab-err-dot" />}
+              </button>
+            )
+          })}
         </div>
 
         {/* Col 3: Copy + Preview */}
@@ -903,7 +920,7 @@ export default function Game2048BuilderPage() {
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Background Image</span>
                     <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { upload.clearFieldError('bg_image_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
                     {settings.bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
@@ -912,11 +929,12 @@ export default function Game2048BuilderPage() {
                         style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                         type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})}>✕</button>
                     </div>}
+                    {upload.errors.bg_image_url && <div className="gb-img-error-msg">⚠️ {upload.errors.bg_image_url}</div>}
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Logo</span>
                     <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { upload.clearFieldError('game_logo_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
                     {settings.game_logo_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
@@ -925,6 +943,7 @@ export default function Game2048BuilderPage() {
                         style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                         type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})}>✕</button>
                     </div>}
+                    {upload.errors.game_logo_url && <div className="gb-img-error-msg">⚠️ {upload.errors.game_logo_url}</div>}
                   </div>
                 </div>
               </div>
@@ -1062,7 +1081,7 @@ export default function Game2048BuilderPage() {
                   <div className="gb-section-title">\ud83c\udf8a Thankyou Page Background</div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <input type="file" ref={tyBgImgRef} accept="image/png,image/jpeg,image/jpg"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { upload.clearFieldError('thankyou_bg_image_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => tyBgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
                     {settings.thankyou_bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
@@ -1071,6 +1090,7 @@ export default function Game2048BuilderPage() {
                         style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                         type="button" onClick={() => setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})}>✕</button>
                     </div>}
+                    {upload.errors.thankyou_bg_image_url && <div className="gb-img-error-msg">⚠️ {upload.errors.thankyou_bg_image_url}</div>}
                   </div>
                 </div>
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
@@ -1106,7 +1126,7 @@ export default function Game2048BuilderPage() {
                   <div className="gb-section-title">\ud83c\udf8a Submit Confirmation GIF</div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <input type="file" id="submitGifInput" accept="image/gif,image/png,image/jpeg,image/webp"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { upload.clearFieldError('submit_confirm_gif_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83c\udfac Upload GIF / Image</button>
                     {settings.submit_confirm_gif_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
@@ -1114,6 +1134,7 @@ export default function Game2048BuilderPage() {
                       <button
                         style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                         type="button" onClick={() => setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})}>✕</button>
+                    {upload.errors.submit_confirm_gif_url && <div className="gb-img-error-msg">⚠️ {upload.errors.submit_confirm_gif_url}</div>}
                     </div>}
                   </div>
                 </div>

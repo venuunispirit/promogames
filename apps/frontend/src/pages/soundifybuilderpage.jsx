@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 import { Toast, ColorPicker, SoundSelector } from '../components/SharedBuilderComponents'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const LIGHT = `
 .sf-wrap {
@@ -73,10 +74,10 @@ const FONT_CATEGORIES = [
   { name:'Modern Casual', fonts:['Montserrat','Syne','Raleway','Quicksand','Josefin Sans','Space Grotesk','Plus Jakarta Sans','Outfit','Sora','Manrope','Lexend','Figtree'] },
 ]
 
-function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" }) {
+function ImageUpload({ label, url, onFile, onClear, error, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" }) {
   const ref = useRef()
   return (
-    <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+    <div className={error ? 'gb-img-error' : ''} style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
       {label && <span className="sf-label">{label}</span>}
       <input type="file" ref={ref} accept={accept} style={{ display:'none' }} onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10, width:'100%', marginTop:6 }}>
@@ -88,6 +89,7 @@ function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg
           </div>
         )}
       </div>
+      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -105,6 +107,7 @@ export default function SoundifyBuilderPage() {
   const [fetchError, setFetchError] = useState(null)
   const [activeTab, setActiveTab] = useState('display')
   const [toast, setToast] = useState(null)
+  const upload = useUploadErrors()
   const [saving, setSaving] = useState(false)
   const [savingForm, setSavingForm] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -219,6 +222,7 @@ export default function SoundifyBuilderPage() {
 
   const saveSettings = async () => {
     setSaving(true)
+    upload.clearAll()
     try {
       const fd = new FormData()
       const fields = [
@@ -253,6 +257,17 @@ export default function SoundifyBuilderPage() {
       await api.put(`/soundify/${id}/settings`, fd)
       showToast('Settings saved')
     } catch (err) {
+      const msg = uploadErrorMessage(err)
+      if (err?.response?.status === 413) {
+        if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
+        if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
+        if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
+        if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+        if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile && !settings._submitGifFile)
+          upload.setFieldError('bg_image_url', msg)
+      } else {
+        upload.setFieldError('bg_image_url', msg)
+      }
       showToast('Error saving settings: ' + (err.response?.data?.message || err.message), 'error')
     }
     setSaving(false)
@@ -345,6 +360,11 @@ export default function SoundifyBuilderPage() {
     { id:'settings', label:'Settings' },
   ]
 
+  const TAB_FIELDS = {
+    display:  ['bg_image_url', 'game_logo_url'],
+    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+  }
+
   if (loading) return (
     <div className="sf-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
       <style>{LIGHT}</style>
@@ -375,7 +395,7 @@ export default function SoundifyBuilderPage() {
     <div className="sf-wrap">
       <style>{LIGHT}</style>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', background:'var(--sf-surface)', borderBottom:'1.5px solid var(--sf-border)', padding:'10px 28px', gap:'4px 20px', alignItems:'center', position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', background:'var(--sf-surface)', borderBottom:'1.5px solid var(--sf-border)', padding:'10px 28px', gap:'4px 20px', alignItems:'center', position:'sticky', top:'62px', zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
         <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'start' }}>
           <button className="sf-btn sf-btn-ghost sf-btn-sm" onClick={() => navigate('/dashboard/games')} style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }} title="Back to games">&larr;</button>
           <div>
@@ -396,11 +416,14 @@ export default function SoundifyBuilderPage() {
         </div>
 
         <div className="sf-tabs" style={{ marginBottom:0, borderBottom:'none', justifySelf:'center' }}>
-          {TABS.map(t => (
-            <button key={t.id} className={`sf-tab${activeTab===t.id?' active':''}`} onClick={() => setActiveTab(t.id)} style={{ padding:'6px 14px', fontSize:12.5 }}>
-              {t.label}
-            </button>
-          ))}
+          {TABS.map(t => {
+            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
+            return (
+              <button key={t.id} className={`sf-tab${activeTab===t.id?' active':''}`} onClick={() => setActiveTab(t.id)} style={{ padding:'6px 14px', fontSize:12.5 }}>
+                {t.label}{hasErr && <span className="gb-tab-err-dot" />}
+              </button>
+            )
+          })}
         </div>
 
         <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'end' }}>
@@ -424,8 +447,8 @@ export default function SoundifyBuilderPage() {
               <div className="sf-card" style={{ padding:20, marginBottom:16 }}>
                 <div className="sf-section-title">Visuals</div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(220px, 1fr))', gap:20, justifyItems:'center', alignItems:'start' }}>
-                  <ImageUpload label="Game Background Image" url={settings._bgPreview || settings.bg_image_url} onFile={f => { setS('_bgImageFile', f); setS('_bgPreview', URL.createObjectURL(f)) }} onClear={() => { setS('bg_image_url', ''); setS('_bgImageFile', null); setS('_bgPreview', null) }} />
-                  <ImageUpload label="Game Logo" url={settings._logoPreview || settings.game_logo_url} onFile={f => { setS('_gameLogoFile', f); setS('_logoPreview', URL.createObjectURL(f)) }} onClear={() => { setS('game_logo_url', ''); setS('_gameLogoFile', null); setS('_logoPreview', null) }} />
+                  <ImageUpload label="Game Background Image" error={upload.hasError('bg_image_url')} url={settings._bgPreview || settings.bg_image_url} onFile={f => { upload.clearFieldError('bg_image_url'); setS('_bgImageFile', f); setS('_bgPreview', URL.createObjectURL(f)) }} onClear={() => { setS('bg_image_url', ''); setS('_bgImageFile', null); setS('_bgPreview', null); upload.clearFieldError('bg_image_url') }} />
+                  <ImageUpload label="Game Logo" error={upload.hasError('game_logo_url')} url={settings._logoPreview || settings.game_logo_url} onFile={f => { upload.clearFieldError('game_logo_url'); setS('_gameLogoFile', f); setS('_logoPreview', URL.createObjectURL(f)) }} onClear={() => { setS('game_logo_url', ''); setS('_gameLogoFile', null); setS('_logoPreview', null); upload.clearFieldError('game_logo_url') }} />
                 </div>
               </div>
 
@@ -589,7 +612,7 @@ export default function SoundifyBuilderPage() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
                 <div className="sf-card" style={{ padding:20 }}>
                   <div className="sf-section-title">Thankyou Page Background</div>
-                  <ImageUpload label="" url={settings._tyPreview || settings.thankyou_bg_image_url} onFile={f => { setS('_tyBgImageFile',f); setS('_tyPreview',URL.createObjectURL(f)) }} onClear={() => { setS('thankyou_bg_image_url',''); setS('_tyBgImageFile',null); setS('_tyPreview',null) }} />
+                  <ImageUpload label="" error={upload.hasError('thankyou_bg_image_url')} url={settings._tyPreview || settings.thankyou_bg_image_url} onFile={f => { upload.clearFieldError('thankyou_bg_image_url'); setS('_tyBgImageFile',f); setS('_tyPreview',URL.createObjectURL(f)) }} onClear={() => { setS('thankyou_bg_image_url',''); setS('_tyBgImageFile',null); setS('_tyPreview',null); upload.clearFieldError('thankyou_bg_image_url') }} />
                 </div>
                 <div className="sf-card" style={{ padding:20 }}>
                   <div className="sf-section-title">Thankyou Message</div>
@@ -614,7 +637,7 @@ export default function SoundifyBuilderPage() {
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
                 <div className="sf-card" style={{ padding:20 }}>
                   <div className="sf-section-title">Submit Confirmation GIF</div>
-                  <ImageUpload label="" url={settings._submitGifPreview || settings.submit_confirm_gif_url} onFile={f => { setS('_submitGifFile',f); setS('_submitGifPreview',URL.createObjectURL(f)) }} onClear={() => { setS('submit_confirm_gif_url',''); setS('_submitGifFile',null); setS('_submitGifPreview',null) }} accept="image/gif,image/png,image/jpeg,image/webp" />
+                  <ImageUpload label="" error={upload.hasError('submit_confirm_gif_url')} url={settings._submitGifPreview || settings.submit_confirm_gif_url} onFile={f => { upload.clearFieldError('submit_confirm_gif_url'); setS('_submitGifFile',f); setS('_submitGifPreview',URL.createObjectURL(f)) }} onClear={() => { setS('submit_confirm_gif_url',''); setS('_submitGifFile',null); setS('_submitGifPreview',null); upload.clearFieldError('submit_confirm_gif_url') }} accept="image/gif,image/png,image/jpeg,image/webp" />
                 </div>
                 <div className="sf-card" style={{ padding:20 }}>
                   <div className="sf-section-title">Post-Game Redirect URL</div>

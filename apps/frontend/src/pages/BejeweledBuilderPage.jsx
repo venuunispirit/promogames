@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors } from '../lib/builderUpload'
 
 /* ─────────────────────────────────────────────
    LIGHT THEME TOKENS  (scoped to .gb-wrap)
@@ -113,6 +114,7 @@ export default function BejeweledBuilderPage() {
     is_active: 1,
   })
 
+  const upload = useUploadErrors()
   const showToast = (msg, type='success') => setToast({ msg, type })
 
   const loadGame = useCallback(() => {
@@ -180,10 +182,11 @@ export default function BejeweledBuilderPage() {
   )
 
   const TABS = [{ id:'form', label:'Game Settings' }]
+  const TAB_FIELDS = {}
 
   return (
     <div className="gb-wrap"><style>{LIGHT}</style>
-      <div style={{ display:'grid',gridTemplateColumns:'1fr auto 1fr',background:'#fff',borderBottom:'1.5px solid var(--gb-border)',padding:'10px 28px',gap:'4px 20px',alignItems:'center',position:'sticky',top:0,zIndex:50 }}>
+      <div style={{ display:'grid',gridTemplateColumns:'1fr auto 1fr',background:'#fff',borderBottom:'1.5px solid var(--gb-border)',padding:'10px 28px',gap:'4px 20px',alignItems:'center',position:'sticky',top:'62px',zIndex:50 }}>
         <div style={{ display:'flex',gap:10,alignItems:'flex-start' }}>
           <button className="gb-btn gb-btn-ghost" onClick={() => navigate('/dashboard/games')} style={{ padding:'6px 8px',fontSize:16 }}>←</button>
           <div>
@@ -192,7 +195,10 @@ export default function BejeweledBuilderPage() {
           </div>
         </div>
         <div style={{ display:'flex',gap:0,borderBottom:'2px solid var(--gb-border)' }}>
-          {TABS.map(t => <button key={t.id} onClick={() => setTab(t.id)} style={{ padding:'6px 14px',fontSize:12.5,fontWeight:600,border:'none',background:'none',cursor:'pointer',color:tab===t.id?'var(--gb-primary)':'var(--gb-text2)',borderBottom:tab===t.id?'2px solid var(--gb-primary)':'2px solid transparent',marginBottom:-2 }}>{t.label}</button>)}
+          {TABS.map(t => {
+            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
+            return <button key={t.id} onClick={() => setTab(t.id)} style={{ padding:'6px 14px',fontSize:12.5,fontWeight:600,border:'none',background:'none',cursor:'pointer',color:tab===t.id?'var(--gb-primary)':'var(--gb-text2)',borderBottom:tab===t.id?'2px solid var(--gb-primary)':'2px solid transparent',marginBottom:-2 }}>{t.label}{hasErr && <span className="gb-tab-err-dot" />}</button>
+          })}
         </div>
         <div style={{ display:'flex',gap:6,justifySelf:'end' }}>
           {gameLink && <a href={gameLink} target="_blank" rel="noreferrer" className="gb-btn gb-btn-ghost" style={{ padding:'6px 8px',fontSize:16,textDecoration:'none' }}>👁</a>}

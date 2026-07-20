@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const FONT_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap'
 
@@ -53,7 +54,7 @@ const LIGHT = `
 .mb-tile-del{position:absolute;top:-5px;right:-5px;width:20px;height:20px;border-radius:50%;border:none;background:#DC2626;color:#fff;font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 6px rgba(0,0,0,.2)}
 .mb-tile-add{width:80px;height:80px;border-radius:8px;border:2px dashed #CBD5E1;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#94A3B8;font-size:28px;transition:border-color .15s,color .15s}
 .mb-tile-add:hover{border-color:#818CF8;color:#818CF8}
-.mb-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:0;z-index:50;min-height:56px}
+.mb-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:62px;z-index:50;min-height:56px}
 .mb-tabs{display:flex;gap:4px}
 .mb-tab{padding:8px 16px;border-radius:8px;border:none;background:transparent;color:#6B7280;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .14s;white-space:nowrap}
 .mb-tab:hover{background:#F3F4F6;color:#374151}
@@ -129,10 +130,10 @@ function ColorPicker({ value, onChange, label }) {
   )
 }
 
-function ImageUpload({ label, url, onFile, onClear, accept }) {
+function ImageUpload({ label, url, onFile, onClear, accept, error }) {
   const ref = useRef()
   return (
-    <div>
+    <div className={error ? 'gb-img-error' : ''}>
       {label && <span className="mb-label">{label}</span>}
       <input type="file" ref={ref} accept={accept||'image/png,image/jpeg,image/jpg,image/gif,image/webp'} style={{ display:'none' }}
         onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
@@ -141,6 +142,7 @@ function ImageUpload({ label, url, onFile, onClear, accept }) {
         {url && <img src={url} className="mb-thumb" alt="" />}
         {url && <button type="button" className="mb-icon-btn del" onClick={onClear}>✕</button>}
       </div>
+      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -181,6 +183,7 @@ export default function MemoryBuilderPage() {
   const [descColor, setDescColor] = useState('#888888')
   const [uploadingTile, setUploadingTile] = useState(false)
 
+  const upload = useUploadErrors()
   const showToast = (msg, type='success') => setToast({ msg, type })
 
   const loadData = useCallback(() => {
@@ -253,7 +256,15 @@ export default function MemoryBuilderPage() {
       await api.put(`/memory/${id}/settings`, fd)
       showToast('Settings saved')
     } catch (err) {
-      showToast('Error saving settings: ' + (err.response?.data?.message || err.message), 'error')
+      const msg = uploadErrorMessage(err)
+      if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
+      if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
+      if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
+      if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+      if (settings._cardCoverFile) upload.setFieldError('card_cover_image_url', msg)
+      if (settings._overlayFile) upload.setFieldError('overlay_image_url', msg)
+      if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile && !settings._submitGifFile && !settings._cardCoverFile && !settings._overlayFile) upload.setFieldError('bg_image_url', msg)
+      showToast(msg, 'error')
     }
     setSaving(false)
   }
@@ -333,6 +344,11 @@ export default function MemoryBuilderPage() {
     { id:'sounds',   label:'Audio' },
     { id:'settings', label:'Settings' },
   ]
+  const TAB_FIELDS = {
+    form: ['bg_image_url', 'game_logo_url'],
+    tiles: ['card_cover_image_url', 'overlay_image_url'],
+    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+  }
 
   const shapeStyle = (shape) => {
     switch (shape) {
@@ -379,9 +395,12 @@ export default function MemoryBuilderPage() {
       <div className="mb-header">
         <div><button className="mb-icon-btn" onClick={handleBack} title="Back to games" style={{ fontSize:16, lineHeight:1 }}>←</button></div>
         <div className="mb-tabs">
-          {TABS.map(t => (
-            <button key={t.id} className={`mb-tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
-          ))}
+          {TABS.map(t => {
+            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
+            return (
+              <button key={t.id} className={`mb-tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}{hasErr && <span className="gb-tab-err-dot" />}</button>
+            )
+          })}
         </div>
         <div style={{ display:'flex', gap:6, alignItems:'center', justifyContent:'flex-end' }}>
           {game && <button className="mb-btn mb-btn-sm" onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }} style={{ padding:'6px 8px', fontSize:14 }} title="Copy link">🔗</button>}
@@ -402,10 +421,12 @@ export default function MemoryBuilderPage() {
                 <div className="mb-card-title">Visuals</div>
                 <div className="mb-2col">
                   <ImageUpload label="Background Image" url={settings.bg_image_url}
-                    onFile={f => { const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f) }}
+                    error={upload.errors.bg_image_url}
+                    onFile={f => { upload.clearFieldError('bg_image_url'); const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f) }}
                     onClear={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})} />
                   <ImageUpload label="Game Logo" url={settings.game_logo_url}
-                    onFile={f => { const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f) }}
+                    error={upload.errors.game_logo_url}
+                    onFile={f => { upload.clearFieldError('game_logo_url'); const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f) }}
                     onClear={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml" />
                 </div>
               </div>
@@ -523,7 +544,8 @@ export default function MemoryBuilderPage() {
                   <div className="mb-fg">
                     <span className="mb-label">Card Cover Image</span>
                     <ImageUpload url={settings.card_cover_image_url}
-                      onFile={f => { const r=new FileReader(); r.onload=ev=>setSettings({...settings,card_cover_image_url:ev.target.result,_cardCoverFile:f}); r.readAsDataURL(f) }}
+                      error={upload.errors.card_cover_image_url}
+                      onFile={f => { upload.clearFieldError('card_cover_image_url'); const r=new FileReader(); r.onload=ev=>setSettings({...settings,card_cover_image_url:ev.target.result,_cardCoverFile:f}); r.readAsDataURL(f) }}
                       onClear={() => setSettings({...settings,card_cover_image_url:'',_cardCoverFile:null})} />
                   </div>
                 </div>
@@ -584,7 +606,8 @@ export default function MemoryBuilderPage() {
                   <div className="mb-fg">
                     <span className="mb-label">Overlay Image</span>
                     <ImageUpload url={settings.overlay_image_url}
-                      onFile={f => { const r=new FileReader(); r.onload=ev=>setSettings({...settings,overlay_image_url:ev.target.result,_overlayFile:f}); r.readAsDataURL(f) }}
+                      error={upload.errors.overlay_image_url}
+                      onFile={f => { upload.clearFieldError('overlay_image_url'); const r=new FileReader(); r.onload=ev=>setSettings({...settings,overlay_image_url:ev.target.result,_overlayFile:f}); r.readAsDataURL(f) }}
                       onClear={() => setSettings({...settings,overlay_image_url:'',_overlayFile:null})} />
                   </div>
                 </div>
@@ -628,7 +651,8 @@ export default function MemoryBuilderPage() {
                   <div className="mb-fg">
                     <div className="mb-card-title">Background</div>
                     <ImageUpload label="Thankyou Background" url={settings.thankyou_bg_image_url}
-                      onFile={f => { const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f) }}
+                      error={upload.errors.thankyou_bg_image_url}
+                      onFile={f => { upload.clearFieldError('thankyou_bg_image_url'); const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f) }}
                       onClear={() => setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})} />
                   </div>
                   <div className="mb-fg">
@@ -661,7 +685,8 @@ export default function MemoryBuilderPage() {
                   <div className="mb-fg">
                     <div className="mb-section-title">Submit Confirmation GIF</div>
                     <ImageUpload url={settings.submit_confirm_gif_url}
-                      onFile={f => { const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f) }}
+                      error={upload.errors.submit_confirm_gif_url}
+                      onFile={f => { upload.clearFieldError('submit_confirm_gif_url'); const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f) }}
                       onClear={() => setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})} />
                   </div>
                   <div className="mb-fg">

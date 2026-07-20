@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const FONT_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap'
 
@@ -37,7 +38,7 @@ const LIGHT = `
 .ws-swatch{width:28px;height:28px;border-radius:6px;border:2px solid #E5E7EB;cursor:pointer;flex-shrink:0}
 .ws-cpop{position:absolute;top:calc(100%+6px);left:0;z-index:300;background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:grid;grid-template-columns:repeat(7,1fr);gap:5px;width:220px}
 .ws-thumb{height:44px;width:auto;border-radius:6px;border:1px solid #E5E7EB;object-fit:contain}
-.ws-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:0;z-index:50;min-height:56px}
+.ws-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:62px;z-index:50;min-height:56px}
 .ws-tabs{display:flex;gap:4px}
 .ws-tab{padding:8px 16px;border-radius:8px;border:none;background:transparent;color:#6B7280;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .14s;white-space:nowrap}
 .ws-tab:hover{background:#F3F4F6;color:#374151}
@@ -86,10 +87,10 @@ function ColorPicker({ value, onChange, label }) {
   )
 }
 
-function ImageUpload({ label, url, onFile, onClear, accept }) {
+function ImageUpload({ label, url, onFile, onClear, accept, error }) {
   const ref = useRef()
   return (
-    <div>
+    <div className={error ? 'gb-img-error' : ''}>
       {label && <span className="ws-label">{label}</span>}
       <input type="file" ref={ref} accept={accept||'image/png,image/jpeg,image/jpg,image/gif,image/webp'} style={{ display:'none' }} onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
       <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginTop:4 }}>
@@ -97,6 +98,7 @@ function ImageUpload({ label, url, onFile, onClear, accept }) {
         {url && <img src={url} className="ws-thumb" alt="" />}
         {url && <button type="button" className="ws-icon-btn del" onClick={onClear}>✕</button>}
       </div>
+      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -160,6 +162,7 @@ export default function WordSearchBuilderPage() {
   const [showAddWord, setShowAddWord] = useState(false)
   const [openWordId, setOpenWordId] = useState(null)
 
+  const upload = useUploadErrors()
   const showToast = (msg, type='success') => setToast({ msg, type })
 
   const loadData = useCallback(() => {
@@ -213,7 +216,15 @@ export default function WordSearchBuilderPage() {
       else if (settings.submit_confirm_gif_url !== undefined) fd.append('submit_confirm_gif_url', settings.submit_confirm_gif_url || '')
       await api.put(`/wordsearch/${id}/settings`, fd)
       showToast('Settings saved ✅')
-    } catch (err) { showToast('Error: ' + (err.response?.data?.message || err.message), 'error') }
+    } catch (err) {
+      const msg = uploadErrorMessage(err)
+      if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
+      if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
+      if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
+      if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+      if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile && !settings._submitGifFile) upload.setFieldError('bg_image_url', msg)
+      showToast(msg, 'error')
+    }
     setSaving(false)
   }
 
@@ -318,6 +329,10 @@ export default function WordSearchBuilderPage() {
     { id:'email',     label:'📧 Email' },
     { id:'settings',  label:'⚙️ Settings' },
   ]
+  const TAB_FIELDS = {
+    display: ['bg_image_url', 'game_logo_url'],
+    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+  }
 
   if (loading) return (
     <div className="ws-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
@@ -350,7 +365,7 @@ export default function WordSearchBuilderPage() {
           <span style={{ fontWeight:700, fontSize:14, color:'#111827' }}>{game?.name}</span>
         </div>
         <div className="ws-tabs">
-          {TABS.map(t => <button key={t.id} className={`ws-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>)}
+          {TABS.map(t => { const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || []); return <button key={t.id} className={`ws-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>{t.label}{hasErr && <span className="gb-tab-err-dot" />}</button> })}
         </div>
         <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
           <button className="ws-btn ws-btn-secondary ws-btn-sm" onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }}>🔗</button>
@@ -369,8 +384,8 @@ export default function WordSearchBuilderPage() {
               <div className="ws-card" style={{ marginBottom:14 }}>
                 <div className="ws-card-title">🖼️ Images</div>
                 <div className="ws-2col">
-                  <ImageUpload label="Background Image" url={settings.bg_image_url} onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,bg_image_url:'',_bgImageFile:null})} />
-                  <ImageUpload label="Game Logo" url={settings.game_logo_url} onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_gameLogoFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} />
+                  <ImageUpload label="Background Image" url={settings.bg_image_url} error={upload.errors.bg_image_url} onFile={f=>{upload.clearFieldError('bg_image_url');const r=new FileReader();r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,bg_image_url:'',_bgImageFile:null})} />
+                  <ImageUpload label="Game Logo" url={settings.game_logo_url} error={upload.errors.game_logo_url} onFile={f=>{upload.clearFieldError('game_logo_url');const r=new FileReader();r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_gameLogoFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} />
                 </div>
               </div>
               <div className="ws-card" style={{ marginBottom:14 }}>
@@ -527,8 +542,8 @@ export default function WordSearchBuilderPage() {
             <div className="ws-card">
               <div className="ws-card-title">🙏 Thank You</div>
               <div className="ws-2col" style={{ marginBottom:14 }}>
-                <ImageUpload label="Thank You BG" url={settings.thankyou_bg_image_url} onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})} />
-                <ImageUpload label="Confirm GIF" url={settings.submit_confirm_gif_url} onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_submitGifFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})} />
+                <ImageUpload label="Thank You BG" url={settings.thankyou_bg_image_url} error={upload.errors.thankyou_bg_image_url} onFile={f=>{upload.clearFieldError('thankyou_bg_image_url');const r=new FileReader();r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})} />
+                <ImageUpload label="Confirm GIF" url={settings.submit_confirm_gif_url} error={upload.errors.submit_confirm_gif_url} onFile={f=>{upload.clearFieldError('submit_confirm_gif_url');const r=new FileReader();r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_submitGifFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})} />
               </div>
               <div className="ws-fg" style={{ marginBottom:10 }}><span className="ws-label">Outro Text</span><textarea className="ws-input" rows={2} value={settings.outro_text||''} onChange={e=>setSettings({...settings,outro_text:e.target.value})} style={{ resize:'vertical' }} /></div>
               <div className="ws-fg" style={{ marginBottom:10 }}><span className="ws-label">Submit Button</span><input className="ws-input" value={settings.submit_button_text||''} onChange={e=>setSettings({...settings,submit_button_text:e.target.value})} placeholder="Submit & Explore" /></div>

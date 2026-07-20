@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const LIGHT = `
 .sb-wrap {Make the game response very fast.
@@ -120,10 +121,10 @@ function ColorPicker({ value, onChange, label }) {
   )
 }
 
-function ImageUpload({ label, url, onFile, onClear }) {
+function ImageUpload({ label, url, onFile, onClear, error }) {
   const ref = useRef()
   return (
-    <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+    <div className={error ? 'gb-img-error' : ''} style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
       {label && <span className="sb-label">{label}</span>}
       <input type="file" ref={ref} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" style={{ display:'none' }} onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10, width:'100%', marginTop:6 }}>
@@ -135,6 +136,7 @@ function ImageUpload({ label, url, onFile, onClear }) {
           </div>
         )}
       </div>
+      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -171,6 +173,7 @@ export default function StressBusterBuilderPage() {
   const [slugInput, setSlugInput] = useState('')
   const soundUploadRef = useRef()
 
+  const upload = useUploadErrors()
   const showToast = (msg, type = 'success') => setToast({ msg, type })
 
   const ToastComp = ({ msg, type, onClose }) => {
@@ -321,7 +324,14 @@ export default function StressBusterBuilderPage() {
       await api.put(`/stressbuster/${id}/settings`, fd)
       showToast('Settings saved')
     } catch (err) {
-      showToast('Error saving settings: ' + (err.response?.data?.message || err.message), 'error')
+      const msg = uploadErrorMessage(err)
+      if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
+      if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
+      if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
+      if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+      if (settings._oImageFile) upload.setFieldError('o_image_url', msg)
+      if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile && !settings._submitGifFile && !settings._oImageFile) upload.setFieldError('bg_image_url', msg)
+      showToast(msg, 'error')
     }
     setSaving(false)
   }
@@ -351,6 +361,10 @@ export default function StressBusterBuilderPage() {
     { id: 'email', label: 'Email' },
     { id: 'settings', label: 'Settings' },
   ]
+  const TAB_FIELDS = {
+    display: ['bg_image_url', 'game_logo_url', 'o_image_url'],
+    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+  }
 
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
   const previewTabs = ['display', 'email', 'thankyou', 'settings']
@@ -389,7 +403,7 @@ export default function StressBusterBuilderPage() {
     <div className="sb-wrap">
       <style>{LIGHT}</style>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', background:'var(--sb-surface)', borderBottom:'1.5px solid var(--sb-border)', padding:'10px 28px', gap:'4px 20px', alignItems:'center', position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', background:'var(--sb-surface)', borderBottom:'1.5px solid var(--sb-border)', padding:'10px 28px', gap:'4px 20px', alignItems:'center', position:'sticky', top:'62px', zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
         <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'start' }}>
           <button className="sb-btn sb-btn-ghost sb-btn-sm" onClick={() => navigate('/dashboard/games')} style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }} title="Back to games">←</button>
           <div>
@@ -410,11 +424,14 @@ export default function StressBusterBuilderPage() {
         </div>
 
         <div className="sb-tabs" style={{ marginBottom:0, borderBottom:'none', justifySelf:'center' }}>
-          {TABS.map(t => (
-            <button key={t.id} className={`sb-tab${activeTab===t.id?' active':''}`} onClick={() => setActiveTab(t.id)} style={{ padding:'6px 14px', fontSize:12.5 }}>
-              {t.label}
-            </button>
-          ))}
+          {TABS.map(t => {
+            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
+            return (
+              <button key={t.id} className={`sb-tab${activeTab===t.id?' active':''}`} onClick={() => setActiveTab(t.id)} style={{ padding:'6px 14px', fontSize:12.5 }}>
+                {t.label}{hasErr && <span className="gb-tab-err-dot" />}
+              </button>
+            )
+          })}
         </div>
 
         <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'end' }}>
@@ -435,8 +452,8 @@ export default function StressBusterBuilderPage() {
             <div className="sb-card" style={{ padding:20, marginBottom:16 }}>
               <div className="sb-section-title">Visuals</div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(2, minmax(220px, 1fr))', gap:20, justifyItems:'center', alignItems:'start' }}>
-                <ImageUpload label="Game Background Image" url={settings._bgPreview || settings.bg_image_url} onFile={f => { setS('_bgImageFile', f); setS('_bgPreview', URL.createObjectURL(f)) }} onClear={() => { setS('bg_image_url', ''); setS('_bgImageFile', null); setS('_bgPreview', null) }} />
-                <ImageUpload label="Game Logo" url={settings._logoPreview || settings.game_logo_url} onFile={f => { setS('_gameLogoFile', f); setS('_logoPreview', URL.createObjectURL(f)) }} onClear={() => { setS('game_logo_url', ''); setS('_gameLogoFile', null); setS('_logoPreview', null) }} />
+                <ImageUpload label="Game Background Image" url={settings._bgPreview || settings.bg_image_url} error={upload.errors.bg_image_url} onFile={f => { upload.clearFieldError('bg_image_url'); setS('_bgImageFile', f); setS('_bgPreview', URL.createObjectURL(f)) }} onClear={() => { setS('bg_image_url', ''); setS('_bgImageFile', null); setS('_bgPreview', null) }} />
+                <ImageUpload label="Game Logo" url={settings._logoPreview || settings.game_logo_url} error={upload.errors.game_logo_url} onFile={f => { upload.clearFieldError('game_logo_url'); setS('_gameLogoFile', f); setS('_logoPreview', URL.createObjectURL(f)) }} onClear={() => { setS('game_logo_url', ''); setS('_gameLogoFile', null); setS('_logoPreview', null) }} />
               </div>
             </div>
 
@@ -700,16 +717,18 @@ export default function StressBusterBuilderPage() {
                 <div className="ty-card-title">Thank You Background</div>
                 <div style={{ flex:1, display:'flex', flexDirection:'column', gap:12 }}>
                   {(settings._tyPreview || settings.thankyou_bg_image_url) ? (
-                    <div style={{ position:'relative', borderRadius:12, overflow:'hidden', background:'#f5f5f5' }}>
+                    <div className={upload.errors.thankyou_bg_image_url ? 'gb-img-error' : ''} style={{ position:'relative', borderRadius:12, overflow:'hidden', background:'#f5f5f5' }}>
                       <img src={settings._tyPreview || settings.thankyou_bg_image_url} alt="" style={{ width:'100%', height:160, objectFit:'cover', display:'block' }} />
                       <button className="sb-btn sb-btn-danger sb-btn-sm" onClick={() => { setS('thankyou_bg_image_url',''); setS('_tyBgImageFile',null); setS('_tyPreview',null) }} style={{ position:'absolute', top:8, right:8, borderRadius:8, padding:'4px 10px', fontSize:11 }}>Remove</button>
+                      {upload.errors.thankyou_bg_image_url && <div className="gb-img-error-msg">⚠️ {upload.errors.thankyou_bg_image_url}</div>}
                     </div>
                   ) : (
-                    <label className="ty-upload-zone" style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
-                      <input type="file" accept="image/*" style={{ display:'none' }} onChange={e => { const f=e.target.files[0]; if(f){ setS('_tyBgImageFile',f); setS('_tyPreview',URL.createObjectURL(f)) } }} />
+                    <label className={`ty-upload-zone${upload.errors.thankyou_bg_image_url ? ' gb-img-error' : ''}`} style={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:8 }}>
+                      <input type="file" accept="image/*" style={{ display:'none' }} onChange={e => { upload.clearFieldError('thankyou_bg_image_url'); const f=e.target.files[0]; if(f){ setS('_tyBgImageFile',f); setS('_tyPreview',URL.createObjectURL(f)) } }} />
                       <div style={{ fontSize:32, opacity:0.4 }}>Upload</div>
                       <div style={{ fontSize:13, fontWeight:600, color:'var(--sb-text2)' }}>Click to upload background</div>
                       <div style={{ fontSize:11, color:'var(--sb-text3)' }}>PNG, JPG, WEBP up to 5MB</div>
+                      {upload.errors.thankyou_bg_image_url && <div className="gb-img-error-msg">⚠️ {upload.errors.thankyou_bg_image_url}</div>}
                     </label>
                   )}
                 </div>

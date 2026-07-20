@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 /* ─────────────────────────────────────────────
    LIGHT THEME TOKENS
@@ -227,10 +228,10 @@ function ColorPicker({ value, onChange, label }) {
 }
 
 /* ─────────── ImageUpload ─────────── */
-function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" }) {
+function ImageUpload({ label, url, onFile, onClear, error, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" }) {
   const ref = useRef()
   return (
-    <div>
+    <div className={error ? 'gb-img-error' : ''}>
       {label && <span className="gb-label">{label}</span>}
       <input type="file" ref={ref} accept={accept} style={{ display:'none' }}
         onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
@@ -239,6 +240,7 @@ function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg
         {url && <img src={url} className="gb-thumb" alt="" />}
         {url && <button className="cb-btn cb-btn-danger cb-btn-sm cb-btn-icon" type="button" onClick={onClear}>✕</button>}
       </div>
+      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -393,6 +395,7 @@ export default function CrosswordBuilderPage() {
   const [fetchError,    setFetchError]    = useState(null)
   const [tab,           setTab]           = useState('display')
   const [toast,         setToast]         = useState(null)
+  const upload = useUploadErrors()
   const [words,         setWords]         = useState([])
   const [formFields,    setFormFields]    = useState([])
   const [emailTemplate, setEmailTemplate] = useState({})
@@ -578,6 +581,7 @@ export default function CrosswordBuilderPage() {
   /* ─── Settings Save ─── */
   const saveSettings = async () => {
     setSaving(true)
+    upload.clearAll()
     try {
       const fd = new FormData()
       // Ensure we send ALL fields the backend expects, in the right order
@@ -626,7 +630,21 @@ export default function CrosswordBuilderPage() {
       console.log('Sending FormData fields:', Array.from(fd.entries()).map(([k,v]) => `${k}: ${typeof v === 'object' ? '[File]' : v}`))
       await api.put(`/crossword/${id}/settings`, fd)
       showToast('Settings saved ✅')
-    } catch (err) { showToast('Error saving settings: ' + (err.response?.data?.message || err.message), 'error') }
+    } catch (err) {
+      const msg = uploadErrorMessage(err)
+      if (err?.response?.status === 413) {
+        if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
+        if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
+        if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
+        if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+        if (settings._blankCellImageFile) upload.setFieldError('blank_cell_image_url', msg)
+        if (!settings._bgImageFile && !settings._tyBgImageFile && !settings._gameLogoFile && !settings._submitGifFile && !settings._blankCellImageFile)
+          upload.setFieldError('bg_image_url', msg)
+      } else {
+        upload.setFieldError('bg_image_url', msg)
+      }
+      showToast('Error saving settings: ' + (err.response?.data?.message || err.message), 'error')
+    }
     setSaving(false)
   }
 
@@ -716,6 +734,11 @@ export default function CrosswordBuilderPage() {
     { id:'settings',  label:'⚙️ Settings' },
   ]
 
+  const TAB_FIELDS = {
+    display:  ['bg_image_url', 'game_logo_url', 'blank_cell_image_url'],
+    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+  }
+
   if (loading) return (
     <div className="cb-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
       <style>{LIGHT}</style>
@@ -747,16 +770,17 @@ export default function CrosswordBuilderPage() {
       <style>{LIGHT}</style>
 
       {/* ─── Header with tabs ─── */}
-      <div style={{ position:'sticky', top:0, zIndex:50, background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)', boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
+      <div style={{ position:'sticky', top:'62px', zIndex:50, background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)', boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
         <div style={{ position:'relative', padding:'6px 20px', display:'flex', alignItems:'center', gap:6 }}>
           <button className="cb-btn cb-btn-ghost cb-btn-sm" onClick={() => navigate('/dashboard/games')} title="Back">←</button>
           <div style={{ fontWeight:700, fontSize:13, color:'var(--gb-text)', whiteSpace:'nowrap', minWidth:0, overflow:'hidden', textOverflow:'ellipsis' }}>{game?.name}</div>
           <div style={{ position:'absolute', left:'50%', transform:'translateX(-50%)', display:'flex', gap:0, overflowX:'auto' }}>
             {TABS.map(t => {
+              const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
               return (
                 <button key={t.id} onClick={() => setTab(t.id)}
                   style={{ padding:'5px 10px', fontSize:11, fontWeight:600, border:'none', background:'none', cursor:'pointer', color:tab===t.id?'var(--gb-primary)':'var(--gb-text2)', borderBottom:'2px solid '+(tab===t.id?'var(--gb-primary)':'transparent'), whiteSpace:'nowrap', fontFamily:'inherit', transition:'color .15s', flexShrink:0 }}>
-                  {t.label}
+                  {t.label}{hasErr && <span className="gb-tab-err-dot" />}
                 </button>
               )
             })}
@@ -786,10 +810,10 @@ export default function CrosswordBuilderPage() {
             <div className="cb-card" style={{ marginBottom:10, padding:14 }}>
               <div className="gb-section-title">🖼️ Images</div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                <div style={{ textAlign:'center' }}>
+                <div className={`${upload.hasError('bg_image_url') ? 'gb-img-error' : ''}`} style={{ textAlign:'center' }}>
                   <span className="gb-label">Game Background Image</span>
                   <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
-                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
+                    onChange={e => { upload.clearFieldError('bg_image_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
                     style={{ display:'none' }} />
                   <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
                     <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => bgImgRef.current.click()}>📷 Upload</button>
@@ -799,16 +823,17 @@ export default function CrosswordBuilderPage() {
                       <img src={settings.bg_image_url} className="gb-thumb" alt="" />
                       <button className="cb-btn cb-btn-danger cb-btn-icon"
                         style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
-                        type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})} title="Delete">✕</button>
+                        type="button" onClick={() => { setSettings({...settings,bg_image_url:'',_bgImageFile:null}); upload.clearFieldError('bg_image_url') }} title="Delete">✕</button>
                     </div>
                   ) : (
                     <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
                   )}
+                  {upload.hasError('bg_image_url') && <div className="gb-img-error-msg">⚠️ {upload.errors['bg_image_url']}</div>}
                 </div>
-                <div style={{ textAlign:'center' }}>
+                <div className={`${upload.hasError('game_logo_url') ? 'gb-img-error' : ''}`} style={{ textAlign:'center' }}>
                   <span className="gb-label">Game Logo</span>
                   <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                    onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
+                    onChange={e => { upload.clearFieldError('game_logo_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
                     style={{ display:'none' }} />
                   <div style={{ display:'flex', gap:8, alignItems:'center', justifyContent:'center', marginBottom:8 }}>
                     <button className="cb-btn cb-btn-ghost cb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()}>📷 Upload</button>
@@ -818,11 +843,12 @@ export default function CrosswordBuilderPage() {
                       <img src={settings.game_logo_url} alt="" className="gb-thumb" style={{ background:'#fff' }} />
                       <button className="cb-btn cb-btn-danger cb-btn-icon"
                         style={{ position:'absolute', top:-8, right:-8, width:22, height:22, fontSize:11, lineHeight:'1px', padding:0, display:'flex', alignItems:'center', justifyContent:'center', borderRadius:'50%' }}
-                        type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} title="Delete">✕</button>
+                        type="button" onClick={() => { setSettings({...settings,game_logo_url:'',_gameLogoFile:null}); upload.clearFieldError('game_logo_url') }} title="Delete">✕</button>
                     </div>
                   ) : (
                     <p style={{ fontSize:11, color:'var(--gb-text3)' }}>No image uploaded</p>
                   )}
+                  {upload.hasError('game_logo_url') && <div className="gb-img-error-msg">⚠️ {upload.errors['game_logo_url']}</div>}
                 </div>
               </div>
             </div>

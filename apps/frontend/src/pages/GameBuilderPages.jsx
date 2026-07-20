@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const LIGHT = `.gb-wrap{--gb-bg:#f4f6fb;--gb-surface:#fff;--gb-border:#e2e6f0;--gb-primary:#f59e0b;--gb-primary-d:#d97706;--gb-text:#1e1e2e;--gb-text2:#64657a;--gb-text3:#9899ae;--gb-radius:12px;font-family:'DM Sans',sans-serif;background:var(--gb-bg);color:var(--gb-text);min-height:100vh}*{box-sizing:border-box}
 .gb-wrap input:not([type=checkbox]):not([type=file]):not([type=color]),.gb-wrap select,.gb-wrap textarea{width:100%;font-family:inherit;font-size:14px;background:var(--gb-surface);border:none;border-bottom:1.5px solid var(--gb-border);border-radius:8px;color:var(--gb-text);padding:10px 12px 8px;outline:none}
@@ -59,6 +60,7 @@ function createBuilderPage(gameName, apiPath, cssColor, gameEmoji) {
     const [settings, setSettings] = useState({})
     const [sounds, setSounds] = useState([])
     const [saving, setSaving] = useState(false)
+    const upload = useUploadErrors()
     const showToast = (msg, type='success') => setToast({ msg, type })
 
     const loadData = useCallback(() => {
@@ -91,19 +93,26 @@ function createBuilderPage(gameName, apiPath, cssColor, gameEmoji) {
         else fd.append('game_logo_url', settings.game_logo_url || '')
         await api.put(`/${apiPath}/${id}/settings`, fd)
         showToast('Settings saved')
-      } catch (err) { showToast('Error: ' + (err.response?.data?.message || err.message), 'error') }
+      } catch (err) {
+        const msg = uploadErrorMessage(err)
+        if (settings._bgFile) upload.setFieldError('bg_image_url', msg)
+        if (settings._logoFile) upload.setFieldError('game_logo_url', msg)
+        if (!settings._bgFile && !settings._logoFile) upload.setFieldError('bg_image_url', msg)
+        showToast(msg, 'error')
+      }
       setSaving(false)
     }
 
     const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
     const TABS = [{ id:'gameplay', label:'Gameplay' },{ id:'visuals', label:'Visuals' },{ id:'settings', label:'Settings' }]
+    const TAB_FIELDS = { visuals: ['bg_image_url', 'game_logo_url'] }
 
     if (loading) return <div className="gb-wrap" style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh' }}><style>{LIGHT}</style><div style={{ textAlign:'center' }}><div style={{ width:40,height:40,borderRadius:'50%',border:`3px solid #e2e6f0`,borderTopColor:cssColor,animation:'spin .8s linear infinite',margin:'0 auto 16px' }} />Loading…<style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style></div></div>
 
     return (
       <div className="gb-wrap"><style>{LIGHT}</style>
         {/* Header */}
-        <div style={{ display:'grid',gridTemplateColumns:'1fr auto 1fr',background:'#fff',borderBottom:'1.5px solid var(--gb-border)',padding:'10px 28px',gap:'4px 20px',alignItems:'center',position:'sticky',top:0,zIndex:50,boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
+        <div style={{ display:'grid',gridTemplateColumns:'1fr auto 1fr',background:'#fff',borderBottom:'1.5px solid var(--gb-border)',padding:'10px 28px',gap:'4px 20px',alignItems:'center',position:'sticky',top:'62px',zIndex:50,boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
           <div style={{ display:'flex',gap:10,alignItems:'flex-start' }}>
             <button className="gb-btn gb-btn-ghost" onClick={() => navigate('/dashboard/games')} style={{ padding:'6px 8px',fontSize:16,lineHeight:1,marginTop:1 }}>←</button>
             <div>
@@ -112,7 +121,10 @@ function createBuilderPage(gameName, apiPath, cssColor, gameEmoji) {
             </div>
           </div>
           <div className="gb-tabs" style={{ marginBottom:0,borderBottom:'none' }}>
-            {TABS.map(t => <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)} style={{ padding:'6px 14px',fontSize:12.5 }}>{t.label}</button>)}
+            {TABS.map(t => {
+              const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
+              return <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)} style={{ padding:'6px 14px',fontSize:12.5 }}>{t.label}{hasErr && <span className="gb-tab-err-dot" />}</button>
+            })}
           </div>
           <div style={{ display:'flex',gap:6,justifySelf:'end' }}>
             <button className="gb-btn gb-btn-ghost" style={{ padding:'6px 8px',fontSize:16,lineHeight:1 }} onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }}>🔗</button>
@@ -160,8 +172,8 @@ function createBuilderPage(gameName, apiPath, cssColor, gameEmoji) {
                 <div className="gb-card">
                   <div className="gb-section-title">🖼 Images</div>
                   <div className="gb-row">
-                    <div className="gb-fg"><span className="gb-label">Background</span><input type="file" accept="image/*" onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgFile:f}); r.readAsDataURL(f)} }} /></div>
-                    <div className="gb-fg"><span className="gb-label">Logo</span><input type="file" accept="image/*" onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_logoFile:f}); r.readAsDataURL(f)} }} /></div>
+                    <div className={`gb-fg${upload.errors.bg_image_url ? ' gb-img-error' : ''}`}><span className="gb-label">Background</span><input type="file" accept="image/*" onChange={e => { upload.clearFieldError('bg_image_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgFile:f}); r.readAsDataURL(f)} }} />{upload.errors.bg_image_url && <div className="gb-img-error-msg">⚠️ {upload.errors.bg_image_url}</div>}</div>
+                    <div className={`gb-fg${upload.errors.game_logo_url ? ' gb-img-error' : ''}`}><span className="gb-label">Logo</span><input type="file" accept="image/*" onChange={e => { upload.clearFieldError('game_logo_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_logoFile:f}); r.readAsDataURL(f)} }} />{upload.errors.game_logo_url && <div className="gb-img-error-msg">⚠️ {upload.errors.game_logo_url}</div>}</div>
                   </div>
                 </div>
                 <div className="gb-card">

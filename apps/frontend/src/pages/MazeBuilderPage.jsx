@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors } from '../lib/builderUpload'
 
 const FONT_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap'
 
@@ -34,7 +35,7 @@ const LIGHT = `
 .mb-fg{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
 .mb-swatch{width:28px;height:28px;border-radius:6px;border:2px solid #E5E7EB;cursor:pointer;flex-shrink:0}
 .mb-cpop{position:absolute;top:calc(100%+6px);left:0;z-index:300;background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:grid;grid-template-columns:repeat(7,1fr);gap:5px;width:220px}
-.mb-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:0;z-index:50;min-height:56px}
+.mb-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:62px;z-index:50;min-height:56px}
 .mb-tabs{display:flex;gap:4px}
 .mb-tab{padding:8px 16px;border-radius:8px;border:none;background:transparent;color:#6B7280;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .14s;white-space:nowrap}
 .mb-tab:hover{background:#F3F4F6;color:#374151}
@@ -114,6 +115,7 @@ export default function MazeBuilderPage() {
   const [fetchError, setFetchError] = useState(null)
   const [tab, setTab] = useState('gameplay')
   const [toast, setToast] = useState(null)
+  const upload = useUploadErrors()
   const [settings, setSettings] = useState({})
   const [sounds, setSounds] = useState([])
   const [saving, setSaving] = useState(false)
@@ -223,6 +225,8 @@ export default function MazeBuilderPage() {
     { id:'settings', label:'Settings' },
   ]
 
+  const TAB_FIELDS = {}
+
   if (loading) return (<div className="mb-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}><div style={{ textAlign:'center' }}><div style={{ width:36,height:36,borderRadius:'50%',border:'3px solid #E5E7EB',borderTopColor:'#6366f1',animation:'mbSpin .8s linear infinite',margin:'0 auto 12px' }} /><div style={{ color:'#9CA3AF',fontSize:14 }}>Loading maze builder…</div></div></div>)
   if (fetchError) return (<div className="mb-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh', padding:20 }}><div className="mb-card" style={{ maxWidth:400, textAlign:'center', padding:32 }}><div style={{ fontSize:40, marginBottom:12 }}>⚠️</div><h2 style={{ fontSize:18, fontWeight:700, marginBottom:8 }}>Failed to load</h2><p style={{ color:'#6B7280', fontSize:14, marginBottom:20 }}>{fetchError}</p><button className="mb-btn" onClick={loadData}>Retry</button></div></div>)
 
@@ -235,7 +239,7 @@ export default function MazeBuilderPage() {
       {toast && <Toast {...toast} onClose={() => setToast(null)} />}
       <div className="mb-header">
         <div><button className="mb-icon-btn" onClick={handleBack} style={{ fontSize:16, lineHeight:1 }}>←</button></div>
-        <div className="mb-tabs">{TABS.map(t => (<button key={t.id} className={`mb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>{t.label}</button>))}</div>
+        <div className="mb-tabs">{TABS.map(t => { const hasErr = upload.tabHasError(t.id, (TAB_FIELDS[t.id]||[])); return (<button key={t.id} className={`mb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}>{t.label}{hasErr && <span className="gb-tab-err-dot" />}</button>) })}</div>
         <div style={{ textAlign:'right' }}><button className="mb-btn mb-btn-sm" onClick={saveSettings} disabled={saving}>{saving?'⏳ Saving…':'💾 Save'}</button></div>
       </div>
       <div className="mb-body">

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 import CanvaDesignButton from '../components/CanvaDesignButton'
 
 const LIGHT = `
@@ -77,10 +78,10 @@ function ColorPicker({ value, onChange, label, noPresets }) {
   )
 }
 
-function ImageUpload({ label, url, onFile, onClear }) {
+function ImageUpload({ label, url, onFile, onClear, error }) {
   const ref = useRef()
   return (
-    <div>
+    <div className={error ? 'gb-img-error' : ''}>
       {label && <span className="gb-label">{label}</span>}
       <input type="file" ref={ref} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" style={{ display:'none' }}
         onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
@@ -89,6 +90,7 @@ function ImageUpload({ label, url, onFile, onClear }) {
         {url && <img src={url} style={{ height:44,width:'auto',maxWidth:120,borderRadius:6,border:'1px solid var(--gb-border)',objectFit:'contain',background:'#f9f9f9' }} alt="" />}
         {url && <button className="gb-btn gb-btn-danger gb-btn-sm" type="button" onClick={onClear}>✕</button>}
       </div>
+      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -110,6 +112,7 @@ export default function FlappyBuilderPage() {
   const [nameInput, setNameInput] = useState('')
   const [redirectUrl, setRedirectUrl] = useState('')
 
+  const upload = useUploadErrors()
   const showToast = (msg, type='success') => setToast({ msg, type })
 
   const loadData = useCallback(() => {
@@ -160,7 +163,13 @@ export default function FlappyBuilderPage() {
       await api.put(`/games/${id}`, { redirect_url: redirectUrl, slug: slugInput.trim() || undefined })
       showToast('Settings saved')
     } catch (err) {
-      showToast('Error: ' + (err.response?.data?.message || err.message), 'error')
+      const msg = uploadErrorMessage(err)
+      if (settings._bgFile) upload.setFieldError('bg_image_url', msg)
+      if (settings._logoFile) upload.setFieldError('game_logo_url', msg)
+      if (settings._tyBgFile) upload.setFieldError('thankyou_bg_image_url', msg)
+      if (settings._gifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+      if (!settings._bgFile && !settings._logoFile && !settings._tyBgFile && !settings._gifFile) upload.setFieldError('bg_image_url', msg)
+      showToast(msg, 'error')
     }
     setSaving(false)
   }
@@ -183,6 +192,10 @@ export default function FlappyBuilderPage() {
     { id:'sounds', label:'Audio' },
     { id:'settings', label:'Settings' },
   ]
+  const TAB_FIELDS = {
+    visuals: ['bg_image_url', 'game_logo_url'],
+    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+  }
 
   if (loading) return (
     <div className="gb-wrap" style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh' }}>
@@ -218,7 +231,7 @@ export default function FlappyBuilderPage() {
         display:'grid',gridTemplateColumns:'1fr auto 1fr',
         background:'var(--gb-surface)',borderBottom:'1.5px solid var(--gb-border)',
         padding:'10px 28px',gap:'4px 20px',alignItems:'center',
-        position:'sticky',top:0,zIndex:50,boxShadow:'0 1px 8px rgba(0,0,0,.06)'
+        position:'sticky',top:'62px',zIndex:50,boxShadow:'0 1px 8px rgba(0,0,0,.06)'
       }}>
         <div style={{ display:'flex',gap:6,alignItems:'flex-start',justifySelf:'start' }}>
           <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => navigate('/dashboard/games')}
@@ -242,12 +255,15 @@ export default function FlappyBuilderPage() {
         </div>
 
         <div className="gb-tabs" style={{ marginBottom:0,borderBottom:'none',justifySelf:'center' }}>
-          {TABS.map(t => (
-            <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
-              style={{ padding:'6px 14px',fontSize:12.5 }}>
-              {t.label}
-            </button>
-          ))}
+          {TABS.map(t => {
+            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
+            return (
+              <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
+                style={{ padding:'6px 14px',fontSize:12.5 }}>
+                {t.label}{hasErr && <span className="gb-tab-err-dot" />}
+              </button>
+            )
+          })}
         </div>
 
         <div style={{ display:'flex',gap:6,alignItems:'center',justifySelf:'end' }}>
@@ -344,7 +360,8 @@ export default function FlappyBuilderPage() {
                 <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16 }}>
                   <div>
                     <ImageUpload label="Game Background" url={settings.bg_image_url}
-                      onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgFile:f}); r.readAsDataURL(f) }}
+                      error={upload.errors.bg_image_url}
+                      onFile={f => { upload.clearFieldError('bg_image_url'); const r=new FileReader(); r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgFile:f}); r.readAsDataURL(f) }}
                       onClear={() => setSettings({...settings,bg_image_url:'',_bgFile:null})} />
                     <div style={{ marginTop:8 }}>
                       <CanvaDesignButton
@@ -357,7 +374,8 @@ export default function FlappyBuilderPage() {
                   </div>
                   <div>
                     <ImageUpload label="Game Logo" url={settings.game_logo_url}
-                      onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_logoFile:f}); r.readAsDataURL(f) }}
+                      error={upload.errors.game_logo_url}
+                      onFile={f => { upload.clearFieldError('game_logo_url'); const r=new FileReader(); r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_logoFile:f}); r.readAsDataURL(f) }}
                       onClear={() => setSettings({...settings,game_logo_url:'',_logoFile:null})} />
                     <div style={{ marginTop:8 }}>
                       <CanvaDesignButton
@@ -418,10 +436,12 @@ export default function FlappyBuilderPage() {
                 <div className="gb-section-title">🎉 Thank You Page</div>
                 <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:16,marginBottom:16 }}>
                   <ImageUpload label="Thank You BG Image" url={settings.thankyou_bg_image_url}
-                    onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgFile:f}); r.readAsDataURL(f) }}
+                    error={upload.errors.thankyou_bg_image_url}
+                    onFile={f => { upload.clearFieldError('thankyou_bg_image_url'); const r=new FileReader(); r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgFile:f}); r.readAsDataURL(f) }}
                     onClear={() => setSettings({...settings,thankyou_bg_image_url:'',_tyBgFile:null})} />
                   <ImageUpload label="Submit Confirm GIF" url={settings.submit_confirm_gif_url}
-                    onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_gifFile:f}); r.readAsDataURL(f) }}
+                    error={upload.errors.submit_confirm_gif_url}
+                    onFile={f => { upload.clearFieldError('submit_confirm_gif_url'); const r=new FileReader(); r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_gifFile:f}); r.readAsDataURL(f) }}
                     onClear={() => setSettings({...settings,submit_confirm_gif_url:'',_gifFile:null})} />
                 </div>
                 <div className="gb-fg" style={{ marginBottom:12 }}>

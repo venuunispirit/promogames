@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const FONT_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap'
 
@@ -31,7 +32,7 @@ const LIGHT = `
 .tp-swatch{width:28px;height:28px;border-radius:6px;border:2px solid #E5E7EB;cursor:pointer;flex-shrink:0}
 .tp-cpop{position:absolute;top:calc(100%+6px);left:0;z-index:300;background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:grid;grid-template-columns:repeat(7,1fr);gap:5px;width:220px}
 .tp-thumb{height:44px;width:auto;border-radius:6px;border:1px solid #E5E7EB;object-fit:contain}
-.tp-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:0;z-index:50;min-height:56px}
+.tp-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:62px;z-index:50;min-height:56px}
 .tp-tabs{display:flex;gap:4px}
 .tp-tab{padding:8px 16px;border-radius:8px;border:none;background:transparent;color:#6B7280;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .14s;white-space:nowrap}
 .tp-tab:hover{background:#F3F4F6;color:#374151}
@@ -82,9 +83,9 @@ function ColorPicker({ value, onChange, label }) {
   )
 }
 
-function ImageUpload({ label, url, onFile, onClear, accept }) {
+function ImageUpload({ label, url, onFile, onClear, accept, error }) {
   const ref = useRef()
-  return <div>{label&&<span className="tp-label">{label}</span>}<input type="file" ref={ref} accept={accept||'image/*'} style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)onFile(f)}} /><div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginTop:4 }}><button type="button" className="tp-btn tp-btn-secondary tp-btn-sm" onClick={()=>ref.current.click()}>📷 Upload</button>{url&&<img src={url} className="tp-thumb" alt="" />}{url&&<button type="button" className="tp-icon-btn" style={{ border:'1.5px solid #FEE2E2',background:'#FFF5F5',color:'#DC2626' }} onClick={onClear}>✕</button>}</div></div>
+  return <div className={error ? 'gb-img-error' : ''}>{label&&<span className="tp-label">{label}</span>}<input type="file" ref={ref} accept={accept||'image/*'} style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)onFile(f)}} /><div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginTop:4 }}><button type="button" className="tp-btn tp-btn-secondary tp-btn-sm" onClick={()=>ref.current.click()}>📷 Upload</button>{url&&<img src={url} className="tp-thumb" alt="" />}{url&&<button type="button" className="tp-icon-btn" style={{ border:'1.5px solid #FEE2E2',background:'#FFF5F5',color:'#DC2626' }} onClick={onClear}>✕</button>}</div>{error&&<div className="gb-img-error-msg">⚠️ {error}</div>}</div>
 }
 
 function SoundSelect({ label, value, onChange, sounds }) {
@@ -118,6 +119,7 @@ export default function TyperBuilderPage() {
   const [showBulk, setShowBulk] = useState(false)
   const [openWordId, setOpenWordId] = useState(null)
 
+  const upload = useUploadErrors()
   const showToast = (msg, type='success') => setToast({ msg, type })
 
   const loadData = useCallback(() => {
@@ -154,7 +156,15 @@ export default function TyperBuilderPage() {
       if (settings._submitGifFile) fd.append('submit_confirm_gif', settings._submitGifFile); else if (settings.submit_confirm_gif_url !== undefined) fd.append('submit_confirm_gif_url', settings.submit_confirm_gif_url||'')
       await api.put(`/typer/${id}/settings`, fd)
       showToast('Settings saved ✅')
-    } catch (err) { showToast('Error: '+(err.response?.data?.message||err.message), 'error') }
+    } catch (err) {
+      const msg = uploadErrorMessage(err)
+      if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
+      if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
+      if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
+      if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+      if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile && !settings._submitGifFile) upload.setFieldError('bg_image_url', msg)
+      showToast(msg, 'error')
+    }
     setSaving(false)
   }
 
@@ -212,6 +222,10 @@ export default function TyperBuilderPage() {
     { id:'sounds', label:'🔊 Sounds' }, { id:'form', label:'📋 Form' }, { id:'thankyou', label:'🙏 Thank You' },
     { id:'email', label:'📧 Email' }, { id:'settings', label:'⚙️ Settings' },
   ]
+  const TAB_FIELDS = {
+    display: ['bg_image_url', 'game_logo_url'],
+    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+  }
 
   if (loading) return <div className="tp-wrap" style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh' }}><style>{LIGHT}</style><div style={{ textAlign:'center',color:'#9CA3AF' }}><div style={{ width:40,height:40,borderRadius:'50%',border:'3px solid #E5E7EB',borderTopColor:'#6366f1',animation:'tpSpin .8s linear infinite',margin:'0 auto 16px' }} />Loading…</div></div>
   if (fetchError) return <div className="tp-wrap" style={{ textAlign:'center',padding:60 }}><style>{LIGHT}</style><h2 style={{ color:'#DC2626' }}>Error</h2><p style={{ color:'#9CA3AF' }}>{fetchError}</p><button className="tp-btn" onClick={loadData}>Retry</button></div>
@@ -221,7 +235,7 @@ export default function TyperBuilderPage() {
       <style>{LIGHT}</style>
       <div className="tp-header">
         <div style={{ display:'flex',alignItems:'center',gap:8 }}><button className="tp-btn tp-btn-secondary tp-btn-sm" onClick={()=>navigate('/dashboard/games')}>←</button><span style={{ fontWeight:700,fontSize:14 }}>{game?.name}</span></div>
-        <div className="tp-tabs">{TABS.map(t=><button key={t.id} className={`tp-tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}</button>)}</div>
+        <div className="tp-tabs">{TABS.map(t=>{const hasErr=upload.tabHasError(t.id,TAB_FIELDS[t.id]||[]);return <button key={t.id} className={`tp-tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}{hasErr&&<span className="gb-tab-err-dot" />}</button>})}</div>
         <div style={{ display:'flex',gap:6,justifyContent:'flex-end' }}><button className="tp-btn tp-btn-secondary tp-btn-sm" onClick={()=>{navigator.clipboard.writeText(gameLink);showToast('Copied!')}}>🔗</button><a href={gameLink} target="_blank" rel="noreferrer" className="tp-btn tp-btn-secondary tp-btn-sm">👁</a></div>
       </div>
       <div className="tp-body">
@@ -229,8 +243,8 @@ export default function TyperBuilderPage() {
           {tab==='display' && <div>
             <div className="tp-card" style={{ marginBottom:14 }}><div className="tp-card-title">🎮 Game Name</div><input className="tp-input" value={text1||''} onChange={e=>setText1(e.target.value)} placeholder="Speed Typer" /></div>
             <div className="tp-card" style={{ marginBottom:14 }}><div className="tp-card-title">🖼️ Images</div><div className="tp-2col">
-              <ImageUpload label="Background" url={settings.bg_image_url} onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,bg_image_url:'',_bgImageFile:null})} />
-              <ImageUpload label="Logo" url={settings.game_logo_url} onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_gameLogoFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} />
+              <ImageUpload label="Background" url={settings.bg_image_url} error={upload.errors.bg_image_url} onFile={f=>{upload.clearFieldError('bg_image_url');const r=new FileReader();r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,bg_image_url:'',_bgImageFile:null})} />
+              <ImageUpload label="Logo" url={settings.game_logo_url} error={upload.errors.game_logo_url} onFile={f=>{upload.clearFieldError('game_logo_url');const r=new FileReader();r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_gameLogoFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} />
             </div></div>
             <div className="tp-card" style={{ marginBottom:14 }}><div className="tp-card-title">📝 Headings</div>
               {[['Heading 1','heading_1',heading1Color,setHeading1Color],['Heading 2','heading_2',heading2Color,setHeading2Color]].map(([l,k,c,s])=><div className="tp-fg" key={k} style={{ marginBottom:10 }}><span className="tp-label">{l}</span><div style={{ display:'flex',gap:8,alignItems:'flex-end' }}><input className="tp-input" value={settings[k]||''} onChange={e=>setSettings({...settings,[k]:e.target.value})} style={{ flex:1 }} /><ColorPicker value={c} onChange={s} label="Color" /></div></div>)}
@@ -322,8 +336,8 @@ export default function TyperBuilderPage() {
           {tab==='thankyou' && <div className="tp-card">
             <div className="tp-card-title">🙏 Thank You</div>
             <div className="tp-2col" style={{ marginBottom:14 }}>
-              <ImageUpload label="Thank You BG" url={settings.thankyou_bg_image_url} onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})} />
-              <ImageUpload label="Confirm GIF" url={settings.submit_confirm_gif_url} onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_submitGifFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})} />
+              <ImageUpload label="Thank You BG" url={settings.thankyou_bg_image_url} error={upload.errors.thankyou_bg_image_url} onFile={f=>{upload.clearFieldError('thankyou_bg_image_url');const r=new FileReader();r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})} />
+              <ImageUpload label="Confirm GIF" url={settings.submit_confirm_gif_url} error={upload.errors.submit_confirm_gif_url} onFile={f=>{upload.clearFieldError('submit_confirm_gif_url');const r=new FileReader();r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_submitGifFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})} />
             </div>
             <div className="tp-fg" style={{ marginBottom:10 }}><span className="tp-label">Outro</span><textarea className="tp-input" rows={2} value={settings.outro_text||''} onChange={e=>setSettings({...settings,outro_text:e.target.value})} style={{ resize:'vertical' }} /></div>
             <div style={{ display:'flex',justifyContent:'flex-end' }}><button className="tp-btn" onClick={saveSettings}>{saving?'⏳':'💾 Save'}</button></div>

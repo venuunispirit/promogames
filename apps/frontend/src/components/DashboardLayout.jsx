@@ -4,6 +4,8 @@ import api from '../api'
 import { useAuth } from '../context/AuthContext'
 import { useTheme } from '../pages/ThemeContext'
 import NotificationBell from './NotificationBell'
+import ProfilePanel from './ProfilePanel'
+// ThemeColorPicker no longer used here (moved into ProfilePanel)
 
 /* ─────────────────────────────────────────────
    NAV STYLES — light, clean, 3-column
@@ -356,143 +358,33 @@ function ChangePasswordForm({ onClose }) {
 
 /* ─────── Avatar Dropdown ─────── */
 function AvatarDropdown({ user, onLogout }) {
-  const [open,    setOpen]    = useState(false)
-  const [panel,   setPanel]   = useState('menu')  // 'menu' | 'calendar' | 'password'
-  const [stats,   setStats]   = useState({ games:0, players:0 })
+  const [open, setOpen] = useState(false)
   const ref = useRef()
   const { isDark, toggleTheme } = useTheme()
 
   // Close on outside click
   useEffect(() => {
-    const fn = e => { if (ref.current && !ref.current.contains(e.target)) { setOpen(false); setPanel('menu') } }
+    const fn = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
     document.addEventListener('mousedown', fn)
     return () => document.removeEventListener('mousedown', fn)
   }, [])
 
-  // Fetch quick stats when dropdown opens
-  useEffect(() => {
-    if (!open) return
-    api.get('/games').then(r => {
-      const games = r.data.games?.length || r.data.length || 0
-      setStats(s => ({ ...s, games }))
-    }).catch(() => {})
-    api.get('/players-admin').then(r => {
-      const players = r.data.players?.length || r.data.length || 0
-      setStats(s => ({ ...s, players }))
-    }).catch(() => {})
-  }, [open])
-
-  const toggle = () => { setOpen(o => !o); setPanel('menu') }
-
   return (
     <div ref={ref} style={{ position:'relative' }}>
-      <button className="nav-avatar-btn" onClick={toggle} title="Account menu">
+      <button className="nav-avatar-btn" onClick={() => setOpen(o => !o)} title="Account menu">
         {initials(user?.name)}
       </button>
 
       {open && (
-        <div className="nav-dropdown">
-          {/* ── Profile header ── */}
-          <div className="nav-dd-header">
-            <div className="nav-dd-avatar">{initials(user?.name)}</div>
-            <div>
-              <div className="nav-dd-name">{user?.name || 'User'}</div>
-              <div className="nav-dd-email">{user?.email || ''}</div>
-              {user?.role && <div className="nav-dd-role">{user.role}</div>}
-            </div>
-          </div>
-
-          {/* ── Quick stats ── */}
-          <div className="nav-stats">
-            <div className="nav-stat">
-              <div className="nav-stat-val">{stats.games}</div>
-              <div className="nav-stat-lbl">Games</div>
-            </div>
-            <div className="nav-stat">
-              <div className="nav-stat-val">{stats.players}</div>
-              <div className="nav-stat-lbl">Players</div>
-            </div>
-            <div className="nav-stat">
-              <div className="nav-stat-val">{new Date().getDate()}</div>
-              <div className="nav-stat-lbl">{MONTHS[new Date().getMonth()].slice(0,3)}</div>
-            </div>
-          </div>
-
-          <div className="nav-dd-body" style={{ paddingTop:0 }}>
-
-            {panel === 'menu' && (
-              <>
-                <button className="nav-dd-item" onClick={() => setPanel('calendar')}>
-                  <span className="nav-dd-icon">📅</span>
-                  <div>
-                    <div>Calendar</div>
-                    <div style={{ fontSize:11, color:'var(--text3)', fontWeight:500 }}>{new Date().toDateString()}</div>
-                  </div>
-                </button>
-
-                <button className="nav-dd-item" onClick={() => setPanel('password')}>
-                  <span className="nav-dd-icon">🔐</span>
-                  <div>
-                    <div>Change Password</div>
-                    <div style={{ fontSize:11, color:'var(--text3)', fontWeight:500 }}>Update your credentials</div>
-                  </div>
-                </button>
-
-                <div className="nav-dd-sep" />
-
-                <div className="nav-dd-theme">
-                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-                     <span style={{ fontSize:14 }}>☀️</span>
-                     <span style={{ fontSize:13, fontWeight:600, color:'var(--text)' }}>Theme</span>
-                     <span style={{ fontSize:11, color:'var(--text3)', fontWeight:500, marginLeft:'auto' }}>{isDark ? 'Dark' : 'Light'}</span>
-                   </div>
-                   <button
-                     onClick={toggleTheme}
-                     aria-label="Toggle theme"
-                     style={{
-                       marginTop:8, width:'100%', height:26, borderRadius:100, padding:3,
-                       border:'1px solid var(--border)', background:'var(--surface2)', cursor:'pointer',
-                       position:'relative', transition:'background .2s',
-                     }}
-                   >
-                    <span style={{
-                      position:'absolute', top:3, left: isDark ? 'calc(100% - 22px)' : 3,
-                      width:20, height:20, borderRadius:'50%', background:'#a855f7',
-                      transition:'left .2s', boxShadow:'0 1px 3px rgba(0,0,0,.25)',
-                    }} />
-                  </button>
-                </div>
-
-                <div className="nav-dd-sep" />
-
-                <button className="nav-dd-item danger" onClick={onLogout}>
-                  <span className="nav-dd-icon">🚪</span>
-                  Logout
-                </button>
-              </>
-            )}
-
-            {panel === 'calendar' && (
-              <>
-                <button className="nav-dd-item" style={{ marginBottom:4 }} onClick={() => setPanel('menu')}>
-                  <span style={{ fontSize:14 }}>←</span> Back
-                </button>
-                <div className="nav-dd-sep" style={{ marginTop:0 }} />
-                <MiniCalendar />
-              </>
-            )}
-
-            {panel === 'password' && (
-              <>
-                <button className="nav-dd-item" style={{ marginBottom:4 }} onClick={() => setPanel('menu')}>
-                  <span style={{ fontSize:14 }}>←</span> Back
-                </button>
-                <div className="nav-dd-sep" style={{ marginTop:0 }} />
-                <ChangePasswordForm onClose={() => setPanel('menu')} />
-              </>
-            )}
-
-          </div>
+        <div className="nav-dropdown" style={{ width: 400, background: 'rgba(255,255,255,0.35)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+          <ProfilePanel
+            user={user}
+            onLogout={onLogout}
+            isDark={isDark}
+            toggleTheme={toggleTheme}
+            MiniCalendar={MiniCalendar}
+            ChangePasswordForm={ChangePasswordForm}
+          />
         </div>
       )}
     </div>

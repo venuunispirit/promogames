@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const LIGHT = `
 .gb-wrap {
@@ -93,10 +94,10 @@ function ColorPicker({ value, onChange, label }) {
   )
 }
 
-function ImageUpload({ label, url, onFile, onClear }) {
+function ImageUpload({ label, url, onFile, onClear, error }) {
   const ref = useRef()
   return (
-    <div style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
+    <div className={error ? 'gb-img-error' : ''} style={{ width:'100%', display:'flex', flexDirection:'column', alignItems:'center', textAlign:'center' }}>
       {label && <span className="gb-label">{label}</span>}
       <input type="file" ref={ref} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" style={{ display:'none' }} onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
       <div style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:10, width:'100%', marginTop:6 }}>
@@ -108,6 +109,7 @@ function ImageUpload({ label, url, onFile, onClear }) {
           </div>
         )}
       </div>
+      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -136,6 +138,7 @@ export default function TicTacToeBuilderPage() {
   const [fetchError, setFetchError] = useState(null)
   const [activeTab, setActiveTab] = useState('display')
   const [toast, setToast] = useState(null)
+  const upload = useUploadErrors()
   const [saving, setSaving] = useState(false)
   const [savingForm, setSavingForm] = useState(false)
   const [editingName, setEditingName] = useState(false)
@@ -261,6 +264,7 @@ export default function TicTacToeBuilderPage() {
 
   const saveSettings = async () => {
     setSaving(true)
+    upload.clearAll()
     try {
       const fd = new FormData()
 const fields = [
@@ -296,6 +300,18 @@ const fields = [
       await api.put(`/tictactoe/${id}/settings`, fd)
       showToast('Settings saved')
     } catch (err) {
+      const msg = uploadErrorMessage(err)
+      if (err?.response?.status === 413) {
+        if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
+        if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
+        if (settings._oImageFile) upload.setFieldError('o_image_url', msg)
+        if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
+        if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+        if (!settings._bgImageFile && !settings._gameLogoFile && !settings._oImageFile && !settings._tyBgImageFile && !settings._submitGifFile)
+          upload.setFieldError('bg_image_url', msg)
+      } else {
+        upload.setFieldError('bg_image_url', msg)
+      }
       showToast('Error saving settings: ' + (err.response?.data?.message || err.message), 'error')
     }
     setSaving(false)
@@ -326,6 +342,11 @@ const fields = [
     { id: 'email', label: 'Email' },
     { id: 'settings', label: 'Settings' },
   ]
+
+  const TAB_FIELDS = {
+    display:  ['bg_image_url', 'game_logo_url', 'o_image_url'],
+    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
+  }
 
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
   const previewTabs = ['display', 'email', 'thankyou', 'settings']
@@ -364,7 +385,7 @@ const fields = [
     <div className="gb-wrap">
       <style>{LIGHT}</style>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)', padding:'10px 28px', gap:'4px 20px', alignItems:'center', position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)', padding:'10px 28px', gap:'4px 20px', alignItems:'center', position:'sticky', top:'62px', zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
         <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'start' }}>
           <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => navigate('/dashboard/games')} style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }} title="Back to games">←</button>
           <div>
@@ -385,11 +406,14 @@ const fields = [
         </div>
 
         <div className="gb-tabs" style={{ marginBottom:0, borderBottom:'none', justifySelf:'center' }}>
-          {TABS.map(t => (
-            <button key={t.id} className={`gb-tab${activeTab===t.id?' active':''}`} onClick={() => setActiveTab(t.id)} style={{ padding:'6px 14px', fontSize:12.5 }}>
-              {t.label}
-            </button>
-          ))}
+          {TABS.map(t => {
+            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
+            return (
+              <button key={t.id} className={`gb-tab${activeTab===t.id?' active':''}`} onClick={() => setActiveTab(t.id)} style={{ padding:'6px 14px', fontSize:12.5 }}>
+                {t.label}{hasErr && <span className="gb-tab-err-dot" />}
+              </button>
+            )
+          })}
         </div>
 
         <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'end' }}>
@@ -411,9 +435,9 @@ const fields = [
             <div className="gb-card" style={{ padding:20, marginBottom:16 }}>
               <div className="gb-section-title">🎨 Visuals</div>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(3, minmax(200px, 1fr))', gap:20, justifyItems:'center', alignItems:'start' }}>
-                <ImageUpload label="Game Background Image" url={settings._bgPreview || settings.bg_image_url} onFile={f => { setS('_bgImageFile', f); setS('_bgPreview', URL.createObjectURL(f)) }} onClear={() => { setS('bg_image_url', ''); setS('_bgImageFile', null); setS('_bgPreview', null) }} />
-                <ImageUpload label="Game Logo" url={settings._logoPreview || settings.game_logo_url} onFile={f => { setS('_gameLogoFile', f); setS('_logoPreview', URL.createObjectURL(f)) }} onClear={() => { setS('game_logo_url', ''); setS('_gameLogoFile', null); setS('_logoPreview', null) }} />
-                <ImageUpload label="O Replacement Image" url={settings._oPreview || settings.o_image_url} onFile={f => { setS('_oImageFile', f); setS('_oPreview', URL.createObjectURL(f)) }} onClear={() => { setS('o_image_url', ''); setS('_oImageFile', null); setS('_oPreview', null) }} />
+                <ImageUpload label="Game Background Image" error={upload.hasError('bg_image_url')} url={settings._bgPreview || settings.bg_image_url} onFile={f => { upload.clearFieldError('bg_image_url'); setS('_bgImageFile', f); setS('_bgPreview', URL.createObjectURL(f)) }} onClear={() => { setS('bg_image_url', ''); setS('_bgImageFile', null); setS('_bgPreview', null); upload.clearFieldError('bg_image_url') }} />
+                <ImageUpload label="Game Logo" error={upload.hasError('game_logo_url')} url={settings._logoPreview || settings.game_logo_url} onFile={f => { upload.clearFieldError('game_logo_url'); setS('_gameLogoFile', f); setS('_logoPreview', URL.createObjectURL(f)) }} onClear={() => { setS('game_logo_url', ''); setS('_gameLogoFile', null); setS('_logoPreview', null); upload.clearFieldError('game_logo_url') }} />
+                <ImageUpload label="O Replacement Image" error={upload.hasError('o_image_url')} url={settings._oPreview || settings.o_image_url} onFile={f => { upload.clearFieldError('o_image_url'); setS('_oImageFile', f); setS('_oPreview', URL.createObjectURL(f)) }} onClear={() => { setS('o_image_url', ''); setS('_oImageFile', null); setS('_oPreview', null); upload.clearFieldError('o_image_url') }} />
               </div>
             </div>
 

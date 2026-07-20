@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
+import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 /* ─────────────────────────────────────────────
    LIGHT THEME TOKENS  (scoped to .gb-wrap)
@@ -481,6 +482,8 @@ export default function SnakeBuilderPage() {
 
   const showToast = (msg, type='success') => setToast({ msg, type })
 
+  const upload = useUploadErrors()
+
   const loadData = useCallback(() => {
     setLoading(true); setFetchError(null)
     Promise.all([
@@ -569,7 +572,19 @@ export default function SnakeBuilderPage() {
       await api.put(`/games/${id}`, { redirect_url: redirectUrl, slug: slugInput.trim() || undefined })
       showToast('Settings saved')
     } catch (err) {
-      showToast('Error: ' + (err.response?.data?.message || err.message), 'error')
+      upload.clearAll()
+      const msg = uploadErrorMessage(err)
+      if (err?.response?.status === 413) {
+        if (_bgFile) upload.setFieldError('bg_image_url', msg)
+        if (_logoFile) upload.setFieldError('game_logo_url', msg)
+        if (_tyBgFile) upload.setFieldError('thankyou_bg_image_url', msg)
+        if (_gifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+        if (_revealFile) upload.setFieldError('reveal_image_url', msg)
+        if (!_bgFile && !_logoFile && !_tyBgFile && !_gifFile && !_revealFile) upload.setFieldError('bg_image_url', msg)
+      } else {
+        upload.setFieldError('bg_image_url', msg)
+      }
+      showToast(msg, 'error')
     }
     setSaving(false)
   }
@@ -610,6 +625,11 @@ export default function SnakeBuilderPage() {
   }
 
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
+  const TAB_FIELDS = {
+    form: ['bg_image_url','game_logo_url'],
+    thankyou: ['thankyou_bg_image_url','submit_confirm_gif_url','reveal_image_url'],
+  }
+
   const TABS = [
     { id:'form',      label:'Player Form' },
     { id:'gameplay',  label:'Gameplay' },
@@ -654,7 +674,7 @@ export default function SnakeBuilderPage() {
         display:'grid', gridTemplateColumns:'1fr auto 1fr',
         background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)',
         padding:'10px 28px', gap:'4px 20px', alignItems:'center',
-        position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
+        position:'sticky', top:'62px', zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
       }}>
         {/* Col 1: Back icon + Name + Builder badge */}
         <div style={{ display:'flex', gap:6, alignItems:'flex-start', justifySelf:'start' }}>
@@ -684,8 +704,7 @@ export default function SnakeBuilderPage() {
           {TABS.map(t => (
             <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
               style={{ padding:'6px 14px', fontSize:12.5 }}>
-              {t.label}
-            </button>
+              {t.label}{upload.tabHasError(t.id, TAB_FIELDS[t.id] || []) && <span className="gb-tab-err-dot" />}</button>
           ))}
         </div>
 
@@ -712,10 +731,10 @@ export default function SnakeBuilderPage() {
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">Visuals</div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                  <div className={upload.hasError('bg_image_url') ? 'gb-img-error' : ''} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Background Image</span>
                     <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { const f=e.target.files[0]; upload.clearFieldError('bg_image_url'); if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                     {settings.bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
@@ -725,10 +744,10 @@ export default function SnakeBuilderPage() {
                         type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgFile:null})}>✕</button>
                     </div>}
                   </div>
-                  <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
+                  <div className={upload.hasError('game_logo_url') ? 'gb-img-error' : ''} style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Logo</span>
                     <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_logoFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { const f=e.target.files[0]; upload.clearFieldError('game_logo_url'); if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_logoFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                     {settings.game_logo_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
@@ -941,7 +960,7 @@ export default function SnakeBuilderPage() {
                   <div className="gb-section-title">Thankyou Page Background</div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <input type="file" ref={tyBgImgRef} accept="image/png,image/jpeg,image/jpg"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { const f=e.target.files[0]; upload.clearFieldError('thankyou_bg_image_url'); if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => tyBgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>📷 Upload</button>
                     {settings.thankyou_bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
@@ -985,7 +1004,7 @@ export default function SnakeBuilderPage() {
                   <div className="gb-section-title">Submit Confirmation GIF</div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <input type="file" id="submitGifInput" accept="image/gif,image/png,image/jpeg,image/webp"
-                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_gifFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { const f=e.target.files[0]; upload.clearFieldError('submit_confirm_gif_url'); if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_gifFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
                     <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>🎬 Upload GIF / Image</button>
                     {settings.submit_confirm_gif_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>

@@ -791,6 +791,11 @@ export default function ChessPlayerPage() {
       } catch (e) { console.error('Failed to send move:', e) }
     }
 
+    // Local (pass-and-play): flip board to the side now to move so the next player faces their pieces
+    if (mode === 'local') {
+      setIsFlipped(engine.turn === 'b')
+    }
+
     // AI response
     if (mode === 'ai' && !engine.isCheckmate() && !engine.isDraw() && !engine.isStalemate()) {
       setAiThinking(true)
@@ -938,6 +943,18 @@ export default function ChessPlayerPage() {
     }
   }
 
+  // Start local pass-and-play game (two humans, one device)
+  const handleStartLocal = () => {
+    setMode('local')
+    setPlayerColor('w')        // White always moves first; board auto-flips to side to move
+    setIsFlipped(false)
+    if (settings?.time_control > 0) {
+      setWhiteTime(settings.time_control)
+      setBlackTime(settings.time_control)
+      setTimerActive(true)
+    }
+  }
+
   // Flip board
   const flipBoard = () => setIsFlipped(f => !f)
 
@@ -1063,6 +1080,21 @@ export default function ChessPlayerPage() {
             <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>vs Player</div>
             <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Multiplayer</div>
           </div>
+
+          {/* Local pass-and-play Button */}
+          <div onClick={handleStartLocal} style={{
+            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+            borderRadius: 20, padding: '32px 28px', cursor: 'pointer', width: 200,
+            border: '2px solid rgba(245,158,11,0.3)', transition: 'all 0.3s',
+            animation: 'fadeIn 0.6s ease 0.3s both'
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(245,158,11,0.4)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🪑</div>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Pass &amp; Play</div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Two players, one device</div>
+          </div>
         </div>
 
         {/* Difficulty selector (shown when AI is about to start) */}
@@ -1080,7 +1112,8 @@ export default function ChessPlayerPage() {
           </div>
         </div>
 
-        {/* Color selector */}
+        {/* Color selector (not used in local pass-and-play) */}
+        {mode !== 'local' && (
         <div style={{ marginTop: 20 }}>
           <label style={{ color: '#9CA3AF', fontSize: 12, display: 'block', marginBottom: 8 }}>Play as</label>
           <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
@@ -1094,6 +1127,7 @@ export default function ChessPlayerPage() {
             }}>♚</button>
           </div>
         </div>
+        )}
 
         {/* Multiplayer room section */}
         <div style={{ marginTop: 32, padding: 24, background: 'rgba(255,255,255,0.03)', borderRadius: 16, border: '1px solid rgba(255,255,255,0.06)' }}>
@@ -1156,7 +1190,7 @@ export default function ChessPlayerPage() {
       {/* Top bar */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '12px 20px', borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
         <button onClick={handleNewGame} style={{ background: 'none', border: 'none', color: '#9CA3AF', fontSize: 14, cursor: 'pointer', fontFamily: 'DM Sans', display: 'flex', alignItems: 'center', gap: 6 }}>
-          ← {mode === 'ai' ? 'vs Computer' : 'Multiplayer'}
+          ← {mode === 'ai' ? 'vs Computer' : mode === 'local' ? 'Pass & Play' : 'Multiplayer'}
         </button>
         <div style={{ display: 'flex', gap: 8 }}>
           <button onClick={flipBoard} style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 8, padding: '6px 10px', color: '#9CA3AF', fontSize: 13, cursor: 'pointer', fontFamily: 'DM Sans' }}>⟳ Flip</button>
@@ -1167,21 +1201,46 @@ export default function ChessPlayerPage() {
       <div style={{ flex: 1, display: 'flex', justifyContent: 'center', padding: '16px', gap: 24, maxWidth: 1200, margin: '0 auto', width: '100%', flexWrap: 'wrap' }}>
         {/* Left panel - Captured pieces + info */}
         <div style={{ width: 260, display: 'flex', flexDirection: 'column', gap: 12, order: -1 }}>
-          {/* Opponent info */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #1e293b, #334155)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
-              {playerColor === 'w' ? '🤖' : '👤'}
+          {/* Opponent / players info */}
+          {mode === 'local' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {[
+                { side: 'w', name: 'Player 1', time: whiteTime },
+                { side: 'b', name: 'Player 2', time: blackTime },
+              ].map(p => (
+                <div key={p.side} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 12, border: `1px solid ${turn === p.side ? '#F59E0B' : 'rgba(255,255,255,0.06)'}`, background: turn === p.side ? 'rgba(245,158,11,0.12)' : 'rgba(255,255,255,0.03)' }}>
+                  <div style={{ width: 36, height: 36, borderRadius: '50%', background: p.side === 'w' ? 'linear-gradient(135deg,#f8fafc,#cbd5e1)' : 'linear-gradient(135deg,#334155,#0f172a)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18 }}>
+                    {p.side === 'w' ? '♔' : '♚'}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: '#fff', fontSize: 13, fontWeight: 600 }}>{p.name}</div>
+                    <div style={{ color: '#9CA3AF', fontSize: 11 }}>{p.side === 'w' ? 'White' : 'Black'}</div>
+                  </div>
+                  {settings?.time_control > 0 && (
+                    <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: '5px 10px', fontFamily: 'monospace', fontSize: 16, fontWeight: 700, color: p.time < 60 ? '#ef4444' : '#fff' }}>
+                      {formatTime(p.time)}
+                    </div>
+                  )}
+                  {turn === p.side && <span style={{ fontSize: 11, fontWeight: 700, color: '#F59E0B' }}>●</span>}
+                </div>
+              ))}
             </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>{mode === 'ai' ? `AI (${difficulty})` : (playerColor === 'w' ? (roomStatus?.player2_name || 'Player 2') : (roomStatus?.player1_name || 'Player 1'))}</div>
-              <div style={{ color: '#9CA3AF', fontSize: 11 }}>{playerColor === 'w' ? 'Black' : 'White'}</div>
-            </div>
-            {(settings?.time_control > 0 || mode === 'multiplayer') && (
-              <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: '6px 12px', fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: (playerColor === 'w' ? blackTime : whiteTime) < 60 ? '#ef4444' : '#fff' }}>
-                {formatTime(playerColor === 'w' ? blackTime : whiteTime)}
+          ) : (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', background: 'rgba(255,255,255,0.03)', borderRadius: 12, border: '1px solid rgba(255,255,255,0.06)' }}>
+              <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'linear-gradient(135deg, #1e293b, #334155)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20 }}>
+                {playerColor === 'w' ? '🤖' : '👤'}
               </div>
-            )}
-          </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ color: '#fff', fontSize: 14, fontWeight: 600 }}>{mode === 'ai' ? `AI (${difficulty})` : (playerColor === 'w' ? (roomStatus?.player2_name || 'Player 2') : (roomStatus?.player1_name || 'Player 1'))}</div>
+                <div style={{ color: '#9CA3AF', fontSize: 11 }}>{playerColor === 'w' ? 'Black' : 'White'}</div>
+              </div>
+              {(settings?.time_control > 0 || mode === 'multiplayer') && (
+                <div style={{ background: 'rgba(0,0,0,0.3)', borderRadius: 8, padding: '6px 12px', fontFamily: 'monospace', fontSize: 18, fontWeight: 700, color: (playerColor === 'w' ? blackTime : whiteTime) < 60 ? '#ef4444' : '#fff' }}>
+                  {formatTime(playerColor === 'w' ? blackTime : whiteTime)}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Captured pieces */}
           <div style={{ padding: '8px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, minHeight: 36, display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 2 }}>
@@ -1232,9 +1291,9 @@ export default function ChessPlayerPage() {
               border: displayTurn === 'w' ? '2px solid #ccc' : '2px solid #555',
               animation: !gameOver && !aiThinking ? 'pulse 2s infinite' : 'none'
             }} />
-            <span style={{ color: '#9CA3AF', fontSize: 13, fontWeight: 600 }}>
-              {aiThinking ? 'AI thinking...' : gameOver ? (gameResult || 'Game Over') : `${displayTurn === 'w' ? 'White' : 'Black'} to move`}
-            </span>
+              <span style={{ color: '#9CA3AF', fontSize: 13, fontWeight: 600 }}>
+                {aiThinking ? 'AI thinking...' : gameOver ? (gameResult || 'Game Over') : mode === 'local' ? `Pass device to ${displayTurn === 'w' ? 'Player 1 (White)' : 'Player 2 (Black)'}` : `${displayTurn === 'w' ? 'White' : 'Black'} to move`}
+              </span>
             {inCheck && !gameOver && <span style={{ color: '#ef4444', fontSize: 12, fontWeight: 700 }}>CHECK!</span>}
           </div>
 

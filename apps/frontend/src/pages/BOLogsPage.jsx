@@ -56,6 +56,16 @@ export default function BOLogsPage() {
 
   const filtered = bos.filter(b => b.business_name.toLowerCase().includes(search.toLowerCase()))
 
+  // Group by client (brand → locations), reflecting each client's login basis
+  const groups = {}
+  for (const bo of filtered) {
+    const key = bo.client_id || `none-${bo.id}`
+    if (!groups[key]) groups[key] = { clientName: bo.client_name || bo.business_name, brand: null, locations: [] }
+    if (bo.kind === 'brand') groups[key].brand = bo
+    else groups[key].locations.push(bo)
+  }
+  const groupList = Object.values(groups)
+
   const exportCSV = (bo, rows) => {
     const formKeys = []
     rows.forEach(r => Object.keys(r.player_data || {}).forEach(k => { if (!formKeys.includes(k)) formKeys.push(k) }))
@@ -100,6 +110,19 @@ export default function BOLogsPage() {
         .bol-search input:focus { border-color:var(--primary); box-shadow:0 0 0 4px rgba(99,102,241,.12); }
         .bol-search svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); }
         .bol-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(300px,1fr)); gap:18px; }
+        .bol-groups { display:flex; flex-direction:column; gap:22px; }
+        .bol-group { background:var(--surface); border:1px solid #eef0f5; border-radius:18px; padding:18px 20px; box-shadow:0 1px 3px rgba(15,23,42,.03); }
+        .bol-group-head { display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+        .bol-group-dot { width:10px; height:10px; border-radius:50%; background:linear-gradient(135deg,var(--primary),var(--accent)); flex-shrink:0; }
+        .bol-group-name { font-weight:700; font-size:15px; color:var(--ink); }
+        .bol-group-meta { font-size:11px; color:var(--muted); margin-left:auto; }
+        .bol-tree { display:flex; flex-direction:column; gap:0; }
+        .bol-locs { display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:14px; margin-top:14px; padding-left:18px; border-left:2px dashed #e2e8f0; }
+        .bol-card--brand { border-color:#e9d5ff; }
+        .bol-card--brand::before { background:linear-gradient(90deg,#7c3aed,#6366f1); opacity:1; }
+        .bol-avatar--brand { background:linear-gradient(135deg,#7c3aed,#6366f1); }
+        .bol-avatar--loc { background:linear-gradient(135deg,#0ea5e9,#6366f1); }
+        .bol-card--loc { padding:16px; }
         .bol-card { text-align:left; background:var(--surface); border:1px solid #eef0f5; border-radius:18px; padding:20px;
           cursor:pointer; font-family:inherit; position:relative; overflow:hidden; transition:transform .15s, box-shadow .15s, border-color .15s; }
         .bol-card::before { content:''; position:absolute; inset:0 0 auto 0; height:4px;
@@ -172,27 +195,74 @@ export default function BOLogsPage() {
       ) : filtered.length === 0 ? (
         <div className="bol-empty">No business owners found</div>
       ) : (
-        <div className="bol-grid">
-          {filtered.map(bo => (
-            <button key={bo.id} className="bol-card" onClick={() => openBo(bo)}>
-              <div className="bol-card-top">
-                <div className="bol-avatar">{bo.business_name.slice(0, 2).toUpperCase()}</div>
-                <div style={{ minWidth: 0 }}>
-                  <div className="bol-name">{bo.business_name}</div>
-                  <div className="bol-mail">{bo.email}{bo.phone ? ` · ${bo.phone}` : ''}</div>
-                </div>
+        <div className="bol-groups">
+          {groupList.map((g, gi) => (
+            <div key={gi} className="bol-group">
+              <div className="bol-group-head">
+                <span className="bol-group-dot" />
+                <span className="bol-group-name">{g.clientName}</span>
+                <span className="bol-group-meta">
+                  {g.brand ? 'Brand login' : 'No brand owner'}
+                  {g.locations.length > 0 ? ` · ${g.locations.length} location${g.locations.length === 1 ? '' : 's'}` : ''}
+                </span>
               </div>
-              <div className="bol-stats">
-                <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#4f46e5' }}>{bo.total_plays}</div><div className="bol-stat-l">Plays</div></div>
-                <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#059669' }}>{bo.total_redemptions}</div><div className="bol-stat-l">Redeemed</div></div>
-                <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#0ea5e9' }}>{bo.with_code}</div><div className="bol-stat-l">With Code</div></div>
-                <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#d97706' }}>{bo.without_code}</div><div className="bol-stat-l">No Code</div></div>
+              <div className="bol-tree">
+                {/* Brand node */}
+                {g.brand && (
+                  <button className="bol-card bol-card--brand" onClick={() => openBo(g.brand)}>
+                    <div className="bol-card-top">
+                      <div className="bol-avatar bol-avatar--brand">{g.brand.business_name.slice(0, 2).toUpperCase()}</div>
+                      <div style={{ minWidth: 0 }}>
+                        <div className="bol-name">{g.brand.business_name}</div>
+                        <div className="bol-mail">{g.brand.email}{g.brand.phone ? ` · ${g.brand.phone}` : ''}</div>
+                      </div>
+                    </div>
+                    <div className="bol-stats">
+                      <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#4f46e5' }}>{g.brand.total_plays}</div><div className="bol-stat-l">Plays</div></div>
+                      <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#059669' }}>{g.brand.total_redemptions}</div><div className="bol-stat-l">Redeemed</div></div>
+                      <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#0ea5e9' }}>{g.brand.with_code}</div><div className="bol-stat-l">With Code</div></div>
+                      <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#d97706' }}>{g.brand.without_code}</div><div className="bol-stat-l">No Code</div></div>
+                    </div>
+                    <div className="bol-foot">
+                      <span>{g.brand.total_games} game{g.brand.total_games === 1 ? '' : 's'} linked</span>
+                      <span className="arrow" style={{ marginLeft: 'auto' }}>View logs →</span>
+                    </div>
+                  </button>
+                )}
+
+                {/* Location nodes (login-by-location clients) */}
+                {g.locations.length > 0 && (
+                  <div className="bol-locs">
+                    {g.locations.map(bo => (
+                      <button key={bo.id} className="bol-card bol-card--loc" onClick={() => openBo(bo)}>
+                        <div className="bol-card-top">
+                          <div className="bol-avatar bol-avatar--loc">{bo.business_name.slice(0, 2).toUpperCase()}</div>
+                          <div style={{ minWidth: 0 }}>
+                            <div className="bol-name">{bo.business_name}</div>
+                            <div className="bol-mail">{bo.email}{bo.phone ? ` · ${bo.phone}` : ''}</div>
+                          </div>
+                        </div>
+                        <div className="bol-stats">
+                          <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#4f46e5' }}>{bo.total_plays}</div><div className="bol-stat-l">Plays</div></div>
+                          <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#059669' }}>{bo.total_redemptions}</div><div className="bol-stat-l">Redeemed</div></div>
+                          <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#0ea5e9' }}>{bo.with_code}</div><div className="bol-stat-l">With Code</div></div>
+                          <div className="bol-stat"><div className="bol-stat-v" style={{ color: '#d97706' }}>{bo.without_code}</div><div className="bol-stat-l">No Code</div></div>
+                        </div>
+                        <div className="bol-foot">
+                          <span>{bo.total_games} game{bo.total_games === 1 ? '' : 's'} linked</span>
+                          <span className="arrow" style={{ marginLeft: 'auto' }}>View logs →</span>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {/* Brand-only client without locations */}
+                {!g.brand && g.locations.length === 0 && (
+                  <div className="bol-empty" style={{ padding: 24 }}>No linked accounts</div>
+                )}
               </div>
-              <div className="bol-foot">
-                <span>{bo.total_games} game{bo.total_games === 1 ? '' : 's'} linked</span>
-                <span className="arrow" style={{ marginLeft: 'auto' }}>View logs →</span>
-              </div>
-            </button>
+            </div>
           ))}
         </div>
       )}

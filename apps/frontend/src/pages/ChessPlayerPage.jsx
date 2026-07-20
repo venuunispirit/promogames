@@ -546,7 +546,7 @@ export default function ChessPlayerPage() {
   const [error, setError] = useState(null)
 
   // Mode selection
-  const [mode, setMode] = useState(null) // 'ai' | 'multiplayer' | null
+  const [mode, setMode] = useState(null) // 'ai' | 'multiplayer' | 'local' | null
   const [difficulty, setDifficulty] = useState('medium')
   const [playerColor, setPlayerColor] = useState('w')
   const [playerName, setPlayerName] = useState('')
@@ -938,6 +938,16 @@ export default function ChessPlayerPage() {
     }
   }
 
+  // Start local (pass-and-play) game — two players, same device
+  const handleStartLocal = () => {
+    setMode('local')
+    if (settings?.time_control > 0) {
+      setWhiteTime(settings.time_control)
+      setBlackTime(settings.time_control)
+      setTimerActive(true)
+    }
+  }
+
   // Flip board
   const flipBoard = () => setIsFlipped(f => !f)
 
@@ -1061,9 +1071,42 @@ export default function ChessPlayerPage() {
           >
             <div style={{ fontSize: 48, marginBottom: 12 }}>👥</div>
             <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>vs Player</div>
-            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Multiplayer</div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Online rooms</div>
+          </div>
+
+          {/* Local pass-and-play Button */}
+          <div onClick={handleStartLocal} style={{
+            background: 'linear-gradient(135deg, #F59E0B 0%, #D97706 100%)',
+            borderRadius: 20, padding: '32px 28px', cursor: 'pointer', width: 200,
+            border: '2px solid rgba(245,158,11,0.3)', transition: 'all 0.3s',
+            animation: 'fadeIn 0.6s ease 0.3s both'
+          }}
+          onMouseEnter={e => { e.currentTarget.style.transform = 'translateY(-4px)'; e.currentTarget.style.boxShadow = '0 12px 40px rgba(245,158,11,0.4)' }}
+          onMouseLeave={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
+          >
+            <div style={{ fontSize: 48, marginBottom: 12 }}>🪑</div>
+            <div style={{ color: '#fff', fontSize: 18, fontWeight: 700, marginBottom: 4 }}>Pass &amp; Play</div>
+            <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 12 }}>Two players, one device</div>
           </div>
         </div>
+
+        {/* Play-as selector only relevant for AI / local (local ignores it) */}
+        {mode !== 'multiplayer' && (
+          <div style={{ marginTop: 20 }}>
+            <label style={{ color: '#9CA3AF', fontSize: 12, display: 'block', marginBottom: 8 }}>Play as{mode === 'local' ? ' (local: both sides movable)' : ''}</label>
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'center' }}>
+              <button onClick={() => setPlayerColor('w')} style={{
+                padding: '8px 16px', borderRadius: 10, border: playerColor === 'w' ? '2px solid #fff' : '2px solid rgba(255,255,255,0.1)',
+                background: playerColor === 'w' ? 'rgba(255,255,255,0.1)' : 'transparent', color: '#fff', fontSize: 20, cursor: 'pointer', transition: 'all 0.2s'
+              }}>♔</button>
+              <button onClick={() => setPlayerColor('b')} style={{
+                padding: '8px 16px', borderRadius: 10, border: playerColor === 'b' ? '2px solid #fff' : '2px solid rgba(255,255,255,0.1)',
+                background: playerColor === 'b' ? 'rgba(255,255,255,0.1)' : 'transparent', color: '#fff', fontSize: 20, cursor: 'pointer', transition: 'all 0.2s'
+              }}>♚</button>
+            </div>
+          </div>
+        )}
+
 
         {/* Difficulty selector (shown when AI is about to start) */}
         <div style={{ marginTop: 32 }}>

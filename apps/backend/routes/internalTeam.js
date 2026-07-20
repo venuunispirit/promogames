@@ -210,11 +210,7 @@ async function getBusinessOwnerGameIds(boId) {
 router.get('/bo-logs', auth, async (req, res) => {
   try {
     const [bos] = await db.query(
-      `SELECT bo.id, bo.business_name, bo.email, bo.phone, bo.created_at,
-              bo.parent_id, bo.client_id, c.company_name as client_name
-       FROM business_owners bo
-       LEFT JOIN clients c ON bo.client_id = c.id
-       ORDER BY bo.client_id IS NULL, c.company_name ASC, bo.parent_id IS NULL DESC, bo.business_name ASC`
+      `SELECT id, business_name, email, phone, created_at FROM business_owners ORDER BY business_name ASC`
     );
     const result = [];
     for (const bo of bos) {
@@ -243,10 +239,6 @@ router.get('/bo-logs', auth, async (req, res) => {
         email: bo.email,
         phone: bo.phone,
         created_at: bo.created_at,
-        parent_id: bo.parent_id,
-        client_id: bo.client_id,
-        client_name: bo.client_name || null,
-        kind: bo.parent_id ? 'location' : 'brand',
         total_games: gameIds.length,
         total_plays: plays,
         total_redemptions: redemptions,

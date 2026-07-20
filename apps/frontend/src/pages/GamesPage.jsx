@@ -11,7 +11,6 @@ import {
 } from 'lucide-react'
 import api from '../api'
 import { useTheme } from './ThemeContext'
-import MasterGameModal from '../components/MasterGameModal'
 
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
@@ -1158,12 +1157,11 @@ export default function GamesPage() {
   const [selectedClient, setSelectedClient] = useState(null)
   const [expandedParents, setExpandedParents] = useState({})
   const [graphClient, setGraphClient] = useState('all')
-  const [boLogs, setBoLogs] = useState([])
   const navigate = useNavigate()
 
   const load = () =>
-    Promise.all([api.get('/games'), api.get('/clients'), api.get('/internal-team/bo-logs')])
-      .then(([gr,cr,br]) => { setGames(gr.data.games||[]); setClients(cr.data.clients||[]); setBoLogs(br.data.business_owners||[]) })
+    Promise.all([api.get('/games'), api.get('/clients')])
+      .then(([gr,cr]) => { setGames(gr.data.games||[]); setClients(cr.data.clients||[]) })
       .finally(() => setLoading(false))
 
   // re-sync the open modal's game with the freshly loaded list so updates show immediately
@@ -1670,29 +1668,8 @@ export default function GamesPage() {
         )}
       </div>
 
-      {/* Master game → 3-column modal (fields / responses / BO logs) */}
-      {selectedGame && !selectedGame.parent_game_id && (
-        <MasterGameModal
-          game={selectedGame}
-          catMeta={catMeta}
-          clientName={clients.find(c => c.id === selectedGame.client_id)?.company_name}
-          boLogs={boLogs}
-          onClose={() => setSelectedGame(null)}
-          onBuilder={navigateBuilder}
-          onToggle={toggleField}
-          onStatusToggle={handleStatusToggle}
-          onDuplicate={handleDuplicate}
-          onDelete={(id) => { setSelectedGame(null); handleDelete(id) }}
-          onSelectChild={(bo) => {
-            const linkedGame = (games.find(g => g.business_owner_id === bo.id)) || null
-            if (linkedGame) { setSelectedGame(linkedGame); }
-            else { showToast('No game linked to this location yet', 'error') }
-          }}
-        />
-      )}
-
-      {/* Location / other games → compact detail modal */}
-      {selectedGame && selectedGame.parent_game_id && (
+      {/* Game Detail / Control Modal (reused by table, tree & graph) */}
+      {selectedGame && (
         <GameDetailModal
           game={selectedGame}
           onClose={() => setSelectedGame(null)}

@@ -207,55 +207,91 @@ function FieldToggle({ gameId, field, value, label, onUpdated, onError }) {
 
 function QRCodeModal({ game, onClose, onError }) {
   const [qrDataUrl, setQrDataUrl] = useState('')
+  const [qrError, setQrError] = useState('')
   const host = typeof window !== 'undefined' ? window.location.origin : ''
-  const link = `${host}/play/${game.slug}/${game.client_slug}`
+
+  const handleClose = () => onClose?.()
 
   useEffect(() => {
+    if (!game) {
+      return
+    }
+
+    const slug = game.slug || ''
+    const client_slug = game.client_slug || ''
+    const link = `${host}/play/${slug}/${client_slug}`
+
+    console.log('[QRCode] Generating QR for:', link, 'game:', slug, client_slug)
+
+    if (!slug || !client_slug) {
+      setQrError('Missing slug or client_slug')
+      onError?.('Missing slug or client_slug')
+      return
+    }
+
+    const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1a1a2e'
+
     QRCode.toDataURL(link, {
       width: 260,
       margin: 2,
-      color: { dark:'var(--text)', light:'#FFFFFF' }
-    }).then(setQrDataUrl).catch(() => onError('Failed to generate QR'))
-  }, [])
+      color: { dark: textColor, light: '#FFFFFF' }
+    })
+      .then(setQrDataUrl)
+      .catch((err) => {
+        console.error('[QRCode] Failed to generate', err)
+        setQrError('Failed to generate QR')
+        onError?.('Failed to generate QR')
+      })
+  }, [game])
 
   const handleCopyQr = async () => {
+    if (!qrDataUrl) return
     try {
       const res = await fetch(qrDataUrl)
       const blob = await res.blob()
       await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })])
-    } catch { onError('Failed to copy QR image') }
+    } catch {
+      onError?.('Failed to copy QR image')
+    }
   }
 
   const handleCopyLink = () => {
+    const slug = game?.slug || ''
+    const client_slug = game?.client_slug || ''
+    const link = `${host}/play/${slug}/${client_slug}`
     navigator.clipboard.writeText(link)
   }
 
   const handleDownload = () => {
+    if (!qrDataUrl) return
     const a = document.createElement('a')
     a.href = qrDataUrl
-    a.download = game.name.replace(/ /g, '-') + '-qr.png'
+    a.download = game.name?.replace(/ /g, '-') + '-qr.png' || 'qr.png'
     a.click()
   }
 
   return (
-    <div style={{position:'fixed',inset:0,zIndex:800,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.48)',backdropFilter:'blur(5px)'}}>
-      <div style={{position:'relative',background:' var(--surface)',borderRadius:24,width:'100%',maxWidth:400,padding:'34px 28px 28px',boxShadow:'0 24px 64px rgba(0,0,0,.22)',animation:'gpModalIn .22s cubic-bezier(.22,1,.36,1)',fontFamily:"'DM Sans',sans-serif",textAlign:'center'}}>
-        <button className="gp-icon-btn" onClick={onClose} style={{position:'absolute',top:14,right:14}}><Ico.close/></button>
-        <div style={{display:'flex',alignItems:'center',justifyContent:'center',gap:10,marginBottom:22}}>
-          <img src="/favicon3.png" alt="" style={{width:30,height:30,borderRadius:8,objectFit:'cover'}} onError={e=>{e.target.style.display='none'}} />
-          <span style={{fontSize:15,fontWeight:700,color:' var(--text)',letterSpacing:'-0.01em'}}>{game.company_name}</span>
+    <div style={{ position: 'fixed', inset: 0, zIndex: 800, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20, background: 'rgba(8,8,18,.48)', backdropFilter: 'blur(5px)' }} onClick={handleClose}>
+      <div style={{ position: 'relative', background: 'var(--surface)', borderRadius: 24, width: '100%', maxWidth: 400, padding: '34px 28px 28px', boxShadow: '0 24px 64px rgba(0,0,0,.22)', animation: 'gpModalIn .22s cubic-bezier(.22,1,.36,1)', fontFamily: "'DM Sans',sans-serif", textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+        <button className="gp-icon-btn" onClick={handleClose} style={{ position: 'absolute', top: 14, right: 14 }}><Ico.close /></button>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 22 }}>
+          <img src="/favicon3.png" alt="" style={{ width: 30, height: 30, borderRadius: 8, objectFit: 'cover' }} onError={e => { e.target.style.display = 'none' }} />
+          <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>{game.company_name || ''}</span>
         </div>
-        {qrDataUrl ? (
-          <img src={qrDataUrl} alt="QR Code" style={{width:200,height:200,borderRadius:16,margin:'0 auto 20px',display:'block',padding:12,background:' var(--surface2)',border:'1px solid  var(--border)'}} />
+        {qrError ? (
+          <div style={{ width: 200, height: 200, borderRadius: 16, margin: '0 auto 20px', background: 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)', fontSize: 14, padding: 12 }}>
+            QR Error: {qrError}
+          </div>
+        ) : qrDataUrl ? (
+          <img src={qrDataUrl} alt="QR Code" style={{ width: 200, height: 200, borderRadius: 16, margin: '0 auto 20px', display: 'block', padding: 12, background: 'var(--surface2)', border: '1px solid var(--border)' }} />
         ) : (
-          <div style={{width:200,height:200,borderRadius:16,margin:'0 auto 20px',background:' var(--border-light)',display:'flex',alignItems:'center',justifyContent:'center',color:' var(--text3)'}}><Ico.spin/></div>
+          <div style={{ width: 200, height: 200, borderRadius: 16, margin: '0 auto 20px', background: 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)' }}><Ico.spin /></div>
         )}
-        <p style={{fontSize:13.5,fontWeight:600,color:' var(--text)',marginBottom:4}}>{game.name}</p>
-        <p style={{fontSize:12,color:' var(--text3)',marginBottom:24,wordBreak:'break-all'}}>{link}</p>
-        <div style={{display:'flex',flexDirection:'column',gap:8}}>
-          <button className="gp-primary-btn" onClick={handleCopyQr} disabled={!qrDataUrl} style={{justifyContent:'center',padding:'11px 0',borderRadius:10,fontSize:13.5}}><Ico.copy/> Copy QR Image</button>
-          <button className="gp-ghost-btn" onClick={handleCopyLink} style={{justifyContent:'center',padding:'10px 0',borderRadius:10,fontSize:13}}><Ico.link/> Copy Game Link</button>
-          <button className="gp-ghost-btn" onClick={handleDownload} disabled={!qrDataUrl} style={{justifyContent:'center',padding:'10px 0',borderRadius:10,fontSize:13}}><Ico.download/> Download QR</button>
+        <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{game.name || ''}</p>
+        <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 24, wordBreak: 'break-all' }}>{`${host}/play/${game.slug || ''}/${game.client_slug || ''}`}</p>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <button className="gp-primary-btn" onClick={handleCopyQr} disabled={!qrDataUrl} style={{ justifyContent: 'center', padding: '11px 0', borderRadius: 10, fontSize: 13.5 }}><Ico.copy /> Copy QR Image</button>
+          <button className="gp-ghost-btn" onClick={handleCopyLink} style={{ justifyContent: 'center', padding: '10px 0', borderRadius: 10, fontSize: 13 }}><Ico.link /> Copy Game Link</button>
         </div>
       </div>
     </div>

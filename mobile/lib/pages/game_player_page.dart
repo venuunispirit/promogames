@@ -2,8 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/game.dart';
+import '../models/game_config.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
+import '../services/player_provider.dart';
+import '../services/sync_service.dart';
+import '../services/game_data_service.dart';
+import '../services/notification_service.dart';
 import '../widgets/spinning_logo.dart';
 import '../games/registry.dart';
 
@@ -18,7 +23,8 @@ class GamePlayerPage extends StatefulWidget {
 
 class _GamePlayerPageState extends State<GamePlayerPage> {
   bool _loading = true;
-  Map<String, dynamic> _settings = {};
+  GameConfig? _config;
+  String? _error;
   bool _finished = false;
   String? _sessionToken;
 
@@ -29,15 +35,23 @@ class _GamePlayerPageState extends State<GamePlayerPage> {
   }
 
   Future<void> _init() async {
-    _settings = {
-      'id': widget.game.id,
-      'name': widget.game.name,
-      'slug': widget.game.slug,
-      'category': widget.game.category,
-    };
+    // Fetch full game config from backend (with local cache fallback)
+    try {
+      _config = await GameDataService.instance.fetch(widget.game.id);
+    } catch (_) {
+      _config = GameConfig(
+        id: widget.game.id,
+        name: widget.game.name,
+        category: widget.game.category,
+      );
+    }
+
+    // Start session on backend (non-blocking)
     await _startSession();
-    await Future.delayed(const Duration(milliseconds: 700));
-    if (mounted) setState(() => _loading = false);
+
+    if (mounted) {
+      setState(() => _loading = false);
+    }
   }
 
   Future<void> _startSession() async {
@@ -59,14 +73,20 @@ class _GamePlayerPageState extends State<GamePlayerPage> {
         context.pop();
       }
     } catch (_) {
-      // non-blocking
+      // Session start failed — game will still work, just won't sync score
     }
   }
 
   void _onFinished(int score, int maxScore, bool completed) {
     if (_finished) return;
     _finished = true;
+
+    // Report score (offline-first)
     _reportScore(score, maxScore);
+
+    // Award PC locally (instant feedback)
+    _awardPcLocally(score, maxScore);
+
     if (!mounted) return;
     showDialog(
       context: context,
@@ -82,6 +102,8 @@ class _GamePlayerPageState extends State<GamePlayerPage> {
             const SizedBox(height: 16),
             Text('Score: $score${maxScore > 0 ? ' / $maxScore' : ''}',
                 style: const TextStyle(color: Color(0xFFa78bfa), fontSize: 20, fontWeight: FontWeight.bold)),
+            const SizedBox(height: 8),
+            _buildSyncBadge(),
           ],
         ),
         actions: [
@@ -98,22 +120,114 @@ class _GamePlayerPageState extends State<GamePlayerPage> {
     });
   }
 
+  Widget _buildSyncBadge() {
+    final isOnline = SyncService.instance.isOnline;
+    final pending = context.read<PlayerProvider>().pendingCount;
+    if (isOnline && pending == 0) {
+      return const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.cloud_done, color: Color(0xFF22c55e), size: 16),
+          SizedBox(width: 4),
+          Text('Synced', style: TextStyle(color: Color(0xFF22c55e), fontSize: 12)),
+        ],
+      );
+    }
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        Icon(
+          isOnline ? Icons.sync : Icons.cloud_off,
+          color: const Color(0xFFf59e0b),
+          size: 16,
+        ),
+        const SizedBox(width: 4),
+        Text(
+          isOnline ? 'Syncing…' : 'Offline — will sync later',
+          style: const TextStyle(color: Color(0xFFf59e0b), fontSize: 12),
+        ),
+      ],
+    );
+  }
+
+  void _awardPcLocally(int score, int maxScore) {
+    final auth = context.read<AuthService>();
+    final playerId = auth.user?.id;
+    if (playerId == null || playerId == 0) return;
+
+    // Determine PC amount — check from the game data if available
+    int pcAmount = 10; // default for promogames
+    if (_config?.gameType == 'branded') {
+      pcAmount = 50;
+    }
+
+    // Only award if player completed the game (score > 0 or maxScore == 0 meaning no scoreable)
+    if (score > 0 || maxScore == 0) {
+      context.read<PlayerProvider>().addLocalPcTransaction(
+        playerId: playerId,
+        type: 'earn',
+        points: pcAmount,
+        gameId: widget.game.id,
+        note: 'Completed: ${widget.game.name}',
+      );
+
+      // Show local notification
+      NotificationService.instance.showPcEarned(pcAmount, widget.game.name);
+    }
+  }
+
   Future<void> _reportScore(int score, int maxScore) async {
-    try {
-      await ApiService.post('/play/session/complete', {
-        'session_token': _sessionToken,
+    if (SyncService.instance.isOnline && _sessionToken != null) {
+      try {
+        await ApiService.post('/play/session/complete', {
+          'session_token': _sessionToken,
+          'score': score,
+          'total_scoreable': maxScore,
+          'player_data': {},
+        });
+        return;
+      } catch (_) {}
+    }
+    // Offline — queue locally for later sync
+    if (mounted) {
+      await context.read<PlayerProvider>().queueOfflineSession({
+        'game_id': widget.game.id,
         'score': score,
-        'total_scoreable': maxScore,
-        'player_data': {},
+        'max_score': maxScore,
+        'utm_source': widget.utmSource ?? '',
+        'player_data': '{}',
       });
-    } catch (_) {}
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     if (_loading) return const FullScreenSpinner(label: 'Loading game…');
-    final builder = gameBuilder(widget.game.category);
-    return builder(_settings, _onFinished);
+    if (_error != null) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0d0a1a),
+        appBar: AppBar(title: Text(widget.game.name), backgroundColor: const Color(0xFF1a0e2e)),
+        body: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              Text(_error!, style: const TextStyle(color: Colors.white70)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () => context.pop(),
+                child: const Text('Go Back'),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    final config = _config ?? GameConfig(id: widget.game.id, name: widget.game.name, category: widget.game.category);
+    final builder = gameBuilder(config.category);
+    return builder(config, _onFinished);
   }
 }
 

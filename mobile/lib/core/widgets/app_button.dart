@@ -113,8 +113,8 @@ class CoinIcon extends StatelessWidget {
           BoxShadow(color: AppColors.accentGold.withAlpha(80), blurRadius: 8, offset: const Offset(0, 2)),
         ],
       ),
-      child: Center(
-        child: Text('₽', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: size * 0.6)),
+      child: ClipOval(
+        child: Image.asset('assets/coin.png', width: size, height: size, fit: BoxFit.cover),
       ),
     ).animate().scale(duration: 800.ms, begin: const Offset(0.9, 0.9), end: const Offset(1, 1))
       .then(delay: 400.ms).shake(hz: 2, duration: 300.ms);

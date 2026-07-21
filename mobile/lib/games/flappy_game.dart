@@ -1,21 +1,43 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildFlappyGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _FlappyGame(settings: settings, onFinished: onFinished);
+Widget buildFlappyGame(GameConfig config, GameFinished onFinished) {
+  return _FlappyGame(config: config, onFinished: onFinished);
 }
 
 class _FlappyGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _FlappyGame({required this.settings, required this.onFinished});
+  const _FlappyGame({required this.config, required this.onFinished});
 
   @override
   State<_FlappyGame> createState() => _FlappyGameState();
 }
 
 class _FlappyGameState extends State<_FlappyGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   static const double w = 360;
   static const double h = 560;
   static const double gw = 30;
@@ -30,6 +52,7 @@ class _FlappyGameState extends State<_FlappyGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _reset();
     timer = Timer.periodic(const Duration(milliseconds: 16), (_) => _tick());
   }
@@ -99,11 +122,11 @@ class _FlappyGameState extends State<_FlappyGame> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Flappy';
+    final title = widget.config.name ?? 'Flappy';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -111,20 +134,31 @@ class _FlappyGameState extends State<_FlappyGame> {
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(8),
@@ -139,7 +173,7 @@ class _FlappyGameState extends State<_FlappyGame> {
                   width: w,
                   height: h,
                   child: CustomPaint(
-                    painter: _FlappyPainter(birdY, pipes, gw),
+                    painter: _FlappyPainter(birdY, pipes, gw, _primaryColor),
                   ),
                 ),
               ),
@@ -159,6 +193,7 @@ class _FlappyGameState extends State<_FlappyGame> {
             ),
           ],
         ),
+        ],
       ),
     );
   }
@@ -173,16 +208,17 @@ class Pipe {
 }
 
 class _FlappyPainter extends CustomPainter {
+  final Color primaryColor;
   final double birdY;
   final List<Pipe> pipes;
   final double gw;
-  _FlappyPainter(this.birdY, this.pipes, this.gw);
+  _FlappyPainter(this.birdY, this.pipes, this.gw, this.primaryColor);
 
   @override
   void paint(Canvas canvas, Size size) {
     final bp = Paint()..color = const Color(0xFF22c55e);
     canvas.drawCircle(Offset(gw, birdY), 11, bp);
-    final pp = Paint()..color = const Color(0xFF8b5cf6);
+    final pp = Paint()..color = primaryColor;
     for (final p in pipes) {
       canvas.drawRect(Rect.fromLTWH(p.x, 0, 50, p.gapTop), pp);
       canvas.drawRect(

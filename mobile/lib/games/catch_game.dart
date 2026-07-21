@@ -1,21 +1,43 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildCatchGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _CatchGame(settings: settings, onFinished: onFinished);
+Widget buildCatchGame(GameConfig config, GameFinished onFinished) {
+  return _CatchGame(config: config, onFinished: onFinished);
 }
 
 class _CatchGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _CatchGame({required this.settings, required this.onFinished});
+  const _CatchGame({required this.config, required this.onFinished});
 
   @override
   State<_CatchGame> createState() => _CatchGameState();
 }
 
 class _CatchGameState extends State<_CatchGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   static const double w = 360;
   static const double h = 560;
   static const double basketW = 64;
@@ -31,6 +53,7 @@ class _CatchGameState extends State<_CatchGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     basketX = w / 2 - basketW / 2;
     items = [];
     timer = Timer.periodic(const Duration(milliseconds: 16), (_) => _tick());
@@ -93,11 +116,11 @@ class _CatchGameState extends State<_CatchGame> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Catch';
+    final title = widget.config.name ?? 'Catch';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -105,20 +128,31 @@ class _CatchGameState extends State<_CatchGame> {
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(8),
@@ -140,7 +174,7 @@ class _CatchGameState extends State<_CatchGame> {
                   width: w,
                   height: h,
                   child: CustomPaint(
-                    painter: _CatchPainter(basketX, basketW, basketH, items, h),
+                    painter: _CatchPainter(basketX, basketW, basketH, items, h, _primaryColor),
                   ),
                 ),
               ),
@@ -167,6 +201,7 @@ class _CatchGameState extends State<_CatchGame> {
             const SizedBox(height: 8),
           ],
         ),
+        ],
       ),
     );
   }
@@ -180,10 +215,11 @@ class Item {
 }
 
 class _CatchPainter extends CustomPainter {
+  final Color primaryColor;
   final double basketX, basketW, basketH;
   final List<Item> items;
   final double h;
-  _CatchPainter(this.basketX, this.basketW, this.basketH, this.items, this.h);
+  _CatchPainter(this.basketX, this.basketW, this.basketH, this.items, this.h, this.primaryColor);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -191,7 +227,7 @@ class _CatchPainter extends CustomPainter {
       final p = Paint()..color = it.good ? const Color(0xFF22c55e) : Colors.red;
       canvas.drawCircle(it.pos, 10, p);
     }
-    final bp = Paint()..color = const Color(0xFF8b5cf6);
+    final bp = Paint()..color = primaryColor;
     canvas.drawRect(Rect.fromLTWH(basketX, h - 50, basketW, basketH), bp);
   }
 

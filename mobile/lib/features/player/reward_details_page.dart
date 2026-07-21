@@ -64,7 +64,7 @@ class RewardDetailsPage extends StatelessWidget {
                     AppButton(
                       label: canRedeem ? 'Redeem for ${reward.coins} PC' : (reward.available ? 'Need more PC' : 'Unavailable'),
                       icon: Icons.card_giftcard,
-                      onTap: canRedeem ? () => context.go('/success') : null,
+                      onTap: canRedeem ? () => context.push('/success') : null,
                     ),
                   ],
                 ),

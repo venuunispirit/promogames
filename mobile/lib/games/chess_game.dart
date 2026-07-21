@@ -1,10 +1,12 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
 /// Builds the chess game widget.
-Widget buildChessGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return ChessGame(settings: settings, onFinished: onFinished);
+Widget buildChessGame(GameConfig config, GameFinished onFinished) {
+  return ChessGame(config: config, onFinished: onFinished);
 }
 
 // ══════════════════════════════════════════════════════════════
@@ -557,15 +559,35 @@ const Map<String, String> _pieceUnicode = {
 // ══════════════════════════════════════════════════════════════
 
 class ChessGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const ChessGame({super.key, required this.settings, required this.onFinished});
+  const ChessGame({super.key, required this.config, required this.onFinished});
 
   @override
   State<ChessGame> createState() => _ChessGameState();
 }
 
 class _ChessGameState extends State<ChessGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   final ChessEngine _engine = ChessEngine();
   String _difficulty = 'medium';
   bool _aiThinking = false;
@@ -591,7 +613,8 @@ class _ChessGameState extends State<ChessGame> {
   @override
   void initState() {
     super.initState();
-    final d = widget.settings['difficulty'] as String? ?? 'medium';
+    _parseSettings();
+    final d = widget.config.settings['difficulty'] as String? ?? 'medium';
     _difficulty = d;
   }
 

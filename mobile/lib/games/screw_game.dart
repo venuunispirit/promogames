@@ -1,20 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildScrewGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _ScrewGame(settings: settings, onFinished: onFinished);
+Widget buildScrewGame(GameConfig config, GameFinished onFinished) {
+  return _ScrewGame(config: config, onFinished: onFinished);
 }
 
 class _ScrewGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _ScrewGame({required this.settings, required this.onFinished});
+  const _ScrewGame({required this.config, required this.onFinished});
 
   @override
   State<_ScrewGame> createState() => _ScrewGameState();
 }
 
 class _ScrewGameState extends State<_ScrewGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   // Each screw needs a number of turns to be fully removed.
   late List<Screw> screws;
   int removed = 0;
@@ -22,11 +44,12 @@ class _ScrewGameState extends State<_ScrewGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _newGame();
   }
 
   void _newGame() {
-    final n = (widget.settings['count'] as int?) ?? 9;
+    final n = (widget.config.settings['count'] as int?) ?? 9;
     final cols = 3;
     screws = List.generate(n, (i) {
       final layer = i ~/ cols; // top layers must be removed first
@@ -81,12 +104,12 @@ class _ScrewGameState extends State<_ScrewGame> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Screw';
+    final title = widget.config.name ?? 'Screw';
     final cols = 3;
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -94,20 +117,31 @@ class _ScrewGameState extends State<_ScrewGame> {
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
@@ -129,8 +163,9 @@ class _ScrewGameState extends State<_ScrewGame> {
             ),
           ],
         ),
-      ),
-    );
+      ],
+    ),
+  );
   }
 
   Widget _screw(int i) {
@@ -146,7 +181,7 @@ class _ScrewGameState extends State<_ScrewGame> {
           border: Border.all(
             color: blocked
                 ? Colors.white24
-                : (done ? Colors.transparent : const Color(0xFF8b5cf6)),
+                : (done ? Colors.transparent : _primaryColor),
             width: 2,
           ),
         ),
@@ -160,7 +195,7 @@ class _ScrewGameState extends State<_ScrewGame> {
                 size: 46,
                 color: done
                     ? const Color(0xFF22c55e)
-                    : (blocked ? Colors.white24 : const Color(0xFF8b5cf6)),
+                    : (blocked ? Colors.white24 : _primaryColor),
               ),
             ),
             const SizedBox(height: 6),

@@ -2,9 +2,16 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'services/auth_service.dart';
 import 'services/player_provider.dart';
+import 'services/notification_service.dart';
 import 'app_router.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize notification service
+  await NotificationService.instance.initialize();
+  await NotificationService.instance.requestPermission();
+
   runApp(
     MultiProvider(
       providers: [

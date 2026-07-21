@@ -41,25 +41,26 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
                 ),
               ),
               const SizedBox(height: AppSpace.md),
-              // Podium
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    _Podium(entry: top[1], rank: 2, height: 110),
-                    _Podium(entry: top[0], rank: 1, height: 150),
-                    _Podium(entry: top[2], rank: 3, height: 90),
-                  ],
+              if (top.length >= 3)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      _Podium(entry: top[1], rank: 2, height: 110),
+                      _Podium(entry: top[0], rank: 1, height: 150),
+                      _Podium(entry: top[2], rank: 3, height: 90),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(height: AppSpace.md),
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
-                child: Column(
-                  children: top.skip(3).toList().asMap().entries.map((e) => LeaderboardTile(entry: e.value, rank: e.key + 4)).toList(),
+              if (top.length >= 3) const SizedBox(height: AppSpace.md),
+              if (top.length > 3)
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
+                  child: Column(
+                    children: top.skip(3).toList().asMap().entries.map((e) => LeaderboardTile(entry: e.value, rank: e.key + 4)).toList(),
+                  ),
                 ),
-              ),
               const SizedBox(height: AppSpace.lg),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
@@ -91,7 +92,11 @@ class _Podium extends StatelessWidget {
           CircleAvatar(radius: 22, backgroundColor: AppColors.primary.withAlpha(24), child: Text(avatar, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary))),
           const SizedBox(height: 6),
           Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-          Text('$coins', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+          Row(mainAxisSize: MainAxisSize.min, children: [
+            const CoinIcon(size: 12),
+            const SizedBox(width: 4),
+            Text('$coins', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+          ]),
           const SizedBox(height: 6),
           Container(
             height: height,

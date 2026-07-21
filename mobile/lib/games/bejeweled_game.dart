@@ -1,20 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildBejeweledGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _BejeweledGame(settings: settings, onFinished: onFinished);
+Widget buildBejeweledGame(GameConfig config, GameFinished onFinished) {
+  return _BejeweledGame(config: config, onFinished: onFinished);
 }
 
 class _BejeweledGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _BejeweledGame({required this.settings, required this.onFinished});
+  const _BejeweledGame({required this.config, required this.onFinished});
 
   @override
   State<_BejeweledGame> createState() => _BejeweledGameState();
 }
 
 class _BejeweledGameState extends State<_BejeweledGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   final String title = 'Bejeweled';
   static const int n = 8;
   static const int colors = 6;
@@ -35,6 +57,7 @@ class _BejeweledGameState extends State<_BejeweledGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _newGame();
   }
 
@@ -157,8 +180,8 @@ class _BejeweledGameState extends State<_BejeweledGame> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.settings['name'] ?? title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        title: Text(widget.config.name ?? title),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -166,20 +189,31 @@ class _BejeweledGameState extends State<_BejeweledGame> {
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(10),
@@ -233,7 +267,7 @@ class _BejeweledGameState extends State<_BejeweledGame> {
                   child: const Text('FINISH', style: TextStyle(color: Color(0xFF8b5cf6))),
                 ),
                 ElevatedButton(
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF8b5cf6)),
+                  style: ElevatedButton.styleFrom(backgroundColor: _primaryColor),
                   onPressed: () => setState(_newGame),
                   child: const Text('RESTART', style: TextStyle(color: Colors.white)),
                 ),
@@ -242,6 +276,7 @@ class _BejeweledGameState extends State<_BejeweledGame> {
             const SizedBox(height: 12),
           ],
         ),
+        ],
       ),
     );
   }

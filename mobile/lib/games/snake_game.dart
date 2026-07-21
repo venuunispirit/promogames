@@ -1,21 +1,43 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildSnakeGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _SnakeGame(settings: settings, onFinished: onFinished);
+Widget buildSnakeGame(GameConfig config, GameFinished onFinished) {
+  return _SnakeGame(config: config, onFinished: onFinished);
 }
 
 class _SnakeGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _SnakeGame({required this.settings, required this.onFinished});
+  const _SnakeGame({required this.config, required this.onFinished});
 
   @override
   State<_SnakeGame> createState() => _SnakeGameState();
 }
 
 class _SnakeGameState extends State<_SnakeGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   static const int cols = 18;
   static const int rows = 22;
   late List<Point> snake;
@@ -28,6 +50,7 @@ class _SnakeGameState extends State<_SnakeGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _reset();
     timer = Timer.periodic(const Duration(milliseconds: 110), (_) => _tick());
   }
@@ -89,11 +112,11 @@ class _SnakeGameState extends State<_SnakeGame> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Snake';
+    final title = widget.config.name ?? 'Snake';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -101,20 +124,31 @@ class _SnakeGameState extends State<_SnakeGame> {
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(8),
@@ -141,7 +175,7 @@ class _SnakeGameState extends State<_SnakeGame> {
                           else if (d.primaryVelocity! > 0) _setDir(Point(1, 0));
                         },
                         child: CustomPaint(
-                          painter: _SnakePainter(snake, food, cell),
+                          painter: _SnakePainter(snake, food, cell, _primaryColor),
                         ),
                       ),
                     ),
@@ -171,12 +205,13 @@ class _SnakeGameState extends State<_SnakeGame> {
             const SizedBox(height: 8),
           ],
         ),
+        ],
       ),
     );
   }
 
   Widget _dirBtn(IconData i, VoidCallback f) => IconButton(
-        icon: Icon(i, color: const Color(0xFF8b5cf6)),
+        icon: Icon(i, color: _primaryColor),
         onPressed: f,
       );
 }
@@ -187,10 +222,11 @@ class Point {
 }
 
 class _SnakePainter extends CustomPainter {
+  final Color primaryColor;
   final List<Point> snake;
   final Point food;
   final double cell;
-  _SnakePainter(this.snake, this.food, this.cell);
+  _SnakePainter(this.snake, this.food, this.cell, this.primaryColor);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -200,7 +236,7 @@ class _SnakePainter extends CustomPainter {
         Paint()..color = const Color(0xFF080612));
     for (int i = 0; i < snake.length; i++) {
       final s = snake[i];
-      grid.color = i == 0 ? const Color(0xFF22c55e) : const Color(0xFF8b5cf6);
+      grid.color = i == 0 ? const Color(0xFF22c55e) : primaryColor;
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(s.x * cell, s.y * cell, cell - 1, cell - 1),

@@ -1,23 +1,44 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildCarLaunchGame(
-    Map<String, dynamic> settings, GameFinished onFinished) {
-  return _ClGame(settings: settings, onFinished: onFinished);
+Widget buildCarLaunchGame(GameConfig config, GameFinished onFinished) {
+  return _ClGame(config: config, onFinished: onFinished);
 }
 
 class _ClGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _ClGame({required this.settings, required this.onFinished});
+  const _ClGame({required this.config, required this.onFinished});
 
   @override
   State<_ClGame> createState() => _ClGameState();
 }
 
 class _ClGameState extends State<_ClGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   static const int tries = 3;
   int angle = 45;
   int power = 70;
@@ -33,6 +54,7 @@ class _ClGameState extends State<_ClGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
   }
 
   void _launch() {
@@ -87,29 +109,40 @@ class _ClGameState extends State<_ClGame> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Car Launch';
+    final title = widget.config.name ?? 'Car Launch';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(icon: const Icon(Icons.close), onPressed: _finish),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: LayoutBuilder(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           LayoutBuilder(
           builder: (ctx, c) {
             groundY = c.maxHeight - 80;
             scale = (c.maxWidth - 60) / 600;
@@ -135,8 +168,7 @@ class _ClGameState extends State<_ClGame> {
                     children: [
                       CustomPaint(
                         size: Size(c.maxWidth, groundY),
-                        painter: _ClPainter(
-                            carX * scale + 30, groundY + carY * scale, angle),
+                        painter: _ClPainter(carX * scale + 30, groundY + carY * scale, angle, _primaryColor),
                       ),
                       Positioned(
                         left: 8,
@@ -169,7 +201,7 @@ class _ClGameState extends State<_ClGame> {
                       const SizedBox(height: 10),
                       ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF8b5cf6),
+                          backgroundColor: _primaryColor,
                         ),
                         onPressed: used >= tries ? null : _launch,
                         child: Text(used >= tries ? 'Out of tries' : 'LAUNCH'),
@@ -181,8 +213,9 @@ class _ClGameState extends State<_ClGame> {
             );
           },
         ),
-      ),
-    );
+      ],
+    ),
+  );
   }
 
   Widget _slider(String label, double value, double min, double max,
@@ -195,7 +228,7 @@ class _ClGameState extends State<_ClGame> {
             value: value,
             min: min,
             max: max,
-            activeColor: const Color(0xFF8b5cf6),
+            activeColor: _primaryColor,
             onChanged: onChanged,
           ),
         ),
@@ -206,14 +239,15 @@ class _ClGameState extends State<_ClGame> {
 }
 
 class _ClPainter extends CustomPainter {
+  final Color primaryColor;
   final double x;
   final double y;
   final int angle;
-  _ClPainter(this.x, this.y, this.angle);
+  _ClPainter(this.x, this.y, this.angle, this.primaryColor);
 
   @override
   void paint(Canvas canvas, Size size) {
-    final ramp = Paint()..color = const Color(0xFF8b5cf6);
+    final ramp = Paint()..color = primaryColor;
     final a = angle * 3.141592653589793 / 180;
     canvas.save();
     canvas.translate(30, y);
@@ -234,7 +268,7 @@ class _ClPainter extends CustomPainter {
     canvas.drawCircle(Offset(x + 27, y), 6, wheel);
 
     final trace = Paint()
-      ..color = const Color(0xFF8b5cf6).withOpacity(0.4)
+      ..color = primaryColor.withOpacity(0.4)
       ..style = PaintingStyle.stroke;
     canvas.drawLine(Offset(30, y), Offset(x + 18, y), trace);
   }

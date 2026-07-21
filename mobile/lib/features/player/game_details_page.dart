@@ -76,8 +76,8 @@ class GameDetailsPage extends StatelessWidget {
                     AppButton(
                       label: 'Play Now',
                       icon: Icons.play_arrow,
-                      onTap: () => context.go('/game', extra: Game(
-                        id: game.name.hashCode,
+                      onTap: () => context.push('/games/play', extra: Game(
+                        id: int.tryParse(game.id) ?? 0,
                         name: game.name,
                         category: game.category,
                         description: '${game.name} game',

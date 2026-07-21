@@ -39,6 +39,7 @@ dependencies:
   shared_preferences: ^2.5.3
   url_launcher: ^6.3.2
   audioplayers: ^6.6.0
+  share_plus: ^10.1.4
 
   # Design system / navigation / state
   go_router: ^14.2.0
@@ -48,17 +49,27 @@ dependencies:
   lottie: ^3.1.2
   fl_chart: ^0.68.0
   flutter_svg: ^2.0.10
+  sqflite: ^2.4.1
+  path: ^1.9.1
+  connectivity_plus: ^6.1.1
+  path_provider: ^2.1.5
+
+  # Push notifications (local only — no Firebase project needed)
+  flutter_local_notifications: ^18.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-
-  # The "flutter_lints" package below contains a set of recommended lints to
-  # encourage good coding practices. The lint set provided by the package is
-  # activated in the `analysis_options.yaml` file located at the root of your
-  # package. See that file for information about deactivating specific lint
-  # rules and activating additional ones.
+  flutter_launcher_icons: ^0.14.3
   flutter_lints: ^5.0.0
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/favicon.png"
+  adaptive_icon_background: "#0d0a1a"
+  adaptive_icon_foreground: "assets/favicon.png"
+  remove_alpha_ios: true
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec

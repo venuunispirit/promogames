@@ -8,34 +8,37 @@ class SettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final items = [
-      (Icons.dark_mode_rounded, 'Dark Mode', true),
-      (Icons.notifications_rounded, 'Notifications', true),
-      (Icons.language_rounded, 'Language', false),
-      (Icons.privacy_tip_rounded, 'Privacy', false),
-      (Icons.support_agent_rounded, 'Support', false),
-      (Icons.info_rounded, 'About', false),
-    ];
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.bold)), leading: BackButton(onPressed: () => context.pop())),
+      appBar: AppBar(title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.bold)), leading: IconButton(icon: const Icon(Icons.arrow_back), onPressed: () => context.pop())),
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpace.lg),
           child: Column(
-            children: items.map((it) => Container(
-              margin: const EdgeInsets.only(bottom: 10),
-              decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadow.card),
-              child: SwitchListTile(
-                secondary: Icon(it.$1, color: AppColors.primary),
-                title: Text(it.$2),
-                value: it.$3,
-                activeColor: AppColors.primary,
-                onChanged: (_) {},
-              ),
-            )).toList(),
+            children: [
+              _item(Icons.person_rounded, 'Edit Profile', () => context.push('/edit-profile')),
+              _item(Icons.photo_library_rounded, 'Change Avatar', () => context.push('/edit-profile')),
+              _item(Icons.notifications_rounded, 'Notifications', () => context.push('/settings/notifications')),
+              _item(Icons.language_rounded, 'Language', () => context.push('/settings/language')),
+              _item(Icons.privacy_tip_rounded, 'Privacy', () => context.push('/settings/privacy')),
+              _item(Icons.support_agent_rounded, 'Support', () => context.push('/settings/support')),
+              _item(Icons.info_rounded, 'About', () => context.push('/settings/about')),
+            ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _item(IconData icon, String label, VoidCallback onTap) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadow.card),
+      child: ListTile(
+        leading: Icon(icon, color: AppColors.primary),
+        title: Text(label),
+        trailing: const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+        onTap: onTap,
       ),
     );
   }

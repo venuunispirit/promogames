@@ -1,21 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildBrickImagesGame(
-    Map<String, dynamic> settings, GameFinished onFinished) {
-  return _BiGame(settings: settings, onFinished: onFinished);
+Widget buildBrickImagesGame(GameConfig config, GameFinished onFinished) {
+  return _BiGame(config: config, onFinished: onFinished);
 }
 
 class _BiGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _BiGame({required this.settings, required this.onFinished});
+  const _BiGame({required this.config, required this.onFinished});
 
   @override
   State<_BiGame> createState() => _BiGameState();
 }
 
 class _BiGameState extends State<_BiGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   static const int rows = 10;
   static const int cols = 8;
   static const int paletteSize = 4;
@@ -28,6 +49,7 @@ class _BiGameState extends State<_BiGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _reset();
   }
 
@@ -123,29 +145,40 @@ class _BiGameState extends State<_BiGame> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Brick Images';
+    final title = widget.config.name ?? 'Brick Images';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(icon: const Icon(Icons.close), onPressed: _finish),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(8),
@@ -193,6 +226,7 @@ class _BiGameState extends State<_BiGame> {
             const SizedBox(height: 8),
           ],
         ),
+        ],
       ),
     );
   }

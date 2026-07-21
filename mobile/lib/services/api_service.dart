@@ -9,8 +9,9 @@ class ApiService {
     if (kIsWeb) {
       return 'http://localhost:8080/api';
     }
+    // For real Android device on same WiFi, use your Mac's local IP
     if (Platform.isAndroid) {
-      return 'http://10.0.2.2:8080/api';
+      return 'http://192.168.1.5:8080/api';
     }
     return 'http://localhost:8080/api';
   }

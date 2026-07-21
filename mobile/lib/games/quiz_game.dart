@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
 const _bg = LinearGradient(
@@ -9,8 +10,8 @@ const _bg = LinearGradient(
 const _purple = Color(0xFF8b5cf6);
 const _green = Color(0xFF22c55e);
 
-Widget buildQuizGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _QuizGame(settings: settings, onFinished: onFinished);
+Widget buildQuizGame(GameConfig config, GameFinished onFinished) {
+  return _QuizGame(config: config, onFinished: onFinished);
 }
 
 class _Question {
@@ -29,9 +30,9 @@ const _questions = <_Question>[
 ];
 
 class _QuizGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _QuizGame({required this.settings, required this.onFinished});
+  const _QuizGame({required this.config, required this.onFinished});
 
   @override
   State<_QuizGame> createState() => _QuizGameState();
@@ -78,7 +79,7 @@ class _QuizGameState extends State<_QuizGame> {
     return Scaffold(
       appBar: AppBar(
         backgroundColor: const Color(0xFF1a0e2e),
-        title: Text(widget.settings['name'] ?? 'Game'),
+        title: Text(widget.config.name),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {

@@ -141,14 +141,14 @@ router.post('/send-otp', async (req, res) => {
       [email, otp, expiresAt]
     );
 
-    // In development, skip email and log OTP to console
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`[DEV] OTP for ${email}: ${otp} (use 0000 as dummy)`);
-      return res.json({ success: true, message: `OTP sent to ${email}` });
+    // Try to send email (works in both dev and production)
+    try {
+      await sendOTPEmail(email, otp);
+      console.log(`✅ OTP email sent to ${email}`);
+    } catch (emailErr) {
+      // If email fails, log OTP to console as fallback
+      console.log(`[DEV] OTP for ${email}: ${otp} (email failed: ${emailErr.message})`);
     }
-
-    // Send email
-    await sendOTPEmail(email, otp);
 
     res.json({ success: true, message: `OTP sent to ${email}` });
   } catch (err) {
@@ -357,7 +357,7 @@ router.post('/register', async (req, res) => {
 router.get('/me', playerAuth, async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT id, name, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, created_at,
+      `SELECT id, name, username, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, created_at,
               TIMESTAMPDIFF(YEAR, dob, CURDATE()) as age
        FROM promo_players WHERE id = ?`,
       [req.player.id]
@@ -381,11 +381,22 @@ router.patch('/me', playerAuth, async (req, res) => {
       fields.push('avatar_id = ?');
       values.push(req.body.avatar_id);
     }
+    if (req.body.username !== undefined) {
+      const username = String(req.body.username).trim().toLowerCase();
+      if (username.length >= 3 && /^[a-z0-9_]+$/.test(username)) {
+        // Check uniqueness
+        const [[dup]] = await db.query('SELECT id FROM promo_players WHERE username = ? AND id != ?', [username, req.player.id]);
+        if (!dup) {
+          fields.push('username = ?');
+          values.push(username);
+        }
+      }
+    }
     if (fields.length === 0) return res.status(400).json({ success: false, message: 'No fields to update' });
     values.push(req.player.id);
     await db.query(`UPDATE promo_players SET ${fields.join(', ')} WHERE id = ?`, values);
     const [rows] = await db.query(
-      `SELECT id, name, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, created_at,
+      `SELECT id, name, username, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, created_at,
               TIMESTAMPDIFF(YEAR, dob, CURDATE()) as age
        FROM promo_players WHERE id = ?`,
       [req.player.id]

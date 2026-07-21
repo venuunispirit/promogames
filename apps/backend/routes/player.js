@@ -4,6 +4,131 @@ const db = require('../config/db');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 
+// GET /api/play/game-data/:gameId — full game payload for the Flutter app
+// MUST be before /:gameName/:companyName catch-all
+router.get('/game-data/:gameId', async (req, res) => {
+  try {
+    const gameId = req.params.gameId;
+    const [gameRows] = await db.query(
+      `SELECT g.id, g.name, g.slug, g.category, g.game_type, g.description, g.redirect_url,
+              g.show_in_play_page, g.is_active, g.status, g.intro_video_url,
+              c.slug as client_slug, c.company_name
+       FROM games g JOIN clients c ON g.client_id = c.id
+       WHERE g.id = ?`, [gameId]
+    );
+    if (gameRows.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+    const game = gameRows[0];
+
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const toAbs = (url) => {
+      if (!url) return null;
+      if (url.startsWith('http')) return url;
+      return `${baseUrl}${url}`;
+    };
+
+    const categorySettingsMap = {
+      quiz: 'quiz_settings', crossword: 'crossword_settings', spin: 'spin_settings',
+      memory: 'memory_settings', jigsaw: 'jigsaw_settings', wordsearch: 'wordsearch_settings',
+      pouring: 'pouring_settings', typer: 'typer_settings', screw: 'screw_settings',
+      math: 'math_settings', maze: 'maze_settings', '2048': 'game2048_settings',
+      snake: 'snake_settings', catch: 'catch_settings', reaction: 'reaction_settings',
+      simon: 'simon_settings', connect4: 'connect4_settings', flappy: 'flappy_settings',
+      bounce: 'bounce_settings', space: 'space_settings', bejeweled: 'bejeweled_settings',
+      tetris: 'tetris_settings', stack: 'stack_settings', whackamole: 'whackamole_settings',
+      hanoi: 'hanoi_settings', breakout: 'breakout_settings', bubbleshooter: 'bubbleshooter_settings',
+      carlaunch: 'carlaunch_settings', tictactoe: 'tictactoe_settings', stressbuster: 'stressbuster_settings',
+      soundify: 'soundify_settings', arrowescape: 'arrowescape_settings', bowling: 'bowling_settings',
+      sudoku: 'sudoku_settings', minesweeper: 'minesweeper_settings', wordscramble: 'wordscramble_settings',
+      rps: 'rps_settings',
+    };
+
+    let settings = {};
+    const settingsTable = categorySettingsMap[game.category];
+    if (settingsTable) {
+      const [rows] = await db.query(`SELECT * FROM ${settingsTable} WHERE game_id = ?`, [gameId]);
+      if (rows[0]) settings = { ...rows[0] };
+      for (const f of ['bg_image_url','thankyou_bg_image_url','game_logo_url','submit_confirm_gif_url',
+        'o_image_url','puzzle_image_url','reveal_image_url','overlay_image_url','card_cover_image_url','gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      if (settings.tile_colors && typeof settings.tile_colors === 'string') {
+        try { settings.tile_colors = JSON.parse(settings.tile_colors); } catch {}
+      }
+    } else if (game.category === 'quiz') {
+      const [rows] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [gameId]);
+      if (rows[0]) settings = { ...rows[0] };
+      for (const f of ['bg_image_url','thankyou_bg_image_url','game_logo_url','submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+    }
+
+    let questions = [];
+    if (game.category === 'quiz' || !categorySettingsMap[game.category]) {
+      const [qRows] = await db.query('SELECT * FROM questions WHERE game_id = ? ORDER BY question_order', [gameId]);
+      for (const q of qRows) {
+        const [opts] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [q.id]);
+        q.options = opts;
+        for (const f of ['question_image_url','question_bg_image_url']) {
+          if (q[f]) q[f] = toAbs(q[f]);
+        }
+        for (const opt of q.options) {
+          for (const f of ['option_image_url','option_overlay_image_url']) {
+            if (opt[f]) opt[f] = toAbs(opt[f]);
+          }
+        }
+      }
+      questions = qRows;
+    }
+
+    let words = [];
+    if (game.category === 'crossword') {
+      const [wRows] = await db.query('SELECT * FROM crossword_words WHERE game_id = ? ORDER BY word_order', [gameId]);
+      words = wRows;
+    } else if (game.category === 'wordsearch') {
+      const [wRows] = await db.query('SELECT * FROM wordsearch_words WHERE game_id = ? ORDER BY word_order', [gameId]);
+      words = wRows;
+    } else if (game.category === 'typer') {
+      const [wRows] = await db.query('SELECT * FROM typer_words WHERE game_id = ? ORDER BY word_order', [gameId]);
+      words = wRows;
+    }
+
+    let tiles = [];
+    if (game.category === 'memory') {
+      const [tRows] = await db.query('SELECT * FROM memory_tiles WHERE game_id = ? ORDER BY tile_order', [gameId]);
+      tiles = tRows.map(t => { if (t.image_url) t.image_url = toAbs(t.image_url); return t; });
+    }
+
+    let segments = [];
+    if (game.category === 'spin') {
+      const [sRows] = await db.query('SELECT * FROM spin_segments WHERE game_id = ? ORDER BY segment_order', [gameId]);
+      segments = sRows.map(s => {
+        s.coupon_image_url = toAbs(s.coupon_image_url);
+        s.overlay_image_url = toAbs(s.overlay_image_url);
+        return s;
+      });
+    }
+
+    const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [gameId]);
+    const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [gameId]);
+    const soundMap = {};
+    for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+
+    res.json({
+      success: true,
+      game: {
+        id: game.id, name: game.name, category: game.category,
+        description: game.description, redirect_url: game.redirect_url,
+        client_slug: game.client_slug, company_name: game.company_name,
+        game_type: game.game_type, status: game.status,
+        settings, questions, words, tiles, segments, formFields, soundMap,
+      },
+    });
+  } catch (err) {
+    console.error('GET game-data error:', err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 router.get('/:gameName/:companyName', async (req, res) => {
   try {
     const [allRows] = await db.query(`

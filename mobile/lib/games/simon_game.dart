@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
 const _bg = LinearGradient(
@@ -9,20 +11,40 @@ const _bg = LinearGradient(
 const _purple = Color(0xFF8b5cf6);
 const _green = Color(0xFF22c55e);
 
-Widget buildSimonGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _SimonGame(settings: settings, onFinished: onFinished);
+Widget buildSimonGame(GameConfig config, GameFinished onFinished) {
+  return _SimonGame(config: config, onFinished: onFinished);
 }
 
 class _SimonGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _SimonGame({required this.settings, required this.onFinished});
+  const _SimonGame({required this.config, required this.onFinished});
 
   @override
   State<_SimonGame> createState() => _SimonGameState();
 }
 
 class _SimonGameState extends State<_SimonGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   static const _colors = [
     Color(0xFF22c55e),
     Color(0xFFef4444),
@@ -97,8 +119,8 @@ class _SimonGameState extends State<_SimonGame> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1a0e2e),
-        title: Text(widget.settings['name'] ?? 'Game'),
+        backgroundColor: _bgColor,
+        title: Text(widget.config.name ?? 'Game'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {
@@ -107,10 +129,37 @@ class _SimonGameState extends State<_SimonGame> {
           },
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(gradient: _bg),
-        padding: const EdgeInsets.all(20),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+          SafeArea(
+
+            child: Padding(
+
+              padding: const EdgeInsets.all(20),
+
+              child:  Column(
           children: [
             Text(_status, style: const TextStyle(color: _green, fontSize: 22, fontWeight: FontWeight.bold)),
             const SizedBox(height: 8),
@@ -148,6 +197,9 @@ class _SimonGameState extends State<_SimonGame> {
           ],
         ),
       ),
-    );
+    ),
+  ],
+  ),
+);
   }
 }

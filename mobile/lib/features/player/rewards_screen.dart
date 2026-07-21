@@ -40,7 +40,7 @@ class RewardsScreen extends StatelessWidget {
                     ]),
                     const Spacer(),
                     OutlinedButton(
-                      onPressed: () => context.go('/wallet'),
+                      onPressed: () => context.push('/wallet'),
                       style: OutlinedButton.styleFrom(foregroundColor: Colors.black87, side: const BorderSide(color: Colors.black38)),
                       child: const Text('Wallet'),
                     ),
@@ -77,7 +77,7 @@ class RewardsScreen extends StatelessWidget {
                           gradient: [AppColors.primary, AppColors.secondaryPurple],
                           icon: Icons.card_giftcard,
                         ),
-                        onTap: () => context.go('/reward-details', extra: RewardItem(
+                        onTap: () => context.push('/rewards/details', extra: RewardItem(
                           id: r['id']?.toString() ?? '',
                           brand: r['brand'] ?? '',
                           title: r['title'] ?? '',

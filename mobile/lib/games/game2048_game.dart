@@ -1,20 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget build2048Game(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _Game2048(settings: settings, onFinished: onFinished);
+Widget build2048Game(GameConfig config, GameFinished onFinished) {
+  return _Game2048(config: config, onFinished: onFinished);
 }
 
 class _Game2048 extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _Game2048({required this.settings, required this.onFinished});
+  const _Game2048({required this.config, required this.onFinished});
 
   @override
   State<_Game2048> createState() => _Game2048State();
 }
 
 class _Game2048State extends State<_Game2048> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   late List<List<int>> board;
   int score = 0;
   bool over = false;
@@ -22,6 +44,7 @@ class _Game2048State extends State<_Game2048> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _newGame();
   }
 
@@ -123,7 +146,7 @@ class _Game2048State extends State<_Game2048> {
 
   Color _color(int v) {
     switch (v) {
-      case 2: return const Color(0xFF8b5cf6);
+      case 2: return _primaryColor;
       case 4: return const Color(0xFF22c55e);
       case 8: return const Color(0xFFf59e0b);
       case 16: return const Color(0xFFef4444);
@@ -135,11 +158,11 @@ class _Game2048State extends State<_Game2048> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? '2048';
+    final title = widget.config.name ?? '2048';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -147,20 +170,31 @@ class _Game2048State extends State<_Game2048> {
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(8),
@@ -173,7 +207,7 @@ class _Game2048State extends State<_Game2048> {
                   ElevatedButton(
                     onPressed: () => setState(_newGame),
                     style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF8b5cf6)),
+                        backgroundColor: _primaryColor),
                     child: const Text('Restart'),
                   ),
                 ],
@@ -237,12 +271,13 @@ class _Game2048State extends State<_Game2048> {
             const SizedBox(height: 8),
           ],
         ),
+        ],
       ),
     );
   }
 
   Widget _btn(IconData i, VoidCallback f) => IconButton(
-        icon: Icon(i, color: const Color(0xFF8b5cf6)),
+        icon: Icon(i, color: _primaryColor),
         onPressed: f,
       );
 }

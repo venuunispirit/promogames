@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildStackGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _StackGame(settings: settings, onFinished: onFinished);
+Widget buildStackGame(GameConfig config, GameFinished onFinished) {
+  return _StackGame(config: config, onFinished: onFinished);
 }
 
 class _StackGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _StackGame({required this.settings, required this.onFinished});
+  const _StackGame({required this.config, required this.onFinished});
 
   @override
   State<_StackGame> createState() => _StackGameState();
@@ -16,6 +18,26 @@ class _StackGame extends StatefulWidget {
 
 class _StackGameState extends State<_StackGame>
     with SingleTickerProviderStateMixin {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   // Positions are fractions (0..1) of the canvas width.
   late List<Block> blocks; // bottom -> top
   late double movingX;
@@ -29,6 +51,7 @@ class _StackGameState extends State<_StackGame>
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _reset();
     _controller = AnimationController(
       vsync: this,
@@ -96,11 +119,11 @@ class _StackGameState extends State<_StackGame>
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Stack';
+    final title = widget.config.name ?? 'Stack';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -108,20 +131,31 @@ class _StackGameState extends State<_StackGame>
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
@@ -139,7 +173,7 @@ class _StackGameState extends State<_StackGame>
                     final bh = h / levels;
                     return CustomPaint(
                       painter: _StackPainter(blocks, movingX, movingW,
-                          blocks.length, bh, over),
+                          blocks.length, bh, over, _primaryColor),
                       size: Size(w, h),
                     );
                   },
@@ -158,6 +192,7 @@ class _StackGameState extends State<_StackGame>
             ),
           ],
         ),
+        ],
       ),
     );
   }
@@ -170,13 +205,14 @@ class Block {
 }
 
 class _StackPainter extends CustomPainter {
+  final Color primaryColor;
   final List<Block> blocks;
   final double movingX;
   final double movingW;
   final int level;
   final double bh;
   final bool over;
-  _StackPainter(this.blocks, this.movingX, this.movingW, this.level, this.bh, this.over);
+  _StackPainter(this.blocks, this.movingX, this.movingW, this.level, this.bh, this.over, this.primaryColor);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -185,7 +221,7 @@ class _StackPainter extends CustomPainter {
       final b = blocks[i];
       final y = size.height - (i + 1) * bh;
       paint.color =
-          (i % 2 == 0) ? const Color(0xFF8b5cf6) : const Color(0xFF22c55e);
+          (i % 2 == 0) ? primaryColor : const Color(0xFF22c55e);
       canvas.drawRRect(
         RRect.fromRectAndRadius(
           Rect.fromLTWH(b.x * size.width, y, b.w * size.width, bh - 2),
@@ -195,7 +231,7 @@ class _StackPainter extends CustomPainter {
       );
     }
     final my = size.height - (level + 1) * bh;
-    paint.color = over ? Colors.red : const Color(0xFF8b5cf6);
+    paint.color = over ? Colors.red : primaryColor;
     canvas.drawRRect(
       RRect.fromRectAndRadius(
         Rect.fromLTWH(movingX * size.width, my, movingW * size.width, bh - 2),

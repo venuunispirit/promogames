@@ -1,4 +1,5 @@
 import 'package:flutter/widgets.dart';
+import '../models/game_config.dart';
 
 /// Contract every native game must follow.
 ///
@@ -9,6 +10,6 @@ import 'package:flutter/widgets.dart';
 typedef GameFinished = void Function(int score, int maxScore, bool completed);
 
 typedef GameBuilder = Widget Function(
-  Map<String, dynamic> settings,
+  GameConfig config,
   GameFinished onFinished,
 );

@@ -14,12 +14,12 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = [
-      (Icons.history_rounded, 'History', () => context.go('/wallet')),
-      (Icons.emoji_events_rounded, 'Achievements', () => context.go('/achievements')),
-      (Icons.task_alt_rounded, 'Challenges', () => context.go('/challenges')),
-      (Icons.group_add_rounded, 'Referral', () => context.go('/referral')),
-      (Icons.settings_rounded, 'Settings', () => context.go('/settings')),
-      (Icons.help_outline_rounded, 'Help & Support', () {}),
+      (Icons.history_rounded, 'History', () => context.push('/wallet')),
+      (Icons.emoji_events_rounded, 'Achievements', () => context.push('/achievements')),
+      (Icons.task_alt_rounded, 'Challenges', () => context.push('/challenges')),
+      (Icons.group_add_rounded, 'Referral', () => context.push('/referral')),
+      (Icons.settings_rounded, 'Settings', () => context.push('/settings')),
+      (Icons.help_outline_rounded, 'Help & Support', () => context.push('/settings/support')),
     ];
 
     return Scaffold(
@@ -34,26 +34,28 @@ class ProfileScreen extends StatelessWidget {
               Center(
                 child: Consumer<PlayerProvider>(
                   builder: (_, prov, __) {
-                    final name = prov.user?.username ?? MockData.username;
-                    final email = prov.user?.email ?? '';
-                    final balance = prov.pcBalance;
-                    return Stack(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.primaryGradient),
-                          child: const CircleAvatar(radius: 44, backgroundColor: Colors.white, child: Icon(Icons.person, size: 44, color: AppColors.primary)),
-                        ),
-                        Positioned(
-                          right: 0,
-                          bottom: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(6),
-                            decoration: const BoxDecoration(color: AppColors.accentGold, shape: BoxShape.circle),
-                            child: const Text('7', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                          ),
-                        ),
-                      ],
+                    final avatarId = prov.user?.avatarId ?? 'av-3';
+                    // Match React avatars
+                    const avatars = [
+                      {'id': 'av-1', 'label': 'Phoenix', 'gradient': [Color(0xFFf97316), Color(0xFFdc2626)], 'emoji': '🔥'},
+                      {'id': 'av-2', 'label': 'Neon Cat', 'gradient': [Color(0xFFec4899), Color(0xFF8b5cf6)], 'emoji': '🐱'},
+                      {'id': 'av-3', 'label': 'Cosmic Owl', 'gradient': [Color(0xFF6366f1), Color(0xFF0ea5e9)], 'emoji': '🦉'},
+                      {'id': 'av-4', 'label': 'Cyber Robot', 'gradient': [Color(0xFF14b8a6), Color(0xFF22d3ee)], 'emoji': '🤖'},
+                      {'id': 'av-5', 'label': 'Golden Crown', 'gradient': [Color(0xFFf59e0b), Color(0xFFf97316)], 'emoji': '👑'},
+                      {'id': 'av-6', 'label': 'Electric Wolf', 'gradient': [Color(0xFF8b5cf6), Color(0xFFec4899)], 'emoji': '🐺'},
+                    ];
+                    final avIndex = avatars.indexWhere((a) => a['id'] == avatarId);
+                    final av = avatars[avIndex >= 0 ? avIndex : 2];
+                    final gradient = av['gradient'] as List<Color>;
+                    return Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: LinearGradient(colors: gradient, begin: Alignment.topLeft, end: Alignment.bottomRight),
+                        boxShadow: [BoxShadow(color: gradient[1].withAlpha(80), blurRadius: 16)],
+                      ),
+                      child: Center(child: Text(av['emoji'] as String, style: const TextStyle(fontSize: 44))),
                     );
                   },
                 ),

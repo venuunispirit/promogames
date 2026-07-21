@@ -1,20 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildHanoiGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _HanoiGame(settings: settings, onFinished: onFinished);
+Widget buildHanoiGame(GameConfig config, GameFinished onFinished) {
+  return _HanoiGame(config: config, onFinished: onFinished);
 }
 
 class _HanoiGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _HanoiGame({required this.settings, required this.onFinished});
+  const _HanoiGame({required this.config, required this.onFinished});
 
   @override
   State<_HanoiGame> createState() => _HanoiGameState();
 }
 
 class _HanoiGameState extends State<_HanoiGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   late int n;
   late List<List<int>> pegs; // top disk is last
   int? selected;
@@ -24,11 +46,12 @@ class _HanoiGameState extends State<_HanoiGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _newGame();
   }
 
   void _newGame() {
-    n = (widget.settings['disks'] as int?) ?? 3;
+    n = (widget.config.settings['disks'] as int?) ?? 3;
     if (n < 1) n = 3;
     if (n > 6) n = 6;
     pegs = [
@@ -73,11 +96,11 @@ class _HanoiGameState extends State<_HanoiGame> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Tower of Hanoi';
+    final title = widget.config.name ?? 'Tower of Hanoi';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -85,20 +108,31 @@ class _HanoiGameState extends State<_HanoiGame> {
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
@@ -117,7 +151,7 @@ class _HanoiGameState extends State<_HanoiGame> {
               child: LayoutBuilder(
                 builder: (ctx, c) {
                   return CustomPaint(
-                    painter: _HanoiPainter(pegs, n, selected),
+                    painter: _HanoiPainter(pegs, n, selected, _primaryColor),
                     size: Size(c.maxWidth, c.maxHeight),
                   );
                 },
@@ -132,7 +166,7 @@ class _HanoiGameState extends State<_HanoiGame> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: selected == i
                           ? const Color(0xFF22c55e)
-                          : const Color(0xFF8b5cf6),
+                          : _primaryColor,
                     ),
                     child: Text('Peg ${i + 1}'),
                   ),
@@ -141,16 +175,18 @@ class _HanoiGameState extends State<_HanoiGame> {
             const SizedBox(height: 12),
           ],
         ),
+        ],
       ),
     );
   }
 }
 
 class _HanoiPainter extends CustomPainter {
+  final Color primaryColor;
   final List<List<int>> pegs;
   final int n;
   final int? selected;
-  _HanoiPainter(this.pegs, this.n, this.selected);
+  _HanoiPainter(this.pegs, this.n, this.selected, this.primaryColor);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -158,7 +194,7 @@ class _HanoiPainter extends CustomPainter {
     final baseY = size.height - 30;
     final maxDiskH = (baseY - 20) / n;
     final colors = [
-      const Color(0xFF8b5cf6),
+      primaryColor,
       const Color(0xFF22c55e),
       const Color(0xFFef4444),
       const Color(0xFFf59e0b),
@@ -174,7 +210,7 @@ class _HanoiPainter extends CustomPainter {
       );
       canvas.drawRect(
         Rect.fromLTWH(pegW * p + 10, baseY, pegW - 20, 12),
-        Paint()..color = const Color(0xFF8b5cf6),
+        Paint()..color = primaryColor,
       );
       final stack = pegs[p];
       for (int i = 0; i < stack.length; i++) {

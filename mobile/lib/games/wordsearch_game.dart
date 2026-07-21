@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
 const _bg = LinearGradient(
@@ -9,20 +11,40 @@ const _bg = LinearGradient(
 const _purple = Color(0xFF8b5cf6);
 const _green = Color(0xFF22c55e);
 
-Widget buildWordSearchGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _WordSearchGame(settings: settings, onFinished: onFinished);
+Widget buildWordSearchGame(GameConfig config, GameFinished onFinished) {
+  return _WordSearchGame(config: config, onFinished: onFinished);
 }
 
 class _WordSearchGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _WordSearchGame({required this.settings, required this.onFinished});
+  const _WordSearchGame({required this.config, required this.onFinished});
 
   @override
   State<_WordSearchGame> createState() => _WordSearchGameState();
 }
 
 class _WordSearchGameState extends State<_WordSearchGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   static const int _grid = 8;
   final List<String> _words = ['GAME', 'CODE', 'PLAY', 'DART', 'FLUT'];
   late List<List<String>> _board;
@@ -32,6 +54,7 @@ class _WordSearchGameState extends State<_WordSearchGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _buildBoard();
   }
 
@@ -112,8 +135,8 @@ class _WordSearchGameState extends State<_WordSearchGame> {
     final cell = MediaQuery.of(context).size.width / (_grid + 2);
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: const Color(0xFF1a0e2e),
-        title: Text(widget.settings['name'] ?? 'Game'),
+        backgroundColor: _bgColor,
+        title: Text(widget.config.name ?? 'Game'),
         leading: IconButton(
           icon: const Icon(Icons.close),
           onPressed: () {
@@ -122,10 +145,37 @@ class _WordSearchGameState extends State<_WordSearchGame> {
           },
         ),
       ),
-      body: Container(
-        decoration: const BoxDecoration(gradient: _bg),
-        padding: const EdgeInsets.all(12),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+          SafeArea(
+
+            child: Padding(
+
+              padding: const EdgeInsets.all(12),
+
+              child:  Column(
           children: [
             Text('Found: ${_found.length} / ${_words.length}',
                 style: const TextStyle(color: _green, fontSize: 18, fontWeight: FontWeight.bold)),
@@ -179,6 +229,9 @@ class _WordSearchGameState extends State<_WordSearchGame> {
           ],
         ),
       ),
-    );
+    ),
+  ],
+  ),
+);
   }
 }

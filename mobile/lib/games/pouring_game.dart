@@ -1,20 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildPouringGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _PouringGame(settings: settings, onFinished: onFinished);
+Widget buildPouringGame(GameConfig config, GameFinished onFinished) {
+  return _PouringGame(config: config, onFinished: onFinished);
 }
 
 class _PouringGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _PouringGame({required this.settings, required this.onFinished});
+  const _PouringGame({required this.config, required this.onFinished});
 
   @override
   State<_PouringGame> createState() => _PouringGameState();
 }
 
 class _PouringGameState extends State<_PouringGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   static const int capacity = 4;
   static const List<Color> palette = [
     Color(0xFF8b5cf6),
@@ -39,6 +61,7 @@ class _PouringGameState extends State<_PouringGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     _newGame();
   }
 
@@ -113,11 +136,11 @@ class _PouringGameState extends State<_PouringGame> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Pouring';
+    final title = widget.config.name ?? 'Pouring';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -125,20 +148,31 @@ class _PouringGameState extends State<_PouringGame> {
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
@@ -171,13 +205,14 @@ class _PouringGameState extends State<_PouringGame> {
               child: ElevatedButton(
                 onPressed: () => setState(_newGame),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF8b5cf6),
+                  backgroundColor: _primaryColor,
                 ),
                 child: const Text('Shuffle'),
               ),
             ),
           ],
         ),
+        ],
       ),
     );
   }
@@ -197,7 +232,7 @@ class _PouringGameState extends State<_PouringGame> {
             border: Border.all(
               color: selected == i
                   ? const Color(0xFF22c55e)
-                  : const Color(0xFF8b5cf6),
+                  : _primaryColor,
               width: selected == i ? 3 : 2,
             ),
             borderRadius: BorderRadius.circular(10),

@@ -6,10 +6,8 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/data/mock_data.dart';
 import '../../services/player_provider.dart';
-import '../../services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/cards.dart';
-import '../../core/widgets/states.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -32,9 +30,7 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: AppSpace.lg),
               _DailyGoals(),
               const SizedBox(height: AppSpace.lg),
-              _HorizontalGames(title: 'Continue Playing', games: MockData.games.take(4).toList(), onMore: () => context.go('/games')),
-              const SizedBox(height: AppSpace.lg),
-              _HorizontalGames(title: 'Featured Games', games: MockData.games.skip(4).take(5).toList(), onMore: () => context.go('/games')),
+              _GameSections(),
               const SizedBox(height: AppSpace.lg),
               _AchievementsPreview(),
               const SizedBox(height: AppSpace.lg),
@@ -55,6 +51,7 @@ class _Header extends StatelessWidget {
     final prov = context.watch<PlayerProvider>();
     final name = prov.user?.username ?? MockData.username;
     final bal = prov.pcBalance;
+    final pending = prov.pendingCount;
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.md, AppSpace.lg, 0),
       child: Row(
@@ -66,15 +63,42 @@ class _Header extends StatelessWidget {
                 Text('Hi, $name 👋',
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 2),
-                const Text('Ready to earn more Promo Coins?',
-                    style: TextStyle(color: AppColors.textSecondary, fontSize: 14)),
+                Text(
+                  prov.offline
+                      ? 'Offline — games will sync later'
+                      : pending > 0
+                          ? '$pending game(s) pending sync'
+                          : 'Ready to earn more Promo Coins?',
+                  style: TextStyle(
+                    color: prov.offline
+                        ? AppColors.warning
+                        : pending > 0
+                            ? AppColors.accentGold
+                            : AppColors.textSecondary,
+                    fontSize: 14,
+                  ),
+                ),
               ],
             ),
           ),
-          IconButton(
-            onPressed: () => context.go('/notifications'),
-            icon: const Icon(Icons.notifications_outlined),
-            style: IconButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(10)),
+          Stack(
+            children: [
+              IconButton(
+                onPressed: () => context.go('/notifications'),
+                icon: const Icon(Icons.notifications_outlined),
+                style: IconButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(10)),
+              ),
+              if (pending > 0)
+                Positioned(
+                  right: 6,
+                  top: 6,
+                  child: Container(
+                    padding: const EdgeInsets.all(4),
+                    decoration: const BoxDecoration(color: AppColors.accentGold, shape: BoxShape.circle),
+                    child: Text('$pending', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                  ),
+                ),
+            ],
           ),
           const SizedBox(width: 10),
           CoinPill(balance: bal),
@@ -321,7 +345,7 @@ class _HorizontalGames extends StatelessWidget {
               width: 170,
               child: GameCard(
                 game: games[i],
-                onTap: () => context.go('/game-details', extra: games[i]),
+                onTap: () => context.push('/games/details', extra: games[i]),
               ),
             ),
           ),
@@ -364,7 +388,10 @@ class _LeaderboardPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final top = MockData.leaderboard.take(3).toList();
+    final prov = context.watch<PlayerProvider>();
+    final lb = prov.leaderboard;
+    if (lb.length < 3) return const SizedBox.shrink();
+    final top = lb.take(3).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -379,6 +406,8 @@ class _LeaderboardPreview extends StatelessWidget {
             children: top.asMap().entries.map((e) {
               final entry = e.value;
               final rank = e.key + 1;
+              final name = entry['name']?.toString() ?? entry['username']?.toString() ?? '';
+              final coins = entry['pc_balance'] ?? 0;
               final medal = [AppColors.accentGold, AppColors.textSecondary, const Color(0xFFCD7F32)][e.key];
               return Expanded(
                 child: Container(
@@ -390,14 +419,18 @@ class _LeaderboardPreview extends StatelessWidget {
                       Stack(
                         alignment: Alignment.topRight,
                         children: [
-                          CircleAvatar(radius: 22, backgroundColor: AppColors.primary.withAlpha(24), child: Text(entry.avatar, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary))),
+                          CircleAvatar(radius: 22, backgroundColor: AppColors.primary.withAlpha(24), child: Text(name.isNotEmpty ? name[0].toUpperCase() : '?', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary))),
                           CircleAvatar(radius: 9, backgroundColor: medal, child: Text('$rank', style: const TextStyle(fontSize: 9, color: Colors.white, fontWeight: FontWeight.bold))),
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(entry.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                      Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
                       const SizedBox(height: 2),
-                      Text('${entry.coins}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      Row(mainAxisSize: MainAxisSize.min, children: [
+                        const CoinIcon(size: 12),
+                        const SizedBox(width: 4),
+                        Text('$coins', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+                      ]),
                     ],
                   ),
                 ),
@@ -410,13 +443,52 @@ class _LeaderboardPreview extends StatelessWidget {
   }
 }
 
+class _GameSections extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    final prov = context.watch<PlayerProvider>();
+    final allGames = [...prov.brandedGames, ...prov.promoGames];
+    if (allGames.isEmpty) return const SizedBox.shrink();
+    final gameItems = allGames.map((g) => GameItem(
+      id: g['id']?.toString() ?? '',
+      name: g['name'] ?? '',
+      category: g['category'] ?? '',
+      reward: g['game_type'] == 'branded' ? '50 PC' : '10 PC',
+      playTime: '',
+      difficulty: '',
+      completionRate: 0,
+      gradient: [Colors.purple, Colors.indigo],
+      icon: Icons.sports_esports,
+    )).toList();
+    return Column(
+      children: [
+        _HorizontalGames(title: 'Continue Playing', games: gameItems.take(4).toList(), onMore: () => context.go('/games')),
+        const SizedBox(height: AppSpace.lg),
+        _HorizontalGames(title: 'Featured Games', games: gameItems.skip(4).take(5).toList(), onMore: () => context.go('/games')),
+      ],
+    );
+  }
+}
+
 class _RewardPreview extends StatelessWidget {
   final VoidCallback onMore;
   const _RewardPreview({required this.onMore});
 
   @override
   Widget build(BuildContext context) {
-    final items = MockData.rewards.take(4).toList();
+    final prov = context.watch<PlayerProvider>();
+    final rewards = prov.rewards;
+    if (rewards.isEmpty) return const SizedBox.shrink();
+    final items = rewards.take(4).map((r) => RewardItem(
+      id: r['id']?.toString() ?? '',
+      brand: r['brand'] ?? '',
+      title: r['title'] ?? '',
+      coins: r['pp_cost'] ?? 0,
+      category: r['description'] ?? '',
+      available: (r['stock'] ?? -1) != 0,
+      gradient: [AppColors.primary, AppColors.secondaryPurple],
+      icon: Icons.card_giftcard,
+    )).toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -434,7 +506,7 @@ class _RewardPreview extends StatelessWidget {
             separatorBuilder: (_, __) => const SizedBox(width: 14),
             itemBuilder: (_, i) => SizedBox(
               width: 160,
-              child: RewardCard(reward: items[i], onTap: () => context.go('/reward-details', extra: items[i]), compact: true),
+              child: RewardCard(reward: items[i], onTap: () => context.push('/rewards/details', extra: items[i]), compact: true),
             ),
           ),
         ),

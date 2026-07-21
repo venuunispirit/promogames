@@ -1,20 +1,42 @@
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildBowlingGame(Map<String, dynamic> settings, GameFinished onFinished) {
-  return _BowlingGame(settings: settings, onFinished: onFinished);
+Widget buildBowlingGame(GameConfig config, GameFinished onFinished) {
+  return _BowlingGame(config: config, onFinished: onFinished);
 }
 
 class _BowlingGame extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _BowlingGame({required this.settings, required this.onFinished});
+  const _BowlingGame({required this.config, required this.onFinished});
 
   @override
   State<_BowlingGame> createState() => _BowlingGameState();
 }
 
 class _BowlingGameState extends State<_BowlingGame> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   final String title = 'Bowling';
   static const int totalFrames = 5;
   static const int pinCount = 10;
@@ -30,6 +52,7 @@ class _BowlingGameState extends State<_BowlingGame> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     pins = List.filled(pinCount, true);
   }
 
@@ -93,7 +116,7 @@ class _BowlingGameState extends State<_BowlingGame> {
       decoration: BoxDecoration(
         color: standing ? Colors.white : Colors.grey.shade700,
         borderRadius: BorderRadius.circular(11),
-        border: Border.all(color: const Color(0xFF8b5cf6), width: 1.5),
+        border: Border.all(color: _primaryColor, width: 1.5),
       ),
       child: standing
           ? null
@@ -105,8 +128,8 @@ class _BowlingGameState extends State<_BowlingGame> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.settings['name'] ?? title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        title: Text(widget.config.name ?? title),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(
             icon: const Icon(Icons.close),
@@ -114,20 +137,31 @@ class _BowlingGameState extends State<_BowlingGame> {
           )
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
@@ -147,7 +181,7 @@ class _BowlingGameState extends State<_BowlingGame> {
                 decoration: BoxDecoration(
                   color: const Color(0xFF080612),
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF8b5cf6)),
+                  border: Border.all(color: _primaryColor),
                 ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -176,7 +210,7 @@ class _BowlingGameState extends State<_BowlingGame> {
             const SizedBox(height: 8),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF8b5cf6),
+                backgroundColor: _primaryColor,
                 foregroundColor: Colors.white,
               ),
               onPressed: rolling || frame >= totalFrames ? null : _roll,
@@ -185,6 +219,7 @@ class _BowlingGameState extends State<_BowlingGame> {
             const SizedBox(height: 16),
           ],
         ),
+        ],
       ),
     );
   }

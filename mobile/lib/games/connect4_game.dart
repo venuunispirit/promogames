@@ -1,22 +1,43 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
+import '../models/game_config.dart';
 import 'game_contract.dart';
 
-Widget buildConnect4Game(
-    Map<String, dynamic> settings, GameFinished onFinished) {
-  return _C4Game(settings: settings, onFinished: onFinished);
+Widget buildConnect4Game(GameConfig config, GameFinished onFinished) {
+  return _C4Game(config: config, onFinished: onFinished);
 }
 
 class _C4Game extends StatefulWidget {
-  final Map<String, dynamic> settings;
+  final GameConfig config;
   final GameFinished onFinished;
-  const _C4Game({required this.settings, required this.onFinished});
+  const _C4Game({required this.config, required this.onFinished});
 
   @override
   State<_C4Game> createState() => _C4GameState();
 }
 
 class _C4GameState extends State<_C4Game> {
+  Color _bgColor = const Color(0xFF0d0a1a);
+  Color _primaryColor = const Color(0xFF8b5cf6);
+  String? _bgImageUrl;
+  String? _logoUrl;
+
+  void _parseSettings() {
+    final s = widget.config.settings;
+    _bgColor = _hexToColor(s['bg_color']?.toString()) ?? const Color(0xFF0d0a1a);
+    _primaryColor = _hexToColor(s['primary_color']?.toString()) ?? const Color(0xFF8b5cf6);
+    _bgImageUrl = s['bg_image_url']?.toString();
+    _logoUrl = s['game_logo_url']?.toString();
+  }
+
+  Color? _hexToColor(String? hex) {
+    if (hex == null || hex.isEmpty) return null;
+    hex = hex.replaceFirst('#', '');
+    if (hex.length == 6) hex = 'FF$hex';
+    try { return Color(int.parse(hex, radix: 16)); } catch (_) { return null; }
+  }
+
   static const int cols = 7;
   static const int rows = 6;
   late List<List<int?>> board;
@@ -28,6 +49,7 @@ class _C4GameState extends State<_C4Game> {
   @override
   void initState() {
     super.initState();
+    _parseSettings();
     board = List.generate(rows, (_) => List.filled(cols, null));
   }
 
@@ -162,29 +184,40 @@ class _C4GameState extends State<_C4Game> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.settings['name'] ?? 'Connect 4';
+    final title = widget.config.name ?? 'Connect 4';
     return Scaffold(
       appBar: AppBar(
         title: Text(title),
-        backgroundColor: const Color(0xFF0d0a1a),
+        backgroundColor: _bgColor,
         actions: [
           IconButton(icon: const Icon(Icons.close), onPressed: _finish),
         ],
       ),
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0d0a1a),
-              Color(0xFF1a0e2e),
-              Color(0xFF0f0b1e),
-              Color(0xFF080612),
-            ],
-          ),
-        ),
-        child: Column(
+      body: Stack(
+
+        fit: StackFit.expand,
+
+        children: [
+
+          if (_bgImageUrl != null)
+
+            CachedNetworkImage(
+
+              imageUrl: _bgImageUrl!,
+
+              fit: BoxFit.cover,
+
+              placeholder: (_, __) => Container(color: _bgColor),
+
+              errorWidget: (_, __, ___) => Container(color: _bgColor),
+
+            )
+
+          else Container(color: _bgColor),
+
+          Container(color: Colors.black.withOpacity(0.3)),
+
+           Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             _status(),
@@ -207,10 +240,10 @@ class _C4GameState extends State<_C4Game> {
                     decoration: BoxDecoration(
                       color: const Color(0xFF0d0a1a),
                       borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF8b5cf6)),
+                      border: Border.all(color: _primaryColor),
                     ),
                     child: CustomPaint(
-                      painter: _C4Painter(board, rows, cols, cell),
+                      painter: _C4Painter(board, rows, cols, cell, _primaryColor),
                     ),
                   ),
                 );
@@ -218,6 +251,7 @@ class _C4GameState extends State<_C4Game> {
             ),
           ],
         ),
+        ],
       ),
     );
   }
@@ -235,11 +269,12 @@ class _C4GameState extends State<_C4Game> {
 }
 
 class _C4Painter extends CustomPainter {
+  final Color primaryColor;
   final List<List<int?>> board;
   final int rows;
   final int cols;
   final double cell;
-  _C4Painter(this.board, this.rows, this.cols, this.cell);
+  _C4Painter(this.board, this.rows, this.cols, this.cell, this.primaryColor);
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -253,7 +288,7 @@ class _C4Painter extends CustomPainter {
           cell / 2 - 3,
           Paint()
             ..color = v == 1
-                ? const Color(0xFF8b5cf6)
+                ? primaryColor
                 : v == 2
                     ? const Color(0xFF22c55e)
                     : Colors.black54,

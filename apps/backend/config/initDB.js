@@ -1186,6 +1186,7 @@ async function initDB() {
   await addColumn(connection, 'player_sessions', 'utm_content', 'VARCHAR(255)');
   await addColumn(connection, 'player_sessions', 'selected_question_ids', 'JSON DEFAULT NULL');
   await addColumn(connection, 'player_sessions', 'promo_player_id', 'INT');
+  await addColumn(connection, 'player_sessions', 'referred_by', 'INT DEFAULT NULL');
 
   /* SOUNDS — url column used by sounds.js route */
   await addColumn(connection, 'sounds', 'url', 'VARCHAR(500)');
@@ -2379,6 +2380,12 @@ await safeQuery(connection, `
    } catch (err) {
      console.error('❌ username unique index:', err.message);
    }
+
+   /* PC_TRANSACTIONS — add referral_bonus type + session_id column */
+   try {
+     await connection.query("ALTER TABLE pc_transactions MODIFY COLUMN type ENUM('earn','spend','reset','referral_bonus') NOT NULL");
+   } catch (err) { /* may already be updated */ }
+   await addColumn(connection, 'pc_transactions', 'session_id', 'INT DEFAULT NULL');
 
    /* INTERNAL_TEAM — ensure password/phone/permissions columns exist */
    await addColumn(connection, 'internal_team', 'phone', 'VARCHAR(50) DEFAULT NULL');

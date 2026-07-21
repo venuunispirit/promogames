@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/data/mock_data.dart';
+import '../../services/player_provider.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/cards.dart';
 import '../../core/widgets/states.dart';
@@ -19,16 +21,34 @@ class _GamesScreenState extends State<GamesScreen> {
   String query = '';
   String category = 'All';
 
-  List<GameItem> get filtered {
-    return MockData.games.where((g) {
-      final matchesQuery = g.name.toLowerCase().contains(query.toLowerCase());
-      final matchesCat = category == 'All' || g.category == category;
+  List<Map<String, dynamic>> get _allGames =>
+    context.watch<PlayerProvider>().brandedGames +
+    context.watch<PlayerProvider>().promoGames;
+
+  List<Map<String, dynamic>> get filtered {
+    final games = _allGames;
+    return games.where((g) {
+      final name = (g['name'] as String? ?? '').toLowerCase();
+      final cat = (g['category'] as String? ?? '');
+      final matchesQuery = name.contains(query.toLowerCase());
+      final matchesCat = category == 'All' || cat.toLowerCase() == category.toLowerCase();
       return matchesQuery && matchesCat;
     }).toList();
   }
 
+  List<String> get _categories {
+    final cats = <String>{'All'};
+    for (final g in _allGames) {
+      final c = g['category'] as String?;
+      if (c != null && c.isNotEmpty) cats.add(c);
+    }
+    return cats.toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final games = _allGames;
+    final cats = _categories;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
@@ -36,7 +56,9 @@ class _GamesScreenState extends State<GamesScreen> {
         automaticallyImplyLeading: false,
       ),
       body: SafeArea(
-        child: Column(
+        child: games.isEmpty
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
           children: [
             Padding(
               padding: const EdgeInsets.fromLTRB(AppSpace.lg, 0, AppSpace.lg, AppSpace.sm),
@@ -58,10 +80,10 @@ class _GamesScreenState extends State<GamesScreen> {
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
-                itemCount: MockData.categories.length,
+                itemCount: cats.length,
                 separatorBuilder: (_, __) => const SizedBox(width: 8),
                 itemBuilder: (_, i) {
-                  final c = MockData.categories[i];
+                  final c = cats[i];
                   final active = c == category;
                   return ChoiceChip(
                     label: Text(c),
@@ -69,30 +91,6 @@ class _GamesScreenState extends State<GamesScreen> {
                     onSelected: (_) => setState(() => category = c),
                   );
                 },
-              ),
-            ),
-            const SizedBox(height: 12),
-            // Featured banner
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
-              child: Container(
-                padding: const EdgeInsets.all(AppSpace.lg),
-                decoration: BoxDecoration(gradient: AppColors.primaryGradient, borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadow.soft),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Spin & Win', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-                          SizedBox(height: 4),
-                          Text('Win up to 100 PC today', style: TextStyle(color: Colors.white70, fontSize: 13)),
-                        ],
-                      ),
-                    ),
-                    const CoinIcon(size: 40),
-                  ],
-                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -108,10 +106,33 @@ class _GamesScreenState extends State<GamesScreen> {
                         childAspectRatio: 0.78,
                       ),
                       itemCount: filtered.length,
-                      itemBuilder: (_, i) => GameCard(
-                        game: filtered[i],
-                        onTap: () => context.go('/game-details', extra: filtered[i]),
-                      ),
+                      itemBuilder: (_, i) {
+                        final g = filtered[i];
+                        return GameCard(
+                          game: GameItem(
+                            id: g['id']?.toString() ?? '',
+                            name: g['name'] ?? '',
+                            category: g['category'] ?? '',
+                            reward: '+${g['game_type'] == 'branded' ? '50' : '10'} PC',
+                            playTime: '',
+                            difficulty: '',
+                            completionRate: 0,
+                            gradient: [Colors.purple, Colors.indigo],
+                            icon: Icons.sports_esports,
+                          ),
+                          onTap: () => context.go('/game-details', extra: GameItem(
+                            id: g['id']?.toString() ?? '',
+                            name: g['name'] ?? '',
+                            category: g['category'] ?? '',
+                            reward: '',
+                            playTime: '',
+                            difficulty: '',
+                            completionRate: 0,
+                            gradient: [Colors.purple, Colors.indigo],
+                            icon: Icons.sports_esports,
+                          )),
+                        );
+                      },
                     ),
             ),
           ],

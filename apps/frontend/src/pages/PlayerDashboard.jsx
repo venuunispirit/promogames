@@ -379,6 +379,32 @@ const DASHBOARD_STYLES = `
     transform: scale(1.1) translateX(-10px);
   }
 
+  .premium-game-card .share-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .2s ease;
+  }
+  .premium-game-card:hover .share-btn {
+    opacity: 1;
+  }
+  .premium-game-card .share-btn:hover {
+    background: rgba(168, 85, 247, 0.45);
+  }
+
   /* Hide scrollbar for carousels */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
@@ -670,15 +696,35 @@ function BottomNav({ activeTab, onTabChange }) {
 }
 
 // ── Game Card (For Games Tab) ─────────────────────────────────────────────
-function RedesignGameCard({ game, onPlay, pcAmount, index }) {
+function RedesignGameCard({ game, onPlay, pcAmount, index, username }) {
   const hasLogo = Boolean(game.game_logo_url);
   const gameImg = game.game_logo_url || game.bg_image_url;
+
+  const handleShare = (e) => {
+    e.stopPropagation()
+    const host = window.location.origin
+    const slug = game.slug || ''
+    const clientSlug = game.client_slug || ''
+    const utm = username ? `?utm_source=@${username}` : ''
+    const url = `${host}/play/${slug}/${clientSlug}${utm}`
+    if (navigator.share) {
+      navigator.share({ title: game.name, url })
+    } else {
+      navigator.clipboard.writeText(url)
+    }
+  }
 
   return (
     <div className="premium-game-card" onClick={() => onPlay(game)}>
       <div className="card-index-number">{index + 1}</div>
       <div className="reward-badge">+{pcAmount} PC</div>
       <div className="category-pill">{game.category || 'Arcade'}</div>
+
+      {username && (
+        <button className="share-btn" onClick={handleShare} title="Share game">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+        </button>
+      )}
 
       <div className={`image-container${hasLogo ? ' logo-container' : ''}`}>
         {gameImg ? (
@@ -861,7 +907,7 @@ export default function PlayerDashboard() {
               <div className="glass-card" style={{ padding: 24, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Coming soon...</div>
             ) : (
               <div className="game-card-grid">
-                {games.branded.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={playUpdate} pcAmount={50} index={i} />)}
+                {games.branded.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={playUpdate} pcAmount={50} index={i} username={player?.username} />)}
               </div>
             )}
           </div>
@@ -872,7 +918,7 @@ export default function PlayerDashboard() {
               <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Quick Games</h3>
             </div>
             <div className="game-card-grid">
-              {games.promogames.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={playUpdate} pcAmount={10} index={i} />)}
+              {games.promogames.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={playUpdate} pcAmount={10} index={i} username={player?.username} />)}
             </div>
           </div>
         </div>

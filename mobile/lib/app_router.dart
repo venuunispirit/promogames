@@ -36,7 +36,13 @@ GoRouter buildRouter() {
       GoRoute(path: '/login', builder: (_, __) => const LoginPage()),
       GoRoute(
         path: '/game',
-        builder: (context, state) => GamePlayerPage(game: state.extra as Game),
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>?;
+          return GamePlayerPage(
+            game: extra?['game'] as Game,
+            utmSource: extra?['utm_source'] as String?,
+          );
+        },
       ),
       GoRoute(path: '/wallet', builder: (_, __) => const WalletPage()),
       GoRoute(path: '/notifications', builder: (_, __) => const NotificationsPage()),

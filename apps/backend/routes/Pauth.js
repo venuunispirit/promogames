@@ -417,5 +417,42 @@ router.get('/transactions', playerAuth, async (req, res) => {
   }
 });
 
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/pauth/rewards
+// Returns available brand rewards for the mobile app
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/rewards', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT r.*, c.name as brand, c.bg_color, c.text_color
+       FROM brand_rewards r
+       JOIN clients c ON r.client_id = c.id
+       WHERE r.is_active = 1 AND (r.stock = -1 OR r.stock > 0)
+       ORDER BY r.pp_cost ASC`
+    );
+    res.json({ success: true, rewards: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// GET /api/pauth/leaderboard
+// Returns top promo players by PC balance
+// ─────────────────────────────────────────────────────────────────────────────
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const [rows] = await db.query(
+      `SELECT id, name, username, pc_balance, avatar_id
+       FROM promo_players
+       ORDER BY pc_balance DESC
+       LIMIT 50`
+    );
+    res.json({ success: true, leaderboard: rows });
+  } catch (err) {
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 module.exports = router;
 module.exports.playerAuth = playerAuth; // export middleware for use in other routes

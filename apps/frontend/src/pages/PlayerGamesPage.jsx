@@ -2,7 +2,8 @@ import { usePlayer } from './PlayerLayout'
 import { RedesignGameCard } from '../components/DashboardSharedComponents'
 
 export default function PlayerGamesPage() {
-  const { games, setActiveGame } = usePlayer()
+  const { games, setActiveGame, player } = usePlayer()
+  const username = player?.username
 
   return (
     <div className="fade-in" style={{ padding: '0 20px' }}>
@@ -18,7 +19,7 @@ export default function PlayerGamesPage() {
           <div className="glass-card" style={{ padding: 24, textAlign: 'center', color: 'rgba(255,255,255,0.4)', fontSize: 13 }}>Coming soon...</div>
         ) : (
           <div className="game-card-grid">
-            {games.branded.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={setActiveGame} pcAmount={50} index={i} />)}
+            {games.branded.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={setActiveGame} pcAmount={50} index={i} username={username} />)}
           </div>
         )}
       </div>
@@ -29,7 +30,7 @@ export default function PlayerGamesPage() {
           <h3 style={{ margin: 0, fontSize: 16, fontWeight: 800 }}>Quick Games</h3>
         </div>
         <div className="game-card-grid">
-          {games.promogames.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={setActiveGame} pcAmount={10} index={i} />)}
+          {games.promogames.map((g, i) => <RedesignGameCard key={g.id} game={g} onPlay={setActiveGame} pcAmount={10} index={i} username={username} />)}
         </div>
       </div>
     </div>

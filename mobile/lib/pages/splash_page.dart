@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
+import '../services/player_provider.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -39,8 +40,11 @@ class _SplashPageState extends State<SplashPage> with TickerProviderStateMixin {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       Future.delayed(const Duration(milliseconds: 1800), () {
         final auth = context.read<AuthService>();
-        auth.checkSession().then((_) {
-          context.go(auth.isLoggedIn ? auth.dashboardRoute : '/login');
+        auth.checkSession().then((_) async {
+          if (auth.isLoggedIn && auth.isPlayer) {
+            await context.read<PlayerProvider>().loadAll();
+          }
+          if (mounted) context.go(auth.isLoggedIn ? auth.dashboardRoute : '/login');
         });
       });
     });

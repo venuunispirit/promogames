@@ -203,20 +203,22 @@ class AchievementMedal extends StatelessWidget {
 
 /// Leaderboard row.
 class LeaderboardTile extends StatelessWidget {
-  final LeaderboardEntry entry;
+  final Map<String, dynamic> entry;
   final int rank;
   const LeaderboardTile({super.key, required this.entry, required this.rank});
 
   @override
   Widget build(BuildContext context) {
+    final name = entry['name']?.toString() ?? entry['username']?.toString() ?? '';
+    final coins = entry['pc_balance'] ?? 0;
+    final avatar = (name)[0].toUpperCase();
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: entry.isUser ? AppColors.primary.withAlpha(14) : Colors.white,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(AppRadius.card),
-        boxShadow: entry.isUser ? null : AppShadow.card,
-        border: entry.isUser ? Border.all(color: AppColors.primary.withAlpha(80)) : null,
+        boxShadow: AppShadow.card,
       ),
       child: Row(
         children: [
@@ -225,13 +227,13 @@ class LeaderboardTile extends StatelessWidget {
           CircleAvatar(
             radius: 18,
             backgroundColor: AppColors.primary.withAlpha(30),
-            child: Text(entry.avatar, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
+            child: Text(avatar, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary)),
           ),
           const SizedBox(width: 12),
-          Expanded(child: Text(entry.name, style: const TextStyle(fontWeight: FontWeight.w600))),
+          Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.w600))),
           const CoinIcon(size: 14),
           const SizedBox(width: 4),
-          Text('${entry.coins}', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Text('$coins', style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );

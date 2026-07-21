@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/data/mock_data.dart';
+import '../../services/player_provider.dart';
+import '../../services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/cards.dart';
 import '../../core/widgets/states.dart';
@@ -49,6 +52,9 @@ class HomeScreen extends StatelessWidget {
 class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final prov = context.watch<PlayerProvider>();
+    final name = prov.user?.username ?? MockData.username;
+    final bal = prov.pcBalance;
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.md, AppSpace.lg, 0),
       child: Row(
@@ -57,7 +63,7 @@ class _Header extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Hi, ${MockData.username} 👋',
+                Text('Hi, $name 👋',
                     style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
                 const SizedBox(height: 2),
                 const Text('Ready to earn more Promo Coins?',
@@ -71,7 +77,7 @@ class _Header extends StatelessWidget {
             style: IconButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(10)),
           ),
           const SizedBox(width: 10),
-          const CoinPill(balance: 1240),
+          CoinPill(balance: bal),
         ],
       ),
     );
@@ -81,6 +87,8 @@ class _Header extends StatelessWidget {
 class _Hero extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
+    final prov = context.watch<PlayerProvider>();
+    final bal = prov.pcBalance;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
       padding: const EdgeInsets.all(AppSpace.lg),
@@ -104,25 +112,25 @@ class _Hero extends StatelessWidget {
                       children: [
                         const CoinIcon(size: 26),
                         const SizedBox(width: 8),
-                        const Text('1,240',
-                            style: TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
+                        Text('$bal',
+                            style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
                         const Text(' PC', style: TextStyle(color: Colors.white70, fontSize: 18)),
                       ],
                     ),
                     const SizedBox(height: 14),
-                    const Text('Level 7', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
+                    Text('Level ${MockData.level}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
                     ClipRRect(
                       borderRadius: BorderRadius.circular(10),
                       child: LinearProgressIndicator(
-                        value: 0.64,
+                        value: MockData.xp / MockData.xpMax,
                         minHeight: 8,
                         backgroundColor: Colors.white.withAlpha(30),
                         valueColor: const AlwaysStoppedAnimation(Colors.white),
                       ).animate().scale(begin: const Offset(0, 1), end: const Offset(1, 1), duration: 900.ms, curve: Curves.easeOut, alignment: Alignment.centerLeft),
                     ),
                     const SizedBox(height: 4),
-                    const Text('640 / 1,000 XP to Level 8', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    Text('${MockData.xp} / ${MockData.xpMax} XP to Level ${MockData.level + 1}', style: const TextStyle(color: Colors.white70, fontSize: 12)),
                   ],
                 ),
               ),

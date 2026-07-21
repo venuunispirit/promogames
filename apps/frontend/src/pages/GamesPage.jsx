@@ -55,7 +55,7 @@ const CATEGORY_META = {
   stressbuster:{ label:'Stress Buster',  bg:'#FEF2F2', fg:'#991B1B', dot:'#F87171', icon:'😤', desc:'Click-based stress relief game' },
   soundify:    { label:'Soundify',       bg:'#F5F3FF', fg:'#6D28D9', dot:'#A78BFA', icon:'🔊', desc:'Sound-based interactive quiz' },
   tictactoe:   { label:'Tic Tac Toe',    bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'❌', desc:'Classic noughts and crosses' },
-  chess:      { label:'Chess',          bg:'#F7F7F7', fg:'var(--text)', dot:'var(--text)', icon:'♟️', desc:'Two-player online chess' },
+  chess:      { label:'Chess',          bg:'#F7F7F7', fg:'#4B5563', dot:'#6B7280', icon:'♟️', desc:'Two-player online chess' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F6F9', fg:'var(--text)', dot:'var(--text3)' }
 

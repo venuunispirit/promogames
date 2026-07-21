@@ -382,6 +382,32 @@ export const DASHBOARD_STYLES = `
     transform: scale(1.1) translateX(-10px);
   }
 
+  .premium-game-card .share-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    z-index: 10;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    border: none;
+    background: rgba(0,0,0,0.35);
+    backdrop-filter: blur(6px);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity .2s ease;
+  }
+  .premium-game-card:hover .share-btn {
+    opacity: 1;
+  }
+  .premium-game-card .share-btn:hover {
+    background: rgba(168, 85, 247, 0.45);
+  }
+
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 `;

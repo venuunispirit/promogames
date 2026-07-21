@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/data/mock_data.dart';
+import '../../services/player_provider.dart';
 import '../../core/widgets/app_button.dart';
 
 class WalletPage extends StatelessWidget {
@@ -11,6 +13,9 @@ class WalletPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final prov = context.watch<PlayerProvider>();
+    final balance = prov.pcBalance;
+    final txs = prov.transactions;
     final history = MockData.monthlyHistory;
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -29,10 +34,10 @@ class WalletPage extends StatelessWidget {
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     const CoinIcon(size: 34),
                     const SizedBox(width: 10),
-                    const Text('1,240 PC', style: TextStyle(color: Colors.black, fontSize: 34, fontWeight: FontWeight.bold)),
+                    Text('$balance PC', style: const TextStyle(color: Colors.black, fontSize: 34, fontWeight: FontWeight.bold)),
                   ]),
                   const SizedBox(height: 6),
-                  const Text('Earned 1,890 · Redeemed 650', style: TextStyle(color: Colors.black54, fontSize: 13)),
+                  Text('${txs.length} transactions', style: const TextStyle(color: Colors.black54, fontSize: 13)),
                 ]),
               ),
               const SizedBox(height: AppSpace.lg),
@@ -65,12 +70,17 @@ class WalletPage extends StatelessWidget {
               const SizedBox(height: AppSpace.lg),
               Container(
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadow.card),
-                child: Column(
-                  children: MockData.transactions.map((t) => ListTile(
-                    leading: Icon(t.amount > 0 ? Icons.add_circle : Icons.remove_circle, color: t.amount > 0 ? AppColors.success : AppColors.danger),
-                    title: Text(t.title),
-                    subtitle: Text(t.date),
-                    trailing: Text('${t.amount > 0 ? '+' : ''}${t.amount} PC', style: TextStyle(fontWeight: FontWeight.bold, color: t.amount > 0 ? AppColors.success : AppColors.danger)),
+                child: txs.isEmpty
+                  ? const Padding(
+                      padding: EdgeInsets.all(24),
+                      child: Center(child: Text('No transactions yet', style: TextStyle(color: AppColors.textSecondary))),
+                    )
+                  : Column(
+                  children: txs.map((t) => ListTile(
+                    leading: Icon((t['points'] ?? 0) > 0 ? Icons.add_circle : Icons.remove_circle, color: (t['points'] ?? 0) > 0 ? AppColors.success : AppColors.danger),
+                    title: Text(t['note']?.toString() ?? ''),
+                    subtitle: Text(t['created_at']?.toString() ?? ''),
+                    trailing: Text('${(t['points'] ?? 0) > 0 ? '+' : ''}${t['points'] ?? 0} PC', style: TextStyle(fontWeight: FontWeight.bold, color: (t['points'] ?? 0) > 0 ? AppColors.success : AppColors.danger)),
                   )).toList(),
                 ),
               ),

@@ -792,12 +792,22 @@ router.post('/session/start', async (req, res) => {
         }
       }
     }
+    // ── Resolve referred_by from utm_source (@username) ──
+    let referredBy = null;
+    if (utm_source && utm_source.startsWith('@')) {
+      const username = utm_source.slice(1).trim();
+      if (username) {
+        const [refRows] = await db.query('SELECT id FROM promo_players WHERE username = ? LIMIT 1', [username]);
+        if (refRows.length > 0) referredBy = refRows[0].id;
+      }
+    }
+
     const token = uuidv4();
     const [result] = await db.query(
-      `INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, referred_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null,
-       utm_source || null, utm_medium || null, utm_campaign || null, utm_term || null, utm_content || null]
+       utm_source || null, utm_medium || null, utm_campaign || null, utm_term || null, utm_content || null, referredBy]
     );
 
     // ── Question pool: select random subset if configured ──
@@ -1021,6 +1031,24 @@ router.post('/session/complete', async (req, res) => {
         [session.promo_player_id, 'earn', pcAmount, session.game_id, `Completed: ${game.name}`]
       );
       await db.query('UPDATE player_sessions SET pc_awarded = 1 WHERE id = ?', [session.id]);
+    }
+
+    // ── Referral bonus: award 5 PC to referrer if this session was referred ──
+    if (session.referred_by) {
+      const [alreadyBonus] = await db.query(
+        'SELECT id FROM pc_transactions WHERE player_id = ? AND type = ? AND game_id = ? AND session_id = ? LIMIT 1',
+        [session.referred_by, 'referral_bonus', session.game_id, session.id]
+      );
+      if (alreadyBonus.length === 0) {
+        await db.query(
+          'UPDATE promo_players SET pc_balance = pc_balance + 5 WHERE id = ?',
+          [session.referred_by]
+        );
+        await db.query(
+          'INSERT INTO pc_transactions (player_id, type, points, game_id, session_id, note) VALUES (?, ?, ?, ?, ?, ?)',
+          [session.referred_by, 'referral_bonus', 5, session.game_id, session.id, 'Referral bonus']
+        );
+      }
     }
 
     // ── Business Owner Redemption: Create redemption with 6-digit code ──

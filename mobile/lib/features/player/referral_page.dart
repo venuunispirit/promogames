@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
+import '../../services/player_provider.dart';
+import '../../services/auth_service.dart';
 import '../../core/widgets/app_button.dart';
 
 class ReferralPage extends StatelessWidget {
@@ -9,6 +12,17 @@ class ReferralPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final auth = context.watch<AuthService>();
+    final username = auth.user?.username ?? '';
+    final host = 'https://promogames.app';
+    final shareUrl = '$host?utm_source=@$username';
+
+    void _copy() {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Link copied: $shareUrl')),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Invite Friends', style: TextStyle(fontWeight: FontWeight.bold)), leading: BackButton(onPressed: () => context.pop())),
@@ -23,9 +37,9 @@ class ReferralPage extends StatelessWidget {
                 child: const Column(children: [
                   Icon(Icons.group_add_rounded, color: Colors.white, size: 48),
                   SizedBox(height: 10),
-                  Text('Invite & Earn 50 PC', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+                  Text('Invite & Earn', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
                   SizedBox(height: 6),
-                  Text('Both you and your friend get 50 PC on signup', style: TextStyle(color: Colors.white70, fontSize: 13), textAlign: TextAlign.center),
+                  Text('Share games with friends and earn 5 PC per play', style: TextStyle(color: Colors.white70, fontSize: 13), textAlign: TextAlign.center),
                 ]),
               ),
               const SizedBox(height: AppSpace.lg),
@@ -34,20 +48,23 @@ class ReferralPage extends StatelessWidget {
                 decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadow.card),
                 child: Row(children: [
                   Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    const Text('Your code', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
-                    Text('MUZA50', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: AppColors.primary)),
+                    const Text('Your referral handle', style: TextStyle(color: AppColors.textSecondary, fontSize: 12)),
+                    Text('@$username', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: AppColors.primary)),
                   ])),
-                  IconButton(onPressed: () {}, icon: const Icon(Icons.copy, color: AppColors.primary)),
+                  IconButton(
+                    onPressed: _copy,
+                    icon: const Icon(Icons.copy, color: AppColors.primary),
+                  ),
                 ]),
               ),
               const SizedBox(height: AppSpace.lg),
-              Row(children: const [
-                Expanded(child: _Stat(value: '3', label: 'Friends joined')),
-                SizedBox(width: 12),
-                Expanded(child: _Stat(value: '150', label: 'PC earned')),
+              Row(children: [
+                Expanded(child: _Stat(value: '5 PC', label: 'Per referral play')),
+                const SizedBox(width: 12),
+                Expanded(child: _Stat(value: 'Unlimited', label: 'No cap')),
               ]),
               const SizedBox(height: AppSpace.lg),
-              AppButton(label: 'Share Invite Link', icon: Icons.share, onTap: () {}),
+              AppButton(label: 'Share Invite Link', icon: Icons.share, onTap: _copy),
             ],
           ),
         ),

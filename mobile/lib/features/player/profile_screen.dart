@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
 import '../../core/data/mock_data.dart';
+import '../../services/player_provider.dart';
 import '../../core/widgets/app_button.dart';
 import '../../services/auth_service.dart';
 
@@ -31,37 +32,51 @@ class ProfileScreen extends StatelessWidget {
             children: [
               const SizedBox(height: 12),
               Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(4),
-                      decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.primaryGradient),
-                      child: const CircleAvatar(radius: 44, backgroundColor: Colors.white, child: Icon(Icons.person, size: 44, color: AppColors.primary)),
-                    ),
-                    Positioned(
-                      right: 0,
-                      bottom: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(6),
-                        decoration: const BoxDecoration(color: AppColors.accentGold, shape: BoxShape.circle),
-                        child: const Text('7', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
-                      ),
-                    ),
-                  ],
+                child: Consumer<PlayerProvider>(
+                  builder: (_, prov, __) {
+                    final name = prov.user?.username ?? MockData.username;
+                    final email = prov.user?.email ?? '';
+                    final balance = prov.pcBalance;
+                    return Stack(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(shape: BoxShape.circle, gradient: AppColors.primaryGradient),
+                          child: const CircleAvatar(radius: 44, backgroundColor: Colors.white, child: Icon(Icons.person, size: 44, color: AppColors.primary)),
+                        ),
+                        Positioned(
+                          right: 0,
+                          bottom: 0,
+                          child: Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: const BoxDecoration(color: AppColors.accentGold, shape: BoxShape.circle),
+                            child: const Text('7', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ),
               const SizedBox(height: 12),
-              Text(MockData.username, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
-              const Text('muzammil@promogames.com', style: TextStyle(color: AppColors.textSecondary)),
-              const SizedBox(height: 16),
-              Row(
-                children: const [
-                  StatTile(label: 'Games', value: '128', icon: Icons.sports_esports, color: AppColors.primary),
-                  SizedBox(width: 12),
-                  StatTile(label: 'Win Rate', value: '72%', icon: Icons.percent, color: AppColors.success),
-                  SizedBox(width: 12),
-                  StatTile(label: 'Coins', value: '1,240', icon: Icons.monetization_on, color: AppColors.accentGold),
-                ],
+              Consumer<PlayerProvider>(
+                builder: (_, prov, __) {
+                  final name = prov.user?.username ?? MockData.username;
+                  final email = prov.user?.email ?? '';
+                  final balance = prov.pcBalance;
+                  return Column(
+                    children: [
+                      Text(name, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+                      Text(email.isNotEmpty ? email : 'No email', style: const TextStyle(color: AppColors.textSecondary)),
+                      const SizedBox(height: 16),
+                      Row(
+                        children: [
+                          StatTile(label: 'Coins', value: '$balance', icon: Icons.monetization_on, color: AppColors.accentGold),
+                        ],
+                      ),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: AppSpace.lg),
               Container(

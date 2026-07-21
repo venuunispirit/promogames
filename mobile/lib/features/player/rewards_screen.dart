@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
+import '../../services/player_provider.dart';
 import '../../core/data/mock_data.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/cards.dart';
@@ -10,10 +12,11 @@ import '../../core/widgets/states.dart';
 class RewardsScreen extends StatelessWidget {
   const RewardsScreen({super.key});
 
-  static const categories = ['All', 'Shopping', 'Food', 'Gaming', 'Subscriptions', 'Cashback'];
-
   @override
   Widget build(BuildContext context) {
+    final prov = context.watch<PlayerProvider>();
+    final balance = prov.pcBalance;
+    final items = prov.rewards;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Rewards', style: TextStyle(fontWeight: FontWeight.bold)), automaticallyImplyLeading: false),
@@ -23,7 +26,6 @@ class RewardsScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Balance header
               Container(
                 margin: const EdgeInsets.all(AppSpace.lg),
                 padding: const EdgeInsets.all(AppSpace.lg),
@@ -32,9 +34,9 @@ class RewardsScreen extends StatelessWidget {
                   children: [
                     const CoinIcon(size: 40),
                     const SizedBox(width: 12),
-                    const Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('Your Balance', style: TextStyle(color: Colors.black87, fontSize: 14)),
-                      Text('1,240 PC', style: TextStyle(color: Colors.black, fontSize: 28, fontWeight: FontWeight.bold)),
+                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      const Text('Your Balance', style: TextStyle(color: Colors.black87, fontSize: 14)),
+                      Text('$balance PC', style: const TextStyle(color: Colors.black, fontSize: 28, fontWeight: FontWeight.bold)),
                     ]),
                     const Spacer(),
                     OutlinedButton(
@@ -45,34 +47,49 @@ class RewardsScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              // Categories
-              SizedBox(
-                height: 44,
-                child: ListView.separated(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
-                  itemCount: categories.length,
-                  separatorBuilder: (_, __) => const SizedBox(width: 8),
-                  itemBuilder: (_, i) => ChoiceChip(label: Text(categories[i]), selected: false, onSelected: (_) {}),
-                ),
-              ),
               const SizedBox(height: 12),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(AppSpace.lg),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 14,
-                  crossAxisSpacing: 14,
-                  childAspectRatio: 0.72,
-                ),
-                itemCount: MockData.rewards.length,
-                itemBuilder: (_, i) => RewardCard(
-                  reward: MockData.rewards[i],
-                  onTap: () => context.go('/reward-details', extra: MockData.rewards[i]),
-                ),
-              ),
+              items.isEmpty
+                ? const Padding(
+                    padding: EdgeInsets.all(40),
+                    child: Center(child: Text('No rewards available', style: TextStyle(color: AppColors.textSecondary))),
+                  )
+                : GridView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(AppSpace.lg),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      mainAxisSpacing: 14,
+                      crossAxisSpacing: 14,
+                      childAspectRatio: 0.72,
+                    ),
+                    itemCount: items.length,
+                    itemBuilder: (_, i) {
+                      final r = items[i];
+                      return RewardCard(
+                        reward: RewardItem(
+                          id: r['id']?.toString() ?? '',
+                          brand: r['brand'] ?? '',
+                          title: r['title'] ?? '',
+                          coins: r['pp_cost'] ?? 0,
+                          category: r['description'] ?? '',
+                          available: (r['stock'] ?? -1) != 0,
+                          gradient: [AppColors.primary, AppColors.secondaryPurple],
+                          icon: Icons.card_giftcard,
+                        ),
+                        onTap: () => context.go('/reward-details', extra: RewardItem(
+                          id: r['id']?.toString() ?? '',
+                          brand: r['brand'] ?? '',
+                          title: r['title'] ?? '',
+                          coins: r['pp_cost'] ?? 0,
+                          category: r['description'] ?? '',
+                          available: (r['stock'] ?? -1) != 0,
+                          gradient: [AppColors.primary, AppColors.secondaryPurple],
+                          icon: Icons.card_giftcard,
+                        )),
+                      );
+                    },
+                  ),
             ],
           ),
         ),

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_dimensions.dart';
-import '../../core/data/mock_data.dart';
+import '../../services/player_provider.dart';
 import '../../core/widgets/cards.dart';
 import '../../core/widgets/app_button.dart';
 
@@ -18,7 +19,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final top = MockData.leaderboard;
+    final prov = context.watch<PlayerProvider>();
+    final top = prov.leaderboard;
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(title: const Text('Leaderboard', style: TextStyle(fontWeight: FontWeight.bold)), automaticallyImplyLeading: false),
@@ -72,7 +74,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 }
 
 class _Podium extends StatelessWidget {
-  final LeaderboardEntry entry;
+  final Map<String, dynamic> entry;
   final int rank;
   final double height;
   const _Podium({required this.entry, required this.rank, required this.height});
@@ -80,13 +82,16 @@ class _Podium extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final medal = [AppColors.accentGold, AppColors.textSecondary, const Color(0xFFCD7F32)][rank - 1];
+    final name = entry['name']?.toString() ?? entry['username']?.toString() ?? '';
+    final coins = entry['pc_balance'] ?? 0;
+    final avatar = (entry['name']?.toString() ?? '?')[0].toUpperCase();
     return Expanded(
       child: Column(
         children: [
-          CircleAvatar(radius: 22, backgroundColor: AppColors.primary.withAlpha(24), child: Text(entry.avatar, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary))),
+          CircleAvatar(radius: 22, backgroundColor: AppColors.primary.withAlpha(24), child: Text(avatar, style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary))),
           const SizedBox(height: 6),
-          Text(entry.name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
-          Text('${entry.coins}', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
+          Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+          Text('$coins', style: const TextStyle(fontSize: 11, color: AppColors.textSecondary)),
           const SizedBox(height: 6),
           Container(
             height: height,

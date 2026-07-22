@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import api from '../api'
-import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 /* ─── tiny helpers ─────────────────────────────────────── */
 function SoundSelector({ label, value, onChange, sounds }) {
@@ -16,10 +15,10 @@ function SoundSelector({ label, value, onChange, sounds }) {
   )
 }
 
-function ImageUploadField({ label, currentUrl, onFileChange, onClear, error }) {
+function ImageUploadField({ label, currentUrl, onFileChange, onClear }) {
   const ref = useRef()
   return (
-    <div className={error ? 'gb-img-error' : ''}>
+    <div>
       <div className="form-label" style={{ marginBottom: 6 }}>{label}</div>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
         <input type="file" ref={ref} accept="image/*" onChange={onFileChange} style={{ display: 'none' }} />
@@ -27,7 +26,6 @@ function ImageUploadField({ label, currentUrl, onFileChange, onClear, error }) {
         {currentUrl && <img src={currentUrl} alt="" style={{ height: 44, borderRadius: 6, objectFit: 'contain', border: '1px solid var(--border)', background: '#fff' }} />}
         {currentUrl && <button className="btn btn-ghost btn-sm" type="button" style={{ color: 'var(--danger)' }} onClick={onClear}>✕</button>}
       </div>
-      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -156,7 +154,7 @@ function WordCard({ word, index, sounds, onUpdate, onDelete, onSave, saving }) {
 }
 
 /* ─── settings panel ────────────────────────────────────── */
-function CrosswordSettingsPanel({ gameId, settings, setSettings, sounds, showToast, upload }) {
+function CrosswordSettingsPanel({ gameId, settings, setSettings, sounds, showToast }) {
   const [saving, setSaving] = useState(false)
 
   const set = (k, v) => setSettings(s => ({ ...s, [k]: v }))
@@ -178,12 +176,7 @@ function CrosswordSettingsPanel({ gameId, settings, setSettings, sounds, showToa
       await api.put(`/crossword/${gameId}/settings`, fd)
       showToast('Settings saved ✅')
     } catch (err) {
-      const msg = uploadErrorMessage(err)
-      if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
-      if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
-      if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
-      if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile) upload.setFieldError('bg_image_url', msg)
-      showToast(msg, 'error')
+      showToast('Error saving settings: ' + (err.response?.data?.message || err.message), 'error')
     }
     setSaving(false)
   }
@@ -222,23 +215,20 @@ function CrosswordSettingsPanel({ gameId, settings, setSettings, sounds, showToa
 
       <ImageUploadField
         label="Background Image"
-        error={upload.errors.bg_image_url}
         currentUrl={settings._bgPreview || settings.bg_image_url}
-        onFileChange={e => { upload.clearFieldError('bg_image_url'); const f = e.target.files[0]; if (!f) return; set('_bgImageFile', f); set('_bgPreview', URL.createObjectURL(f)) }}
+        onFileChange={e => { const f = e.target.files[0]; if (!f) return; set('_bgImageFile', f); set('_bgPreview', URL.createObjectURL(f)) }}
         onClear={() => { set('bg_image_url', ''); set('_bgImageFile', null); set('_bgPreview', null) }}
       />
       <ImageUploadField
         label="Thank You Background Image"
-        error={upload.errors.thankyou_bg_image_url}
         currentUrl={settings._tyPreview || settings.thankyou_bg_image_url}
-        onFileChange={e => { upload.clearFieldError('thankyou_bg_image_url'); const f = e.target.files[0]; if (!f) return; set('_tyBgImageFile', f); set('_tyPreview', URL.createObjectURL(f)) }}
+        onFileChange={e => { const f = e.target.files[0]; if (!f) return; set('_tyBgImageFile', f); set('_tyPreview', URL.createObjectURL(f)) }}
         onClear={() => { set('thankyou_bg_image_url', ''); set('_tyBgImageFile', null); set('_tyPreview', null) }}
       />
       <ImageUploadField
         label="Game Logo"
-        error={upload.errors.game_logo_url}
         currentUrl={settings._logoPreview || settings.game_logo_url}
-        onFileChange={e => { upload.clearFieldError('game_logo_url'); const f = e.target.files[0]; if (!f) return; set('_gameLogoFile', f); set('_logoPreview', URL.createObjectURL(f)) }}
+        onFileChange={e => { const f = e.target.files[0]; if (!f) return; set('_gameLogoFile', f); set('_logoPreview', URL.createObjectURL(f)) }}
         onClear={() => { set('game_logo_url', ''); set('_gameLogoFile', null); set('_logoPreview', null) }}
       />
 
@@ -267,8 +257,6 @@ export default function CrosswordBuilderTab() {
   const [saving, setSaving] = useState(null) // word id being saved
   const [innerTab, setInnerTab] = useState('words') // 'words' | 'settings' | 'preview'
   const [showGridSettings, setShowGridSettings] = useState(false)
-
-  const upload = useUploadErrors()
 
   // Toast notification helper
   const showToast = (msg, type = 'success') => {
@@ -367,9 +355,6 @@ export default function CrosswordBuilderTab() {
     { id: 'settings', label: '⚙️ Settings' },
     { id: 'preview', label: '👁 Grid Preview' },
   ]
-  const TAB_FIELDS = {
-    settings: ['bg_image_url', 'game_logo_url', 'thankyou_bg_image_url'],
-  }
 
   if (loading) return <div style={{ textAlign: 'center', padding: 40, color: 'var(--text2)' }}>Loading crossword data…</div>
 
@@ -377,18 +362,15 @@ export default function CrosswordBuilderTab() {
     <div>
       {/* inner tab bar */}
       <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', marginBottom: 20 }}>
-        {innerTabs.map(t => {
-          const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
-          return (
-            <button key={t.id} onClick={() => setInnerTab(t.id)}
-              style={{ padding: '8px 14px', fontSize: 13, fontWeight: innerTab === t.id ? 700 : 400,
-                color: innerTab === t.id ? 'var(--primary)' : 'var(--text2)', background: 'none', border: 'none',
-                borderBottom: `2px solid ${innerTab === t.id ? 'var(--primary)' : 'transparent'}`,
-                marginBottom: -1, cursor: 'pointer' }}>
-              {t.label}{hasErr && <span className="gb-tab-err-dot" />}
-            </button>
-          )
-        })}
+        {innerTabs.map(t => (
+          <button key={t.id} onClick={() => setInnerTab(t.id)}
+            style={{ padding: '8px 14px', fontSize: 13, fontWeight: innerTab === t.id ? 700 : 400,
+              color: innerTab === t.id ? 'var(--primary)' : 'var(--text2)', background: 'none', border: 'none',
+              borderBottom: `2px solid ${innerTab === t.id ? 'var(--primary)' : 'transparent'}`,
+              marginBottom: -1, cursor: 'pointer' }}>
+            {t.label}
+          </button>
+        ))}
       </div>
 
       {/* WORDS */}
@@ -474,7 +456,6 @@ export default function CrosswordBuilderTab() {
           setSettings={setSettings}
           sounds={sounds}
           showToast={showToast}
-          upload={upload}
         />
       )}
 

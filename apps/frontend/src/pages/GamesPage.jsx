@@ -219,13 +219,13 @@ function QRCodeModal({ game, onClose, onError }) {
 
     const slug = game.slug || ''
     const client_slug = game.client_slug || ''
-    const link = `${host}/play/${slug}/${client_slug}`
+    const link = client_slug ? `${host}/play/${slug}/${client_slug}` : `${host}/play/${slug}`
 
     console.log('[QRCode] Generating QR for:', link, 'game:', slug, client_slug)
 
-    if (!slug || !client_slug) {
-      setQrError('Missing slug or client_slug')
-      onError?.('Missing slug or client_slug')
+    if (!slug) {
+      setQrError('Missing slug')
+      onError?.('Missing slug')
       return
     }
 
@@ -258,7 +258,7 @@ function QRCodeModal({ game, onClose, onError }) {
   const handleCopyLink = () => {
     const slug = game?.slug || ''
     const client_slug = game?.client_slug || ''
-    const link = `${host}/play/${slug}/${client_slug}`
+    const link = client_slug ? `${host}/play/${slug}/${client_slug}` : `${host}/play/${slug}`
     navigator.clipboard.writeText(link)
   }
 
@@ -288,7 +288,7 @@ function QRCodeModal({ game, onClose, onError }) {
           <div style={{ width: 200, height: 200, borderRadius: 16, margin: '0 auto 20px', background: 'var(--border-light)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text3)' }}><Ico.spin /></div>
         )}
         <p style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>{game.name || ''}</p>
-        <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 24, wordBreak: 'break-all' }}>{`${host}/play/${game.slug || ''}/${game.client_slug || ''}`}</p>
+        <p style={{ fontSize: 12, color: 'var(--text3)', marginBottom: 24, wordBreak: 'break-all' }}>{game.client_slug ? `${host}/play/${game.slug || ''}/${game.client_slug}` : `${host}/play/${game.slug || ''}`}</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
           <button className="gp-primary-btn" onClick={handleCopyQr} disabled={!qrDataUrl} style={{ justifyContent: 'center', padding: '11px 0', borderRadius: 10, fontSize: 13.5 }}><Ico.copy /> Copy QR Image</button>
           <button className="gp-ghost-btn" onClick={handleCopyLink} style={{ justifyContent: 'center', padding: '10px 0', borderRadius: 10, fontSize: 13 }}><Ico.link /> Copy Game Link</button>
@@ -1270,7 +1270,8 @@ export default function GamesPage() {
     const parent = game.parent_game_id ? games.find(g => g.id === game.parent_game_id) : null
     const slug = parent?.slug || game.slug
     const clientSlug = parent?.client_slug || game.client_slug
-    const link = `${window.location.origin}/play/${slug}/${clientSlug}`
+    const host = window.location.origin
+    const link = clientSlug ? `${host}/play/${slug}/${clientSlug}` : `${host}/play/${slug}`
     navigator.clipboard.writeText(link)
     if (!game.is_active) showToast('Link copied — game is currently inactive.','error')
     else showToast('Game link copied!')

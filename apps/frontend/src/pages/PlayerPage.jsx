@@ -146,8 +146,18 @@ const OVERLAY_STYLES = `
   @keyframes backdropIn     { from { opacity:0 } to { opacity:1 } }
 
   @keyframes optionReveal   { from { transform: scale(1) } 50% { transform: scale(0.96) } to { transform: scale(1) } }
+  @keyframes tyFall         { 0% { transform: translateY(-10px) rotate(0deg); opacity: 0.8; } 100% { transform: translateY(680px) rotate(360deg); opacity: 0.1; } }
+  @keyframes tySlideUp      { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
 
   * { -webkit-tap-highlight-color: transparent; }
+  video { font-size: 0 !important; }
+  video::-webkit-media-controls { display: none !important; }
+  video::-webkit-media-controls-timeline { display: none !important; }
+  video::-webkit-media-controls-time-remaining-display { display: none !important; }
+  video::-webkit-media-controls-current-time-display { display: none !important; }
+  video::-webkit-media-controls-enclosure { display: none !important; }
+  video::-webkit-media-controls-overlay-play-button { display: none !important; }
+  video::-moz-media-controls { display: none !important; }
 
   html, body {
     margin: 0; padding: 0;
@@ -518,7 +528,8 @@ export default function PlayerPage() {
       setPlayerProfile(profile)
 
       try {
-        const res = await api.get(`/play/${gameName}/${companyName}`)
+        const playUrl = companyName ? `/play/${gameName}/${companyName}` : `/play/${gameName}`
+        const res = await api.get(playUrl)
         let g = res.data.game
         setGame(g)
         if (g.settings?.font_family) loadFont(g.settings.font_family)
@@ -1165,17 +1176,17 @@ export default function PlayerPage() {
   setSelectedOpt(opt)
   setAnswered(true)
 
+  // Mute + pause the question video FIRST so its audio channel is freed
+  // before we try to play the answer sound. Otherwise the browser may
+  // block the new Audio() because the video is still playing unmuted.
+  const videoEl = qImgWrapRef.current?.querySelector('video')
+  if (videoEl) { try { videoEl.muted = true; videoEl.pause() } catch {} }
+
   const question = game.questions[currentQ]
   const isCorrect = question.question_type === 'right_wrong' ? !!opt.is_correct : null
   const isLastQ = currentQ + 1 >= game.questions.length
   const soundMap = game.soundMap || {}
   const settingsObj = game.settings || {}
-
-  // TEMP DEBUG
-  const dbgUrl = resolveSound(isCorrect ? settingsObj.sound_correct_id : settingsObj.sound_wrong_id, soundMap)
-  console.log('[SOUND DEBUG] type=', question.question_type, 'isCorrect=', isCorrect,
-    'correct_id=', settingsObj.sound_correct_id, 'wrong_id=', settingsObj.sound_wrong_id,
-    'resolved=', dbgUrl, 'soundMapKeys=', Object.keys(soundMap))
 
   if (question.question_type === 'right_wrong') {
     if (isCorrect) {
@@ -1754,7 +1765,7 @@ export default function PlayerPage() {
                       }
                     }
                   })}
-                  {game?.settings?.enable_mascot && (
+                  {Boolean(game?.settings?.enable_mascot) && (
                     <img
                       src="/mascot.png.png"
                       alt="Mascot"
@@ -2044,14 +2055,10 @@ export default function PlayerPage() {
   if (phase === 'thankyou') {
     const tyBg = s.thankyou_bg_image_url
     const gameBg = s.bg_image_url
-    const tyBgIsVideo = isVideoUrl(tyBg)
-    // When the thankyou background is a video, we render an actual <video> layer
-    // (CSS background-image cannot play video/audio), so fall back to gameBg/solid here.
-    const bgStyle = tyBgIsVideo ? getPageBg(null, gameBg, s.bg_color || '#f4f4ff') : getPageBg(tyBg, gameBg, s.bg_color || '#f4f4ff')
+    const bgStyle = getPageBg(tyBg, gameBg, s.bg_color || '#f4f4ff')
     const hasScore = totalScoreable > 0
     const hasBgImage = !!(tyBg || gameBg)
     const confirmGifUrl = s.submit_confirm_gif_url || null
-    const confirmIsVideo = isVideoUrl(confirmGifUrl)
 
 const handleSubmitExplore = () => {
   setShowSubmitModal(true)
@@ -2075,22 +2082,25 @@ const handleModalClose = () => {
 }
 
     return (
-      <div ref={tyWrapRef} style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box' }}>
-        {tyBgIsVideo && (
-          <video
-            src={tyBg}
-            autoPlay
-            muted={false}
-            loop
-            playsInline
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-          />
-        )}
+      <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box' }}>
         <Confetti />
 
         {showSubmitModal && (
           <SubmitModal primaryColor={primaryColor} ff={ff} confirmGifUrl={confirmGifUrl} onConfirm={handleModalConfirm} onClose={handleModalClose} gameCategory={game.category} continueButtonText={s.continue_button_text} continueButtonTextColor={s.continue_button_text_color} continueButtonBgColor={s.continue_button_bg_color} />
         )}
+
+        {/* Animated confetti dots */}
+        <div style={{ position: 'absolute', inset: 0, overflow: 'hidden', pointerEvents: 'none', zIndex: 0 }}>
+          {Array.from({ length: 18 }).map((_, i) => (
+            <span key={i} style={{
+              position: 'absolute', top: -10, borderRadius: '50%', opacity: 0.7,
+              left: `${8 + (i * 5.2) % 85}%`,
+              animation: `tyFall ${2 + (i % 3) * 0.7}s linear ${(i * 0.3) % 2}s infinite`,
+              background: ['#ff6fa5','#8b6ef0','#35c9a5','#ffc93d','#4fb6ff','#ff8a3d'][i % 6],
+              width: `${4 + (i % 3) * 2}px`, height: `${4 + (i % 3) * 2}px`,
+            }} />
+          ))}
+        </div>
 
         <div style={{
           position: 'relative', zIndex: 2,
@@ -2101,50 +2111,121 @@ const handleModalClose = () => {
           borderRadius: 28, padding: 'clamp(28px,7vw,40px) clamp(20px,6vw,32px)',
           boxShadow: hasBgImage ? '0 16px 60px rgba(0,0,0,0.28)' : '0 16px 60px rgba(0,0,0,0.12)',
           animation: 'scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1)',
-          boxSizing: 'border-box'
+          boxSizing: 'border-box',
+          overflow: 'hidden',
         }}>
-          {gameLogo && (
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16 }}>
-              <img src={gameLogo} alt="Logo" style={{ maxWidth: '80%', maxHeight: 280, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 10 }} />
-            </div>
-          )}
+          {/* Submit Confirmation GIF/Image — only show when image exists */}
           {confirmGifUrl && (
-            confirmIsVideo
-              ? <video src={confirmGifUrl} autoPlay muted={false} loop playsInline style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 16, marginBottom: 16 }} />
-              : <img src={confirmGifUrl} alt="" style={{ width: '100%', maxHeight: 200, objectFit: 'contain', borderRadius: 16, marginBottom: 16 }} />
-          )}
-          <div style={{ fontSize: 60, marginBottom: 12, animation: 'bounce 0.6s 0.3s ease both' }}>🎉</div>
-          <h1 style={{ fontFamily: ff, fontSize: 'clamp(20px,6vw,30px)', color: s.outro_text_color||'#1a1a2e', marginBottom: 20, lineHeight: 1.25, textShadow: hasBgImage ? '0 2px 8px rgba(0,0,0,0.3)' : 'none', fontWeight: 800 }}>
-            {s.outro_text || 'Yay! You completed the game!'}
-          </h1>
-          {hasScore && (
-            <div style={{ marginBottom: 24, display: 'flex', justifyContent: 'center' }}>
-              <ScoreRing score={score} total={totalScoreable} primaryColor={primaryColor} />
-            </div>
-          )}
-          {!hasScore && (
-            <div style={{ background: hasBgImage ? 'rgba(255,255,255,0.15)' : `${primaryColor}12`, border: `1.5px solid ${hasBgImage ? 'rgba(255,255,255,0.3)' : primaryColor + '30'}`, borderRadius: 14, padding: '14px 20px', marginBottom: 24, color: s.thankyou_subtitle_color||'#444', fontSize: 14 }}>
-              {s.thankyou_subtitle || '✅ Thank you for completing!'}
+            <div style={{
+              width: 'auto', margin: 'calc(-1 * clamp(28px,7vw,40px) + 2px) calc(-1 * clamp(20px,6vw,32px) + 2px) 14px',
+              borderRadius: '26px 26px 12px 12px', overflow: 'hidden',
+              padding: 2,
+            }}>
+              <img src={confirmGifUrl} alt="Confirmation" style={{ width: '100%', height: 'auto', objectFit: 'cover', display: 'block', borderRadius: '22px 22px 10px 10px' }} />
             </div>
           )}
 
+          {/* Ribbon */}
+          <div style={{ margin: '-2px 0 10px', animation: 'tySlideUp 0.5s cubic-bezier(.2,1.2,.4,1) 0.2s backwards' }}>
+            <div style={{
+              background: `linear-gradient(180deg, ${primaryColor || '#4f46e5'}, ${primaryColor ? primaryColor + 'cc' : '#3730a3'})`,
+              color: '#fff', fontFamily: ff, fontWeight: 600, fontSize: '0.85rem',
+              letterSpacing: 2, padding: '8px 28px', borderRadius: 8,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
+              display: 'inline-flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{ color: '#FFD700', fontSize: 12 }}>&#9733;</span>
+              GAME COMPLETED!
+              <span style={{ color: '#FFD700', fontSize: 12 }}>&#9733;</span>
+            </div>
+          </div>
+
+          {/* Title */}
+          <h1 style={{
+            fontFamily: ff, fontSize: 'clamp(22px,6vw,30px)', fontWeight: 800,
+            color: s.outro_text_color || '#1a1a2e', margin: '0 0 6px', lineHeight: 1.2,
+            textShadow: hasBgImage ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
+          }}>
+            {s.outro_text || 'Congratulations!'}
+          </h1>
+          <p style={{
+            color: s.thankyou_subtitle_color || '#6b7280', fontSize: '0.85rem',
+            fontWeight: 600, margin: '0 0 16px',
+          }}>
+            {hasScore
+              ? <>You scored <strong style={{ color: primaryColor || '#7c3aed' }}>{score}</strong> out of <strong>{totalScoreable}</strong></>
+              : (s.thankyou_subtitle || 'Thank you for completing!')}
+          </p>
+
+          {/* Progress Card */}
+          {hasScore && (
+            <div style={{
+              background: '#fff', borderRadius: 20, padding: '18px 22px',
+              width: '100%', maxWidth: 280, margin: '0 auto 14px',
+              boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+            }}>
+              <div style={{
+                width: 40, height: 40, borderRadius: '50%', margin: '0 auto 8px',
+                background: `linear-gradient(135deg, ${primaryColor || '#c4b5fd'}, ${primaryColor ? primaryColor + 'aa' : '#a78bfa'})`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: `0 4px 12px ${primaryColor || '#7c3aed'}33`,
+              }}>
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M4 12.5 9.5 18 20 6" />
+                </svg>
+              </div>
+              <p style={{ fontWeight: 800, fontSize: '0.85rem', color: '#1e1b4b', margin: '0 0 10px' }}>
+                Question Answered Progress
+              </p>
+              <div style={{ position: 'relative', height: 10, background: '#e9e5f5', borderRadius: 999, overflow: 'visible', marginBottom: 6 }}>
+                <div style={{
+                  height: '100%', borderRadius: 999,
+                  background: `linear-gradient(90deg, ${primaryColor || '#7c3aed'}, ${primaryColor ? primaryColor + 'cc' : '#a855f7'})`,
+                  transition: 'width 0.8s cubic-bezier(.2,1,.4,1)',
+                  boxShadow: `0 0 8px ${primaryColor || '#7c3aed'}66`,
+                  width: `${Math.min(100, (score / Math.max(1, totalScoreable)) * 100)}%`,
+                }} />
+                <span style={{
+                  position: 'absolute', top: '50%', left: -4, transform: 'translateY(-50%)',
+                  width: 20, height: 20, borderRadius: '50%',
+                  background: '#fff', border: `3px solid ${primaryColor || '#7c3aed'}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                }} />
+                <span style={{
+                  position: 'absolute', top: '50%', right: -4, transform: 'translateY(-50%)',
+                  width: 20, height: 20, borderRadius: '50%',
+                  background: '#fff', border: `3px solid ${primaryColor || '#7c3aed'}`,
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+                }} />
+              </div>
+              <p style={{ fontSize: '0.75rem', fontWeight: 700, color: '#6b7280', margin: 0 }}>
+                {score} of {totalScoreable}
+              </p>
+            </div>
+          )}
+
+          {/* Submit Button */}
           <button
             onClick={handleSubmitExplore}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               width: '100%',
-              background: s.submit_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-              color: s.submit_button_text_color||'#fff', border: 'none',
+              background: s.submit_button_bg_color || `linear-gradient(135deg, ${primaryColor || '#7c3aed'}, ${primaryColor ? primaryColor + 'cc' : '#6d28d9'})`,
+              color: s.submit_button_text_color || '#fff', border: 'none',
               padding: '14px 20px', borderRadius: 14,
               fontSize: 17, fontWeight: 700,
               cursor: 'pointer', fontFamily: ff,
-              boxShadow: s.submit_button_bg_color ? '0 6px 24px rgba(0,0,0,0.15)' : `0 6px 24px ${primaryColor}55`,
+              boxShadow: s.submit_button_bg_color ? '0 6px 24px rgba(0,0,0,0.15)' : `0 6px 24px ${primaryColor || '#7c3aed'}55`,
               touchAction: 'manipulation',
               letterSpacing: '0.02em',
               minHeight: 52,
             }}>
-            <span>🚀</span>
             <span>{s.submit_button_text || 'Submit & Explore'}</span>
+            <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M4 12h15M13 6l6 6-6 6" />
+              </svg>
+            </span>
           </button>
         </div>
         <style>{OVERLAY_STYLES}</style>

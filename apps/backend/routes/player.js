@@ -133,8 +133,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
   try {
     const [allRows] = await db.query(`
       SELECT g.*, c.company_name, c.slug as client_slug, c.logo_url as client_logo
-      FROM games g JOIN clients c ON g.client_id = c.id
-      WHERE g.slug = ? AND c.slug = ?
+      FROM games g LEFT JOIN clients c ON g.client_id = c.id
+      WHERE g.slug = ? AND (c.slug = ? OR c.slug IS NULL)
     `, [req.params.gameName, req.params.companyName]);
 
     if (allRows.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
@@ -1400,6 +1400,139 @@ router.get('/game/:id/play-count', async (req, res) => {
     res.json({ play_count: rows[0]?.play_count || 0 });
   } catch (err) {
     res.status(500).json({ play_count: 0 });
+  }
+});
+
+// ── Game by slug only (no client/company required) ─────────────────────
+// MUST be registered AFTER all static routes so it doesn't shadow them.
+router.get('/:gameName', async (req, res) => {
+  try {
+    const [allRows] = await db.query(`
+      SELECT g.*, c.company_name, c.slug as client_slug, c.logo_url as client_logo
+      FROM games g LEFT JOIN clients c ON g.client_id = c.id
+      WHERE g.slug = ?
+    `, [req.params.gameName]);
+
+    if (allRows.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+    if (!allRows[0].is_active) return res.status(403).json({ success: false, message: 'This game is currently inactive' });
+
+    const game = allRows[0];
+    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const toAbs = (url) => {
+      if (!url) return null;
+      if (url.startsWith('http')) return url;
+      return `${baseUrl}${url}`;
+    };
+
+    // ── CROSSWORD branch ──
+    if (game.category === 'crossword') {
+      const [cwSettings] = await db.query('SELECT * FROM crossword_settings WHERE game_id = ?', [game.id]);
+      const [cwWords] = await db.query('SELECT * FROM crossword_words WHERE game_id = ? ORDER BY word_order', [game.id]);
+      const [cwFormFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = cwSettings[0] ? { ...cwSettings[0] } : {};
+      if (settings.allow_hints === undefined || settings.allow_hints === null) settings.allow_hints = 1;
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, words: cwWords, soundMap, formFields: cwFormFields, questions: [],
+        },
+      });
+    }
+
+    // ── SPIN branch ──
+    if (game.category === 'spin') {
+      const [spinSettings] = await db.query('SELECT * FROM spin_settings WHERE game_id = ?', [game.id]);
+      const [spinSegments] = await db.query('SELECT * FROM spin_segments WHERE game_id = ? ORDER BY segment_order', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = spinSettings[0] ? { ...spinSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      for (const seg of spinSegments) {
+        seg.coupon_image_url = toAbs(seg.coupon_image_url);
+        seg.overlay_image_url = toAbs(seg.overlay_image_url);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, segments: spinSegments, formFields, soundMap,
+        },
+      });
+    }
+
+    // ── Default (quiz + other categories) ──
+    const [settingsRows] = await db.query(
+      'SELECT * FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [game.id]
+    );
+    const [formFields] = await db.query(
+      'SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]
+    );
+    const [questions] = await db.query(
+      'SELECT * FROM questions WHERE game_id = ? ORDER BY question_order', [game.id]
+    );
+    const [sounds] = await db.query(
+      'SELECT * FROM sounds WHERE game_id = ?', [game.id]
+    );
+    for (let q of questions) {
+      const [options] = await db.query(
+        'SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [q.id]
+      );
+      q.options = options;
+    }
+    const soundMap = {};
+    for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+    const rawSettings = settingsRows[0] || {};
+    const safeSettings = { ...rawSettings };
+    for (const f of ['bg_image_url','thankyou_bg_image_url','game_logo_url','intro_video_url']) {
+      if (safeSettings[f]) safeSettings[f] = toAbs(safeSettings[f]);
+    }
+    const introVideo = safeSettings.intro_video_url || null;
+    const mediaList = [];
+    if (introVideo) mediaList.push(introVideo);
+    for (const q of questions) {
+      for (const f of ['question_image_url','question_bg_image_url']) {
+        const u = toAbs(q[f]); if (u) mediaList.push(u);
+      }
+      for (const opt of (q.options || [])) {
+        for (const f of ['option_image_url','option_overlay_image_url']) {
+          const u = toAbs(opt[f]); if (u) mediaList.push(u);
+        }
+      }
+    }
+    for (const q of questions) {
+      for (const f of ['question_image_url','question_bg_image_url']) q[f] = toAbs(q[f]);
+      for (const opt of (q.options || [])) {
+        for (const f of ['option_image_url','option_overlay_image_url']) opt[f] = toAbs(opt[f]);
+      }
+    }
+    res.json({
+      success: true,
+      game: {
+        id: game.id, name: game.name, category: game.category,
+        description: game.description, redirect_url: game.redirect_url,
+        client_logo: toAbs(game.client_logo), company_name: game.company_name,
+        intro_video: introVideo, media_list: mediaList,
+        settings: safeSettings, formFields, questions, soundMap,
+      },
+    });
+  } catch (err) {
+    console.error('GET game (by slug) error:', err);
+    res.status(500).json({ success: false, message: err.message });
   }
 });
 

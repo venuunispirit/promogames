@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
-import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const FONT_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap'
 
@@ -39,7 +38,7 @@ const LIGHT = `
 .jb-swatch{width:28px;height:28px;border-radius:6px;border:2px solid #E5E7EB;cursor:pointer;flex-shrink:0}
 .jb-cpop{position:absolute;top:calc(100%+6px);left:0;z-index:300;background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:grid;grid-template-columns:repeat(7,1fr);gap:5px;width:220px}
 .jb-thumb{height:44px;width:auto;border-radius:6px;border:1px solid #E5E7EB;object-fit:contain}
-.jb-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:62px;z-index:50;min-height:56px}
+.jb-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:0;z-index:50;min-height:56px}
 .jb-tabs{display:flex;gap:4px}
 .jb-tab{padding:8px 16px;border-radius:8px;border:none;background:transparent;color:#6B7280;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .14s;white-space:nowrap}
 .jb-tab:hover{background:#F3F4F6;color:#374151}
@@ -105,10 +104,10 @@ function ColorPicker({ value, onChange, label }) {
   )
 }
 
-function ImageUpload({ label, url, onFile, onClear, accept, error }) {
+function ImageUpload({ label, url, onFile, onClear, accept }) {
   const ref = useRef()
   return (
-    <div className={error ? 'gb-img-error' : ''}>
+    <div>
       {label && <span className="jb-label">{label}</span>}
       <input type="file" ref={ref} accept={accept||'image/png,image/jpeg,image/jpg,image/gif,image/webp'} style={{ display:'none' }}
         onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
@@ -117,7 +116,6 @@ function ImageUpload({ label, url, onFile, onClear, accept, error }) {
         {url && <img src={url} className="jb-thumb" alt="" />}
         {url && <button type="button" className="jb-icon-btn del" onClick={onClear}>✕</button>}
       </div>
-      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
     </div>
   )
 }
@@ -156,7 +154,6 @@ export default function JigsawBuilderPage() {
   const [descColor, setDescColor] = useState('#888888')
   const [text1, setText1] = useState('')
 
-  const upload = useUploadErrors()
   const showToast = (msg, type='success') => setToast({ msg, type })
 
   const loadData = useCallback(() => {
@@ -225,16 +222,7 @@ export default function JigsawBuilderPage() {
       fd.append('redirect_url', redirectUrl || '')
       await api.put(`/jigsaw/${id}/settings`, fd)
       showToast('Settings saved ✅')
-    } catch (err) {
-      const msg = uploadErrorMessage(err)
-      if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
-      if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
-      if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
-      if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
-      if (settings._puzzleImageFile) upload.setFieldError('puzzle_image_url', msg)
-      if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile && !settings._submitGifFile && !settings._puzzleImageFile) upload.setFieldError('bg_image_url', msg)
-      showToast(msg, 'error')
-    }
+    } catch (err) { showToast('Error: ' + (err.response?.data?.message || err.message), 'error') }
     setSaving(false)
   }
 
@@ -314,10 +302,6 @@ export default function JigsawBuilderPage() {
     { id:'email',     label:'📧 Email' },
     { id:'settings',  label:'⚙️ Settings' },
   ]
-  const TAB_FIELDS = {
-    display: ['bg_image_url', 'game_logo_url', 'puzzle_image_url'],
-    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
-  }
 
   if (loading) return (
     <div className="jb-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
@@ -351,18 +335,15 @@ export default function JigsawBuilderPage() {
     <div className="jb-wrap">
       <style>{LIGHT}</style>
 
-      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', background:'#fff', borderBottom:'1.5px solid #EAECF0', padding:'10px 28px', gap:'4px 20px', alignItems:'center', position:'sticky', top:'62px', zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
+      <div style={{ display:'grid', gridTemplateColumns:'1fr auto 1fr', background:'#fff', borderBottom:'1.5px solid #EAECF0', padding:'10px 28px', gap:'4px 20px', alignItems:'center', position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
         <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'start' }}>
           <button className="jb-btn jb-btn-secondary jb-btn-sm" onClick={() => navigate('/dashboard/games')} style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }} title="Back">←</button>
           <span style={{ fontWeight:700, fontSize:14, color:'#111827' }}>{game?.name}</span>
         </div>
         <div className="jb-tabs" style={{ marginBottom:0, borderBottom:'none', gap:4 }}>
-          {TABS.map(t => {
-            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
-            return (
-              <button key={t.id} className={`jb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)} style={{ padding:'8px 16px', fontSize:12.5 }}>{t.label}{hasErr && <span className="gb-tab-err-dot" />}</button>
-            )
-          })}
+          {TABS.map(t => (
+            <button key={t.id} className={`jb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)} style={{ padding:'8px 16px', fontSize:12.5 }}>{t.label}</button>
+          ))}
         </div>
         <div style={{ display:'flex', gap:6, justifyContent:'flex-end' }}>
           <button className="jb-btn jb-btn-secondary jb-btn-sm" onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }} style={{ padding:'6px 8px', fontSize:14 }}>🔗</button>
@@ -378,12 +359,10 @@ export default function JigsawBuilderPage() {
                 <div className="jb-card-title">🎨 Visuals</div>
                 <div className="jb-2col">
                   <ImageUpload label="Game Background Image" url={settings.bg_image_url}
-                    error={upload.errors.bg_image_url}
-                    onFile={f => { upload.clearFieldError('bg_image_url'); const r=new FileReader(); r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgImageFile:f}); r.readAsDataURL(f) }}
+                    onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgImageFile:f}); r.readAsDataURL(f) }}
                     onClear={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})} />
                   <ImageUpload label="Game Logo" url={settings.game_logo_url}
-                    error={upload.errors.game_logo_url}
-                    onFile={f => { upload.clearFieldError('game_logo_url'); const r=new FileReader(); r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_gameLogoFile:f}); r.readAsDataURL(f) }}
+                    onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_gameLogoFile:f}); r.readAsDataURL(f) }}
                     onClear={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} />
                 </div>
               </div>
@@ -531,8 +510,7 @@ export default function JigsawBuilderPage() {
                 <div className="jb-card" style={{ padding:20 }}>
                   <div className="jb-card-title">🎁 Thank You Page Background</div>
                   <ImageUpload label="" url={settings.thankyou_bg_image_url}
-                    error={upload.errors.thankyou_bg_image_url}
-                    onFile={f=>{upload.clearFieldError('thankyou_bg_image_url');const r=new FileReader();r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgImageFile:f});r.readAsDataURL(f)}}
+                    onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgImageFile:f});r.readAsDataURL(f)}}
                     onClear={()=>setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})} />
                 </div>
 
@@ -571,8 +549,7 @@ export default function JigsawBuilderPage() {
                 <div className="jb-card" style={{ padding:20 }}>
                   <div className="jb-card-title">🎁 Submit Confirmation GIF</div>
                   <ImageUpload label="" url={settings.submit_confirm_gif_url}
-                    error={upload.errors.submit_confirm_gif_url}
-                    onFile={f=>{upload.clearFieldError('submit_confirm_gif_url');const r=new FileReader();r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_submitGifFile:f});r.readAsDataURL(f)}}
+                    onFile={f=>{const r=new FileReader();r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_submitGifFile:f});r.readAsDataURL(f)}}
                     onClear={()=>setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})} accept="image/gif,image/png,image/jpeg,image/webp" />
                 </div>
 
@@ -651,8 +628,7 @@ export default function JigsawBuilderPage() {
                 <p style={{ fontSize:12, color:'#9CA3AF', marginBottom:12 }}>Upload the image that will be split into puzzle pieces.</p>
                 <div style={{ marginBottom:14 }}>
                   <ImageUpload label="Puzzle Image" url={settings.puzzle_image_url} accept="image/png,image/jpeg,image/jpg,image/webp"
-                    error={upload.errors.puzzle_image_url}
-                    onFile={f => { upload.clearFieldError('puzzle_image_url'); const r=new FileReader(); r.onload=e=>setSettings({...settings,puzzle_image_url:e.target.result,_puzzleImageFile:f}); r.readAsDataURL(f) }}
+                    onFile={f => { const r=new FileReader(); r.onload=e=>setSettings({...settings,puzzle_image_url:e.target.result,_puzzleImageFile:f}); r.readAsDataURL(f) }}
                     onClear={() => setSettings({...settings,puzzle_image_url:'',_puzzleImageFile:null})} />
                 </div>
                 <div className="jb-2col">

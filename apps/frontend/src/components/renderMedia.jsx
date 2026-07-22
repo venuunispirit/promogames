@@ -20,7 +20,10 @@ export function renderMedia(url, style = {}, videoProps = {}) {
         muted
         loop
         playsInline
-        style={{ display: 'block', ...style }}
+        controls={false}
+        preload="metadata"
+        poster="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7"
+        style={{ display: 'block', fontSize: 0, lineHeight: 0, ...style }}
         {...videoProps}
       />
     );

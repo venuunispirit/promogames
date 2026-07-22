@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
-import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const COLOR_PRESETS = ['#1a1a2e','#ffffff','#000000','#ef4444','#22c55e','#3b82f6',
   '#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16','#0ea5e9']
@@ -38,10 +37,10 @@ function ColorPicker({ value, onChange, label, noPresets }) {
   )
 }
 
-function ImageUpload({ label, url, onFile, onClear, error, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" }) {
+function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp" }) {
   const ref = useRef()
   return (
-    <div className={error ? 'gb-img-error' : ''}>
+    <div>
       {label && <span className="gb-label">{label}</span>}
       <input type="file" ref={ref} accept={accept} style={{ display:'none' }}
         onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
@@ -49,7 +48,6 @@ function ImageUpload({ label, url, onFile, onClear, error, accept="image/png,ima
         <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => ref.current.click()}>📷 Upload</button>
         {url && <img src={url} className="gb-thumb" alt="" />}
         {url && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={onClear}>✕</button>}
-      {error && <div className="gb-img-error-msg">⚠️ {error}</div>}
       </div>
     </div>
   )
@@ -105,7 +103,7 @@ const LIGHT = `
 .gb-badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:11px;font-weight:700}
 .gb-badge-purple{background:rgba(99,102,241,.12);color:var(--gb-primary)}
 .gb-badge-green{background:rgba(22,163,74,.12);color:var(--gb-success)}
-.gb-header{display:flex;align-items:center;gap:16px;padding:12px 24px;background:var(--gb-surface);border-bottom:1px solid var(--gb-border);position:sticky;top:62px;z-index:10}
+.gb-header{display:flex;align-items:center;gap:16px;padding:12px 24px;background:var(--gb-surface);border-bottom:1px solid var(--gb-border);position:sticky;top:0;z-index:10}
 .gb-h-left{display:flex;align-items:center;gap:10px}
 .gb-back-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid var(--gb-border);background:var(--gb-surface);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--gb-text2);font-size:16px;flex-shrink:0}
 .gb-title{font-size:15px;font-weight:700;margin:0;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:180px}
@@ -159,8 +157,6 @@ export default function SudokuBuilderPage() {
   const gifRef = useRef()
 
   const showToast = (msg, type = 'success') => {
-
-  const upload = useUploadErrors()
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
   }
@@ -218,25 +214,9 @@ export default function SudokuBuilderPage() {
       await api.put(`/games/${id}`, { redirect_url: redirectUrl, slug: slugInput.trim() || undefined })
       showToast('Settings saved')
     } catch (err) {
-      upload.clearAll()
-      const msg = uploadErrorMessage(err)
-      if (err?.response?.status === 413) {
-        if (_bgFile) upload.setFieldError('bg_image_url', msg)
-        if (_logoFile) upload.setFieldError('game_logo_url', msg)
-        if (_tyBgFile) upload.setFieldError('thankyou_bg_image_url', msg)
-        if (_gifFile) upload.setFieldError('submit_confirm_gif_url', msg)
-        if (!_bgFile && !_logoFile && !_tyBgFile && !_gifFile) upload.setFieldError('bg_image_url', msg)
-      } else {
-        upload.setFieldError('bg_image_url', msg)
-      }
-      showToast(msg, 'error')
+      showToast('Error: ' + (err.response?.data?.message || err.message), 'error')
     }
     setSaving(false)
-  }
-
-  const TAB_FIELDS = {
-    visuals: ['bg_image_url','game_logo_url'],
-    thankyou: ['thankyou_bg_image_url','submit_confirm_gif_url'],
   }
 
   const TABS = [
@@ -248,8 +228,6 @@ export default function SudokuBuilderPage() {
   ]
 
   const handleImgUpload = (field, ref) => {
-    upload.clearFieldError(field)
-    upload.clearFieldError(field)
     const file = ref.current?.files?.[0]
     if (file) {
       const url = URL.createObjectURL(file)
@@ -311,9 +289,9 @@ export default function SudokuBuilderPage() {
       </div>
       <div className="gb-section">
         <div className="gb-section-title">🖼️ Images</div>
-        <ImageUpload label="Background Image" url={settings.bg_image_url} error={upload.errors['bg_image_url']} onFile={f => handleImgUpload('bg_image_url', bgImgRef)} onClear={() => set('bg_image_url', '')} />
+        <ImageUpload label="Background Image" url={settings.bg_image_url} onFile={f => handleImgUpload('bg_image_url', bgImgRef)} onClear={() => set('bg_image_url', '')} />
         <input ref={bgImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={() => handleImgUpload('bg_image_url', bgImgRef)} />
-        <div style={{ marginTop: 8 }}><ImageUpload label="Game Logo" url={settings.game_logo_url} error={upload.errors['game_logo_url']} onFile={f => handleImgUpload('game_logo_url', gameLogoRef)} onClear={() => set('game_logo_url', '')} /></div>
+        <div style={{ marginTop: 8 }}><ImageUpload label="Game Logo" url={settings.game_logo_url} onFile={f => handleImgUpload('game_logo_url', gameLogoRef)} onClear={() => set('game_logo_url', '')} /></div>
         <input ref={gameLogoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={() => handleImgUpload('game_logo_url', gameLogoRef)} />
       </div>
       <div className="gb-section">
@@ -344,9 +322,9 @@ export default function SudokuBuilderPage() {
       </div>
       <div className="gb-section">
         <div className="gb-section-title">🖼️ Thankyou Images</div>
-        <ImageUpload label="Thankyou Background" url={settings.thankyou_bg_image_url} error={upload.errors['thankyou_bg_image_url']} onFile={f => handleImgUpload('thankyou_bg_image_url', tyBgImgRef)} onClear={() => set('thankyou_bg_image_url', '')} />
+        <ImageUpload label="Thankyou Background" url={settings.thankyou_bg_image_url} onFile={f => handleImgUpload('thankyou_bg_image_url', tyBgImgRef)} onClear={() => set('thankyou_bg_image_url', '')} />
         <input ref={tyBgImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={() => handleImgUpload('thankyou_bg_image_url', tyBgImgRef)} />
-        <div style={{ marginTop: 8 }}><ImageUpload label="Confirmation GIF" url={settings.submit_confirm_gif_url} error={upload.errors['submit_confirm_gif_url']} onFile={f => handleImgUpload('submit_confirm_gif_url', gifRef)} onClear={() => set('submit_confirm_gif_url', '')} /></div>
+        <div style={{ marginTop: 8 }}><ImageUpload label="Confirmation GIF" url={settings.submit_confirm_gif_url} onFile={f => handleImgUpload('submit_confirm_gif_url', gifRef)} onClear={() => set('submit_confirm_gif_url', '')} /></div>
         <input ref={gifRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={() => handleImgUpload('submit_confirm_gif_url', gifRef)} />
       </div>
       <div className="gb-section">
@@ -451,7 +429,7 @@ export default function SudokuBuilderPage() {
         </div>
         <div className="gb-h-tabs">
           {TABS.map(t => (
-            <button key={t.id} className={`gb-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>{t.label}{upload.tabHasError(t.id, TAB_FIELDS[t.id] || []) && <span className="gb-tab-err-dot" />}</button>
+            <button key={t.id} className={`gb-tab ${tab === t.id ? 'active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
           ))}
         </div>
         <div className="gb-h-right">

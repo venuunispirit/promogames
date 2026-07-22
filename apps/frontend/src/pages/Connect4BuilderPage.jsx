@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
-import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
 
 const LIGHT = `
 .gb-wrap{--gb-bg:#f4f6fb;--gb-surface:#ffffff;--gb-surface2:#f0f2f8;--gb-border:#e2e6f0;--gb-primary:#3b82f6;--gb-primary-d:#2563eb;--gb-primary-g:rgba(59,130,246,0.15);--gb-success:#16a34a;--gb-danger:#dc2626;--gb-text:#1e1e2e;--gb-text2:#64657a;--gb-text3:#9899ae;--gb-shadow:0 2px 12px rgba(0,0,0,0.08);--gb-shadow-md:0 4px 24px rgba(0,0,0,0.10);--gb-radius:12px;--gb-radius-sm:8px;font-family:'DM Sans',sans-serif;background:var(--gb-bg);color:var(--gb-text);min-height:100vh}
@@ -80,7 +79,6 @@ export default function Connect4BuilderPage() {
   const [sounds, setSounds] = useState([])
   const [saving, setSaving] = useState(false)
 
-  const upload = useUploadErrors()
   const showToast = (msg, type='success') => setToast({ msg, type })
 
   const loadData = useCallback(() => {
@@ -117,11 +115,7 @@ export default function Connect4BuilderPage() {
       await api.put(`/connect4/${id}/settings`, fd)
       showToast('Settings saved')
     } catch (err) {
-      const msg = uploadErrorMessage(err)
-      if (settings._bgFile) upload.setFieldError('bg_image_url', msg)
-      if (settings._logoFile) upload.setFieldError('game_logo_url', msg)
-      if (!settings._bgFile && !settings._logoFile) upload.setFieldError('bg_image_url', msg)
-      showToast(msg, 'error')
+      showToast('Error: ' + (err.response?.data?.message || err.message), 'error')
     }
     setSaving(false)
   }
@@ -134,7 +128,6 @@ export default function Connect4BuilderPage() {
     { id:'sounds', label:'Audio' },
     { id:'settings', label:'Settings' },
   ]
-  const TAB_FIELDS = { visuals: ['bg_image_url', 'game_logo_url'] }
 
   if (loading) return (
     <div className="gb-wrap" style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh' }}>
@@ -167,7 +160,7 @@ export default function Connect4BuilderPage() {
       <style>{LIGHT}</style>
 
       {/* Header */}
-      <div style={{ display:'grid',gridTemplateColumns:'1fr auto 1fr',background:'var(--gb-surface)',borderBottom:'1.5px solid var(--gb-border)',padding:'10px 28px',gap:'4px 20px',alignItems:'center',position:'sticky',top:'62px',zIndex:50,boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
+      <div style={{ display:'grid',gridTemplateColumns:'1fr auto 1fr',background:'var(--gb-surface)',borderBottom:'1.5px solid var(--gb-border)',padding:'10px 28px',gap:'4px 20px',alignItems:'center',position:'sticky',top:0,zIndex:50,boxShadow:'0 1px 8px rgba(0,0,0,.06)' }}>
         <div style={{ display:'flex',gap:6,alignItems:'flex-start',justifySelf:'start' }}>
           <button className="gb-btn gb-btn-ghost" onClick={() => navigate('/dashboard/games')} style={{ padding:'6px 8px',fontSize:16,lineHeight:1,marginTop:1 }} title="Back to games">←</button>
           <div>
@@ -177,12 +170,9 @@ export default function Connect4BuilderPage() {
         </div>
 
         <div className="gb-tabs" style={{ marginBottom:0,borderBottom:'none',justifySelf:'center' }}>
-          {TABS.map(t => {
-            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
-            return (
-              <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)} style={{ padding:'6px 14px',fontSize:12.5 }}>{t.label}{hasErr && <span className="gb-tab-err-dot" />}</button>
-            )
-          })}
+          {TABS.map(t => (
+            <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)} style={{ padding:'6px 14px',fontSize:12.5 }}>{t.label}</button>
+          ))}
         </div>
 
         <div style={{ display:'flex',gap:6,alignItems:'center',justifySelf:'end' }}>
@@ -251,15 +241,13 @@ export default function Connect4BuilderPage() {
               <div className="gb-card" style={{ marginBottom:16,padding:16 }}>
                 <div className="gb-section-title">🖼 Images</div>
                 <div className="gb-row">
-                  <div className={`gb-fg${upload.errors.bg_image_url ? ' gb-img-error' : ''}`}>
+                  <div className="gb-fg">
                     <span className="gb-label">Background Image</span>
-                    <input type="file" accept="image/*" onChange={e => { upload.clearFieldError('bg_image_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgFile:f}); r.readAsDataURL(f)} }} />
-                    {upload.errors.bg_image_url && <div className="gb-img-error-msg">⚠️ {upload.errors.bg_image_url}</div>}
+                    <input type="file" accept="image/*" onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgFile:f}); r.readAsDataURL(f)} }} />
                   </div>
-                  <div className={`gb-fg${upload.errors.game_logo_url ? ' gb-img-error' : ''}`}>
+                  <div className="gb-fg">
                     <span className="gb-label">Game Logo</span>
-                    <input type="file" accept="image/*" onChange={e => { upload.clearFieldError('game_logo_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_logoFile:f}); r.readAsDataURL(f)} }} />
-                    {upload.errors.game_logo_url && <div className="gb-img-error-msg">⚠️ {upload.errors.game_logo_url}</div>}
+                    <input type="file" accept="image/*" onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_logoFile:f}); r.readAsDataURL(f)} }} />
                   </div>
                 </div>
               </div>

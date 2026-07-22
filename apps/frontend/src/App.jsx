@@ -114,6 +114,7 @@ function AppRoutes() {
 
       {/* Player game routes */}
       <Route path="/play/:gameName/:companyName" element={<PlayerPageWrapper />} />
+      <Route path="/play/:gameName" element={<PlayerPageWrapper />} />
       <Route path="/play/bejeweled/:id" element={<BejeweledPlayerPage />} />
       <Route path="/play/chess/:gameName/:companyName" element={<ChessPlayerPage />} />
 

@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
-import { useUploadErrors } from '../lib/builderUpload'
 
 const FONT_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap'
 
@@ -40,7 +39,7 @@ const LIGHT = `
 .mb-thumb{height:44px;width:auto;border-radius:6px;border:1px solid #E5E7EB;object-fit:contain}
 .mb-empty{text-align:center;padding:48px 20px;color:#9CA3AF}
 .mb-empty-icon{font-size:40px;margin-bottom:10px}
-.mb-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:62px;z-index:50;min-height:56px}
+.mb-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:0;z-index:50;min-height:56px}
 .mb-tabs{display:flex;gap:4px}
 .mb-tab{padding:8px 16px;border-radius:8px;border:none;background:transparent;color:#6B7280;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .14s;white-space:nowrap}
 .mb-tab:hover{background:#F3F4F6;color:#374151}
@@ -125,7 +124,6 @@ export default function MathBuilderPage() {
   const [fetchError, setFetchError] = useState(null)
   const [tab, setTab] = useState('gameplay')
   const [toast, setToast] = useState(null)
-  const upload = useUploadErrors()
   const [settings, setSettings] = useState({})
   const [sounds, setSounds] = useState([])
   const [saving, setSaving] = useState(false)
@@ -262,8 +260,6 @@ export default function MathBuilderPage() {
     { id:'settings', label:'Settings' },
   ]
 
-  const TAB_FIELDS = {}
-
   if (loading) return (
     <div className="mb-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
       <div style={{ textAlign:'center' }}>
@@ -301,12 +297,9 @@ export default function MathBuilderPage() {
       <div className="mb-header">
         <div><button className="mb-icon-btn" onClick={handleBack} title="Back to games" style={{ fontSize:16, lineHeight:1 }}>←</button></div>
         <div className="mb-tabs">
-          {TABS.map(t => {
-            const hasErr = upload.tabHasError(t.id, (TAB_FIELDS[t.id] || []))
-            return (
-              <button key={t.id} className={`mb-tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}{hasErr && <span className="gb-tab-err-dot" />}</button>
-            )
-          })}
+          {TABS.map(t => (
+            <button key={t.id} className={`mb-tab${tab === t.id ? ' active' : ''}`} onClick={() => setTab(t.id)}>{t.label}</button>
+          ))}
         </div>
         <div style={{ textAlign:'right' }}>
           <button className="mb-btn mb-btn-sm" onClick={saveSettings} disabled={saving}>

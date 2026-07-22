@@ -1,287 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
-import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
+
 
 /* ─────────────────────────────────────────────
-   LIGHT THEME TOKENS  (scoped to .gb-wrap)
+   LIGHT THEME TOKENS  (scoped to .bw-wrap)
 ───────────────────────────────────────────── */
-const LIGHT = `
-.gb-wrap {
-  font-family: 'DM Sans', sans-serif;
-  background: var(--gb-bg);
-  color: var(--gb-text);
-  min-height: 100vh;
-}
-.gb-wrap *,
-.gb-wrap *::before,
-.gb-wrap *::after { box-sizing: border-box; }
-
-/* inputs / selects / textareas */
-.gb-wrap input:not([type=checkbox]):not([type=file]):not([type=color]):not([type=range]),
-.gb-wrap select,
-.gb-wrap textarea {
-  width: 100%;
-  font-family: inherit;
-  font-size: 14px;
-  background: var(--gb-surface);
-  border: none;
-  border-bottom: 1.5px solid var(--gb-border);
-  border-radius: 8px;
-  color: var(--gb-text);
-  padding: 10px 12px 8px;
-  outline: none;
-  transition: border-color .18s;
-}
-.gb-wrap input:not([type=checkbox]):not([type=file]):not([type=color]):not([type=range]):focus,
-.gb-wrap select:focus,
-.gb-wrap textarea:focus {
-  border-bottom-color: #22c55e;
-  border-bottom-width: 2px;
-}
-.gb-wrap select option { background: #fff; color: #1e1e2e; }
-
-/* buttons */
-.gb-btn {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 8px 16px; font-size: 13px; font-weight: 600;
-  border-radius: var(--gb-radius-sm); border: none; cursor: pointer;
-  transition: all .15s; white-space: nowrap; font-family: inherit;
-}
-.gb-btn:disabled { opacity: .5; cursor: not-allowed; }
-.gb-btn-primary { background: var(--gb-primary); color: #fff; }
-.gb-btn-primary:not(:disabled):hover { background: var(--gb-primary-d); transform: translateY(-1px); box-shadow: 0 4px 12px var(--gb-primary-g); }
-.gb-btn-ghost { background: var(--gb-surface); color: var(--gb-text2); border: 1.5px solid var(--gb-border); }
-.gb-btn-ghost:not(:disabled):hover { border-color: var(--gb-primary); color: var(--gb-primary); }
-.gb-btn-danger { background: #fee2e2; color: var(--gb-danger); border: 1.5px solid #fecaca; }
-.gb-btn-danger:not(:disabled):hover { background: #fecaca; }
-.gb-btn-success { background: #dcfce7; color: var(--gb-success); border: 1.5px solid #bbf7d0; }
-.gb-btn-success:not(:disabled):hover { background: #bbf7d0; }
-.gb-btn-sm { padding: 5px 10px; font-size: 12px; }
-.gb-btn-icon { padding: 6px; border-radius: 6px; }
-
-/* card */
-.gb-card {
-  background: var(--gb-surface);
-  border: 1.5px solid var(--gb-border);
-  border-radius: var(--gb-radius);
-  box-shadow: var(--gb-shadow);
-}
-
-/* label */
-.gb-label {
-  font-size: 11px; font-weight: 700; letter-spacing: .06em;
-  text-transform: uppercase; color: var(--gb-text2); margin-bottom: 4px;
-  display: block;
-}
-
-/* section block */
-.gb-section {
-  background: var(--gb-surface2);
-  border: 1px solid var(--gb-border);
-  border-radius: var(--gb-radius);
-  padding: 16px;
-  margin-bottom: 14px;
-}
-.gb-section-title {
-  font-size: 12px; font-weight: 700; letter-spacing: .05em;
-  text-transform: uppercase; color: var(--gb-primary);
-  margin-bottom: 12px; display: flex; align-items: center; gap: 6px;
-}
-
-/* tabs */
-.gb-tabs {
-  display: flex; border-bottom: 2px solid var(--gb-border);
-  margin-bottom: 24px; gap: 0; overflow-x: auto;
-}
-.gb-tab {
-  padding: 10px 18px; font-size: 13px; font-weight: 600;
-  border: none; background: none; cursor: pointer;
-  color: var(--gb-text2); border-bottom: 2px solid transparent;
-  margin-bottom: -2px; transition: color .15s; white-space: nowrap;
-  font-family: inherit;
-}
-.gb-tab.active { color: #9210f6; border-bottom-color: #9210f6; }
-.gb-tab:hover:not(.active) { color: var(--gb-text); }
-
-/* toast */
-@keyframes gb-slide-in { from { opacity:0; transform:translateX(20px) } to { opacity:1; transform:none } }
-.gb-toast {
-  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
-  padding: 12px 18px; border-radius: 10px; color: #fff; font-weight: 600;
-  font-size: 13px; box-shadow: 0 8px 24px rgba(0,0,0,.15);
-  animation: gb-slide-in .22s ease; font-family: 'DM Sans',sans-serif;
-  max-width: 320px;
-}
-
-/* drag handle */
-.gb-drag-handle { cursor: grab; color: var(--gb-text3); padding: 4px; display: flex; align-items: center; }
-.gb-drag-handle:active { cursor: grabbing; }
-
-/* question row */
-.gb-q-row {
-  background: var(--gb-surface);
-  border: 1.5px solid var(--gb-border);
-  border-radius: var(--gb-radius);
-  margin-bottom: 10px;
-  overflow: hidden;
-  transition: box-shadow .15s;
-}
-.gb-q-row:hover { box-shadow: var(--gb-shadow-md); }
-.gb-q-row.dragging { opacity: .5; box-shadow: 0 8px 32px rgba(99,102,241,.2); }
-
-.gb-q-header {
-  display: flex; align-items: center; gap: 10px;
-  padding: 12px 16px; cursor: pointer; user-select: none;
-  background: var(--gb-surface);
-}
-.gb-q-header:hover { background: var(--gb-surface2); }
-.gb-q-body { padding: 16px; border-top: 1.5px solid var(--gb-border); }
-
-/* color swatch */
-.gb-swatch {
-  width: 28px; height: 28px; border-radius: 6px;
-  border: 2px solid var(--gb-border); cursor: pointer; flex-shrink: 0;
-}
-
-/* image preview thumb */
-.gb-thumb {
-  height: 44px; width: auto; border-radius: 6px;
-  border: 1px solid var(--gb-border); object-fit: contain; background: #f9f9f9;
-}
-
-/* empty state */
-.gb-empty { text-align: center; padding: 56px 20px; color: var(--gb-text2); }
-.gb-empty-icon { font-size: 44px; margin-bottom: 12px; }
-
-/* grid helpers */
-.gb-row { display: flex; gap: 12px; flex-wrap: wrap; align-items: flex-start; }
-.gb-col { flex: 1; min-width: 140px; }
-
-/* sticky add button bar */
-.gb-sticky-bar {
-  position: sticky; top: 0; z-index: 40;
-  background: rgba(244,246,251,.92); backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--gb-border);
-  padding: 10px 0; margin-bottom: 16px;
-  display: flex; align-items: center; justify-content: space-between;
-}
-
-/* phone mockup */
-.gb-phone {
-  width: 220px; min-height: 380px; border-radius: 28px;
-  border: 3px solid #d1d5db; background: #f9f9fb;
-  overflow: hidden; position: relative; box-shadow: 0 8px 32px rgba(0,0,0,.12);
-}
-
-/* color picker popup */
-.gb-cpop {
-  position: absolute; top: calc(100% + 6px); left: 0; z-index: 300;
-  background: var(--gb-surface); border: 1.5px solid var(--gb-border);
-  border-radius: 10px; padding: 12px; box-shadow: var(--gb-shadow-md);
-  display: grid; grid-template-columns: repeat(7,1fr); gap: 5px; width: 220px;
-}
-
-/* badge */
-.gb-badge {
-  display: inline-flex; align-items: center; gap: 4px;
-  padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700;
-}
-.gb-badge-purple { background: rgba(99,102,241,.12); color: var(--gb-primary); }
-.gb-badge-green  { background: rgba(22,163,74,.12);  color: var(--gb-success); }
-.gb-badge-gray   { background: #f0f2f8; color: var(--gb-text2); }
-
-/* form group inline */
-.gb-fg { display: flex; flex-direction: column; gap: 4px; flex: 1; min-width: 120px; }
-
-/* scroll util */
-.gb-scroll-y { overflow-y: auto; }
-
-/* option row */
-.gb-opt-row {
-  background: var(--gb-surface2); border: 1px solid var(--gb-border);
-  border-radius: 8px; padding: 10px 12px; margin-bottom: 8px;
-}
-
-/* preview overlay animations */
-@keyframes flyFromBottom  { from { transform:translateY(110vh) scale(0.9);opacity:0 } to { transform:translateY(0) scale(1);opacity:1 } }
-@keyframes flyFromTop     { from { transform:translateY(-110vh) scale(0.9);opacity:0 } to { transform:translateY(0) scale(1);opacity:1 } }
-@keyframes flyFromLeft    { from { transform:translateX(-110vw) scale(0.9);opacity:0 } to { transform:translateX(0) scale(1);opacity:1 } }
-@keyframes flyFromRight   { from { transform:translateX(110vw) scale(0.9);opacity:0 } to { transform:translateX(0) scale(1);opacity:1 } }
-@keyframes zoomIn         { from { transform:scale(0.1);opacity:0 } to { transform:scale(1);opacity:1 } }
-@keyframes fadeIn         { from { opacity:0 } to { opacity:1 } }
-@keyframes scaleIn        { from { transform:scale(0.5);opacity:0 } to { transform:scale(1);opacity:1 } }
-@keyframes slideUp        { from { transform:translateY(60px);opacity:0 } to { transform:translateY(0);opacity:1 } }
-@keyframes slideDown      { from { transform:translateY(-60px);opacity:0 } to { transform:translateY(0);opacity:1 } }
-@keyframes rotateIn       { from { transform:rotate(-360deg) scale(0.3);opacity:0 } to { transform:rotate(0) scale(1);opacity:1 } }
-@keyframes flipIn         { from { transform:rotateX(-90deg);opacity:0 } to { transform:rotateX(0);opacity:1 } }
-@keyframes swirlIn        { from { transform:rotate(720deg) scale(0.1);opacity:0 } to { transform:rotate(0) scale(1);opacity:1 } }
-@keyframes bounceIn       { 0%{transform:scale(0);opacity:0} 50%{transform:scale(1.15)} 70%{transform:scale(0.92)} 85%{transform:scale(1.06)} 100%{transform:scale(1);opacity:1} }
-@keyframes elasticIn      { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.08)} 80%{transform:scale(0.95)} 100%{transform:scale(1);opacity:1} }
-@keyframes blurIn         { from { filter:blur(12px);opacity:0 } to { filter:blur(0);opacity:1 } }
-@keyframes dropIn         { 0%{transform:translateY(-120vh) rotate(-20deg);opacity:0} 60%{transform:translateY(10px) rotate(2deg);opacity:1} 80%{transform:translateY(-5px) rotate(-1deg)} 100%{transform:translateY(0) rotate(0);opacity:1} }
-@keyframes wipeIn         { from { clip-path:inset(0 100% 0 0) } to { clip-path:inset(0 0 0 0) } }
-@keyframes skewIn         { from { transform:skewX(-20deg);opacity:0 } to { transform:skewX(0);opacity:1 } }
-@keyframes spiralIn       { from { transform:rotate(1080deg) translateX(-200px);opacity:0 } to { transform:rotate(0) translateX(0);opacity:1 } }
-@keyframes rushIn         { from { transform:scale(3);opacity:0 } to { transform:scale(1);opacity:1 } }
-@keyframes foldIn         { from { transform:perspective(500px) rotateY(90deg);opacity:0 } to { transform:perspective(500px) rotateY(0);opacity:1 } }
-@keyframes revealIn       { from { clip-path:circle(0% at 50% 50%) } to { clip-path:circle(100% at 50% 50%) } }
-@keyframes spinIn         { from { transform:rotate(720deg) scale(0);opacity:0 } to { transform:rotate(0) scale(1);opacity:1 } }
-@keyframes cometIn        { from { transform:translate(-200px,-200px) rotate(-30deg) scale(0.3);opacity:0 } to { transform:translate(0,0) rotate(0) scale(1);opacity:1 } }
-@keyframes floatIn        { from { transform:translateY(40px);opacity:0 } to { transform:translateY(0);opacity:1 } }
-
-@keyframes flyToTop       { from { transform:translateY(0) scale(1);opacity:1 } to { transform:translateY(-110vh) scale(0.9);opacity:0 } }
-@keyframes flyToBottom    { from { transform:translateY(0) scale(1);opacity:1 } to { transform:translateY(110vh) scale(0.9);opacity:0 } }
-@keyframes flyToLeft      { from { transform:translateX(0) scale(1);opacity:1 } to { transform:translateX(-110vw) scale(0.9);opacity:0 } }
-@keyframes flyToRight     { from { transform:translateX(0) scale(1);opacity:1 } to { transform:translateX(110vw) scale(0.9);opacity:0 } }
-@keyframes zoomOut        { from { transform:scale(1);opacity:1 } to { transform:scale(0.1);opacity:0 } }
-@keyframes fadeOut        { from { opacity:1 } to { opacity:0 } }
-@keyframes scaleOut       { from { transform:scale(1);opacity:1 } to { transform:scale(0.5);opacity:0 } }
-@keyframes slideUpOut     { from { transform:translateY(0);opacity:1 } to { transform:translateY(-60px);opacity:0 } }
-@keyframes slideDownOut   { from { transform:translateY(0);opacity:1 } to { transform:translateY(60px);opacity:0 } }
-@keyframes rotateOut      { from { transform:rotate(0) scale(1);opacity:1 } to { transform:rotate(360deg) scale(0.3);opacity:0 } }
-@keyframes flipOut        { from { transform:rotateX(0);opacity:1 } to { transform:rotateX(90deg);opacity:0 } }
-@keyframes swirlOut       { from { transform:rotate(0) scale(1);opacity:1 } to { transform:rotate(-720deg) scale(0.1);opacity:0 } }
-@keyframes bounceOut      { 0%{transform:scale(1);opacity:1} 50%{transform:scale(1.06)} 100%{transform:scale(0.1);opacity:0} }
-@keyframes elasticOut     { 0%{transform:scale(1);opacity:1} 30%{transform:scale(0.92)} 60%{transform:scale(1.06)} 100%{transform:scale(0);opacity:0} }
-@keyframes blurOut        { from { filter:blur(0);opacity:1 } to { filter:blur(12px);opacity:0 } }
-@keyframes dropOut        { 0%{transform:translateY(0) rotate(0);opacity:1} 40%{transform:translateY(10px) rotate(2deg);opacity:1} 100%{transform:translateY(120vh) rotate(20deg);opacity:0} }
-@keyframes wipeOut        { from { clip-path:inset(0 0 0 0) } to { clip-path:inset(0 0 0 100%) } }
-@keyframes skewOut        { from { transform:skewX(0);opacity:1 } to { transform:skewX(20deg);opacity:0 } }
-@keyframes spiralOut      { from { transform:rotate(0) translateX(0);opacity:1 } to { transform:rotate(-1080deg) translateX(200px);opacity:0 } }
-@keyframes rushOut        { from { transform:scale(1);opacity:1 } to { transform:scale(3);opacity:0 } }
-@keyframes foldOut        { from { transform:perspective(500px) rotateY(0);opacity:1 } to { transform:perspective(500px) rotateY(90deg);opacity:0 } }
-@keyframes hideOut        { from { clip-path:circle(100% at 50% 50%) } to { clip-path:circle(0% at 50% 50%) } }
-@keyframes spinOut        { from { transform:rotate(0) scale(1);opacity:1 } to { transform:rotate(-720deg) scale(0);opacity:0 } }
-@keyframes cometOut       { from { transform:translate(0,0) rotate(0) scale(1);opacity:1 } to { transform:translate(200px,200px) rotate(30deg) scale(0.3);opacity:0 } }
-@keyframes floatOut       { from { transform:translateY(0);opacity:1 } to { transform:translateY(-40px);opacity:0 } }
-@keyframes qFloat { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-10px)} }
-@keyframes qBreathe { 0%,100%{transform:scale(1);opacity:1} 50%{transform:scale(1.04);opacity:0.9} }
-@keyframes qPulse { 0%,100%{transform:scale(1);filter:brightness(1)} 50%{transform:scale(1.05);filter:brightness(1.08)} }
-@keyframes qShimmer { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(1.5deg)} 75%{transform:rotate(-1.5deg)} }
-@keyframes qKenBurns { 0%{transform:scale(1) translate(0,0)} 100%{transform:scale(1.08) translate(-2%,-2%)} }
-@keyframes qBounce { 0%,100%{transform:translateY(0)} 20%{transform:translateY(-14px)} 40%{transform:translateY(-7px)} 60%{transform:translateY(-3px)} 80%{transform:translateY(-1px)} }
-@keyframes qSway { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-6px)} 75%{transform:translateX(6px)} }
-@keyframes qWobble { 0%,100%{transform:translateX(0)} 15%{transform:translateX(-6px) rotate(-3deg)} 30%{transform:translateX(4px) rotate(2deg)} 45%{transform:translateX(-3px) rotate(-1deg)} 60%{transform:translateX(2px) rotate(1deg)} }
-@keyframes qSwing { 0%,100%{transform:rotate(0deg)} 20%{transform:rotate(6deg)} 40%{transform:rotate(-5deg)} 60%{transform:rotate(3deg)} 80%{transform:rotate(-2deg)} }
-@keyframes qTada { 0%,100%{transform:scale(1) rotate(0deg)} 10%{transform:scale(0.94) rotate(-2deg)} 20%{transform:scale(1.06) rotate(2deg)} 30%{transform:scale(1) rotate(-2deg)} 40%{transform:scale(1.02) rotate(0deg)} }
-@keyframes qHeartBeat { 0%,100%{transform:scale(1)} 15%{transform:scale(1.12)} 30%{transform:scale(1)} 45%{transform:scale(1.08)} 60%{transform:scale(1)} }
-@keyframes qRotate { 0%{transform:rotate(0deg)} 100%{transform:rotate(360deg)} }
-@keyframes qFlash { 0%,100%{opacity:1} 25%{opacity:0.3} 50%{opacity:1} 75%{opacity:0.3} }
-@keyframes qRubberBand { 0%,100%{transform:scaleX(1) scaleY(1)} 15%{transform:scaleX(1.2) scaleY(0.85)} 30%{transform:scaleX(0.9) scaleY(1.1)} 45%{transform:scaleX(1.08) scaleY(0.95)} 60%{transform:scaleX(0.97) scaleY(1.03)} }
-@keyframes qSlideUpDown { 0%,100%{transform:translateY(0)} 25%{transform:translateY(-20px)} 50%{transform:translateY(0)} 75%{transform:translateY(12px)} }
-@keyframes qZoomInOut { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
-@keyframes qFadeInOut { 0%,100%{opacity:1} 50%{opacity:0.3} }
-@keyframes qWave { 0%,100%{transform:translateY(0) rotate(0deg)} 25%{transform:translateY(-6px) rotate(1deg)} 50%{transform:translateY(0) rotate(0deg)} 75%{transform:translateY(4px) rotate(-1deg)} }
-@keyframes qOrbit { 0%{transform:translate(0,0)} 25%{transform:translate(10px,-10px)} 50%{transform:translate(0,-16px)} 75%{transform:translate(-10px,-10px)} 100%{transform:translate(0,0)} }
-@keyframes qGlitch { 0%,100%{transform:translate(0)} 20%{transform:translate(-2px,1px) skewX(-1deg)} 40%{transform:translate(2px,-1px) skewX(1deg)} 60%{transform:translate(-1px,-1px) skewX(-0.5deg)} 80%{transform:translate(1px,2px) skewX(0.5deg)} }
-@keyframes qBlurBlink { 0%,100%{filter:blur(0);opacity:1} 25%{filter:blur(3px);opacity:0.6} 50%{filter:blur(0);opacity:1} 75%{filter:blur(2px);opacity:0.7} }
-@keyframes qSkew { 0%,100%{transform:skewX(0deg)} 25%{transform:skewX(-4deg)} 50%{transform:skewX(0deg)} 75%{transform:skewX(4deg)} }
-@keyframes qRoll { 0%{transform:translateX(0) rotate(0deg)} 50%{transform:translateX(60px) rotate(360deg)} 100%{transform:translateX(0) rotate(720deg)} }
-@keyframes qBounceIn { 0%{transform:scale(0);opacity:0} 50%{transform:scale(1.12)} 70%{transform:scale(0.94)} 85%{transform:scale(1.04)} 100%{transform:scale(1);opacity:1} }
-@keyframes qJello { 0%,100%{transform:skewX(0deg) skewY(0deg)} 25%{transform:skewX(-5deg) skewY(3deg)} 50%{transform:skewX(5deg) skewY(-3deg)} 75%{transform:skewX(-3deg) skewY(2deg)} }
-`
-
 /* ─────────── helpers ─────────── */
 const ANIM_IN  = [
   { value:'flyFromBottom', label:'⬆️ Fly from Bottom' },
@@ -383,7 +107,7 @@ const COLOR_PRESETS = ['#1a1a2e','#ffffff','#000000','#ef4444','#22c55e','#3b82f
 function Toast({ msg, type, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3200); return () => clearTimeout(t) }, [])
   return (
-    <div className="gb-toast" style={{ background: type === 'success' ? '#16a34a' : '#dc2626' }}>
+    <div className="bw-toast" style={{ background: type === 'success' ? '#16a34a' : '#dc2626' }}>
       {type === 'success' ? '✅' : '❌'} {msg}
     </div>
   )
@@ -400,14 +124,14 @@ function ColorPicker({ value, onChange, label, noPresets }) {
   }, [])
   return (
     <div ref={ref} style={{ position:'relative', display:'inline-flex', flexDirection:'column', gap:4 }}>
-      {label && <span className="gb-label">{label}</span>}
+      {label && <span className="bw-label">{label}</span>}
       <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-        <div className="gb-swatch" style={{ background: value || '#6366f1' }} onClick={() => setShow(s => !s)} />
+        <div className="bw-swatch" style={{ background: value || '#6366f1' }} onClick={() => setShow(s => !s)} />
         <input value={value || ''} onChange={e => onChange(e.target.value)} placeholder="#000000"
           style={{ width:90, fontSize:12, padding:'5px 8px' }} />
       </div>
       {show && (
-        <div className="gb-cpop" style={noPresets ? { display:'flex', flexDirection:'column', gap:6, padding:10 } : {}}>
+        <div className="bw-cpop" style={noPresets ? { display:'flex', flexDirection:'column', gap:6, padding:10 } : {}}>
           {!noPresets && COLOR_PRESETS.map(c => (
             <div key={c} onClick={() => { onChange(c); setShow(false) }}
               style={{ width:22, height:22, background:c, borderRadius:4, cursor:'pointer',
@@ -415,7 +139,7 @@ function ColorPicker({ value, onChange, label, noPresets }) {
           ))}
           <input type="color" value={value||'#000000'} onChange={e => onChange(e.target.value)}
             style={{ gridColumn:'span 7', width:'100%', height:28, padding:0, border:'none', background:'none', cursor:'pointer' }} />
-          <button className="gb-btn gb-btn-ghost gb-btn-sm" style={{ width:'100%' }} onClick={() => setShow(false)}>Close</button>
+          <button className="bw-btn bw-btn-ghost bw-btn-sm" style={{ width:'100%' }} onClick={() => setShow(false)}>Close</button>
         </div>
       )}
     </div>
@@ -427,13 +151,13 @@ function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg
   const ref = useRef()
   return (
     <div>
-      {label && <span className="gb-label">{label}</span>}
+      {label && <span className="bw-label">{label}</span>}
       <input type="file" ref={ref} accept={accept} style={{ display:'none' }}
         onChange={e => { const f=e.target.files[0]; if(f) onFile(f) }} />
       <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap', marginTop:4 }}>
-        <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => ref.current.click()}>📷 Upload</button>
+        <button className="bw-btn bw-btn-ghost bw-btn-sm" type="button" onClick={() => ref.current.click()}>📷 Upload</button>
         {url && <img src={url} className="gb-thumb" alt="" />}
-        {url && <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" type="button" onClick={onClear}>✕</button>}
+        {url && <button className="bw-btn bw-btn-danger bw-btn-sm bw-btn-icon" type="button" onClick={onClear}>✕</button>}
       </div>
     </div>
   )
@@ -442,8 +166,8 @@ function ImageUpload({ label, url, onFile, onClear, accept="image/png,image/jpeg
 /* ─────────── SoundSelector ─────────── */
 function SoundSelector({ label, value, onChange, sounds }) {
   return (
-    <div className="gb-fg">
-      <span className="gb-label">{label}</span>
+    <div className="bw-fg">
+      <span className="bw-label">{label}</span>
       <select value={value||''} onChange={e => onChange(e.target.value)}>
         <option value="">— None —</option>
         {sounds.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -455,18 +179,18 @@ function SoundSelector({ label, value, onChange, sounds }) {
 const TILE_VALUES = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096]
 
 const DEFAULT_TILE_COLORS = {
-  "2": "#e8e0ff",
-  "4": "#ddd0ff",
-  "8": "#c4a8ff",
-  "16": "#a88cff",
-  "32": "#8b70ff",
-  "64": "#7c3aed",
-  "128": "#6d28d9",
-  "256": "#5b21b6",
-  "512": "#8b5cf6",
-  "1024": "#a78bfa",
-  "2048": "#c084fc",
-  "4096": "#f0e6ff"
+  "2": "#eee4da",
+  "4": "#ede0c8",
+  "8": "#f2b179",
+  "16": "#f59563",
+  "32": "#f67c5f",
+  "64": "#f65e3b",
+  "128": "#edcf72",
+  "256": "#edcc61",
+  "512": "#edc850",
+  "1024": "#edc53f",
+  "2048": "#edc22e",
+  "4096": "#3c3a32"
 }
 
 function parseTileColors(val) {
@@ -503,9 +227,9 @@ export default function Game2048BuilderPage() {
     heading_1: '',
     heading_2: '',
     heading_3: '',
-    heading_1_color: '#c084fc',
-    heading_2_color: '#a78bfa',
-    heading_3_color: '#a78bfa',
+    heading_1_color: '#1a1a2e',
+    heading_2_color: '#64657a',
+    heading_3_color: '#64657a',
     description_text: '',
     sound_slide_id: '',
     sound_merge_id: '',
@@ -520,7 +244,6 @@ export default function Game2048BuilderPage() {
   const [soundUploading,setSoundUploading]= useState(false)
   const [redirectUrl,   setRedirectUrl]   = useState('')
 
-  const upload = useUploadErrors()
   const soundUploadRef = useRef()
   const bgImgRef       = useRef()
   const tyBgImgRef     = useRef()
@@ -638,15 +361,7 @@ export default function Game2048BuilderPage() {
       await api.put(`/games/${id}/settings`, fd)
       await api.put(`/games/${id}`, { redirect_url: redirectUrl, slug: slugInput.trim() || undefined })
       showToast('Settings saved ✅')
-    } catch (err) {
-      const msg = uploadErrorMessage(err)
-      if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
-      if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
-      if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
-      if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
-      if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile && !settings._submitGifFile) upload.setFieldError('bg_image_url', msg)
-      showToast(msg, 'error')
-    }
+    } catch (err) { showToast('Error: '+(err.response?.data?.message||err.message), 'error') }
     setSaving(false)
   }
 
@@ -697,53 +412,44 @@ export default function Game2048BuilderPage() {
     { id:'sounds',    label:'Audio' },
     { id:'settings',  label:'Settings' },
   ]
-  const TAB_FIELDS = {
-    form: ['bg_image_url', 'game_logo_url'],
-    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
-  }
 
   const tileColorsObj = parseTileColors(game2048.tile_colors)
 
   if (loading) return (
-    <div className="gb-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
-      <style>{LIGHT}</style>
-      <div style={{ textAlign:'center', color:'var(--gb-text2)' }}>
-        <div style={{ width:40,height:40,borderRadius:'50%',border:'3px solid #e2e6f0',borderTopColor:'#6366f1',animation:'spin .8s linear infinite',margin:'0 auto 16px' }} />
+    <div className="bw-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
+      <div style={{ textAlign:'center', color:'var(--bw-text2)' }}>
+        <div style={{ width:40,height:40,borderRadius:'50%',border:'3px solid #e2e6f0',borderTopColor:'#6366f1',animation:'bw-spin .8s linear infinite',margin:'0 auto 16px' }} />
         Loading builder…
-        <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
-      </div>
+        </div>
     </div>
   )
 
   if (fetchError) return (
-    <div className="gb-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
-      <style>{LIGHT}</style>
+    <div className="bw-wrap" style={{ display:'flex', alignItems:'center', justifyContent:'center', minHeight:'100vh' }}>
       <div style={{ textAlign:'center', maxWidth:400 }}>
         <div style={{ fontSize:48, marginBottom:12 }}>⚠️</div>
-        <h2 style={{ color:'var(--gb-danger)', marginBottom:8 }}>Builder Failed to Load</h2>
-        <p style={{ color:'var(--gb-text2)', marginBottom:20 }}>{fetchError}</p>
+        <h2 style={{ color:'var(--bw-danger)', marginBottom:8 }}>Builder Failed to Load</h2>
+        <p style={{ color:'var(--bw-text2)', marginBottom:20 }}>{fetchError}</p>
         <div style={{ display:'flex', gap:8, justifyContent:'center' }}>
-          <button className="gb-btn gb-btn-primary" onClick={loadGame}>\ud83d\udd04 Retry</button>
-          <button className="gb-btn gb-btn-ghost" onClick={() => navigate('/dashboard/games')}>← Back to Games</button>
+          <button className="bw-btn bw-btn-primary" onClick={loadGame}>\ud83d\udd04 Retry</button>
+          <button className="bw-btn bw-btn-ghost" onClick={() => navigate('/dashboard/games')}>← Back to Games</button>
         </div>
       </div>
     </div>
   )
 
   return (
-    <div className="gb-wrap">
-      <style>{LIGHT}</style>
-
+    <div className="bw-wrap">
       {/* ─── Header (3‑col grid) ─── */}
       <div style={{
         display:'grid', gridTemplateColumns:'1fr auto 1fr',
-        background:'var(--gb-surface)', borderBottom:'1.5px solid var(--gb-border)',
+        background:'var(--bw-surface)', borderBottom:'1.5px solid var(--bw-border)',
         padding:'10px 28px', gap:'4px 20px', alignItems:'center',
-        position:'sticky', top:'62px', zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
+        position:'sticky', top:0, zIndex:50, boxShadow:'0 1px 8px rgba(0,0,0,.06)'
       }}>
         {/* Col 1: Back icon + Name + Builder badge */}
         <div style={{ display:'flex', gap:6, alignItems:'flex-start', justifySelf:'start' }}>
-          <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => navigate('/dashboard/games')}
+          <button className="bw-btn bw-btn-ghost bw-btn-sm" onClick={() => navigate('/dashboard/games')}
             style={{ padding:'6px 8px', fontSize:16, lineHeight:1, marginTop:1 }} title="Back to games">←</button>
           <div>
             {editingName ? (
@@ -752,37 +458,34 @@ export default function Game2048BuilderPage() {
                   onKeyDown={e => { if (e.key==='Enter') saveGameName(); if (e.key==='Escape') setEditingName(false) }}
                   onBlur={saveGameName} autoFocus
                   style={{ width:180, fontSize:14, fontWeight:700, padding:'3px 6px' }} />
-                <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={() => setEditingName(false)} style={{ padding:'2px 6px' }}>✕</button>
+                <button className="bw-btn bw-btn-ghost bw-btn-sm" onClick={() => setEditingName(false)} style={{ padding:'2px 6px' }}>✕</button>
               </div>
             ) : (
-              <div style={{ fontWeight:700, fontSize:14, color:'var(--gb-text)', cursor:'pointer', lineHeight:1.3 }}
+              <div style={{ fontWeight:700, fontSize:14, color:'var(--bw-text)', cursor:'pointer', lineHeight:1.3 }}
                 onClick={() => { setNameInput(game?.name||''); setEditingName(true) }} title="Click to edit">
-                {game?.name} <span style={{ fontSize:10, color:'var(--gb-text3)', fontWeight:400 }}>✎</span>
+                {game?.name} <span style={{ fontSize:10, color:'var(--bw-text3)', fontWeight:400 }}>✎</span>
               </div>
             )}
-            <div style={{ fontSize:9.5, fontWeight:600, color:'var(--gb-text3)', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Builder</div>
+            <div style={{ fontSize:9.5, fontWeight:600, color:'var(--bw-text3)', letterSpacing:'.04em', textTransform:'uppercase', marginTop:1 }}>Builder</div>
           </div>
         </div>
 
         {/* Col 2: Tabs */}
-        <div className="gb-tabs" style={{ marginBottom:0, borderBottom:'none', justifySelf:'center' }}>
-          {TABS.map(t => {
-            const hasErr = upload.tabHasError(t.id, TAB_FIELDS[t.id] || [])
-            return (
-              <button key={t.id} className={`gb-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
-                style={{ padding:'6px 14px', fontSize:12.5 }}>
-                {t.label}{hasErr && <span className="gb-tab-err-dot" />}
-              </button>
-            )
-          })}
+        <div className="bw-tabs" style={{ marginBottom:0, borderBottom:'none', justifySelf:'center' }}>
+          {TABS.map(t => (
+            <button key={t.id} className={`bw-tab${tab===t.id?' active':''}`} onClick={() => setTab(t.id)}
+              style={{ padding:'6px 14px', fontSize:12.5 }}>
+              {t.label}
+            </button>
+          ))}
         </div>
 
         {/* Col 3: Copy + Preview */}
         <div style={{ display:'flex', gap:6, alignItems:'center', justifySelf:'end' }}>
-          <button className="gb-btn gb-btn-ghost gb-btn-sm" style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }}
+          <button className="bw-btn bw-btn-ghost bw-btn-sm" style={{ padding:'6px 8px', fontSize:16, lineHeight:1 }}
             onClick={() => { navigator.clipboard.writeText(gameLink); showToast('Link copied!') }}
             title="Copy game link">\ud83d\udd17</button>
-          <a href={gameLink} target="_blank" rel="noreferrer" className="gb-btn gb-btn-ghost gb-btn-sm"
+          <a href={gameLink} target="_blank" rel="noreferrer" className="bw-btn bw-btn-ghost bw-btn-sm"
             style={{ padding:'6px 8px', fontSize:16, lineHeight:1, textDecoration:'none' }}
             title="Preview game">\ud83d\udc41</a>
         </div>
@@ -798,19 +501,19 @@ export default function Game2048BuilderPage() {
           {tab === 'gameplay' && (
             <div>
               {/* Board Setup */}
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83c\udfae Board Setup</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83c\udfae Board Setup</div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
-                  <div className="gb-fg">
-                    <span className="gb-label">Grid Size</span>
+                  <div className="bw-fg">
+                    <span className="bw-label">Grid Size</span>
                     <select value={game2048.grid_size} onChange={e => setGame2048({...game2048, grid_size:Number(e.target.value)})}>
                       <option value={4}>4 × 4</option>
                       <option value={5}>5 × 5</option>
                       <option value={6}>6 × 6</option>
                     </select>
                   </div>
-                  <div className="gb-fg">
-                    <span className="gb-label">Target Number</span>
+                  <div className="bw-fg">
+                    <span className="bw-label">Target Number</span>
                     <select value={game2048.target_number} onChange={e => setGame2048({...game2048, target_number:Number(e.target.value)})}>
                       <option value={512}>512</option>
                       <option value={1024}>1024</option>
@@ -822,8 +525,8 @@ export default function Game2048BuilderPage() {
               </div>
 
               {/* Tile Colors */}
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83c\udfa8 Tile Colors</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83c\udfa8 Tile Colors</div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(4,1fr)', gap:12 }}>
                   {TILE_VALUES.map(v => (
                     <div key={v} style={{ display:'flex', flexDirection:'column', alignItems:'center', gap:4 }}>
@@ -849,34 +552,34 @@ export default function Game2048BuilderPage() {
               </div>
 
               {/* Timer */}
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\u23f1\ufe0f Timer</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\u23f1\ufe0f Timer</div>
                 <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:12 }}>
                   <input type="checkbox" checked={!!game2048.show_timer} onChange={e => setGame2048({...game2048, show_timer:e.target.checked?1:0})} style={{ width:16,height:16 }} />
                   Show timer
                 </label>
-                <div className="gb-fg" style={{ marginBottom:0 }}>
-                  <span className="gb-label">Time Limit (seconds)</span>
+                <div className="bw-fg" style={{ marginBottom:0 }}>
+                  <span className="bw-label">Time Limit (seconds)</span>
                   <input type="number" min={0} value={game2048.time_limit_seconds||0} onChange={e => setGame2048({...game2048, time_limit_seconds:Number(e.target.value)})} placeholder="0 = no limit" />
                 </div>
               </div>
 
               {/* Headings */}
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83d\udcdd Game Headings</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83d\udcdd Game Headings</div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:'8px 16px', alignItems:'end' }}>
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <span className="gb-label">Heading 1</span>
+                  <div className="bw-fg" style={{ marginBottom:0 }}>
+                    <span className="bw-label">Heading 1</span>
                     <input value={game2048.heading_1||''} onChange={e => setGame2048({...game2048, heading_1:e.target.value})} placeholder="2048" />
                   </div>
                   <ColorPicker value={game2048.heading_1_color||'#1a1a2e'} onChange={v => setGame2048({...game2048, heading_1_color:v})} noPresets />
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <span className="gb-label">Heading 2</span>
+                  <div className="bw-fg" style={{ marginBottom:0 }}>
+                    <span className="bw-label">Heading 2</span>
                     <input value={game2048.heading_2||''} onChange={e => setGame2048({...game2048, heading_2:e.target.value})} placeholder="Join the tiles!" />
                   </div>
                   <ColorPicker value={game2048.heading_2_color||'#64657a'} onChange={v => setGame2048({...game2048, heading_2_color:v})} noPresets />
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <span className="gb-label">Heading 3</span>
+                  <div className="bw-fg" style={{ marginBottom:0 }}>
+                    <span className="bw-label">Heading 3</span>
                     <input value={game2048.heading_3||''} onChange={e => setGame2048({...game2048, heading_3:e.target.value})} placeholder="Get to 2048!" />
                   </div>
                   <ColorPicker value={game2048.heading_3_color||'#64657a'} onChange={v => setGame2048({...game2048, heading_3_color:v})} noPresets />
@@ -884,17 +587,17 @@ export default function Game2048BuilderPage() {
               </div>
 
               {/* Description */}
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83d\udcc4 Description</div>
-                <div className="gb-fg">
-                  <span className="gb-label">Description Text</span>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83d\udcc4 Description</div>
+                <div className="bw-fg">
+                  <span className="bw-label">Description Text</span>
                   <textarea rows={3} value={game2048.description_text||''} onChange={e => setGame2048({...game2048, description_text:e.target.value})} placeholder="Swipe to merge tiles…" style={{ resize:'vertical' }} />
                 </div>
               </div>
 
               {/* Game Sounds */}
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83d\udd0a Game Sounds</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83d\udd0a Game Sounds</div>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:12 }}>
                   <SoundSelector label="\u2b05\ufe0f Slide Sound" value={game2048.sound_slide_id} onChange={v => setGame2048({...game2048, sound_slide_id:v})} sounds={sounds} />
                   <SoundSelector label="\ud83d\udd17 Merge Sound" value={game2048.sound_merge_id} onChange={v => setGame2048({...game2048, sound_merge_id:v})} sounds={sounds} />
@@ -904,7 +607,7 @@ export default function Game2048BuilderPage() {
               </div>
 
               <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <button className="gb-btn gb-btn-primary" onClick={saveGame2048} disabled={saving} style={{ padding:'10px 28px' }}>
+                <button className="bw-btn bw-btn-primary" onClick={saveGame2048} disabled={saving} style={{ padding:'10px 28px' }}>
                   {saving ? '\u23f3 Saving…' : '\ud83d\udcbe Save Gameplay Settings'}
                 </button>
               </div>
@@ -914,71 +617,69 @@ export default function Game2048BuilderPage() {
           {/* ════ FORM TAB ════ */}
           {tab === 'form' && (
             <div>
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83c\udfa8 Visuals</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83c\udfa8 Visuals</div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
-                    <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Background Image</span>
+                    <span className="bw-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Background Image</span>
                     <input type="file" ref={bgImgRef} accept="image/png,image/jpeg,image/jpg"
-                      onChange={e => { upload.clearFieldError('bg_image_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,bg_image_url:ev.target.result,_bgImageFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => bgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
+                    <button className="bw-btn bw-btn-ghost bw-btn-sm" type="button" onClick={() => bgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
                     {settings.bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
-                      <img src={settings.bg_image_url} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
+                      <img src={settings.bg_image_url} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--bw-border)', objectFit:'contain', background:'#f9f9f9' }} />
                       <button
-                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
+                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--bw-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                         type="button" onClick={() => setSettings({...settings,bg_image_url:'',_bgImageFile:null})}>✕</button>
                     </div>}
-                    {upload.errors.bg_image_url && <div className="gb-img-error-msg">⚠️ {upload.errors.bg_image_url}</div>}
                   </div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
-                    <span className="gb-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Logo</span>
+                    <span className="bw-label" style={{ marginBottom:8, display:'block', textAlign:'center' }}>Game Logo</span>
                     <input type="file" ref={gameLogoRef} accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml"
-                      onChange={e => { upload.clearFieldError('game_logo_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,game_logo_url:ev.target.result,_gameLogoFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => gameLogoRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
+                    <button className="bw-btn bw-btn-ghost bw-btn-sm" type="button" onClick={() => gameLogoRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
                     {settings.game_logo_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
-                      <img src={settings.game_logo_url} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#fff' }} />
+                      <img src={settings.game_logo_url} alt="" style={{ height:72, width:'auto', maxWidth:160, borderRadius:8, border:'1px solid var(--bw-border)', objectFit:'contain', background:'#fff' }} />
                       <button
-                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
+                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--bw-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                         type="button" onClick={() => setSettings({...settings,game_logo_url:'',_gameLogoFile:null})}>✕</button>
                     </div>}
-                    {upload.errors.game_logo_url && <div className="gb-img-error-msg">⚠️ {upload.errors.game_logo_url}</div>}
                   </div>
                 </div>
               </div>
 
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83d\udcdd Game Texts</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83d\udcdd Game Texts</div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:'8px 16px', alignItems:'end' }}>
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <span className="gb-label">Heading 1 (title — text 1)</span>
+                  <div className="bw-fg" style={{ marginBottom:0 }}>
+                    <span className="bw-label">Heading 1 (title — text 1)</span>
                     <input value={settings.heading_1||''} onChange={e => setSettings({...settings,heading_1:e.target.value})} placeholder="Main title" />
                   </div>
                   <ColorPicker value={settings.heading_1_color||'#1a1a2e'} onChange={v => setSettings({...settings,heading_1_color:v})} noPresets />
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <span className="gb-label">Heading 2 (subtitle — text 2)</span>
+                  <div className="bw-fg" style={{ marginBottom:0 }}>
+                    <span className="bw-label">Heading 2 (subtitle — text 2)</span>
                     <input value={settings.heading_2||''} onChange={e => setSettings({...settings,heading_2:e.target.value})} placeholder="Sub-heading" />
                   </div>
                   <ColorPicker value={settings.heading_2_color||'#1a1a2e'} onChange={v => setSettings({...settings,heading_2_color:v})} noPresets />
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <span className="gb-label">Intro Text (body — text 3, shown before game)</span>
+                  <div className="bw-fg" style={{ marginBottom:0 }}>
+                    <span className="bw-label">Intro Text (body — text 3, shown before game)</span>
                     <textarea rows={2} value={settings.intro_text||''} onChange={e => setSettings({...settings,intro_text:e.target.value})} style={{ resize:'vertical' }} />
                   </div>
                   <ColorPicker value={settings.intro_text_color||'#444444'} onChange={v => setSettings({...settings,intro_text_color:v})} noPresets />
                 </div>
               </div>
 
-              <p style={{ color:'var(--gb-text2)', marginBottom:16, fontSize:13 }}>These fields appear on the player registration screen before the game starts.</p>
+              <p style={{ color:'var(--bw-text2)', marginBottom:16, fontSize:13 }}>These fields appear on the player registration screen before the game starts.</p>
               {formFields.map((f,i) => (
-                <div key={i} className="gb-card" style={{ marginBottom:10, padding:'12px 16px' }}>
+                <div key={i} className="bw-card" style={{ marginBottom:10, padding:'12px 16px' }}>
                   <div style={{ display:'flex', gap:10, flexWrap:'wrap', alignItems:'flex-end' }}>
-                    <div className="gb-fg" style={{ flex:2, minWidth:130 }}>
-                      <span className="gb-label">Label</span>
+                    <div className="bw-fg" style={{ flex:2, minWidth:130 }}>
+                      <span className="bw-label">Label</span>
                       <input value={f.field_label} onChange={e => updateFormField(i,'field_label',e.target.value)} />
                     </div>
-                    <div className="gb-fg" style={{ flex:1, minWidth:110 }}>
-                      <span className="gb-label">Type</span>
+                    <div className="bw-fg" style={{ flex:1, minWidth:110 }}>
+                      <span className="bw-label">Type</span>
                       <select value={f.field_type} onChange={e => updateFormField(i,'field_type',e.target.value)}>
                         <option value="text">Text</option>
                         <option value="email">Email</option>
@@ -993,36 +694,36 @@ export default function Game2048BuilderPage() {
                         style={{ width:16,height:16 }} />
                       Required
                     </label>
-                    <button className="gb-btn gb-btn-danger gb-btn-sm" onClick={() => removeFormField(i)}>✕</button>
+                    <button className="bw-btn bw-btn-danger bw-btn-sm" onClick={() => removeFormField(i)}>✕</button>
                   </div>
                 </div>
               ))}
               <div style={{ display:'flex', gap:10, marginTop:16, justifyContent:'center' }}>
-                <button className="gb-btn gb-btn-ghost" onClick={addFormField}>+ Add Field</button>
-                <button className="gb-btn gb-btn-primary" onClick={saveFormFields} disabled={saving}>{saving ? 'Saving…' : '\ud83d\udcbe Save Form'}</button>
+                <button className="bw-btn bw-btn-ghost" onClick={addFormField}>+ Add Field</button>
+                <button className="bw-btn bw-btn-primary" onClick={saveFormFields} disabled={saving}>{saving ? 'Saving…' : '\ud83d\udcbe Save Form'}</button>
               </div>
 
-              <div className="gb-card" style={{ marginBottom:20, padding:16 }}>
+              <div className="bw-card" style={{ marginBottom:20, padding:16 }}>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
                   <div>
-                    <div className="gb-section-title">\ud83d\udcdc Terms & Conditions</div>
+                    <div className="bw-section-title">\ud83d\udcdc Terms & Conditions</div>
                     <div style={{ display:'flex', alignItems:'center', gap:8, marginBottom:12 }}>
                       <input type="checkbox" id="termsEnabled" checked={!!settings.terms_enabled}
                         onChange={e => setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
                       <label htmlFor="termsEnabled" style={{ fontWeight:600, cursor:'pointer', fontSize:13 }}>Require acceptance</label>
                     </div>
-                    <div className="gb-fg" style={{ marginBottom:10 }}>
-                      <span className="gb-label">Label Text</span>
+                    <div className="bw-fg" style={{ marginBottom:10 }}>
+                      <span className="bw-label">Label Text</span>
                       <input value={settings.terms_text||''} onChange={e => setSettings({...settings,terms_text:e.target.value})} placeholder="Terms & Conditions" />
                     </div>
-                    <div className="gb-fg" style={{ marginBottom:0 }}>
-                      <span className="gb-label">URL (optional)</span>
+                    <div className="bw-fg" style={{ marginBottom:0 }}>
+                      <span className="bw-label">URL (optional)</span>
                       <input value={settings.terms_url||''} onChange={e => setSettings({...settings,terms_url:e.target.value})} placeholder="https://yoursite.com/terms" />
                     </div>
                   </div>
                   <div>
-                    <div className="gb-section-title">\ud83d\ude80 Start Button</div>
-                    <div className="gb-fg" style={{ marginBottom:10 }}>
+                    <div className="bw-section-title">\ud83d\ude80 Start Button</div>
+                    <div className="bw-fg" style={{ marginBottom:10 }}>
                       <input value={settings.start_button_text||''} onChange={e => setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Game →" />
                     </div>
                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
@@ -1034,7 +735,7 @@ export default function Game2048BuilderPage() {
               </div>
 
               <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px', marginTop:16 }}>
+                <button className="bw-btn bw-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px', marginTop:16 }}>
                   {saving ? '\u23f3 Saving…' : '\ud83d\udcbe Save Settings'}
                 </button>
               </div>
@@ -1045,7 +746,7 @@ export default function Game2048BuilderPage() {
           {tab === 'email' && (
             <div>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16 }}>
-                <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Configure the congratulations email sent to players.</p>
+                <p style={{ color:'var(--bw-text2)', fontSize:13 }}>Configure the congratulations email sent to players.</p>
                 <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:13, cursor:'pointer' }}>
                   <input type="checkbox" checked={!!emailTemplate.is_enabled}
                     onChange={e => setEmailTemplate({ ...emailTemplate, is_enabled:e.target.checked?1:0 })}
@@ -1053,22 +754,22 @@ export default function Game2048BuilderPage() {
                   Enable email
                 </label>
               </div>
-              <div className="gb-section" style={{ marginBottom:16, background:'#fffbeb', borderColor:'#fde68a' }}>
+              <div className="bw-section" style={{ marginBottom:16, background:'#fffbeb', borderColor:'#fde68a' }}>
                 \ud83d\udca1 Use <code>{'{{name}}'}</code>, <code>{'{{score}}'}</code>, <code>{'{{total}}'}</code>, <code>{'{{game_name}}'}</code> as placeholders.
               </div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-                <div className="gb-fg"><span className="gb-label">Sender Name</span><input value={emailTemplate.sender_name||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_name:e.target.value })} placeholder="Game Platform" /></div>
-                <div className="gb-fg"><span className="gb-label">Sender Email</span><input value={emailTemplate.sender_email||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_email:e.target.value })} placeholder="noreply@yourdomain.com" /></div>
+                <div className="bw-fg"><span className="bw-label">Sender Name</span><input value={emailTemplate.sender_name||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_name:e.target.value })} placeholder="Game Platform" /></div>
+                <div className="bw-fg"><span className="bw-label">Sender Email</span><input value={emailTemplate.sender_email||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_email:e.target.value })} placeholder="noreply@yourdomain.com" /></div>
               </div>
-              <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Subject</span><input value={emailTemplate.subject||''} onChange={e => setEmailTemplate({ ...emailTemplate, subject:e.target.value })} placeholder="Congratulations {{name}}! \ud83c\udf89" /></div>
+              <div className="bw-fg" style={{ marginBottom:14 }}><span className="bw-label">Subject</span><input value={emailTemplate.subject||''} onChange={e => setEmailTemplate({ ...emailTemplate, subject:e.target.value })} placeholder="Congratulations {{name}}! \ud83c\udf89" /></div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:16, alignItems:'flex-end', marginBottom:14 }}>
-                <div className="gb-fg"><span className="gb-label">Header Text</span><input value={emailTemplate.header_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, header_text:e.target.value })} placeholder="\ud83c\udf89 Congratulations!" /></div>
+                <div className="bw-fg"><span className="bw-label">Header Text</span><input value={emailTemplate.header_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, header_text:e.target.value })} placeholder="\ud83c\udf89 Congratulations!" /></div>
                 <ColorPicker value={emailTemplate.header_color||'#6366f1'} onChange={v => setEmailTemplate({ ...emailTemplate, header_color:v })} label="Header Color" />
               </div>
-              <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Email Body (HTML)</span><textarea rows={5} value={emailTemplate.body_html||''} onChange={e => setEmailTemplate({ ...emailTemplate, body_html:e.target.value })} placeholder="<p>Thank you, {{name}}!</p>" style={{ resize:'vertical', fontFamily:'monospace', fontSize:13 }} /></div>
-              <div className="gb-fg" style={{ marginBottom:20 }}><span className="gb-label">Footer Text</span><input value={emailTemplate.footer_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, footer_text:e.target.value })} placeholder="\u00a9 2024 Your Company" /></div>
+              <div className="bw-fg" style={{ marginBottom:14 }}><span className="bw-label">Email Body (HTML)</span><textarea rows={5} value={emailTemplate.body_html||''} onChange={e => setEmailTemplate({ ...emailTemplate, body_html:e.target.value })} placeholder="<p>Thank you, {{name}}!</p>" style={{ resize:'vertical', fontFamily:'monospace', fontSize:13 }} /></div>
+              <div className="bw-fg" style={{ marginBottom:20 }}><span className="bw-label">Footer Text</span><input value={emailTemplate.footer_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, footer_text:e.target.value })} placeholder="\u00a9 2024 Your Company" /></div>
               <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <button className="gb-btn gb-btn-primary" onClick={saveEmailTemplate} disabled={saving}>{saving ? 'Saving…' : '\ud83d\udcbe Save Email Template'}</button>
+                <button className="bw-btn bw-btn-primary" onClick={saveEmailTemplate} disabled={saving}>{saving ? 'Saving…' : '\ud83d\udcbe Save Email Template'}</button>
               </div>
             </div>
           )}
@@ -1077,32 +778,31 @@ export default function Game2048BuilderPage() {
           {tab === 'thankyou' && (
             <div>
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-                <div className="gb-card" style={{ padding:16, margin:0 }}>
-                  <div className="gb-section-title">\ud83c\udf8a Thankyou Page Background</div>
+                <div className="bw-card" style={{ padding:16, margin:0 }}>
+                  <div className="bw-section-title">\ud83c\udf8a Thankyou Page Background</div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <input type="file" ref={tyBgImgRef} accept="image/png,image/jpeg,image/jpg"
-                      onChange={e => { upload.clearFieldError('thankyou_bg_image_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,thankyou_bg_image_url:ev.target.result,_tyBgImageFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => tyBgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
+                    <button className="bw-btn bw-btn-ghost bw-btn-sm" type="button" onClick={() => tyBgImgRef.current.click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83d\udcf7 Upload</button>
                     {settings.thankyou_bg_image_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
-                      <img src={settings.thankyou_bg_image_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
+                      <img src={settings.thankyou_bg_image_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--bw-border)', objectFit:'contain', background:'#f9f9f9' }} />
                       <button
-                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
+                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--bw-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                         type="button" onClick={() => setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})}>✕</button>
                     </div>}
-                    {upload.errors.thankyou_bg_image_url && <div className="gb-img-error-msg">⚠️ {upload.errors.thankyou_bg_image_url}</div>}
                   </div>
                 </div>
-                <div className="gb-card" style={{ padding:16, margin:0 }}>
-                  <div className="gb-section-title">\ud83d\udcdd Thankyou Message</div>
+                <div className="bw-card" style={{ padding:16, margin:0 }}>
+                  <div className="bw-section-title">\ud83d\udcdd Thankyou Message</div>
                   <div style={{ display:'grid', gridTemplateColumns:'1fr auto', gap:'8px 12px', alignItems:'end' }}>
-                    <div className="gb-fg" style={{ marginBottom:0 }}>
-                      <span className="gb-label">Heading Text</span>
+                    <div className="bw-fg" style={{ marginBottom:0 }}>
+                      <span className="bw-label">Heading Text</span>
                       <textarea rows={2} value={settings.outro_text||''} onChange={e => setSettings({...settings,outro_text:e.target.value})} style={{ resize:'vertical' }} placeholder="Yay! You completed the game!" />
                     </div>
                     <ColorPicker value={settings.outro_text_color||'#1a1a2e'} onChange={v => setSettings({...settings,outro_text_color:v})} noPresets />
-                    <div className="gb-fg" style={{ marginBottom:0 }}>
-                      <span className="gb-label">Subtitle Text</span>
+                    <div className="bw-fg" style={{ marginBottom:0 }}>
+                      <span className="bw-label">Subtitle Text</span>
                       <textarea rows={2} value={settings.thankyou_subtitle||''} onChange={e => setSettings({...settings,thankyou_subtitle:e.target.value})} style={{ resize:'vertical' }} placeholder="\u2705 Thank you for completing!" />
                     </div>
                     <ColorPicker value={settings.thankyou_subtitle_color||'#444444'} onChange={v => setSettings({...settings,thankyou_subtitle_color:v})} noPresets />
@@ -1110,10 +810,10 @@ export default function Game2048BuilderPage() {
                 </div>
               </div>
 
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83d\ude80 Submit Button</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83d\ude80 Submit Button</div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr auto auto', gap:'8px 16px', alignItems:'end' }}>
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
+                  <div className="bw-fg" style={{ marginBottom:0 }}>
                     <input value={settings.submit_button_text||''} onChange={e => setSettings({...settings,submit_button_text:e.target.value})} placeholder="Submit & Explore" />
                   </div>
                   <ColorPicker value={settings.submit_button_text_color||'#ffffff'} onChange={v => setSettings({...settings,submit_button_text_color:v})} noPresets label="Text" />
@@ -1122,28 +822,27 @@ export default function Game2048BuilderPage() {
               </div>
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
-                <div className="gb-card" style={{ padding:16, margin:0 }}>
-                  <div className="gb-section-title">\ud83c\udf8a Submit Confirmation GIF</div>
+                <div className="bw-card" style={{ padding:16, margin:0 }}>
+                  <div className="bw-section-title">\ud83c\udf8a Submit Confirmation GIF</div>
                   <div style={{ display:'flex', flexDirection:'column', alignItems:'center' }}>
                     <input type="file" id="submitGifInput" accept="image/gif,image/png,image/jpeg,image/webp"
-                      onChange={e => { upload.clearFieldError('submit_confirm_gif_url'); const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f)} }}
+                      onChange={e => { const f=e.target.files[0]; if(f){const r=new FileReader(); r.onload=ev=>setSettings({...settings,submit_confirm_gif_url:ev.target.result,_submitGifFile:f}); r.readAsDataURL(f)} }}
                       style={{ display:'none' }} />
-                    <button className="gb-btn gb-btn-ghost gb-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83c\udfac Upload GIF / Image</button>
+                    <button className="bw-btn bw-btn-ghost bw-btn-sm" type="button" onClick={() => document.getElementById('submitGifInput').click()} style={{ border:'none', background:'transparent', padding:'6px 12px' }}>\ud83c\udfac Upload GIF / Image</button>
                     {settings.submit_confirm_gif_url && <div style={{ position:'relative', display:'inline-block', marginTop:10 }}>
-                      <img src={settings.submit_confirm_gif_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--gb-border)', objectFit:'contain', background:'#f9f9f9' }} />
+                      <img src={settings.submit_confirm_gif_url} alt="" style={{ height:80, width:'auto', maxWidth:200, borderRadius:8, border:'1px solid var(--bw-border)', objectFit:'contain', background:'#f9f9f9' }} />
                       <button
-                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--gb-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
+                        style={{ position:'absolute', top:-8, right:-8, borderRadius:'50%', width:24, height:24, padding:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, lineHeight:1, background:'var(--bw-danger)', color:'#fff', border:'2px solid #fff', cursor:'pointer', boxShadow:'0 2px 6px rgba(0,0,0,0.2)' }}
                         type="button" onClick={() => setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})}>✕</button>
-                    {upload.errors.submit_confirm_gif_url && <div className="gb-img-error-msg">⚠️ {upload.errors.submit_confirm_gif_url}</div>}
                     </div>}
                   </div>
                 </div>
-                <div className="gb-card" style={{ padding:16, margin:0 }}>
-                  <div className="gb-section-title">\ud83d\udd17 Post-Game Redirect URL</div>
-                  <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>
+                <div className="bw-card" style={{ padding:16, margin:0 }}>
+                  <div className="bw-section-title">\ud83d\udd17 Post-Game Redirect URL</div>
+                  <p style={{ color:'var(--bw-text2)', fontSize:12, marginBottom:12 }}>
                     Where should players be sent after completing? Leave blank to show default.
                   </p>
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
+                  <div className="bw-fg" style={{ marginBottom:0 }}>
                     <input value={redirectUrl} onChange={e => setRedirectUrl(e.target.value)} placeholder="https://yourwebsite.com/thankyou" type="url" />
                   </div>
                   {redirectUrl && (
@@ -1151,9 +850,9 @@ export default function Game2048BuilderPage() {
                       \u2705 {redirectUrl}
                     </div>
                   )}
-                  <div style={{ borderTop:'1px solid var(--gb-border)', paddingTop:16 }}>
-                    <div className="gb-section-title">\u23e9 Continue Now Button</div>
-                    <div className="gb-fg" style={{ marginBottom:10, marginTop:8 }}>
+                  <div style={{ borderTop:'1px solid var(--bw-border)', paddingTop:16 }}>
+                    <div className="bw-section-title">\u23e9 Continue Now Button</div>
+                    <div className="bw-fg" style={{ marginBottom:10, marginTop:8 }}>
                       <input value={settings.continue_button_text||''} onChange={e => setSettings({...settings,continue_button_text:e.target.value})} placeholder="Continue Now →" />
                     </div>
                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
@@ -1165,7 +864,7 @@ export default function Game2048BuilderPage() {
               </div>
 
               <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                <button className="bw-btn bw-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
                   {saving ? '\u23f3 Saving…' : '\ud83d\udcbe Save Thankyou Settings'}
                 </button>
               </div>
@@ -1175,17 +874,17 @@ export default function Game2048BuilderPage() {
           {/* ════ SETTINGS TAB ════ */}
           {tab === 'settings' && (
             <div>
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20 }}>
                   <div>
-                    <div className="gb-section-title">\ud83d\udd17 Game URL Slug</div>
-                    <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:8 }}>This determines the public URL: <code style={{ fontSize:11 }}>{window.location.origin}/play/{slugInput||'your-slug'}/{game?.client_slug||'...'}</code></p>
-                    <div className="gb-fg" style={{ marginBottom:0 }}>
+                    <div className="bw-section-title">\ud83d\udd17 Game URL Slug</div>
+                    <p style={{ color:'var(--bw-text2)', fontSize:12, marginBottom:8 }}>This determines the public URL: <code style={{ fontSize:11 }}>{window.location.origin}/play/{slugInput||'your-slug'}/{game?.client_slug||'...'}</code></p>
+                    <div className="bw-fg" style={{ marginBottom:0 }}>
                       <input value={slugInput} onChange={e => setSlugInput(e.target.value)} placeholder="my-game-slug" />
                     </div>
                   </div>
                   <div>
-                    <div className="gb-section-title">\ud83c\udfa8 Colors</div>
+                    <div className="bw-section-title">\ud83c\udfa8 Colors</div>
                     <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:12 }}>
                       <ColorPicker value={settings.bg_color||'#ffffff'} onChange={v => setSettings({...settings,bg_color:v})} label="Background Color" />
                       <ColorPicker value={settings.primary_color||'#6366f1'} onChange={v => setSettings({...settings,primary_color:v})} label="Primary / Accent Color" />
@@ -1193,17 +892,17 @@ export default function Game2048BuilderPage() {
                   </div>
                 </div>
               </div>
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83d\udd24 Font Family</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83d\udd24 Font Family</div>
                 <div style={{ display:'grid', gap:12 }}>
                   {FONT_CATEGORIES.map((cat, ci) => (
-                    <div key={cat.name} style={ci < FONT_CATEGORIES.length - 1 ? {paddingBottom:12,borderBottom:'1px solid var(--gb-border)'} : {}}>
-                      <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase', color:'var(--gb-text3)', marginBottom:6 }}>{cat.name}</div>
+                    <div key={cat.name} style={ci < FONT_CATEGORIES.length - 1 ? {paddingBottom:12,borderBottom:'1px solid var(--bw-border)'} : {}}>
+                      <div style={{ fontSize:11, fontWeight:700, letterSpacing:'.05em', textTransform:'uppercase', color:'var(--bw-text3)', marginBottom:6 }}>{cat.name}</div>
                       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
                         {cat.fonts.map(font => (
                           <div key={font} onClick={() => setSettings({...settings,font_family:font})}
                             style={{ padding:'6px 8px', borderRadius:6, cursor:'pointer', fontSize:12,
-                              border:`1.5px solid ${settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? 'var(--gb-primary)' : 'var(--gb-border)'}`,
+                              border:`1.5px solid ${settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? 'var(--bw-primary)' : 'var(--bw-border)'}`,
                               background: settings.font_family===font||(!settings.font_family&&font==='DM Sans') ? '#eef0ff' : '#fff',
                               transition:'all .12s', fontFamily: "'" + font + "', sans-serif" }}>
                             <div style={{ fontWeight:700, lineHeight:1.3 }}>{font}</div>
@@ -1215,18 +914,18 @@ export default function Game2048BuilderPage() {
                   ))}
                 </div>
               </div>
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">\ud83d\udcf2 Social Share Preview</div>
+              <div className="bw-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="bw-section-title">\ud83d\udcf2 Social Share Preview</div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, alignItems:'start' }}>
                   <div>
-                    <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:10 }}>Text shown when the game link is shared on WhatsApp, Facebook etc.</p>
-                    <div className="gb-fg" style={{ marginBottom:0 }}>
-                      <span className="gb-label">Share Description</span>
+                    <p style={{ color:'var(--bw-text2)', fontSize:12, marginBottom:10 }}>Text shown when the game link is shared on WhatsApp, Facebook etc.</p>
+                    <div className="bw-fg" style={{ marginBottom:0 }}>
+                      <span className="bw-label">Share Description</span>
                       <input value={settings.meta_description||''} onChange={e => setSettings({...settings,meta_description:e.target.value})} placeholder="Play this game and win exciting rewards!" maxLength={200} />
-                      <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>{(settings.meta_description||'').length}/200</span>
+                      <span style={{ fontSize:11, color:'var(--bw-text3)', marginTop:2 }}>{(settings.meta_description||'').length}/200</span>
                     </div>
                   </div>
-                  <div style={{ border:'1px solid var(--gb-border)', borderRadius:10, overflow:'hidden', background:'#fff', boxShadow:'0 2px 12px rgba(0,0,0,0.06)' }}>
+                  <div style={{ border:'1px solid var(--bw-border)', borderRadius:10, overflow:'hidden', background:'#fff', boxShadow:'0 2px 12px rgba(0,0,0,0.06)' }}>
                     <div style={{ height:120, background: settings.bg_image_url ? `center/cover url(${settings.bg_image_url})` : (settings.primary_color||'#6366f1'), display:'flex', alignItems:'center', justifyContent:'center', color:'#fff', fontSize:32, fontWeight:800 }}></div>
                     <div style={{ padding:'12px 14px' }}>
                       <div style={{ fontSize:10, fontWeight:700, textTransform:'uppercase', letterSpacing:'.04em', color:'#888', marginBottom:3 }}>{window.location.hostname || 'yourdomain.com'}</div>
@@ -1237,7 +936,7 @@ export default function Game2048BuilderPage() {
                 </div>
               </div>
               <div style={{ display:'flex', justifyContent:'flex-end' }}>
-                <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                <button className="bw-btn bw-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
                   {saving ? '\u23f3 Saving…' : '\ud83d\udcbe Save All Settings'}
                 </button>
               </div>
@@ -1249,19 +948,19 @@ export default function Game2048BuilderPage() {
             <div>
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:20, flexWrap:'wrap', gap:12 }}>
                 <div>
-                  <h3 style={{ color:'var(--gb-text)', fontFamily:'inherit', marginBottom:4 }}>Sound Library</h3>
-                  <p style={{ color:'var(--gb-text2)', fontSize:13 }}>Upload MP3, WAV or OGG files, then assign them below.</p>
+                  <h3 style={{ color:'var(--bw-text)', fontFamily:'inherit', marginBottom:4 }}>Sound Library</h3>
+                  <p style={{ color:'var(--bw-text2)', fontSize:13 }}>Upload MP3, WAV or OGG files, then assign them below.</p>
                 </div>
                 <div>
                   <input type="file" ref={soundUploadRef} accept="audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/x-wav,audio/wave" onChange={uploadSound} style={{ display:'none' }} />
-                  <button className="gb-btn gb-btn-primary" onClick={() => soundUploadRef.current.click()} disabled={soundUploading}>
+                  <button className="bw-btn bw-btn-primary" onClick={() => soundUploadRef.current.click()} disabled={soundUploading}>
                     {soundUploading ? '\u23f3 Uploading…' : '+ Upload Sound'}
                   </button>
                 </div>
               </div>
-              <div className="gb-card" style={{ marginBottom:20, padding:16 }}>
-                <div className="gb-section-title">\ud83c\udfae Assign Sounds to Game</div>
-                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:14 }}>
+              <div className="bw-card" style={{ marginBottom:20, padding:16 }}>
+                <div className="bw-section-title">\ud83c\udfae Assign Sounds to Game</div>
+                <p style={{ color:'var(--bw-text2)', fontSize:12, marginBottom:14 }}>
                   These play globally across the entire game. Upload sounds above first, then select them here.
                 </p>
                 <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit,minmax(160px,1fr))', gap:12, marginBottom:16 }}>
@@ -1271,7 +970,7 @@ export default function Game2048BuilderPage() {
                   <SoundSelector label="\ud83d\udc80 Lose Sound" value={game2048.sound_lose_id} onChange={v => setGame2048({...game2048, sound_lose_id:v})} sounds={sounds} />
                 </div>
                 <div style={{ display:'flex', justifyContent:'center' }}>
-                  <button className="gb-btn gb-btn-primary gb-btn-sm" onClick={saveGame2048} disabled={saving}>
+                  <button className="bw-btn bw-btn-primary bw-btn-sm" onClick={saveGame2048} disabled={saving}>
                     {saving ? 'Saving…' : '\ud83d\udcbe Save Sound Assignments'}
                   </button>
                 </div>
@@ -1280,22 +979,22 @@ export default function Game2048BuilderPage() {
                 ? (
                   <div className="gb-empty">
                     <div className="gb-empty-icon">\ud83d\udd0a</div>
-                    <h3 style={{ color:'var(--gb-text)', marginBottom:8 }}>No sounds yet</h3>
+                    <h3 style={{ color:'var(--bw-text)', marginBottom:8 }}>No sounds yet</h3>
                     <p>Upload MP3, WAV, or OGG files</p>
-                    <button className="gb-btn gb-btn-primary" style={{ marginTop:16 }} onClick={() => soundUploadRef.current.click()}>+ Upload Sound</button>
+                    <button className="bw-btn bw-btn-primary" style={{ marginTop:16 }} onClick={() => soundUploadRef.current.click()}>+ Upload Sound</button>
                   </div>
                 )
                 : (
                   <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     {sounds.map(s => (
-                      <div key={s.id} className="gb-card" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px' }}>
+                      <div key={s.id} className="bw-card" style={{ display:'flex', alignItems:'center', gap:12, padding:'12px 16px' }}>
                         <span style={{ fontSize:20 }}>\ud83c\udfb5</span>
                         <div style={{ flex:1 }}>
-                          <div style={{ fontWeight:700, fontSize:14, color:'var(--gb-text)' }}>{s.name}</div>
-                          <div style={{ color:'var(--gb-text3)', fontSize:11, marginTop:2 }}>ID: {s.id} \u00b7 {s.sound_type}</div>
+                          <div style={{ fontWeight:700, fontSize:14, color:'var(--bw-text)' }}>{s.name}</div>
+                          <div style={{ color:'var(--bw-text3)', fontSize:11, marginTop:2 }}>ID: {s.id} \u00b7 {s.sound_type}</div>
                         </div>
                         <audio controls src={s.url} style={{ height:32 }} />
-                        <button className="gb-btn gb-btn-danger gb-btn-sm gb-btn-icon" onClick={() => deleteSound(s)}>\ud83d\uddd1</button>
+                        <button className="bw-btn bw-btn-danger bw-btn-sm bw-btn-icon" onClick={() => deleteSound(s)}>\ud83d\uddd1</button>
                       </div>
                     ))}
                   </div>

@@ -131,7 +131,7 @@ export default function CaromBuilderPage() {
     setLoading(true); setFetchError(null)
     Promise.all([
       api.get(`/games/${id}`),
-      api.get(`/snake/${id}/settings`),
+      api.get(`/carom/${id}/settings`),
     ]).then(([gRes, sRes]) => {
       const g = gRes.data.game; setGame(g)
       setSettings(sRes.data.settings || {})
@@ -165,7 +165,7 @@ export default function CaromBuilderPage() {
       else fd.append('bg_image_url', settings.bg_image_url || '')
       if (settings._logoFile) fd.append('game_logo', settings._logoFile)
       else fd.append('game_logo_url', settings.game_logo_url || '')
-      await api.put(`/snake/${id}/settings`, fd)
+      await api.put(`/carom/${id}/settings`, fd)
       await api.put(`/games/${id}`, { redirect_url: redirectUrl, slug: slugInput.trim() || undefined })
       showToast('Settings saved')
     } catch (err) {

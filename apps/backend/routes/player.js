@@ -760,7 +760,6 @@ router.get('/:gameName/:companyName', async (req, res) => {
       minesweeper:   'minesweeper_settings',
       wordscramble:  'wordscramble_settings',
       rps:           'rps_settings',
-      bounce:        'bounce_settings',
     };
     const settingsTable = categorySettingsMap[game.category];
 

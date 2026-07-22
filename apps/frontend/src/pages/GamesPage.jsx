@@ -64,11 +64,11 @@ const CATEGORY_ICON = {
   crossword:'Grid3x3', spin:'Sparkles', memory:'Puzzle', jigsaw:'Image', wordsearch:'Search',
   pouring:'Droplets', typer:'Keyboard', screw:'Wrench',   math:'Calculator', maze:'Route',
   '2048':'Grid3x3',   snake:'Snail', catch:'ShoppingBasket', reaction:'Zap', simon:'Target',
-  flappy:'Bird', bounce:'CircleDot', space:'Rocket', connect4:'CircleDot', bejeweled:'Gem' === undefined ? 'Sparkles' : 'Sparkles',
+  flappy:'Bird', bounce:'CircleDot', space:'Rocket', connect4:'CircleDot',   bejeweled:'Sparkles',
   tetris:'Layers', stack:'Layers', bowling:'Building', sudoku:'Grid3x3', minesweeper:'Bomb',
   wordscramble:'Shuffle', rps:'Hand', whackamole:'Hammer', hanoi:'TowerControl', breakout:'Boxes',
   bubbleshooter:'CircleDot', carlaunch:'Car', arrowescape:'ArrowRight', stressbuster:'Frown',
-  soundify:'Volume2', tictactoe:'CircleX', chess:'Crown', bejeweled:'Sparkles',
+  soundify:'Volume2', tictactoe:'CircleX', chess:'Crown',
 }
 const ICONS = { HelpCircle, ClipboardList, BarChart3, FileText, Grid3x3, Sparkles, Puzzle, Image,
   Search, Droplets, Keyboard, Wrench, Calculator, Route, Snail, ShoppingBasket, Zap, Target, Bird,

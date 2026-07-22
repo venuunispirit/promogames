@@ -621,7 +621,6 @@ export default function TicTacToe() {
         {styles}
         <div className="sheet">
         {soundToggle}
-          {soundToggle}
           <h1>Tic-Tac-Toe</h1>
           <div className="subtitle">choose how you'd like to play</div>
           <div className="home-choice">
@@ -654,7 +653,6 @@ export default function TicTacToe() {
         {styles}
         <div className="sheet">
         {soundToggle}
-          {soundToggle}
           <div className="back-row">
             <button className="back-btn" onClick={goHome}>← Back</button>
           </div>
@@ -703,7 +701,6 @@ export default function TicTacToe() {
         {styles}
         <div className="sheet">
         {soundToggle}
-          {soundToggle}
           <div className="back-row">
             <button className="back-btn" onClick={goHome}>← Leave room</button>
           </div>

@@ -158,9 +158,9 @@ export default function BowlingBuilderPage() {
   const gameLogoRef = useRef()
   const gifRef = useRef()
 
-  const showToast = (msg, type = 'success') => {
-
   const upload = useUploadErrors()
+
+  const showToast = (msg, type = 'success') => {
     setToast({ msg, type })
     setTimeout(() => setToast(null), 3000)
   }
@@ -221,11 +221,11 @@ export default function BowlingBuilderPage() {
       upload.clearAll()
       const msg = uploadErrorMessage(err)
       if (err?.response?.status === 413) {
-        if (_bgFile) upload.setFieldError('bg_image_url', msg)
-        if (_logoFile) upload.setFieldError('game_logo_url', msg)
-        if (_tyBgFile) upload.setFieldError('thankyou_bg_image_url', msg)
-        if (_gifFile) upload.setFieldError('submit_confirm_gif_url', msg)
-        if (!_bgFile && !_logoFile && !_tyBgFile && !_gifFile) upload.setFieldError('bg_image_url', msg)
+        if (settings._bgFile) upload.setFieldError('bg_image_url', msg)
+        if (settings._logoFile) upload.setFieldError('game_logo_url', msg)
+        if (settings._tyBgFile) upload.setFieldError('thankyou_bg_image_url', msg)
+        if (settings._gifFile) upload.setFieldError('submit_confirm_gif_url', msg)
+        if (!settings._bgFile && !settings._logoFile && !settings._tyBgFile && !settings._gifFile) upload.setFieldError('bg_image_url', msg)
       } else {
         upload.setFieldError('bg_image_url', msg)
       }
@@ -248,7 +248,6 @@ export default function BowlingBuilderPage() {
   ]
 
   const handleImgUpload = (field, ref) => {
-    upload.clearFieldError(field)
     upload.clearFieldError(field)
     const file = ref.current?.files?.[0]
     if (file) {
@@ -318,7 +317,7 @@ export default function BowlingBuilderPage() {
       </div>
       <div className="gb-section">
         <div className="gb-section-title">🖼️ Images</div>
-        <ImageUpload label="Background Image" url={settings.bg_image_url} error={upload.errors['bg_image_url']} error={upload.errors['bg_image_url']} onFile={f => handleImgUpload('bg_image_url', bgImgRef)} onClear={() => set('bg_image_url', '')} />
+        <ImageUpload label="Background Image" url={settings.bg_image_url} error={upload.errors['bg_image_url']} onFile={f => handleImgUpload('bg_image_url', bgImgRef)} onClear={() => set('bg_image_url', '')} />
         <input ref={bgImgRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={() => handleImgUpload('bg_image_url', bgImgRef)} />
         <div style={{ marginTop: 8 }}><ImageUpload label="Game Logo" url={settings.game_logo_url} error={upload.errors['game_logo_url']} onFile={f => handleImgUpload('game_logo_url', gameLogoRef)} onClear={() => set('game_logo_url', '')} /></div>
         <input ref={gameLogoRef} type="file" accept="image/*" style={{ display: 'none' }} onChange={() => handleImgUpload('game_logo_url', gameLogoRef)} />

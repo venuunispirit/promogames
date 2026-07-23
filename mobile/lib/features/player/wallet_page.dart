@@ -34,7 +34,7 @@ class WalletPage extends StatelessWidget {
                   Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     const CoinIcon(size: 34),
                     const SizedBox(width: 10),
-                    Text('$balance PC', style: const TextStyle(color: Colors.black, fontSize: 34, fontWeight: FontWeight.bold)),
+                    Text('$balance PC', style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
                   ]),
                   const SizedBox(height: 6),
                   Text('${txs.length} transactions', style: const TextStyle(color: Colors.black54, fontSize: 13)),

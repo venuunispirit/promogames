@@ -28,8 +28,6 @@ class HomeScreen extends StatelessWidget {
               const SizedBox(height: AppSpace.lg),
               _QuickActions(),
               const SizedBox(height: AppSpace.lg),
-              _DailyGoals(),
-              const SizedBox(height: AppSpace.lg),
               _GameSections(),
               const SizedBox(height: AppSpace.lg),
               _AchievementsPreview(),
@@ -54,55 +52,56 @@ class _Header extends StatelessWidget {
     final pending = prov.pendingCount;
     return Padding(
       padding: const EdgeInsets.fromLTRB(AppSpace.lg, AppSpace.md, AppSpace.lg, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Hi, $name 👋',
-                    style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 2),
-                Text(
-                  prov.offline
-                      ? 'Offline — games will sync later'
-                      : pending > 0
-                          ? '$pending game(s) pending sync'
-                          : 'Ready to earn more Promo Coins?',
-                  style: TextStyle(
-                    color: prov.offline
-                        ? AppColors.warning
-                        : pending > 0
-                            ? AppColors.accentGold
-                            : AppColors.textSecondary,
-                    fontSize: 14,
+      child: SizedBox(
+        height: 44,
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Padding(
+                  padding: const EdgeInsets.only(right: 50),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text('Welcome, $name 👋',
+                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
-              ],
-            ),
-          ),
-          Stack(
-            children: [
-              IconButton(
-                onPressed: () => context.go('/notifications'),
-                icon: const Icon(Icons.notifications_outlined),
-                style: IconButton.styleFrom(backgroundColor: Colors.white, padding: const EdgeInsets.all(10)),
               ),
-              if (pending > 0)
-                Positioned(
-                  right: 6,
-                  top: 6,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(color: AppColors.accentGold, shape: BoxShape.circle),
-                    child: Text('$pending', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+            ),
+            Positioned(
+              right: 0,
+              top: 0,
+              child: Stack(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white.withAlpha(60), width: 1),
+                    ),
+                    child: GestureDetector(
+                      onTap: () => context.go('/notifications'),
+                      child: const Icon(Icons.notifications_outlined, color: Colors.white, size: 22),
+                    ),
                   ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 10),
-          CoinPill(balance: bal),
-        ],
+                  if (pending > 0)
+                    Positioned(
+                      right: 0,
+                      top: 0,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(color: AppColors.accentGold, shape: BoxShape.circle),
+                        child: Text('$pending', style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -115,10 +114,10 @@ class _Hero extends StatelessWidget {
     final bal = prov.pcBalance;
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppSpace.lg),
-      padding: const EdgeInsets.all(AppSpace.lg),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       decoration: BoxDecoration(
         gradient: AppColors.heroGradient,
-        borderRadius: BorderRadius.circular(AppRadius.card),
+        borderRadius: BorderRadius.circular(16),
         boxShadow: AppShadow.soft,
       ),
       child: Column(
@@ -129,19 +128,17 @@ class _Hero extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Coin Balance', style: TextStyle(color: Colors.white70, fontSize: 14)),
+                    const Text('PC Balance', style: TextStyle(color: Colors.white70, fontSize: 14)),
                     const SizedBox(height: 4),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        const CoinIcon(size: 26),
-                        const SizedBox(width: 8),
                         Text('$bal',
                             style: const TextStyle(color: Colors.white, fontSize: 34, fontWeight: FontWeight.bold)),
                         const Text(' PC', style: TextStyle(color: Colors.white70, fontSize: 18)),
                       ],
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 10),
                     Text('Level ${MockData.level}', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600)),
                     const SizedBox(height: 6),
                     ClipRRect(
@@ -158,33 +155,44 @@ class _Hero extends StatelessWidget {
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  ...List.generate(6, (i) => Positioned(
-                        left: 20 + 30 * (i % 2),
-                        top: 10 + 40 * (i / 2),
-                        child: Container(width: 5, height: 5, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))
-                            .animate(onPlay: (c) => c.repeat())
-                            .fadeIn(duration: 800.ms, delay: (i * 150).ms).fadeOut(delay: (i * 150 + 600).ms),
-                      )),
-                  const CoinIcon(size: 84),
-                ],
+              const SizedBox(width: 8),
+              SizedBox(
+                height: 160,
+                child: Image.asset(
+                  'assets/hero-mascot.png',
+                  fit: BoxFit.contain,
+                ),
               ),
             ],
           ),
-          const SizedBox(height: AppSpace.lg),
+          const SizedBox(height: 10),
           Row(
             children: [
-              Expanded(child: AppButton(label: 'Play Games', icon: Icons.play_arrow, onTap: () => context.go('/games'))),
+              Expanded(child: AppButton(label: 'Play Games', icon: Icons.play_arrow, white: true, onTap: () => context.go('/games'))),
               const SizedBox(width: 12),
               Expanded(
-                child: AppButton(
-                  label: 'Redeem',
-                  icon: Icons.card_giftcard,
-                  secondary: true,
-                  onTap: () => context.go('/rewards'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    borderRadius: BorderRadius.circular(AppRadius.button),
+                    border: Border.all(color: Colors.white.withAlpha(80), width: 1),
+                    boxShadow: [
+                      BoxShadow(color: AppColors.primary.withAlpha(80), blurRadius: 16, offset: const Offset(0, 6)),
+                      BoxShadow(color: Colors.white.withAlpha(20), blurRadius: 4, offset: const Offset(0, -2)),
+                    ],
+                  ),
+                  child: GestureDetector(
+                    onTap: () => context.go('/wallet'),
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.account_balance_wallet, color: Colors.white, size: 20),
+                        SizedBox(width: 8),
+                        Text('Wallet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 16)),
+                      ],
+                    ),
+                  ),
                 ),
               ),
             ],
@@ -223,7 +231,7 @@ class _QuickActions extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.surfaceVariant,
                     borderRadius: BorderRadius.circular(AppRadius.card),
                     boxShadow: AppShadow.card,
                   ),
@@ -233,13 +241,13 @@ class _QuickActions extends StatelessWidget {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: it.$3.withAlpha(16),
+                          color: AppColors.primary.withAlpha(40),
                           borderRadius: BorderRadius.circular(16),
                         ),
-                        child: Icon(it.$1, color: it.$3),
+                        child: Icon(it.$1, color: Colors.white, size: 24),
                       ),
                       const SizedBox(height: 8),
-                      Text(it.$2, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+                      Text(it.$2, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
                     ],
                   ),
                 ),
@@ -267,7 +275,7 @@ class _DailyGoals extends StatelessWidget {
               children: [
                 const Icon(Icons.local_fire_department, color: AppColors.warning),
                 const SizedBox(width: 8),
-                const Text('Daily Goals', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                const Text('Daily Goals', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white)),
                 const Spacer(),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -306,13 +314,13 @@ class _GoalRow extends StatelessWidget {
       children: [
         Icon(done ? Icons.check_circle : Icons.radio_button_unchecked, color: done ? AppColors.success : AppColors.textSecondary),
         const SizedBox(width: 10),
-        Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500))),
+        Expanded(child: Text(label, style: const TextStyle(fontWeight: FontWeight.w500, color: Colors.white))),
         SizedBox(width: 90, child: ClipRRect(
           borderRadius: BorderRadius.circular(6),
           child: LinearProgressIndicator(value: progress, minHeight: 6, backgroundColor: AppColors.surfaceVariant, valueColor: const AlwaysStoppedAnimation(AppColors.primary)),
         )),
         const SizedBox(width: 10),
-        Text(reward, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600)),
+        Text(reward, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white)),
       ],
     );
   }
@@ -424,7 +432,7 @@ class _LeaderboardPreview extends StatelessWidget {
                         ],
                       ),
                       const SizedBox(height: 8),
-                      Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                      Text(name, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12, color: Colors.white)),
                       const SizedBox(height: 2),
                       Row(mainAxisSize: MainAxisSize.min, children: [
                         const CoinIcon(size: 12),

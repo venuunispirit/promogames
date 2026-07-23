@@ -155,7 +155,7 @@ class PlayerProvider extends ChangeNotifier {
   Future<void> _fetchGames() async {
     try {
       final data = await ApiService.get('/play/play-page-games');
-      final branded = (data['branded'] as List?)?.cast<Map<String, dynamic>>() ?? [];
+      final branded = (data['featured'] as List?)?.cast<Map<String, dynamic>>() ?? [];
       final promo = (data['promogames'] as List?)?.cast<Map<String, dynamic>>() ?? [];
       final all = [...branded, ...promo];
       if (all.isNotEmpty) {

@@ -11,6 +11,7 @@ class AppButton extends StatelessWidget {
   final Color? color;
   final IconData? icon;
   final bool secondary;
+  final bool white;
 
   const AppButton({
     super.key,
@@ -20,6 +21,7 @@ class AppButton extends StatelessWidget {
     this.color,
     this.icon,
     this.secondary = false,
+    this.white = false,
   });
 
   @override
@@ -28,23 +30,24 @@ class AppButton extends StatelessWidget {
       width: expanded ? double.infinity : null,
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 22),
       decoration: BoxDecoration(
-        gradient: secondary ? null : (color == null ? AppColors.primaryGradient : null),
-        color: secondary ? AppColors.surfaceVariant : color,
+        gradient: (!secondary && !white) ? (color == null ? AppColors.primaryGradient : null) : null,
+        color: white ? Colors.white : (secondary ? Colors.transparent : color),
         borderRadius: BorderRadius.circular(AppRadius.button),
-        boxShadow: secondary ? null : AppShadow.soft,
+        border: white ? null : (secondary ? Border.all(color: Colors.white.withAlpha(80), width: 1) : null),
+        boxShadow: white ? AppShadow.soft : (secondary ? null : AppShadow.soft),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, color: secondary ? AppColors.text : Colors.white, size: 20),
+            Icon(icon, color: white ? AppColors.primary : (secondary ? Colors.white : Colors.white), size: 20),
             const SizedBox(width: 8),
           ],
           Text(
             label,
             style: TextStyle(
-              color: secondary ? AppColors.text : Colors.white,
+              color: white ? AppColors.primary : Colors.white,
               fontWeight: FontWeight.w600,
               fontSize: 16,
             ),
@@ -77,7 +80,7 @@ class CoinPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.pill),
         boxShadow: AppShadow.card,
       ),
@@ -158,7 +161,7 @@ class StatTile extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
           boxShadow: AppShadow.card,
         ),

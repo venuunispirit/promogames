@@ -166,7 +166,7 @@ class _CrosswordGameState extends State<_CrosswordGame> {
                           return Container(
                             width: 40,
                             height: 40,
-                            color: Colors.black,
+                            color: Colors.white,
                             margin: const EdgeInsets.all(1),
                           );
                         }

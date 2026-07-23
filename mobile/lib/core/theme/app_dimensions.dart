@@ -24,14 +24,14 @@ class AppSpace {
 class AppShadow {
   static List<BoxShadow> get soft => [
         BoxShadow(
-          color: const Color(0xFF7B3EFF).withAlpha(18),
+          color: const Color(0xFF6B21A8).withAlpha(40),
           blurRadius: 24,
           offset: const Offset(0, 10),
         ),
       ];
   static List<BoxShadow> get card => [
         BoxShadow(
-          color: Colors.black.withAlpha(7),
+          color: Colors.black.withAlpha(30),
           blurRadius: 18,
           offset: const Offset(0, 8),
         ),

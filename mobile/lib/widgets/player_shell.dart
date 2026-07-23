@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
@@ -22,6 +23,7 @@ class PlayerShell extends StatelessWidget {
       (Icons.person_rounded, 'Profile'),
     ];
     final current = navigationShell.currentIndex;
+    final bottomPad = MediaQuery.of(context).padding.bottom;
 
     return PopScope(
       canPop: false,
@@ -29,64 +31,106 @@ class PlayerShell extends StatelessWidget {
         if (didPop) return;
         if (current != 0) {
           _go(0);
-        } else {
-          SystemNavigator.pop();
         }
       },
       child: Scaffold(
         backgroundColor: AppColors.background,
-        body: navigationShell,
-        bottomNavigationBar: SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-            child: Container(
-              height: 66,
-              padding: const EdgeInsets.symmetric(horizontal: 6),
-              decoration: BoxDecoration(
-                color: Colors.white,
+        body: Stack(
+          children: [
+            // Body fills entire screen — content scrolls behind pill area
+            Positioned.fill(
+              child: navigationShell,
+            ),
+            // Floating glass pill — overlaid on top of body content
+            Positioned(
+              left: 20,
+              right: 20,
+              bottom: bottomPad + 10,
+              height: 70,
+              child: ClipRRect(
                 borderRadius: BorderRadius.circular(AppRadius.bottomNav),
-                boxShadow: [
-                  BoxShadow(color: Colors.black.withAlpha(8), blurRadius: 24, offset: const Offset(0, 10)),
-                ],
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: items.asMap().entries.map((e) {
-                  final i = e.key;
-                  final item = e.value;
-                  final active = current == i;
-                  return Expanded(
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () => _go(i),
-                      child: AnimatedContainer(
-                        duration: const Duration(milliseconds: 250),
-                        curve: Curves.easeOut,
-                        margin: const EdgeInsets.all(6),
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        decoration: BoxDecoration(
-                          color: active ? AppColors.primary : Colors.transparent,
-                          borderRadius: BorderRadius.circular(20),
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(AppRadius.bottomNav),
+                      color: Colors.white.withAlpha(15),
+                      border: Border.all(color: Colors.white.withAlpha(128), width: 0.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withAlpha(25),
+                          blurRadius: 40,
+                          offset: const Offset(0, 10),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(item.$1, color: active ? Colors.white : AppColors.textSecondary, size: 22),
-                            if (active) ...[
-                              const SizedBox(width: 8),
-                              Text(item.$2,
-                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 13)),
-                            ],
-                          ],
-                        ),
-                      ),
+                      ],
                     ),
-                  );
-                }).toList(),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceAround,
+                      children: items.asMap().entries.map((e) {
+                        final i = e.key;
+                        final item = e.value;
+                        final active = current == i;
+                        return GestureDetector(
+                          onTap: () => _go(i),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeOutCubic,
+                            padding: EdgeInsets.symmetric(
+                              horizontal: active ? 16 : 12,
+                              vertical: 10,
+                            ),
+                            decoration: BoxDecoration(
+                              gradient: active
+                                  ? LinearGradient(
+                                      colors: [
+                                        AppColors.primary,
+                                        AppColors.secondaryPurple,
+                                      ],
+                                    )
+                                  : null,
+                              borderRadius: BorderRadius.circular(20),
+                              boxShadow: active
+                                  ? [
+                                      BoxShadow(
+                                        color: AppColors.primary.withAlpha(60),
+                                        blurRadius: 16,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  item.$1,
+                                  color: active ? Colors.white : Colors.white.withAlpha(180),
+                                  size: active ? 22 : 24,
+                                ),
+                                if (active) ...[
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    item.$2,
+                                    style: const TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 13,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ),
               ),
             ),
-          ),
+          ],
         ),
       ),
     );

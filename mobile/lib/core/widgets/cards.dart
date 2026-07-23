@@ -20,7 +20,7 @@ class GameCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(AppRadius.card),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
           boxShadow: AppShadow.card,
         ),
@@ -102,7 +102,7 @@ class RewardCard extends StatelessWidget {
       child: Container(
         width: compact ? 160 : null,
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surface,
           borderRadius: BorderRadius.circular(AppRadius.card),
           boxShadow: AppShadow.card,
         ),
@@ -169,7 +169,7 @@ class AchievementMedal extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
         boxShadow: AppShadow.card,
         border: achievement.unlocked ? Border.all(color: _ring.withAlpha(60), width: 1.5) : null,
@@ -216,7 +216,7 @@ class LeaderboardTile extends StatelessWidget {
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surface,
         borderRadius: BorderRadius.circular(AppRadius.card),
         boxShadow: AppShadow.card,
       ),

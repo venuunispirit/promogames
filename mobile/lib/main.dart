@@ -4,6 +4,7 @@ import 'services/auth_service.dart';
 import 'services/player_provider.dart';
 import 'services/notification_service.dart';
 import 'app_router.dart';
+import 'core/theme/app_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -31,11 +32,7 @@ class PromoGamesApp extends StatelessWidget {
     return MaterialApp.router(
       title: 'PromoGames',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF8b5cf6),
-        useMaterial3: true,
-        brightness: Brightness.light,
-      ),
+      theme: AppTheme.light,
       routerConfig: buildRouter(),
     );
   }

@@ -1,25 +1,25 @@
 import 'package:flutter/material.dart';
 
-/// Centralized color palette for PromoGames (light, premium, minimal).
+/// Centralized color palette for PromoGames — deep purple dark theme.
 class AppColors {
   // Brand
-  static const Color primary = Color(0xFF7B3EFF);
-  static const Color primaryDark = Color(0xFF5B1FD6);
-  static const Color secondaryPurple = Color(0xFF9A5BFF);
+  static const Color primary = Color(0xFF6B21A8);
+  static const Color primaryDark = Color(0xFF581C87);
+  static const Color secondaryPurple = Color(0xFF9333EA);
   static const Color accentGold = Color(0xFFFDBB2D);
 
   // Surfaces
-  static const Color background = Color(0xFFF8F9FD);
-  static const Color surface = Colors.white;
-  static const Color surfaceVariant = Color(0xFFF1F2FA);
+  static const Color background = Color(0xFF120822);
+  static const Color surface = Color(0xFF1A0E33);
+  static const Color surfaceVariant = Color(0xFF1F1240);
 
   // Text
-  static const Color text = Color(0xFF161616);
-  static const Color textSecondary = Color(0xFF7C7C8A);
+  static const Color text = Colors.white;
+  static const Color textSecondary = Color(0xFFB8A0D2);
   static const Color textOnPrimary = Colors.white;
 
   // Lines
-  static const Color divider = Color(0xFFECECF5);
+  static const Color divider = Color(0xFF3D2066);
 
   // Semantic
   static const Color success = Color(0xFF34C759);
@@ -38,14 +38,13 @@ class AppColors {
     end: Alignment.bottomRight,
   );
   static const Gradient heroGradient = LinearGradient(
-    colors: [Color(0xFF7B3EFF), Color(0xFF9A5BFF), Color(0xFFB07BFF)],
+    colors: [Color(0xFF6B21A8), Color(0xFF9333EA), Color(0xFFD946EF)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
-
-  // Dark theme
-  static const Color darkBackground = Color(0xFF0E0E14);
-  static const Color darkSurface = Color(0xFF1A1A24);
-  static const Color darkText = Color(0xFFFFFFFF);
-  static const Color darkTextSecondary = Color(0xFF9A9AA8);
+  static const Gradient bgGradient = LinearGradient(
+    colors: [Color(0xFF1A0A2E), Color(0xFF0D0519)],
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+  );
 }

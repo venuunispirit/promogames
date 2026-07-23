@@ -19,7 +19,7 @@ class RewardsScreen extends StatelessWidget {
     final items = prov.rewards;
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Rewards', style: TextStyle(fontWeight: FontWeight.bold)), automaticallyImplyLeading: false),
+      appBar: AppBar(title: const Text('Rewards', style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white)), automaticallyImplyLeading: false),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.only(bottom: AppSpace.xl),
@@ -29,20 +29,30 @@ class RewardsScreen extends StatelessWidget {
               Container(
                 margin: const EdgeInsets.all(AppSpace.lg),
                 padding: const EdgeInsets.all(AppSpace.lg),
-                decoration: BoxDecoration(gradient: AppColors.goldGradient, borderRadius: BorderRadius.circular(AppRadius.card), boxShadow: AppShadow.soft),
+                decoration: BoxDecoration(gradient: AppColors.goldGradient, borderRadius: BorderRadius.circular(16), boxShadow: AppShadow.soft),
                 child: Row(
                   children: [
-                    const CoinIcon(size: 40),
+                    const CoinIcon(size: 60),
                     const SizedBox(width: 12),
                     Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       const Text('Your Balance', style: TextStyle(color: Colors.black87, fontSize: 14)),
-                      Text('$balance PC', style: const TextStyle(color: Colors.black, fontSize: 28, fontWeight: FontWeight.bold)),
+                      Text('$balance PC', style: const TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.bold)),
                     ]),
                     const Spacer(),
-                    OutlinedButton(
-                      onPressed: () => context.push('/wallet'),
-                      style: OutlinedButton.styleFrom(foregroundColor: Colors.black87, side: const BorderSide(color: Colors.black38)),
-                      child: const Text('Wallet'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.white.withAlpha(80), width: 1),
+                        boxShadow: [
+                          BoxShadow(color: AppColors.primary.withAlpha(80), blurRadius: 12, offset: const Offset(0, 4)),
+                        ],
+                      ),
+                      child: GestureDetector(
+                        onTap: () => context.push('/wallet'),
+                        child: const Text('Wallet', style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600, fontSize: 14)),
+                      ),
                     ),
                   ],
                 ),

@@ -8,3 +8,5 @@ apps/backend/uploads/sounds/*
 node_modules/
 .env
 .mimocode
+.vscode/
+.anima/

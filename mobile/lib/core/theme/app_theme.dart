@@ -3,35 +3,29 @@ import 'package:google_fonts/google_fonts.dart';
 import 'app_colors.dart';
 import 'app_dimensions.dart';
 
-/// Centralized [ThemeData] for PromoGames — deep purple dark theme.
+/// Centralized [ThemeData] for PromoGames — Material 3, Inter, premium minimal.
 class AppTheme {
   static ThemeData get light => ThemeData(
         useMaterial3: true,
-        brightness: Brightness.dark,
+        brightness: Brightness.light,
         scaffoldBackgroundColor: AppColors.background,
         fontFamily: GoogleFonts.inter().fontFamily,
-        textTheme: GoogleFonts.interTextTheme(Typography.material2021().white).apply(
-          bodyColor: Colors.white,
-          displayColor: Colors.white,
-        ),
+        textTheme: GoogleFonts.interTextTheme(Typography.material2021().black),
         colorScheme: ColorScheme.fromSeed(
           seedColor: AppColors.primary,
-          brightness: Brightness.dark,
           primary: AppColors.primary,
           secondary: AppColors.secondaryPurple,
           surface: AppColors.surface,
-          background: AppColors.background,
-          onSurface: Colors.white,
-          onBackground: Colors.white,
+          onSurface: AppColors.text,
           error: AppColors.danger,
-        ),
+        ).copyWith(),
         appBarTheme: const AppBarTheme(
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: false,
-          iconTheme: IconThemeData(color: Colors.white),
+          iconTheme: IconThemeData(color: AppColors.text),
           titleTextStyle: TextStyle(
-            color: AppColors.surface,
+            color: AppColors.text,
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -69,7 +63,7 @@ class AppTheme {
           backgroundColor: AppColors.surfaceVariant,
           selectedColor: AppColors.primary,
           secondarySelectedColor: AppColors.primary,
-          labelStyle: const TextStyle(color: Colors.white),
+          labelStyle: const TextStyle(color: AppColors.text),
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppRadius.pill),
@@ -80,6 +74,29 @@ class AppTheme {
           backgroundColor: Colors.transparent,
           elevation: 0,
         ),
-        iconTheme: const IconThemeData(color: Colors.white),
+      );
+
+  static ThemeData get dark => ThemeData(
+        useMaterial3: true,
+        brightness: Brightness.dark,
+        scaffoldBackgroundColor: AppColors.darkBackground,
+        fontFamily: GoogleFonts.inter().fontFamily,
+        textTheme: GoogleFonts.interTextTheme(Typography.material2021().white),
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: AppColors.primary,
+          brightness: Brightness.dark,
+          primary: AppColors.primary,
+          secondary: AppColors.secondaryPurple,
+          surface: AppColors.darkSurface,
+          onSurface: AppColors.darkText,
+          error: AppColors.danger,
+        ),
+        cardTheme: CardThemeData(
+          color: AppColors.darkSurface,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadius.card),
+          ),
+        ),
       );
 }

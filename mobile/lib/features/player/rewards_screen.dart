@@ -7,7 +7,7 @@ import '../../services/player_provider.dart';
 import '../../core/data/mock_data.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/cards.dart';
-import '../../core/widgets/states.dart';
+
 
 class RewardsScreen extends StatelessWidget {
   const RewardsScreen({super.key});

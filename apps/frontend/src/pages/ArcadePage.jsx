@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useLocation } from 'react-router-dom'
 import GameModal from '../components/GameModal'
 import PlayerNavbar from '../components/PlayerNavbar'
+import MascotBubble from '../components/MascotBubble'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -249,6 +250,7 @@ export default function ArcadePage() {
   return (
     <>
       <style>{CSS}</style>
+      <MascotBubble />
       <div className="arc-scroll-bar" />
 
       {/* NAV */}
@@ -346,7 +348,7 @@ export default function ArcadePage() {
             <div className="footer-links-title">Get in Touch</div>
             <div className="footer-contact">
               <a href="tel:+916366870248">📞 +91 6366 870 248</a>
-              <a href="mailto:offers.promogames@gmail.com">📧 offers.promogames@gmail.com</a>
+              <a href="mailto:play@promogames.in">📧 play@promogames.in</a>
             </div>
           </div>
 
@@ -354,7 +356,7 @@ export default function ArcadePage() {
         <div className="footer-bar" style={{ width:'100%' }}>
           <p>© 2026 Promogames. Fun Games. Exciting Gifts.</p>
           <div style={{ display:'flex', gap:8 }}>
-            <a href="#">Terms of Use</a><span>|</span><a href="#">Privacy Policy</a>
+            <a href="/terms">Terms & Conditions</a><span>|</span><a href="/privacy">Privacy Policy</a>
           </div>
         </div>
       </footer>

@@ -1,7 +1,9 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import { ThemeProvider } from "./pages/ThemeContext"
+import { AccessibilityProvider } from './utils/accessibility'
 import './pages/Theme.css'
+import './index.css'
 import LoginPage         from './pages/LoginPage'
 import DashboardLayout   from './components/DashboardLayout'
 import DashboardHome     from './pages/DashboardHome'
@@ -73,6 +75,10 @@ import BODashboard       from './pages/BODashboard'
 import BOGames           from './pages/BOGames'
 import BORedemptions     from './pages/BORedemptions'
 import BrandOwnerMyPage  from './pages/BrandOwnerMyPage'
+import GameCategoryPage  from './pages/GameCategoryPage'
+import TermsPage from './pages/TermsPage'
+import PrivacyPage from './pages/PrivacyPage'
+import CookieBanner from './components/CookieBanner'
 
 // ── Admin protected route ─────────────────────────────────────────────────────
 function ProtectedRoute({ children }) {
@@ -108,9 +114,12 @@ function AppRoutes() {
       <Route path="/"           element={<LandingPage />} />
       <Route path="/login"      element={<LoginPage />} />
       <Route path="/arcade"     element={<ArcadePage />} />
+      <Route path="/games/:categorySlug" element={<GameCategoryPage />} />
       <Route path="/leaderboard" element={<LeaderboardPage />} />
       <Route path="/business"    element={<Business />} />
       <Route path="/company"     element={<CompanyProfilePage />} />
+      <Route path="/terms"       element={<TermsPage />} />
+      <Route path="/privacy"     element={<PrivacyPage />} />
 
       {/* Player game routes */}
       <Route path="/play/:gameName/:companyName" element={<PlayerPageWrapper />} />
@@ -197,8 +206,14 @@ function AppRoutes() {
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppRoutes />
-    </ThemeProvider>
+    <AccessibilityProvider>
+      <ThemeProvider>
+        <a href="#main-content" className="skip-link"></a>
+        <div id="main-content" tabIndex={-1}>
+          <AppRoutes />
+          <CookieBanner />
+        </div>
+      </ThemeProvider>
+    </AccessibilityProvider>
   )
 }

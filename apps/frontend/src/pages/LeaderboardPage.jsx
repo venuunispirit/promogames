@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from 'react'
 import PlayerNavbar from '../components/PlayerNavbar'
+import MascotBubble from '../components/MascotBubble'
 import { AvatarDisplay } from '../components/AvatarData'
 
 const CSS = `
@@ -567,6 +568,7 @@ export default function LeaderboardPage() {
   return (
     <>
       <style>{CSS}</style>
+      <MascotBubble />
       <div className="lb-page">
         <PlayerNavbar />
 

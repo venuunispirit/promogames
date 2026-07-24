@@ -1759,7 +1759,7 @@ export default function PromoGamesHome() {
             <div className="footer-links-title">Get in Touch</div>
             <div className="footer-contact">
               <a href="tel:+916366870248" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><SvgIcon name="phone" size={16} /> +91 6366 870 248</a>
-              <a href="mailto:offers.promogames@gmail.com" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><SvgIcon name="mail" size={16} /> offers.promogames@gmail.com</a>
+              <a href="mailto:play@promogames.in" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}><SvgIcon name="mail" size={16} /> play@promogames.in</a>
             </div>
           </div>
 
@@ -1767,7 +1767,7 @@ export default function PromoGamesHome() {
         <div className="footer-bar" style={{ width:'100%' }}>
           <p>© 2026 Promogames. Fun Games. Exciting Gifts.</p>
           <div style={{ display:'flex', gap:8 }}>
-            <a href="#">Terms of Use</a><span>|</span><a href="#">Privacy Policy</a>
+            <a href="/terms">Terms & Conditions</a><span>|</span><a href="/privacy">Privacy Policy</a>
           </div>
         </div>
       </footer>

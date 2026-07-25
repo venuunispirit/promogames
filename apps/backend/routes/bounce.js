@@ -196,6 +196,31 @@ router.put('/:id', auth, upload.fields([
   }
 });
 
+// GET bounce settings for builder
+router.get('/settings/:gameId', auth, async (req, res) => {
+  try {
+    const [game] = await db.query(
+      `SELECT g.*, c.company_name, c.slug as client_slug
+       FROM games g LEFT JOIN clients c ON g.client_id = c.id
+       WHERE g.id = ? AND g.category = 'bounce'`,
+      [req.params.gameId]
+    );
+    if (game.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+
+    const [settings] = await db.query('SELECT * FROM bounce_settings WHERE game_id = ?', [req.params.gameId]);
+    const [levels] = await db.query('SELECT * FROM bounce_levels WHERE game_id = ? ORDER BY level_order', [req.params.gameId]);
+    for (const level of levels) {
+      const [objects] = await db.query('SELECT * FROM bounce_objects WHERE level_id = ? ORDER BY object_order', [level.id]);
+      level.objects = objects;
+    }
+
+    res.json({ success: true, game: game[0], settings: settings[0] || null, levels });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // PUT update bounce settings
 router.put('/settings/:gameId', auth, async (req, res) => {
   try {

@@ -30,7 +30,7 @@ export default function SpaceBuilderPage() {
   // Load game data
   useEffect(() => {
     if (id) {
-      api.get(`/api/space/${id}/demo`)  // Use demo endpoint for now
+      api.get(`/space/settings/${id}`)
         .then(res => {
           setGame(res.data.game);
           setSettings(res.data.settings);

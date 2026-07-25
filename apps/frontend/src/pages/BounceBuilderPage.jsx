@@ -24,7 +24,7 @@ export default function BounceBuilderPage() {
   // Load game data
   useEffect(() => {
     if (id) {
-      api.get(`/api/bounce/${id}/demo`)  // Use demo endpoint for now
+      api.get(`/bounce/settings/${id}`)
         .then(res => {
           setGame(res.data.game);
           setSettings(res.data.settings);

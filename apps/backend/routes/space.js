@@ -210,6 +210,30 @@ router.put('/:id', auth, upload.fields([
   }
 });
 
+// GET space settings for builder
+router.get('/settings/:gameId', auth, async (req, res) => {
+  try {
+    const [game] = await db.query(
+      `SELECT g.*, c.company_name, c.slug as client_slug
+       FROM games g LEFT JOIN clients c ON g.client_id = c.id
+       WHERE g.id = ? AND g.category = 'space'`,
+      [req.params.gameId]
+    );
+    if (game.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+
+    const [settings] = await db.query('SELECT * FROM space_settings WHERE game_id = ?', [req.params.gameId]);
+    const [ships] = await db.query('SELECT * FROM space_ships WHERE game_id = ? ORDER BY is_default DESC, ship_name', [req.params.gameId]);
+    const [weapons] = await db.query('SELECT * FROM space_weapons WHERE game_id = ? ORDER BY cost', [req.params.gameId]);
+    const [enemies] = await db.query('SELECT * FROM space_enemies WHERE game_id = ? ORDER BY points_value DESC', [req.params.gameId]);
+    const [levels] = await db.query('SELECT * FROM space_levels WHERE game_id = ? ORDER BY level_order', [req.params.gameId]);
+
+    res.json({ success: true, game: game[0], settings: settings[0] || null, ships, weapons, enemies, levels });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+});
+
 // PUT update space settings
 router.put('/settings/:gameId', auth, async (req, res) => {
   try {

@@ -1124,8 +1124,19 @@ export default function PlayerPage() {
           }
         }
       }
-      setPhase('thankyou')
-    } catch { setPhase('thankyou') }
+      // PromoGames: skip thank you page, go to simple completion screen
+      if (game?.game_type === 'promogames') {
+        setPhase('complete')
+      } else {
+        setPhase('thankyou')
+      }
+    } catch {
+      if (game?.game_type === 'promogames') {
+        setPhase('complete')
+      } else {
+        setPhase('thankyou')
+      }
+    }
     setCompleting(false)
   }, [game, stopAllSounds])
 
@@ -2048,6 +2059,91 @@ export default function PlayerPage() {
         <style>{OVERLAY_STYLES}</style>
       </div>
       </>
+    )
+  }
+
+  /* ── GAME COMPLETE (PromoGames - no form, no thank you, no redirect) ── */
+  if (phase === 'complete') {
+    return (
+      <div style={{
+        minHeight: '100dvh',
+        background: s.bg_color || '#120822',
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box',
+      }}>
+        <div style={{
+          position: 'relative', zIndex: 2,
+          width: '100%', maxWidth: 380, margin: '0 auto',
+          background: 'rgba(255,255,255,0.95)',
+          backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',
+          border: '1px solid rgba(0,0,0,0.06)',
+          borderRadius: 28, padding: 'clamp(28px,7vw,40px) clamp(20px,6vw,32px)',
+          boxShadow: '0 16px 60px rgba(0,0,0,0.12)',
+          animation: 'scaleIn 0.4s cubic-bezier(0.34,1.56,0.64,1)',
+          boxSizing: 'border-box',
+        }}>
+          {/* Check icon */}
+          <div style={{
+            width: 64, height: 64, borderRadius: '50%', margin: '0 auto 16px',
+            background: `linear-gradient(135deg, ${primaryColor || '#7c3aed'}, ${primaryColor ? primaryColor + 'cc' : '#6d28d9'})`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: `0 8px 24px ${primaryColor || '#7c3aed'}44`,
+          }}>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M4 12.5 9.5 18 20 6" />
+            </svg>
+          </div>
+
+          <h1 style={{
+            fontFamily: ff, fontSize: 'clamp(22px,6vw,28px)', fontWeight: 800,
+            color: '#1a1a2e', margin: '0 0 8px', lineHeight: 1.2,
+          }}>
+            Game Completed!
+          </h1>
+
+          {totalScoreable > 0 && (
+            <p style={{
+              color: '#6b7280', fontSize: '0.9rem', fontWeight: 600, margin: '0 0 6px',
+            }}>
+              You scored <strong style={{ color: primaryColor || '#7c3aed' }}>{score}</strong> out of <strong>{totalScoreable}</strong>
+            </p>
+          )}
+
+          <p style={{
+            color: '#9ca3af', fontSize: '0.82rem', margin: '0 0 24px', lineHeight: 1.5,
+          }}>
+            Thanks for playing! Try another game.
+          </p>
+
+          {/* Play Again */}
+          <button
+            onClick={() => window.location.reload()}
+            style={{
+              width: '100%', marginBottom: 10,
+              background: `linear-gradient(135deg, ${primaryColor || '#7c3aed'}, ${primaryColor ? primaryColor + 'cc' : '#6d28d9'})`,
+              color: '#fff', border: 'none',
+              padding: '14px 20px', borderRadius: 14,
+              fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff,
+              boxShadow: `0 6px 24px ${primaryColor || '#7c3aed'}55`,
+            }}>
+            Play Again
+          </button>
+
+          {/* Back to Arcade */}
+          <button
+            onClick={() => { window.location.href = '/arcade' }}
+            style={{
+              width: '100%',
+              background: 'transparent',
+              color: primaryColor || '#7c3aed', border: `2px solid ${primaryColor || '#7c3aed'}`,
+              padding: '12px 20px', borderRadius: 14,
+              fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: ff,
+            }}>
+            Back to Games
+          </button>
+        </div>
+        <style>{OVERLAY_STYLES}</style>
+      </div>
     )
   }
 

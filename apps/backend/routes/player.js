@@ -1395,7 +1395,10 @@ const [games] = await db.query(`
 // ── Lightweight play-count poll endpoint ─────────────────────────────────
 router.get('/game/:id/play-count', async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT play_count FROM games WHERE id = ?', [req.params.id]);
+    const [rows] = await db.query(
+      'SELECT (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = ? AND ps.completed = 1) AS play_count',
+      [req.params.id]
+    );
     res.json({ play_count: rows[0]?.play_count || 0 });
   } catch (err) {
     res.status(500).json({ play_count: 0 });

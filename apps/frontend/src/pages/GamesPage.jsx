@@ -56,6 +56,13 @@ const CATEGORY_META = {
   soundify:    { label:'Soundify',       bg:'#F5F3FF', fg:'#6D28D9', dot:'#A78BFA', icon:'🔊', desc:'Sound-based interactive quiz' },
   tictactoe:   { label:'Tic Tac Toe',    bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'❌', desc:'Classic noughts and crosses' },
   chess:      { label:'Chess',          bg:'#F7F7F7', fg:'#4B5563', dot:'#6B7280', icon:'♟️', desc:'Two-player online chess' },
+  blockblaster:{ label:'Block Blaster',  bg:'#F5F3FF', fg:'#6D28D9', dot:'#8B5CF6', icon:'💥', desc:'Explosive block-clearing puzzle' },
+  candyblast: { label:'Candy Blast',     bg:'#FDF2F8', fg:'#BE185D', dot:'#EC4899', icon:'🍬', desc:'Match and blast candy combos' },
+  carom:      { label:'Carrom',          bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'🎯', desc:'Classic carrom board game' },
+  classicmaze:{ label:'Classic Maze',    bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'🏰', desc:'Navigate through the maze' },
+  ludo:       { label:'Ludo',            bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'🎲', desc:'Classic Ludo board game' },
+  snakeandladder:{ label:'Snake & Ladder', bg:'#ECFEFF', fg:'#0E7490', dot:'#06B6D4', icon:'🪜', desc:'Roll dice, climb the ladder' },
+  tictactoemultiplayer:{ label:'Tic Tac Toe (Multi)', bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'🎮', desc:'Multiplayer noughts and crosses' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F6F9', fg:'var(--text)', dot:'var(--text3)' }
 
@@ -450,6 +457,20 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/tictactoe-builder`)
     } else if (game.category === 'chess') {
       navigate(`/dashboard/games/${game.id}/chess-builder`)
+    } else if (game.category === 'blockblaster') {
+      navigate(`/dashboard/games/${game.id}/blockblaster-builder`)
+    } else if (game.category === 'candyblast') {
+      navigate(`/dashboard/games/${game.id}/candyblast-builder`)
+    } else if (game.category === 'carom') {
+      navigate(`/dashboard/games/${game.id}/carom-builder`)
+    } else if (game.category === 'classicmaze') {
+      navigate(`/dashboard/games/${game.id}/classicmaze-builder`)
+    } else if (game.category === 'ludo') {
+      navigate(`/dashboard/games/${game.id}/ludo-builder`)
+    } else if (game.category === 'snakeandladder') {
+      navigate(`/dashboard/games/${game.id}/snakeandladder-builder`)
+    } else if (game.category === 'tictactoemultiplayer') {
+      navigate(`/dashboard/games/${game.id}/tictactoemultiplayer-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }

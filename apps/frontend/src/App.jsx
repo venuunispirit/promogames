@@ -56,6 +56,13 @@ import SoundifyBuilderPage from './pages/soundifybuilderpage'
 import TicTacToeBuilderPage from './pages/tictactoebuilder'
 import ChessBuilderPage from './pages/ChessBuilderPage'
 import ChessPlayerPage from './pages/ChessPlayerPage'
+import BlockBlasterBuilderPage from './pages/BlockBlasterBuilderPage'
+import CandyBlastBuilderPage from './pages/CandyBlastBuilderPage'
+import CaromBuilderPage from './pages/CaromBuilderPage'
+import ClassicMazeBuilderPage from './pages/ClassicMazeBuilderPage'
+import LudoBuilderPage from './pages/LudoBuilderPage'
+import SnakeAndLadderBuilderPage from './pages/SnakeAndLadderBuilderPage'
+import TicTacToeMultiplayerBuilderPage from './pages/TicTacToeMultiplayerBuilderPage'
 import PlayerLayout      from './pages/PlayerLayout'
 import PlayerDashboardPage from './pages/PlayerDashboardPage'
 import PlayerGamesPage   from './pages/PlayerGamesPage'
@@ -183,6 +190,13 @@ function AppRoutes() {
         <Route path="games/:id/soundify-builder"      element={<SoundifyBuilderPage />} />
         <Route path="games/:id/tictactoe-builder"     element={<TicTacToeBuilderPage />} />
         <Route path="games/:id/chess-builder"          element={<ChessBuilderPage />} />
+        <Route path="games/:id/blockblaster-builder"   element={<BlockBlasterBuilderPage />} />
+        <Route path="games/:id/candyblast-builder"     element={<CandyBlastBuilderPage />} />
+        <Route path="games/:id/carom-builder"          element={<CaromBuilderPage />} />
+        <Route path="games/:id/classicmaze-builder"    element={<ClassicMazeBuilderPage />} />
+        <Route path="games/:id/ludo-builder"           element={<LudoBuilderPage />} />
+        <Route path="games/:id/snakeandladder-builder" element={<SnakeAndLadderBuilderPage />} />
+        <Route path="games/:id/tictactoemultiplayer-builder" element={<TicTacToeMultiplayerBuilderPage />} />
         <Route path="players"                         element={<PlayersPage />} />
         <Route path="crm"                             element={<CRMPage />} />
 

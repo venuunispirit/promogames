@@ -20,6 +20,9 @@ function lerpColor(a, b, t) {
 
 function vibrate(ms) { try { navigator.vibrate && navigator.vibrate(ms); } catch {} }
 
+let userInteracted = false;
+function vibrateIfAllowed(ms) { if (userInteracted) vibrate(ms); }
+
 function makeSound(ctx, freq, type, dur, vol) {
   if (!ctx) return;
   const osc = ctx.createOscillator();
@@ -67,6 +70,7 @@ function makeBricks(W, H) {
 }
 
 function makeCtaBricks(W, H) {
+  if (W < 480) return [];
   const cols = getBrickCols(W);
   const sidePad = W < 480 ? 12 : 20;
   const totalW = W - sidePad * 2;
@@ -149,7 +153,6 @@ export default function ArkanoidGame() {
       s.paddle.y = H - 16;
       s.paddle.x = Math.max(0, Math.min(W - s.paddle.w, s.paddle.x));
       s.bricks = makeBricks(W, H);
-      s.ctaBricks = makeCtaBricks(W, H);
     };
 
     const ro = new ResizeObserver(() => rebuildLayout());
@@ -165,6 +168,7 @@ export default function ArkanoidGame() {
         }
         resetBall();
         makeSound(audioCtx, 880, 'sine', 0.15, 0.12);
+        userInteracted = true;
         vibrate(30);
       }
     };
@@ -225,10 +229,10 @@ export default function ArkanoidGame() {
       }
     }
 
-    function wallBounce() { makeSound(audioCtx, 300, 'triangle', 0.08, 0.06); vibrate(8); }
-    function brickBreak() { makeSound(audioCtx, 600 + Math.random() * 400, 'square', 0.1, 0.05); vibrate(12); }
-    function ctaHit() { makeSound(audioCtx, 440, 'sawtooth', 0.15, 0.14); makeSound(audioCtx, 880, 'sine', 0.12, 0.10); vibrate(25); }
-    function paddleHit() { makeSound(audioCtx, 520, 'triangle', 0.08, 0.08); s.paddle.bright = 1; vibrate(10); }
+    function wallBounce() { makeSound(audioCtx, 300, 'triangle', 0.08, 0.06); vibrateIfAllowed(8); }
+    function brickBreak() { makeSound(audioCtx, 600 + Math.random() * 400, 'square', 0.1, 0.05); vibrateIfAllowed(12); }
+    function ctaHit() { makeSound(audioCtx, 440, 'sawtooth', 0.15, 0.14); makeSound(audioCtx, 880, 'sine', 0.12, 0.10); vibrateIfAllowed(25); }
+    function paddleHit() { makeSound(audioCtx, 520, 'triangle', 0.08, 0.08); s.paddle.bright = 1; vibrateIfAllowed(10); }
 
     const loop = () => {
       s.time += 0.016;
@@ -300,14 +304,15 @@ export default function ArkanoidGame() {
         }
       }
 
-      for (const bb of s.ctaBricks) {
-        if (bb.glow > 0) bb.glow *= 0.94;
+      if (s.bricks.every(b => !b.alive)) {
+      s.bricks = makeBricks(W, H);
+      s.ctaBricks = makeCtaBricks(W, H);
+        makeSound(audioCtx, 1047, 'sine', 0.2, 0.10);
+        vibrateIfAllowed(40);
       }
 
-      if (s.bricks.every(b => !b.alive)) {
-        s.bricks = makeBricks(W, H);
-        makeSound(audioCtx, 1047, 'sine', 0.2, 0.10);
-        vibrate(40);
+      for (const bb of s.ctaBricks) {
+        if (bb.glow > 0) bb.glow *= 0.94;
       }
 
       for (let i = s.particles.length - 1; i >= 0; i--) {

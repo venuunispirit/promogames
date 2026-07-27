@@ -1,12 +1,13 @@
 const mysql = require('mysql2');
 require('dotenv').config();
+const env = require('./env');
 
 const pool = mysql.createPool({
-  host: process.env.DB_HOST || 'localhost',
-  port: process.env.DB_PORT || 3306,
-  user: process.env.DB_USER || 'quizuser',
-  password: process.env.DB_PASSWORD || 'QuizPass@123',
-  database: process.env.DB_NAME || 'quiz_platform',
+  host: env.DB_HOST,
+  port: env.DB_PORT,
+  user: env.DB_USER,
+  password: env.DB_PASSWORD,
+  database: env.DB_NAME,
   waitForConnections: true,
   connectionLimit: 10,
   queueLimit: 0,

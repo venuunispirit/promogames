@@ -1,11 +1,13 @@
 import { useEffect } from 'react'
 import PlayerNavbar from '../components/PlayerNavbar'
 import MascotBubble from '../components/MascotBubble'
+import MascotCursor from '../components/MascotCursor'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap');
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-.pp-page{min-height:100vh;background:#07040f;font-family:'Outfit',sans-serif;color:#fff;padding:120px 24px 80px;position:relative;overflow:hidden}
+html,body{background:#07040f;width:100%;min-height:100vh}
+.pp-page{min-height:100vh;background:#07040f;font-family:'Outfit',sans-serif;color:#fff;padding:120px 24px 80px;position:relative;overflow:hidden;width:100%}
 .pp-page::before{content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);width:900px;height:900px;background:radial-gradient(circle,rgba(146,16,246,0.18) 0%,rgba(146,16,246,0.06) 40%,transparent 70%);pointer-events:none}
 .pp-page::after{content:'';position:absolute;bottom:-300px;right:-200px;width:700px;height:700px;background:radial-gradient(circle,rgba(97,4,151,0.12) 0%,transparent 60%);pointer-events:none}
 .pp-container{max-width:780px;margin:0 auto;position:relative;z-index:1}
@@ -42,6 +44,7 @@ export default function PrivacyPage() {
       <style>{CSS}</style>
       <PlayerNavbar />
       <MascotBubble />
+      <MascotCursor />
       <div className="pp-page">
         <div className="pp-container">
           <a href="/" className="pp-back">← Back to Home</a>

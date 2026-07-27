@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import CountUp from "../components/CountUp";
 import MascotBubble from "../components/MascotBubble";
+import MascotCursor from "../components/MascotCursor";
 
 /* ─── DATA ─────────────────────────────────────────── */
 const NAV = [
@@ -791,6 +792,7 @@ export default function Business() {
     <>
       <style>{CSS}</style>
       <MascotBubble />
+      <MascotCursor />
       <div className="scroll-bar" />
       <div ref={dotRef} className="cursor-dot" />
       <div ref={ringRef} className="cursor-ring" />

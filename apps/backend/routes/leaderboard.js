@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const { sendError } = require('../lib/apiError');
 
 router.get('/', async (req, res) => {
   try {
@@ -9,7 +10,6 @@ router.get('/', async (req, res) => {
         pp.id,
         pp.name   as player_name,
         pp.username as player_username,
-        pp.email,
         pp.avatar_id,
         pp.pc_balance as total_pc,
         pp.created_at
@@ -31,7 +31,7 @@ router.get('/', async (req, res) => {
     res.json({ success: true, entries });
   } catch (err) {
     console.error('Leaderboard error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -42,12 +42,12 @@ router.get('/all', async (req, res) => {
         pp.id,
         pp.name   as player_name,
         pp.username as player_username,
-        pp.email,
         pp.avatar_id,
         pp.pc_balance as total_pc,
         pp.created_at
       FROM promo_players pp
       ORDER BY pp.pc_balance DESC
+      LIMIT 500
     `;
 
     const [rows] = await db.query(query);
@@ -63,7 +63,7 @@ router.get('/all', async (req, res) => {
     res.json({ success: true, entries });
   } catch (err) {
     console.error('Leaderboard all error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

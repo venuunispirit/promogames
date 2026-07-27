@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
+const { sendError } = require('../lib/apiError');
 
 function getUser(req) {
   if (req.user) return { id: req.user.id, type: 'admin' };
@@ -28,7 +29,7 @@ router.get('/', async (req, res) => {
     res.json({ success: true, notifications: rows, unreadCount: countRow[0].count });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -44,7 +45,7 @@ router.put('/read-all', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -60,7 +61,7 @@ router.put('/:id/read', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

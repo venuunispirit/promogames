@@ -1,4 +1,5 @@
 require('dotenv').config();
+const env = require('./env');
 const mysql = require('mysql2/promise');
 
 async function safeQuery(conn, sql, label) {
@@ -12,15 +13,15 @@ async function safeQuery(conn, sql, label) {
 
 async function initPromo() {
   const connection = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER || 'quizuser',
-    password: process.env.DB_PASSWORD || 'QuizPass@123',
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    user: env.DB_USER,
+    password: env.DB_PASSWORD,
     multipleStatements: true,
     charset: 'utf8mb4',
   });
 
-  const dbName = process.env.DB_NAME || 'quiz_platform';
+  const dbName = env.DB_NAME;
   await connection.query(`USE \`${dbName}\``);
 
   console.log('🚀 Running PromoPlayer migration...');

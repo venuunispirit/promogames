@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 const upload = require('../config/upload');
+const { sendError } = require('../lib/apiError');
 
 // GET all sounds for a game
 router.get('/games/:gameId/sounds', auth, async (req, res) => {
@@ -10,7 +11,7 @@ router.get('/games/:gameId/sounds', auth, async (req, res) => {
     const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ? ORDER BY created_at DESC', [req.params.gameId]);
     res.json({ success: true, sounds });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -27,7 +28,7 @@ router.post('/games/:gameId/sounds', auth, upload.single('file'), async (req, re
     const [s] = await db.query('SELECT * FROM sounds WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, sound: s[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -37,7 +38,7 @@ router.delete('/sounds/:id', auth, async (req, res) => {
     await db.query('DELETE FROM sounds WHERE id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 // GET all sounds (for dropdowns)
@@ -46,7 +47,7 @@ router.get('/', auth, async (req, res) => {
     const [sounds] = await db.query('SELECT * FROM sounds ORDER BY name ASC');
     res.json({ success: true, sounds });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 module.exports = router;

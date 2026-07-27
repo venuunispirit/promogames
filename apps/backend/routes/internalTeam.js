@@ -4,12 +4,14 @@ const db = require('../config/db');
 const auth = require('../middleware/auth');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const { sendError } = require('../lib/apiError');
+const env = require('../config/env');
 
 function itAuth(req, res, next) {
   const token = (req.headers['authorization'] || '').split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'Access token required' });
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const decoded = jwt.verify(token, env.JWT_SECRET);
     if (decoded.role !== 'internal_team') return res.status(403).json({ success: false, message: 'Not authorized' });
     req.it = decoded;
     next();
@@ -30,13 +32,13 @@ router.post('/login', async (req, res) => {
     if (!isMatch) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     const token = jwt.sign(
       { id: member.id, email: member.email, name: member.name, role: 'internal_team' },
-      process.env.JWT_SECRET || 'secret',
+      env.JWT_SECRET,
       { expiresIn: '7d' }
     );
     res.json({ success: true, token, member: { id: member.id, name: member.name, email: member.email } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -56,7 +58,7 @@ router.get('/requests', itAuth, async (req, res) => {
     res.json({ success: true, requests: rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -94,7 +96,7 @@ router.put('/requests/:id/status', itAuth, async (req, res) => {
     res.json({ success: true, message: 'Status updated' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -104,7 +106,7 @@ router.get('/list', auth, async (req, res) => {
     res.json({ success: true, members: rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -123,7 +125,7 @@ router.post('/create', auth, async (req, res) => {
     res.status(201).json({ success: true, message: 'Internal team member created', id: result.insertId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -140,7 +142,7 @@ router.put('/:id', auth, async (req, res) => {
     res.json({ success: true, message: 'Member updated' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -150,7 +152,7 @@ router.delete('/:id', auth, async (req, res) => {
     res.json({ success: true, message: 'Member deleted' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -162,7 +164,7 @@ router.put('/:id/permissions', auth, async (req, res) => {
     res.json({ success: true, message: 'Permissions updated' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -192,7 +194,7 @@ router.get('/redemption-logs', auth, async (req, res) => {
     res.json({ success: true, redemptions: rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -257,7 +259,7 @@ router.get('/bo-logs', auth, async (req, res) => {
     res.json({ success: true, business_owners: result });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -348,7 +350,7 @@ router.get('/bo-logs/:boId/entries', auth, async (req, res) => {
     res.json({ success: true, entries });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

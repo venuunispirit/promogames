@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 const upload = require('../config/upload');
+const { sendError } = require('../lib/apiError');
 
 // Get tictactoe settings
 router.get('/:gameId/settings', auth, async (req, res) => {
@@ -10,7 +11,7 @@ router.get('/:gameId/settings', auth, async (req, res) => {
     const [settings] = await db.query('SELECT * FROM tictactoe_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: settings[0] || null });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -39,14 +40,6 @@ const {
    } = req.body;
 
   try {
-    console.log(`[DEBUG SAVE] TicTacToe gameId=${req.params.gameId}`);
-    console.log(`[DEBUG SAVE] Incoming thankyou_heading_text:`, req.body.thankyou_heading_text);
-    console.log(`[DEBUG SAVE] Incoming thankyou_subtitle_text:`, req.body.thankyou_subtitle_text);
-    console.log(`[DEBUG SAVE] Incoming submit_btn_text:`, req.body.submit_btn_text);
-    console.log(`[DEBUG SAVE] Incoming redirect_url:`, req.body.redirect_url);
-    console.log(`[DEBUG SAVE] Incoming thankyou_bg_image_url:`, req.body.thankyou_bg_image_url);
-    console.log(`[DEBUG SAVE] Incoming submit_confirm_gif_url:`, req.body.submit_confirm_gif_url);
-    console.log(`[DEBUG SAVE] Incoming continue_now_btn_text:`, req.body.continue_now_btn_text);
 
     const [existing] = await db.query('SELECT * FROM tictactoe_settings WHERE game_id = ?', [req.params.gameId]);
 
@@ -162,16 +155,9 @@ start_button_text !== undefined ? start_button_text : e.start_button_text,
     }
 
     const [updated] = await db.query('SELECT * FROM tictactoe_settings WHERE game_id = ?', [req.params.gameId]);
-    console.log(`[DEBUG SAVE] After save - thankyou_heading_text:`, updated[0]?.thankyou_heading_text);
-    console.log(`[DEBUG SAVE] After save - thankyou_subtitle_text:`, updated[0]?.thankyou_subtitle_text);
-    console.log(`[DEBUG SAVE] After save - submit_btn_text:`, updated[0]?.submit_btn_text);
-    console.log(`[DEBUG SAVE] After save - redirect_url:`, updated[0]?.redirect_url);
-    console.log(`[DEBUG SAVE] After save - thankyou_bg_image_url:`, updated[0]?.thankyou_bg_image_url);
-    console.log(`[DEBUG SAVE] After save - submit_confirm_gif_url:`, updated[0]?.submit_confirm_gif_url);
-    console.log(`[DEBUG SAVE] After save - continue_now_btn_text:`, updated[0]?.continue_now_btn_text);
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

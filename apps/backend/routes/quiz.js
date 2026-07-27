@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
+const { sendError } = require('../lib/apiError');
 
 // Helper: delete a file stored as a /uploads/... URL from disk
 function deleteUploadFile(urlPath) {
@@ -28,7 +29,7 @@ router.get('/games/:gameId/questions', auth, async (req, res) => {
       q.options = options;
     }
     res.json({ success: true, questions });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 router.post('/games/:gameId/questions', auth, upload.fields([
@@ -52,7 +53,7 @@ router.post('/games/:gameId/questions', auth, upload.fields([
     );
     const [q] = await db.query('SELECT * FROM questions WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, question: { ...q[0], options: [] } });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 router.put('/questions/:id', auth, upload.fields([
@@ -99,7 +100,7 @@ router.put('/questions/:id', auth, upload.fields([
     const [updated] = await db.query('SELECT * FROM questions WHERE id = ?', [req.params.id]);
     const [options] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [req.params.id]);
     res.json({ success: true, question: { ...updated[0], options } });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 router.delete('/questions/:id', auth, async (req, res) => {
@@ -117,7 +118,7 @@ router.delete('/questions/:id', auth, async (req, res) => {
     }
     await db.query('DELETE FROM questions WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Question deleted' });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // POST duplicate a question with all its options
@@ -151,7 +152,7 @@ router.post('/questions/:id/duplicate', auth, async (req, res) => {
     const [newQ] = await db.query('SELECT * FROM questions WHERE id = ?', [newQId]);
     const [newOpts] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [newQId]);
     res.status(201).json({ success: true, question: { ...newQ[0], options: newOpts } });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 router.post('/games/:gameId/questions/reorder', auth, async (req, res) => {
@@ -161,7 +162,7 @@ router.post('/games/:gameId/questions/reorder', auth, async (req, res) => {
       await db.query('UPDATE questions SET question_order = ? WHERE id = ?', [item.question_order, item.id]);
     }
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 router.post('/questions/:questionId/options', auth, upload.fields([
@@ -180,7 +181,7 @@ router.post('/questions/:questionId/options', auth, upload.fields([
     );
     const [opt] = await db.query('SELECT * FROM options WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, option: opt[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 router.put('/options/:id', auth, upload.fields([
@@ -223,7 +224,7 @@ router.put('/options/:id', auth, upload.fields([
     );
     const [updated] = await db.query('SELECT * FROM options WHERE id = ?', [req.params.id]);
     res.json({ success: true, option: updated[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 router.delete('/options/:id', auth, async (req, res) => {
@@ -236,7 +237,7 @@ router.delete('/options/:id', auth, async (req, res) => {
     }
     await db.query('DELETE FROM options WHERE id = ?', [req.params.id]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 module.exports = router;

@@ -7,6 +7,7 @@ const { requireAdmin } = require('../middleware/auth');
 const multer = require('multer');
 const { geocodePincode } = require('../lib/geocode');
 const path = require('path');
+const { sendError } = require('../lib/apiError');
 
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, path.join(__dirname, '../uploads/images')),
@@ -32,7 +33,7 @@ router.get('/', requireAdmin, async (req, res) => {
     );
     res.json({ success: true, clients: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -43,7 +44,7 @@ router.get('/:id', requireAdmin, async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Client not found' });
     res.json({ success: true, client: rows[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -81,7 +82,7 @@ router.post('/', requireAdmin, upload.single('logo'), async (req, res) => {
     const [newClient] = await db.query('SELECT * FROM clients WHERE id = ?', [clientId]);
     res.status(201).json({ success: true, client: newClient[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -101,7 +102,7 @@ router.put('/:id', requireAdmin, upload.single('logo'), async (req, res) => {
     const [updated] = await db.query('SELECT * FROM clients WHERE id = ?', [req.params.id]);
     res.json({ success: true, client: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -117,7 +118,7 @@ router.get('/:id/games', requireAdmin, async (req, res) => {
     `, [req.params.id]);
     res.json({ success: true, games: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -129,7 +130,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
     await db.query('DELETE FROM clients WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Client deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -146,7 +147,7 @@ router.get('/:id/branches', requireAdmin, async (req, res) => {
     );
     res.json({ success: true, branches: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -196,7 +197,7 @@ router.post('/:id/branches', requireAdmin, async (req, res) => {
     );
     res.status(201).json({ success: true, id: result.insertId, message: 'Branch created' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -215,7 +216,7 @@ router.put('/:id/branches/:branchId', requireAdmin, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -225,7 +226,7 @@ router.delete('/:id/branches/:branchId', requireAdmin, async (req, res) => {
     await db.query('DELETE FROM business_owners WHERE id = ? AND client_id = ?', [req.params.branchId, req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -235,7 +236,7 @@ router.get('/:id/canvas', requireAdmin, async (req, res) => {
     const [rows] = await db.query('SELECT positions FROM canvas_layout WHERE client_id = ?', [req.params.id]);
     res.json({ success: true, positions: rows[0]?.positions || {} });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -250,7 +251,7 @@ router.put('/:id/canvas', requireAdmin, async (req, res) => {
     );
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -260,7 +261,7 @@ router.delete('/:id/canvas', requireAdmin, async (req, res) => {
     await db.query('DELETE FROM canvas_layout WHERE client_id = ?', [req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

@@ -1,4 +1,5 @@
 const express = require('express');
+const { sendError } = require('../lib/apiError');
 const router = express.Router();
 
 /*
@@ -71,7 +72,7 @@ router.post('/', async (req, res) => {
     const translated = await translateText(src, tgt || TRANSLATE_SOURCE);
     res.json({ success: true, translated, source: TRANSLATE_SOURCE, target: tgt || TRANSLATE_SOURCE });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -84,7 +85,7 @@ router.post('/batch', async (req, res) => {
     const translated = await Promise.all(texts.map(t => translateText(t, tgt)));
     res.json({ success: true, translated });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

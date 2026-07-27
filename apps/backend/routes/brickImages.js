@@ -6,6 +6,7 @@ const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const { sendError } = require('../lib/apiError');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'images');
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
@@ -19,7 +20,7 @@ router.get('/', async (req, res) => {
       : 'SELECT * FROM brick_images ORDER BY sort_order ASC';
     const [rows] = await db.query(sql);
     res.json({ success: true, images: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // GET single brick image
@@ -28,7 +29,7 @@ router.get('/:id', auth, async (req, res) => {
     const [rows] = await db.query('SELECT * FROM brick_images WHERE id = ?', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Image not found' });
     res.json({ success: true, image: rows[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // POST create brick image
@@ -55,7 +56,7 @@ router.post('/', auth, upload.single('image'), async (req, res) => {
 
     const [newImage] = await db.query('SELECT * FROM brick_images WHERE id = ?', [result.insertId]);
     res.json({ success: true, image: newImage[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // PUT update brick image
@@ -86,7 +87,7 @@ router.put('/:id', auth, upload.single('image'), async (req, res) => {
 
     const [updated] = await db.query('SELECT * FROM brick_images WHERE id = ?', [req.params.id]);
     res.json({ success: true, image: updated[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // DELETE brick image
@@ -104,7 +105,7 @@ router.delete('/:id', auth, async (req, res) => {
 
     await db.query('DELETE FROM brick_images WHERE id = ?', [req.params.id]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // PUT reorder brick images
@@ -117,7 +118,7 @@ router.put('/reorder/batch', auth, async (req, res) => {
       await db.query('UPDATE brick_images SET sort_order = ? WHERE id = ?', [item.sort_order, item.id]);
     }
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // PUT toggle active status
@@ -131,7 +132,7 @@ router.put('/:id/toggle', auth, async (req, res) => {
 
     const [updated] = await db.query('SELECT * FROM brick_images WHERE id = ?', [req.params.id]);
     res.json({ success: true, image: updated[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 module.exports = router;

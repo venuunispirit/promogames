@@ -2,6 +2,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 import { useUploadErrors } from '../lib/builderUpload'
+import PhoneFrame from '../components/PhoneFrame'
 
 const FONT_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap'
 
@@ -419,9 +420,7 @@ export default function MazeBuilderPage() {
         </div>
 
         {/* Phone mockup */}
-        <div className="mb-phone">
-          <div className="mb-phone-notch" />
-          <div className="mb-phone-screen" style={{ fontFamily:`"${ff}",sans-serif`, background:settings.bg_color||'#0f172a' }}>
+        <PhoneFrame settings={{...settings, bg_color: settings.bg_color || '#0f172a'}}>
             {game && (<>
               {(tab==='gameplay'||tab==='form'||tab==='sounds'||tab==='settings')&&(
                 <div style={{display:'flex',flexDirection:'column',height:'100%',padding:'16px'}}>
@@ -456,8 +455,7 @@ export default function MazeBuilderPage() {
               )}
               {tab==='email'&&(<iframe title="Email" srcDoc={`<!DOCTYPE html><html><head><style>body{margin:0;font-family:sans-serif;background:#f4f4f4}.eh{background:${emailTemplate.header_color||'#6366f1'};color:#fff;padding:20px;text-align:center;font-size:18px;font-weight:700}.eb{padding:20px;background:#fff;margin:12px;border-radius:8px;font-size:13px}.ef{padding:12px;text-align:center;font-size:11px;color:#999}</style></head><body><div class="eh">${emailTemplate.header_text||'Well Done!'}</div><div class="eb">${emailTemplate.body_html||'<p>You escaped the maze!</p>'}</div><div class="ef">${emailTemplate.footer_text||''}</div></body></html>`} style={{width:'100%',height:'100%',border:'none',background:'#fff'}} />)}
             </>)}
-          </div>
-        </div>
+        </PhoneFrame>
       </div>
     </div>
   )

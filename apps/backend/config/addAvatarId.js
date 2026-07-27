@@ -1,13 +1,14 @@
 require('dotenv').config();
+const env = require('./env');
 const mysql = require('mysql2/promise');
 (async () => {
   const c = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER || 'quizuser',
-    password: process.env.DB_PASSWORD || 'QuizPass@123',
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    user: env.DB_USER,
+    password: env.DB_PASSWORD,
   });
-  await c.query('USE `' + (process.env.DB_NAME || 'quiz_platform') + '`');
+  await c.query('USE `' + env.DB_NAME + '`');
   try {
     await c.query("ALTER TABLE promo_players ADD COLUMN avatar_id VARCHAR(50) DEFAULT 'av-3'");
     console.log('✅ added avatar_id column');

@@ -3,13 +3,14 @@ const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 const upload = require('../config/upload');
+const { sendError } = require('../lib/apiError');
 
 // GET settings
 router.get('/:gameId/settings', auth, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM arrowescape_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: rows[0] || null });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // PUT settings
@@ -85,7 +86,7 @@ router.put('/:gameId/settings', auth, upload.fields([
     }
     const [updated] = await db.query('SELECT * FROM arrowescape_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: updated[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // GET all levels for a game
@@ -93,7 +94,7 @@ router.get('/:gameId/levels', auth, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM arrowescape_levels WHERE game_id = ? ORDER BY level_order ASC', [req.params.gameId]);
     res.json({ success: true, levels: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // GET single level
@@ -102,7 +103,7 @@ router.get('/:gameId/levels/:levelId', auth, async (req, res) => {
     const [rows] = await db.query('SELECT * FROM arrowescape_levels WHERE id = ? AND game_id = ?', [req.params.levelId, req.params.gameId]);
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Level not found' });
     res.json({ success: true, level: rows[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // POST create level
@@ -118,7 +119,7 @@ router.post('/:gameId/levels', auth, async (req, res) => {
     );
     const [newLevel] = await db.query('SELECT * FROM arrowescape_levels WHERE id = ?', [result.insertId]);
     res.json({ success: true, level: newLevel[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // PUT update level
@@ -138,7 +139,7 @@ router.put('/:gameId/levels/:levelId', auth, async (req, res) => {
     );
     const [updated] = await db.query('SELECT * FROM arrowescape_levels WHERE id = ?', [req.params.levelId]);
     res.json({ success: true, level: updated[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // DELETE level
@@ -146,7 +147,7 @@ router.delete('/:gameId/levels/:levelId', auth, async (req, res) => {
   try {
     await db.query('DELETE FROM arrowescape_levels WHERE id = ? AND game_id = ?', [req.params.levelId, req.params.gameId]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // GET active levels for player (public)
@@ -154,7 +155,7 @@ router.get('/:gameId/play/levels', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM arrowescape_levels WHERE game_id = ? AND is_active = 1 ORDER BY level_order ASC', [req.params.gameId]);
     res.json({ success: true, levels: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 module.exports = router;

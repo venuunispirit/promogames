@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
+const { sendError } = require('../lib/apiError');
 
 function deleteUploadFile(urlPath) {
   if (!urlPath) return;
@@ -26,7 +27,7 @@ router.get('/games/:gameId/words', auth, async (req, res) => {
     );
     res.json({ success: true, words });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -41,7 +42,7 @@ router.post('/games/:gameId/words', auth, async (req, res) => {
     const [word] = await db.query('SELECT * FROM wordsearch_words WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, word: word[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -58,7 +59,7 @@ router.put('/words/:id', auth, async (req, res) => {
     const [updated] = await db.query('SELECT * FROM wordsearch_words WHERE id = ?', [req.params.id]);
     res.json({ success: true, word: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -67,7 +68,7 @@ router.delete('/words/:id', auth, async (req, res) => {
     await db.query('DELETE FROM wordsearch_words WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Word deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -79,7 +80,7 @@ router.post('/games/:gameId/words/reorder', auth, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -90,7 +91,7 @@ router.get('/:gameId/settings', auth, async (req, res) => {
     const [settings] = await db.query('SELECT * FROM wordsearch_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: settings[0] || null });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -176,7 +177,7 @@ router.put('/:gameId/settings', auth, upload.fields([
     const [updated] = await db.query('SELECT * FROM wordsearch_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

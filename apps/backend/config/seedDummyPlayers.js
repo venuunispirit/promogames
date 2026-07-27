@@ -1,4 +1,5 @@
 require('dotenv').config();
+const env = require('./env');
 const mysql = require('mysql2/promise');
 
 const players = [
@@ -26,14 +27,14 @@ const players = [
 
 async function seed() {
   const conn = await mysql.createConnection({
-    host: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT || 3306,
-    user: process.env.DB_USER || 'quizuser',
-    password: process.env.DB_PASSWORD || 'QuizPass@123',
+    host: env.DB_HOST,
+    port: env.DB_PORT,
+    user: env.DB_USER,
+    password: env.DB_PASSWORD,
     charset: 'utf8mb4',
   });
 
-  const dbName = process.env.DB_NAME || 'quiz_platform';
+  const dbName = env.DB_NAME;
   await conn.query(`USE \`${dbName}\``);
 
   for (const p of players) {

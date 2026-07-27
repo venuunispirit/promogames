@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
+const { sendError } = require('../lib/apiError');
 
 // GET /api/play/game-data/:gameId — full game payload for the Flutter app
 // MUST be before /:gameName/:companyName catch-all
@@ -125,7 +126,7 @@ router.get('/game-data/:gameId', async (req, res) => {
     });
   } catch (err) {
     console.error('GET game-data error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -879,7 +880,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     });
   } catch (err) {
     console.error('GET game error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -959,7 +960,7 @@ router.post('/session/start', async (req, res) => {
     res.json({ success: true, session_token: token, session_id: result.insertId, selected_question_ids: selectedQuestions });
   } catch (err) {
     console.error('Session start error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -984,7 +985,7 @@ router.post('/session/answer', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Answer error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -1014,7 +1015,7 @@ router.post('/session/crossword-answer', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Crossword answer error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -1181,7 +1182,6 @@ router.post('/session/complete', async (req, res) => {
         'SELECT bog.business_owner_id, bog.id as bog_id FROM business_owner_games bog WHERE bog.game_id = ? LIMIT 1',
         [session.game_id]
       );
-      console.log('[DEBUG] boGames found:', boGames.length, 'for game_id:', session.game_id);
 
       // If no direct BO link, check if game belongs to a client and find the parent (brand) BO
       let resolvedBoId = boGames.length > 0 ? boGames[0].business_owner_id : null;
@@ -1194,7 +1194,6 @@ router.post('/session/complete', async (req, res) => {
           );
           if (parentBo.length > 0) {
             resolvedBoId = parentBo[0].id;
-            console.log('[DEBUG] Resolved brand BO via client_id:', resolvedBoId);
           }
         }
       }
@@ -1202,7 +1201,6 @@ router.post('/session/complete', async (req, res) => {
       if (resolvedBoId) {
         const isPlayer = !!session.promo_player_id;
         const code = String(Math.floor(100000 + Math.random() * 900000));
-        console.log('[DEBUG] isPlayer:', isPlayer, 'code:', code, 'playerEmail:', playerEmail);
 
         const phoneKey = Object.keys(playerData).find(k => /phone|mobile|whatsapp|contact/i.test(k));
         const playerPhone = phoneKey ? String(playerData[phoneKey]) : '';
@@ -1211,7 +1209,6 @@ router.post('/session/complete', async (req, res) => {
 
         const [gameSettingsRow] = await db.query('SELECT email_settings FROM games WHERE id = ?', [session.game_id]);
         const emailSettings = gameSettingsRow[0]?.email_settings || {};
-        console.log('[DEBUG] emailSettings type:', typeof emailSettings, 'guest_offer:', JSON.stringify(emailSettings?.guest_offer));
 
         await db.query(
           `INSERT INTO business_redemptions (business_owner_id, game_id, session_id, code, player_name, player_phone, player_email, is_player, promo_player_id, status, table_number)
@@ -1223,7 +1220,6 @@ router.post('/session/complete', async (req, res) => {
         const gameName = games[0]?.name || 'a game';
 
         // Send email 1: Guest offer with code (only for guests, not players)
-        console.log('[DEBUG] guest offer condition:', !isPlayer, !!playerEmail, emailSettings?.guest_offer?.enabled !== false);
         if (!isPlayer && playerEmail && emailSettings.guest_offer?.enabled !== false) {
           try {
             const transporter = nodemailer.createTransport({
@@ -1296,7 +1292,7 @@ router.post('/session/complete', async (req, res) => {
     });
   } catch (err) {
     console.error('Complete session error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -1317,7 +1313,7 @@ router.get('/hero-games', async (req, res) => {
     `);
     res.json({ success: true, games });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -1353,7 +1349,7 @@ router.get('/play-page-games', async (req, res) => {
     const allGames = [...branded, ...promoGames];
     res.json({ success: true, games: allGames, featured: branded, promogames: promoGames });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -1382,12 +1378,7 @@ const [games] = await db.query(`
     console.error('DASHBOARD-GAMES FATAL ERROR:', err)
     res.status(500).json({ 
       success: false, 
-      message: 'Server Error: ' + err.message,
-      debug: {
-        error: err.toString(),
-        stack: err.stack,
-        sql: err.sql
-      }
+      message: 'Something went wrong. Please try again.',
     })
   }
 })
@@ -1531,7 +1522,7 @@ router.get('/:gameName', async (req, res) => {
     });
   } catch (err) {
     console.error('GET game (by slug) error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

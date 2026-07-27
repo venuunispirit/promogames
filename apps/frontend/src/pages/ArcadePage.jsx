@@ -3,6 +3,7 @@ import { useLocation } from 'react-router-dom'
 import GameModal from '../components/GameModal'
 import PlayerNavbar from '../components/PlayerNavbar'
 import MascotBubble from '../components/MascotBubble'
+import MascotCursor from '../components/MascotCursor'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -251,6 +252,7 @@ export default function ArcadePage() {
     <>
       <style>{CSS}</style>
       <MascotBubble />
+      <MascotCursor />
       <div className="arc-scroll-bar" />
 
       {/* NAV */}
@@ -320,46 +322,6 @@ export default function ArcadePage() {
           </>
         )}
       </div>
-
-      {/* FOOTER (LandingPage style) */}
-      <footer className="footer" id="contact">
-        <div className="footer-main">
-          <div>
-            <p className="footer-tagline">Play Everyday. Win Everyday.</p>
-            <img src="/favicon2.png" alt="Promogames" style={{ height: 48, width: 'auto', marginBottom: 12, borderRadius: 8 }} />
-            <p className="footer-desc">
-              Quick games, real rewards, and a leaderboard that keeps you coming back. Your reward journey starts here.
-            </p>
-            <div className="socials">
-              {[["in","https://www.linkedin.com"],["f","https://www.facebook.com/profile.php?id=61579982040453"],["𝕏","#"],["▶","#"],["📷","#"]].map(([s, href], i) => (
-                <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="soc">{s}</a>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="footer-links-title">Quick Links</div>
-            <div className="footer-links">
-              {[["Play Now","/arcade"],["Leaderboard","/leaderboard"],["Business","/business"],["Log In","/login"],["Company","/company"]].map(([label, href]) => (
-                <a key={label} href={href}>{label}</a>
-              ))}
-            </div>
-          </div>
-          <div>
-            <div className="footer-links-title">Get in Touch</div>
-            <div className="footer-contact">
-              <a href="tel:+916366870248">📞 +91 6366 870 248</a>
-              <a href="mailto:play@promogames.in">📧 play@promogames.in</a>
-            </div>
-          </div>
-
-        </div>
-        <div className="footer-bar" style={{ width:'100%' }}>
-          <p>© 2026 Promogames. Fun Games. Exciting Gifts.</p>
-          <div style={{ display:'flex', gap:8 }}>
-            <a href="/terms">Terms & Conditions</a><span>|</span><a href="/privacy">Privacy Policy</a>
-          </div>
-        </div>
-      </footer>
 
       {activeGame && (
         <GameModal

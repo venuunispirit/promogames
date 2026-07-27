@@ -2,6 +2,9 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
+import PhoneFrame from '../components/PhoneFrame'
+import FormPreview from '../components/FormPreview'
+import ThankYouPreview from '../components/ThankYouPreview'
 
 /* ─────────────────────────────────────────────
    LIGHT THEME TOKENS  (scoped to .gb-wrap)
@@ -1251,86 +1254,10 @@ export default function ScrewBuilderPage() {
         </div>{/* ─ end left col ─ */}
 
         {/* ─── RIGHT COL — Phone Mockup ─── */}
-        <div style={{
-          position:'sticky', top:80,
-          width:320, height:640, borderRadius:36,
-          border:'4px solid #1a1a2e', background:'#f4f4ff',
-          overflow:'hidden', boxShadow:'0 12px 48px rgba(0,0,0,.18)',
-          fontFamily: settings.font_family ? (settings.font_family + ", sans-serif") : "'DM Sans', sans-serif", flexShrink:0,
-          display:'flex', flexDirection:'column',
-          marginRight:20,
-        }}>
-          <div style={{ width:100, height:24, background:'#1a1a2e', borderRadius:'0 0 16px 16px', margin:'0 auto', flexShrink:0 }} />
+        <PhoneFrame settings={settings}>
 
           {/* ── Form preview ── */}
-          {tab === 'form' && (() => {
-            const hasBg = settings.bg_image_url
-            return (
-            <div style={{
-              flex:1, display:'flex', flexDirection:'column',
-              background: hasBg ? `url(${settings.bg_image_url}) center/cover` : (settings.bg_color||'#f4f4ff'),
-              padding:'clamp(16px,4vw,20px) 12px',
-              overflow:'auto',
-              fontFamily: settings.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif",
-            }}>
-              <div style={{
-                width:'100%', maxWidth:280, margin:'auto',
-                background: hasBg ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.93)',
-                backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)',
-                borderRadius:22, padding:'20px 16px', boxSizing:'border-box',
-                boxShadow: hasBg ? '0 8px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.4)' : '0 8px 40px rgba(0,0,0,0.12)',
-                border: hasBg ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.85)',
-              }}>
-                {settings.game_logo_url && (
-                  <div style={{ textAlign:'center', marginBottom:14 }}>
-                    <img src={settings.game_logo_url} alt="" style={{ maxWidth:'100%', maxHeight:80, objectFit:'contain', borderRadius:8 }} />
-                  </div>
-                )}
-                <h1 style={{ fontSize:16, fontWeight:800, textAlign:'center', marginBottom:2, color: settings.heading_1_color||'#1a1a2e', lineHeight:1.2, textShadow: hasBg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none' }}>{settings.heading_1 || 'Untitled'}</h1>
-                {settings.heading_2 && <div style={{ fontSize:13, fontWeight:600, textAlign:'center', marginBottom:4, color: settings.heading_2_color||'#666666', lineHeight:1.3 }}>{settings.heading_2}</div>}
-                {settings.intro_text && (
-                  <div style={{
-                    background: hasBg ? 'rgba(255,255,255,0.15)' : '#f0f0ff',
-                    border:`1.5px solid ${hasBg ? 'rgba(255,255,255,0.3)' : '#6366f130'}`,
-                    borderRadius:10, padding:'8px 12px', margin:'10px 0 14px',
-                    color: settings.intro_text_color||'#444', fontSize:12, textAlign:'center', lineHeight:1.5,
-                  }}>{settings.intro_text}</div>
-                )}
-                {formFields.map((f,i) => (
-                  <div key={i} style={{ marginBottom:10 }}>
-                    <div style={{ fontSize:11, fontWeight:700, color: hasBg ? 'rgba(255,255,255,0.9)' : '#555', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>
-                      {f.field_label}{f.is_required ? <span style={{color:'#ef4444'}}>*</span> : ''}
-                    </div>
-                    {f.field_type === 'textarea' ? (
-                      <textarea rows={2} placeholder={f.field_label}
-                        style={{ width:'100%', background:'rgba(255,255,255,0.88)', border:`1.5px solid ${hasBg ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius:8, padding:'9px 12px', fontSize:13, color:'#1a1a2e', outline:'none', boxSizing:'border-box', resize:'none', fontFamily:'inherit' }} />
-                    ) : (
-                      <input type={f.field_type==='email'?'email':f.field_type==='phone'?'tel':f.field_type==='number'?'number':'text'}
-                        placeholder={f.field_label}
-                        style={{ width:'100%', background:'rgba(255,255,255,0.88)', border:`1.5px solid ${hasBg ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius:8, padding:'9px 12px', fontSize:13, color:'#1a1a2e', outline:'none', boxSizing:'border-box', fontFamily:'inherit' }} />
-                    )}
-                  </div>
-                ))}
-                {!!settings.terms_enabled && (
-                  <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:12, fontSize:11, color: hasBg ? 'rgba(255,255,255,0.85)' : '#666' }}>
-                    <span style={{ width:14, height:14, border:'1.5px solid currentColor', borderRadius:3, display:'inline-block', flexShrink:0 }} />
-                    {settings.terms_text || 'Terms & Conditions'}
-                  </div>
-                )}
-                <div style={{ marginTop:!!settings.terms_enabled && (settings.terms_text || settings.terms_url) ? 0 : 8 }}>
-                  <div style={{
-                    width:'100%', textAlign:'center',
-                    background: settings.start_button_bg_color || `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,
-                    color: settings.start_button_text_color||'#fff', border:'none', borderRadius:10, padding:'12px', fontSize:14, fontWeight:700,
-                    boxShadow: settings.start_button_bg_color ? '0 6px 20px rgba(0,0,0,0.15)' : `0 6px 20px ${(settings.primary_color||'#6366f1')}44`,
-                    cursor:'pointer',
-                  }}>
-                    {settings.start_button_text || 'Start Game →'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          )})()}
+          {tab === 'form' && <FormPreview settings={settings} formFields={formFields} />}
 
           {/* ── Gameplay preview ── */}
           {tab === 'gameplay' && (() => {
@@ -1396,50 +1323,7 @@ export default function ScrewBuilderPage() {
           )})()}
 
           {/* ── Thankyou preview ── */}
-          {tab === 'thankyou' && (
-            <div style={{
-              flex:1, display:'flex', flexDirection:'column',
-              background: settings.thankyou_bg_image_url
-                ? `url(${settings.thankyou_bg_image_url}) center/cover`
-                : settings.bg_image_url
-                  ? `url(${settings.bg_image_url}) center/cover`
-                  : (settings.bg_color||'#f4f4ff'),
-              padding:'clamp(16px,4vw,20px) 12px',
-              overflow:'auto',
-              fontFamily: settings.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif",
-            }}>
-              <div style={{
-                width:'100%', maxWidth:280, margin:'auto', textAlign:'center',
-                background: (settings.thankyou_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.95)',
-                backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-                borderRadius:22, padding:'24px 16px', boxSizing:'border-box',
-                boxShadow: (settings.thankyou_bg_image_url||settings.bg_image_url) ? '0 16px 60px rgba(0,0,0,0.28)' : '0 16px 60px rgba(0,0,0,0.12)',
-                border: (settings.thankyou_bg_image_url||settings.bg_image_url) ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(0,0,0,0.06)',
-              }}>
-                <div style={{ fontSize:44, marginBottom:8 }}>🎉</div>
-                <h2 style={{ fontSize:18, fontWeight:800, color: settings.outro_text_color||'#1a1a2e', marginBottom:14, lineHeight:1.25, textShadow: (settings.thankyou_bg_image_url||settings.bg_image_url) ? '0 2px 8px rgba(0,0,0,0.25)' : 'none' }}>
-                  {settings.outro_text || 'Yay! You completed the game!'}
-                </h2>
-                <div style={{
-                  background: (settings.thankyou_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.15)' : '#f0f0ff',
-                  border:`1.5px solid ${(settings.thankyou_bg_image_url||settings.bg_image_url) ? 'rgba(255,255,255,0.3)' : '#6366f130'}`,
-                  borderRadius:12, padding:'10px 14px', marginBottom:16,
-                  color: settings.thankyou_subtitle_color||'#444', fontSize:12,
-                }}>
-                  {settings.thankyou_subtitle || 'Thank you for playing!'}
-                </div>
-                <div style={{
-                  width:'100%',
-                  background: settings.submit_button_bg_color || `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`,
-                  color: settings.submit_button_text_color||'#fff', borderRadius:12, padding:'12px', fontSize:14, fontWeight:700,
-                  boxShadow: settings.submit_button_bg_color ? '0 6px 24px rgba(0,0,0,0.15)' : `0 6px 24px ${(settings.primary_color||'#6366f1')}55`,
-                  cursor:'pointer',
-                }}>
-                  {settings.submit_button_text || 'Submit & Explore'}
-                </div>
-              </div>
-            </div>
-          )}
+          {tab === 'thankyou' && <ThankYouPreview settings={settings} />}
 
           {/* ── Email preview ── */}
           {tab === 'email' && (() => {
@@ -1529,7 +1413,7 @@ export default function ScrewBuilderPage() {
               </div>
             </div>
           )})()}
-        </div>{/* ─ end right col ─ */}
+        </PhoneFrame>{/* ─ end right col ─ */}
 
       </div>
 

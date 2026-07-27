@@ -2,6 +2,7 @@ const express = require('express')
 const router  = express.Router()
 const db      = require('../config/db')
 const { requireAdmin } = require('../middleware/auth')
+const { sendError } = require('../lib/apiError');
 
 router.use(requireAdmin)
 
@@ -61,7 +62,7 @@ router.put('/:id', async (req, res) => {
     res.json({ success: true, player: updated })
   } catch (err) {
     console.error('players-admin PUT /:id', err)
-    res.status(500).json({ success: false, message: err.message })
+    sendError(res, err);
   }
 })
 
@@ -75,7 +76,7 @@ router.delete('/:id', async (req, res) => {
     res.json({ success: true, message: 'Player deleted' })
   } catch (err) {
     console.error('players-admin DELETE /:id', err)
-    res.status(500).json({ success: false, message: err.message })
+    sendError(res, err);
   }
 })
 
@@ -113,7 +114,7 @@ router.post('/:id/adjust-pc', async (req, res) => {
     res.json({ success: true, pc_balance: updated.pc_balance })
   } catch (err) {
     console.error('players-admin POST /:id/adjust-pc', err)
-    res.status(500).json({ success: false, message: err.message })
+    sendError(res, err);
   }
 })
 

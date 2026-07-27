@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import PlayerNavbar from '../components/PlayerNavbar'
 import MascotBubble from '../components/MascotBubble'
+import MascotCursor from '../components/MascotCursor'
 import { AvatarDisplay } from '../components/AvatarData'
 
 const CSS = `
@@ -569,6 +570,7 @@ export default function LeaderboardPage() {
     <>
       <style>{CSS}</style>
       <MascotBubble />
+      <MascotCursor />
       <div className="lb-page">
         <PlayerNavbar />
 
@@ -613,17 +615,6 @@ export default function LeaderboardPage() {
             </a>
           </div>
         )}
-
-        {/* Filters */}
-        <div className="lb-filters">
-          <div className="lb-pills">
-            {['today', 'weekly', 'monthly', 'all'].map(f => (
-              <button key={f} className={`lb-pill${filter === f ? ' active' : ''}`} onClick={() => { setFilter(f); setPage(1) }}>
-                {f === 'all' ? 'All Time' : f.charAt(0).toUpperCase() + f.slice(1)}
-              </button>
-            ))}
-          </div>
-        </div>
 
         {loading ? (
           <div className="lb-loading">

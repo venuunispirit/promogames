@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
+const { sendError } = require('../lib/apiError');
 
 function deleteUploadFile(urlPath) {
   if (!urlPath) return;
@@ -21,7 +22,7 @@ router.get('/:gameId/settings', auth, async (req, res) => {
     const [rows] = await db.query('SELECT * FROM memory_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: rows[0] || null });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -144,7 +145,7 @@ router.put('/:gameId/settings', auth, upload.fields([
     const [updated] = await db.query('SELECT * FROM memory_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -153,7 +154,7 @@ router.get('/games/:gameId/tiles', auth, async (req, res) => {
     const [tiles] = await db.query('SELECT * FROM memory_tiles WHERE game_id = ? ORDER BY tile_order', [req.params.gameId]);
     res.json({ success: true, tiles });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -189,7 +190,7 @@ router.post('/games/:gameId/tiles', auth, upload.single('image'), async (req, re
     );
     res.status(201).json({ success: true, tiles: allTiles });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -210,7 +211,7 @@ router.put('/tiles/:id', auth, upload.single('image'), async (req, res) => {
     const [updated] = await db.query('SELECT * FROM memory_tiles WHERE id = ?', [req.params.id]);
     res.json({ success: true, tile: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -250,7 +251,7 @@ router.delete('/tiles/:id', auth, async (req, res) => {
     );
     res.json({ success: true, message: 'Tile deleted', tiles: allTiles });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -313,7 +314,7 @@ router.post('/games/:gameId/tiles/create-pairs', auth, async (req, res) => {
     );
     res.json({ success: true, tiles: updatedTiles, pairsCreated });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -331,7 +332,7 @@ router.post('/games/:gameId/tiles/jumble', auth, async (req, res) => {
     const [allTiles] = await db.query('SELECT * FROM memory_tiles WHERE game_id = ? ORDER BY tile_order', [req.params.gameId]);
     res.json({ success: true, tiles: allTiles });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

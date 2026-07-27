@@ -3,6 +3,7 @@ const cors = require("cors");
 const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
+require("./config/env"); // Validates all required env vars — exits if missing
 
 const app = express();
 

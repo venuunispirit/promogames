@@ -4,6 +4,8 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const db = require('../config/db');
 const authMiddleware = require('../middleware/auth');
+const { sendError } = require('../lib/apiError');
+const env = require('../config/env');
 
 // Brute-force protection for login (in-memory, per-IP)
 const loginHits = new Map();
@@ -41,7 +43,7 @@ router.post('/login', loginLimiter, async (req, res) => {
 
     const token = jwt.sign(
       { id: user.id, email: user.email, role: user.role, name: user.name },
-      process.env.JWT_SECRET || 'secret',
+      env.JWT_SECRET,
       { expiresIn: '7d' }
     );
 
@@ -51,7 +53,7 @@ router.post('/login', loginLimiter, async (req, res) => {
       user: { id: user.id, name: user.name, email: user.email, role: user.role }
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -62,7 +64,7 @@ router.get('/me', authMiddleware, async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'User not found' });
     res.json({ success: true, user: rows[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -81,7 +83,7 @@ router.post('/change-password', authMiddleware, async (req, res) => {
     await db.query('UPDATE users SET password = ? WHERE id = ?', [hashed, req.user.id]);
     res.json({ success: true, message: 'Password changed successfully' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

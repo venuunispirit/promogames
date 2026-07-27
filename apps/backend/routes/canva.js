@@ -4,6 +4,7 @@ const auth = require('../middleware/auth');
 const path = require('path');
 const fs = require('fs');
 const { v4: uuidv4 } = require('uuid');
+const { sendError } = require('../lib/apiError');
 
 const UPLOAD_DIR = path.join(__dirname, '..', 'uploads', 'images');
 
@@ -180,7 +181,7 @@ router.post('/upload-design', async (req, res) => {
     });
   } catch (err) {
     console.error('Upload design error:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

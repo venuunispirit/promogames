@@ -6,6 +6,7 @@ const { requireAdmin } = require('../middleware/auth');
 const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
+const { sendError } = require('../lib/apiError');
 
 // Helper: delete a file stored as a /uploads/... URL from disk
 function deleteUploadFile(urlPath) {
@@ -42,7 +43,7 @@ router.get('/', requireAdmin, async (req, res) => {
       ORDER BY g.created_at DESC
     `);
     res.json({ success: true, games: rows });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 router.get('/:id', requireAdmin, async (req, res) => {
@@ -60,7 +61,7 @@ router.get('/:id', requireAdmin, async (req, res) => {
       q.options = options;
     }
     res.json({ success: true, game: { ...game, settings: settings[0] || null, emailTemplate: emailTemplate[0] || null, formFields, questions, sounds } });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 router.post('/', requireAdmin, async (req, res) => {
@@ -83,7 +84,7 @@ router.post('/', requireAdmin, async (req, res) => {
     }
     const [newGame] = await db.query('SELECT g.*, c.company_name, c.slug as client_slug FROM games g LEFT JOIN clients c ON g.client_id = c.id WHERE g.id = ?', [result.insertId]);
     res.status(201).json({ success: true, game: newGame[0] });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 router.put('/:id', requireAdmin, upload.single('intro_video'), async (req, res) => {
@@ -115,7 +116,7 @@ router.put('/:id', requireAdmin, upload.single('intro_video'), async (req, res) 
     values.push(req.params.id);
     await db.query(`UPDATE games SET ${fields.join(', ')} WHERE id=?`, values);
     res.json({ success: true, message: 'Game updated' });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 // GET /api/games/:id/locations — list child location games
@@ -128,7 +129,7 @@ router.get('/:id/locations', requireAdmin, async (req, res) => {
       [req.params.id]
     );
     res.json({ success: true, locations: rows });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // DELETE /api/games/:id/locations/:childId — delete a location game
@@ -136,7 +137,7 @@ router.delete('/:id/locations/:childId', requireAdmin, async (req, res) => {
   try {
     await db.query('DELETE FROM games WHERE id = ? AND parent_game_id = ?', [req.params.childId, req.params.id]);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // POST /api/games/:id/duplicate — clone a game with all settings, questions, options, form fields
@@ -503,7 +504,7 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
   } catch (err) {
     console.error('Duplicate error:', err.message);
     console.error('Duplicate SQL:', err.sqlMessage);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -553,7 +554,7 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 
     console.log(`🗑️  Game ${gameId} and all associated files deleted.`);
     res.json({ success: true, message: 'Game deleted' });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 // PUT settings/field - quick single-field update (JSON, no multer needed)
@@ -584,7 +585,7 @@ router.put('/:id/settings/field', requireAdmin, async (req, res) => {
     vals.push(req.params.id);
     await db.query(`UPDATE quiz_settings SET ${updates.join(', ')} WHERE game_id = ?`, vals);
     res.json({ success: true });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 // PUT settings - with image upload support
@@ -677,7 +678,7 @@ router.put('/:id/settings', requireAdmin, upload.fields([
     );
 
     res.json({ success: true, message: 'Settings saved' });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 // PUT email template - NO SMTP fields
@@ -693,7 +694,7 @@ router.put('/:id/email-template', requireAdmin, async (req, res) => {
       [req.params.id, sender_name, sender_email, subject, header_color, header_text, body_html, footer_text, is_enabled ? 1 : 0]
     );
     res.json({ success: true, message: 'Email template saved' });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 router.put('/:id/form-fields', requireAdmin, async (req, res) => {
@@ -708,7 +709,7 @@ router.put('/:id/form-fields', requireAdmin, async (req, res) => {
       );
     }
     res.json({ success: true, message: 'Form fields saved' });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 router.get('/:id/stats', requireAdmin, async (req, res) => {
@@ -716,7 +717,7 @@ router.get('/:id/stats', requireAdmin, async (req, res) => {
     const [sessions] = await db.query('SELECT COUNT(*) as total, SUM(completed) as completed, AVG(score) as avg_score FROM player_sessions WHERE game_id = ?', [req.params.id]);
     const [recent] = await db.query('SELECT player_data, score, total_scoreable, completed_at FROM player_sessions WHERE game_id = ? AND completed = 1 ORDER BY completed_at DESC LIMIT 20', [req.params.id]);
     res.json({ success: true, stats: sessions[0], recent });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 
@@ -744,7 +745,7 @@ router.get('/:id/responses', requireAdmin, async (req, res) => {
     }
 
     res.json({ success: true, sessions });
-  } catch (err) { console.error(err); res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { console.error(err); sendError(res, err); }
 });
 
 // PUT /api/games/:id/status — change game status (development/testing/live)
@@ -783,7 +784,7 @@ router.put('/:id/status', requireAdmin, async (req, res) => {
     res.json({ success: true, message: `Game status changed to ${status}` });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -796,7 +797,7 @@ router.put('/:id/email-settings', requireAdmin, async (req, res) => {
     res.json({ success: true, message: 'Email settings saved' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -808,7 +809,7 @@ router.get('/:id/email-settings', requireAdmin, async (req, res) => {
     res.json({ success: true, email_settings: settings });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

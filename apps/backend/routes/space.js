@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
+const { sendError } = require('../lib/apiError');
 
 // Helper: delete a file stored as a /uploads/... URL from disk
 function deleteUploadFile(urlPath) {
@@ -54,7 +55,7 @@ router.get('/', auth, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -111,7 +112,7 @@ router.get('/:gameSlug/:clientSlug', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -166,7 +167,7 @@ router.post('/', auth, upload.fields([
     res.status(201).json({ success: true, game: newGame[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -206,9 +207,34 @@ router.put('/:id', auth, upload.fields([
     res.json({ success: true, game: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
+
+// GET space settings for builder
+router.get('/settings/:gameId', auth, async (req, res) => {
+  try {
+    const [game] = await db.query(
+      `SELECT g.*, c.company_name, c.slug as client_slug
+       FROM games g LEFT JOIN clients c ON g.client_id = c.id
+       WHERE g.id = ? AND g.category = 'space'`,
+      [req.params.gameId]
+    );
+    if (game.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+
+    const [settings] = await db.query('SELECT * FROM space_settings WHERE game_id = ?', [req.params.gameId]);
+    const [ships] = await db.query('SELECT * FROM space_ships WHERE game_id = ? ORDER BY is_default DESC, ship_name', [req.params.gameId]);
+    const [weapons] = await db.query('SELECT * FROM space_weapons WHERE game_id = ? ORDER BY cost', [req.params.gameId]);
+    const [enemies] = await db.query('SELECT * FROM space_enemies WHERE game_id = ? ORDER BY points_value DESC', [req.params.gameId]);
+    const [levels] = await db.query('SELECT * FROM space_levels WHERE game_id = ? ORDER BY level_order', [req.params.gameId]);
+
+    res.json({ success: true, game: game[0], settings: settings[0] || null, ships, weapons, enemies, levels });
+  } catch (err) {
+    console.error(err);
+    sendError(res, err);
+  }
+});
+
 
 // PUT update space settings
 router.put('/settings/:gameId', auth, async (req, res) => {
@@ -247,7 +273,7 @@ router.put('/settings/:gameId', auth, async (req, res) => {
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -275,7 +301,7 @@ router.post('/ships', auth, async (req, res) => {
     res.status(201).json({ success: true, ship: { id: result.insertId, ...req.body } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -312,7 +338,7 @@ router.put('/ships/:id', auth, async (req, res) => {
     res.json({ success: true, ship: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -323,7 +349,7 @@ router.delete('/ships/:id', auth, async (req, res) => {
     res.json({ success: true, message: 'Ship deleted' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -347,7 +373,7 @@ router.post('/weapons', auth, async (req, res) => {
     res.status(201).json({ success: true, weapon: { id: result.insertId, ...req.body } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -378,7 +404,7 @@ router.put('/weapons/:id', auth, async (req, res) => {
     res.json({ success: true, weapon: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -389,7 +415,7 @@ router.delete('/weapons/:id', auth, async (req, res) => {
     res.json({ success: true, message: 'Weapon deleted' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -407,7 +433,7 @@ router.post('/levels', auth, async (req, res) => {
     res.status(201).json({ success: true, level: { id: result.insertId, ...req.body } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -426,7 +452,7 @@ router.put('/levels/:id', auth, async (req, res) => {
     res.json({ success: true, level: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -437,7 +463,7 @@ router.delete('/levels/:id', auth, async (req, res) => {
     res.json({ success: true, message: 'Level deleted' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

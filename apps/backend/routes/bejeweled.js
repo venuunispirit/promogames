@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { sendError } = require('../lib/apiError');
 
 router.get('/:gameId/settings', async (req, res) => {
   try {
@@ -9,7 +10,7 @@ router.get('/:gameId/settings', async (req, res) => {
     res.json({ success: true, settings: rows[0] || null });
   } catch (err) {
     console.error('Error loading bejeweled settings:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -48,7 +49,7 @@ router.put('/:gameId/settings', auth, async (req, res) => {
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
     console.error('Error saving bejeweled settings:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -63,7 +64,7 @@ router.post('/:gameId/session', async (req, res) => {
     res.json({ success: true, session_id: session.insertId });
   } catch (err) {
     console.error('Error creating bejeweled session:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -79,7 +80,7 @@ router.put('/:gameId/session/:sessionId', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Error updating bejeweled session:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -94,7 +95,7 @@ router.post('/:gameId/move', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Error saving bejeweled move:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -114,7 +115,7 @@ router.get('/:gameId/session/:sessionId/stats', async (req, res) => {
     res.json({ success: true, session: session[0], moves });
   } catch (err) {
     console.error('Error loading bejeweled stats:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

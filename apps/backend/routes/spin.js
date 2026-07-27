@@ -5,6 +5,7 @@ const auth    = require('../middleware/auth');
 const upload  = require('../config/upload');
 const path    = require('path');
 const fs      = require('fs');
+const { sendError } = require('../lib/apiError');
 
 function deleteUploadFile(urlPath) {
   if (!urlPath) return;
@@ -24,7 +25,7 @@ router.get('/:gameId/settings', auth, async (req, res) => {
     const [rows] = await db.query('SELECT * FROM spin_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: rows[0] || null });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -37,17 +38,21 @@ router.put('/:gameId/settings', auth, upload.fields([
   { name: 'submit_confirm_gif',maxCount: 1 },
 ]), async (req, res) => {
     const {
-      heading_1, heading_1_color, heading_2, heading_2_color, description_text, spin_mode,
+      heading_1, heading_1_color, heading_2, heading_2_color, description_text, description_color, spin_mode,
       win_message, lose_message,
       wheel_bg_color, pointer_color, center_color, center_label,
       bg_color, primary_color, font_family,
       bg_image_url, thankyou_bg_image_url, game_logo_url,
       center_image_url, submit_confirm_gif_url,
       sound_spin_id, sound_win_id, sound_lose_id,
-      redirect_url, redirect_delay,
-      continue_button_text,
+      redirect_url, redirect_delay, redirect_open_new_tab,
+      continue_button_text, continue_button_text_color, continue_button_bg_color,
+      meta_description,
+      outro_text, outro_text_color,
+      thankyou_subtitle, thankyou_subtitle_color,
+      submit_button_text, submit_button_text_color, submit_button_bg_color,
+      start_button_text, start_button_text_color, start_button_bg_color,
       terms_enabled, terms_text, terms_url,
-      start_button_text,
     } = req.body;
 
   try {
@@ -131,7 +136,7 @@ ${keys.map(() => '?').join(',')})`,
     const [updated] = await db.query('SELECT * FROM spin_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -146,7 +151,7 @@ router.get('/games/:gameId/segments', auth, async (req, res) => {
     );
     res.json({ success: true, segments });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -170,7 +175,7 @@ router.post('/games/:gameId/segments', auth, upload.fields([
     const [seg] = await db.query('SELECT * FROM spin_segments WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, segment: seg[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -215,7 +220,7 @@ router.put('/segments/:id', auth, upload.fields([
     const [updated] = await db.query('SELECT * FROM spin_segments WHERE id = ?', [req.params.id]);
     res.json({ success: true, segment: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -229,7 +234,7 @@ router.delete('/segments/:id', auth, async (req, res) => {
     await db.query('DELETE FROM spin_segments WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Segment deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -247,7 +252,7 @@ router.post('/games/:gameId/segments/reorder', auth, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

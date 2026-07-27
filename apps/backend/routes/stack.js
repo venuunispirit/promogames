@@ -3,12 +3,13 @@ const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
 const upload = require('../config/upload');
+const { sendError } = require('../lib/apiError');
 
 router.get('/:gameId/settings', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM stack_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: rows[0] || null });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 router.put('/:gameId/settings', auth, upload.fields([
@@ -92,7 +93,7 @@ router.put('/:gameId/settings', auth, upload.fields([
     }
     const [updated] = await db.query('SELECT * FROM stack_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: updated[0] });
-  } catch (err) { res.status(500).json({ success: false, message: err.message }); }
+  } catch (err) { sendError(res, err); }
 });
 
 module.exports = router;

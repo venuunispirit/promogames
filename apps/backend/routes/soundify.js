@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
+const { sendError } = require('../lib/apiError');
 
 function normalizePath(value) {
   if (!value) return null;
@@ -39,7 +40,7 @@ router.get('/:gameId/settings', auth, async (req, res) => {
     const [rows] = await db.query('SELECT * FROM soundify_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: rows[0] || null });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -145,7 +146,7 @@ router.put('/:gameId/settings', auth, upload.fields([
     const [updated] = await db.query('SELECT * FROM soundify_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -159,7 +160,7 @@ router.get('/:gameId/songs', auth, async (req, res) => {
     );
     res.json({ success: true, songs });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -178,7 +179,7 @@ router.post('/:gameId/songs', auth, upload.single('song_file'), async (req, res)
     const [song] = await db.query('SELECT * FROM soundify_songs WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, song: song[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -190,7 +191,7 @@ router.delete('/:gameId/songs/:songId', auth, async (req, res) => {
     await db.query('DELETE FROM soundify_songs WHERE id = ?', [req.params.songId]);
     res.json({ success: true, message: 'Song deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

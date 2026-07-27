@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
+const { sendError } = require('../lib/apiError');
 
 // Helper: delete a file stored as a /uploads/... URL from disk
 function deleteUploadFile(urlPath) {
@@ -54,7 +55,7 @@ router.get('/', auth, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -111,7 +112,7 @@ router.get('/:gameSlug/:clientSlug', async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -166,7 +167,7 @@ router.post('/', auth, upload.fields([
     res.status(201).json({ success: true, game: newGame[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -206,7 +207,7 @@ router.put('/:id', auth, upload.fields([
     res.json({ success: true, game: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -230,9 +231,10 @@ router.get('/settings/:gameId', auth, async (req, res) => {
     res.json({ success: true, game: game[0], settings: settings[0] || null, ships, weapons, enemies, levels });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
+
 
 // PUT update space settings
 router.put('/settings/:gameId', auth, async (req, res) => {
@@ -271,7 +273,7 @@ router.put('/settings/:gameId', auth, async (req, res) => {
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -299,7 +301,7 @@ router.post('/ships', auth, async (req, res) => {
     res.status(201).json({ success: true, ship: { id: result.insertId, ...req.body } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -336,7 +338,7 @@ router.put('/ships/:id', auth, async (req, res) => {
     res.json({ success: true, ship: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -347,7 +349,7 @@ router.delete('/ships/:id', auth, async (req, res) => {
     res.json({ success: true, message: 'Ship deleted' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -371,7 +373,7 @@ router.post('/weapons', auth, async (req, res) => {
     res.status(201).json({ success: true, weapon: { id: result.insertId, ...req.body } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -402,7 +404,7 @@ router.put('/weapons/:id', auth, async (req, res) => {
     res.json({ success: true, weapon: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -413,7 +415,7 @@ router.delete('/weapons/:id', auth, async (req, res) => {
     res.json({ success: true, message: 'Weapon deleted' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -431,7 +433,7 @@ router.post('/levels', auth, async (req, res) => {
     res.status(201).json({ success: true, level: { id: result.insertId, ...req.body } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -450,7 +452,7 @@ router.put('/levels/:id', auth, async (req, res) => {
     res.json({ success: true, level: updated[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -461,7 +463,7 @@ router.delete('/levels/:id', auth, async (req, res) => {
     res.json({ success: true, message: 'Level deleted' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

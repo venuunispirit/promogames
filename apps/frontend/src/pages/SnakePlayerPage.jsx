@@ -36,19 +36,27 @@ html:-ms-fullscreen{overflow:hidden}
 .hud-tl{top:12px;left:12px}
 .hud-tr{top:12px;right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
 .hud-br{bottom:12px;right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.hud-bl{bottom:12px;left:12px}
 .hud-bc{bottom:12px;left:50%;transform:translateX(-50%)}
 @media(max-width:600px){
   .hud-tl{top:8px;left:8px}
   .hud-tr{top:8px;right:8px;gap:6px}
   .hud-br{bottom:140px;right:8px}
+  .hud-bl{bottom:140px;left:8px}
   .hud-bc{bottom:8px}
 }
 @media(max-height:500px){
   .hud-tl{top:4px;left:4px}
   .hud-tr{top:4px;right:4px;gap:4px}
   .hud-br{bottom:120px;right:4px}
+  .hud-bl{bottom:120px;left:4px}
   .hud-bc{bottom:4px}
 }
+
+/* D-pad is hidden on wide, non-touch (desktop) screens; shown on mobile/touch */
+.hud-bl{display:none}
+@media(max-width:900px){.hud-bl{display:block}}
+@media(pointer:coarse){.hud-bl{display:block}}
 
 .gp2{background:rgba(10,5,25,.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:8px 12px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 @media(max-width:600px){.gp2{padding:5px 8px;border-radius:10px}}
@@ -60,9 +68,9 @@ html:-ms-fullscreen{overflow:hidden}
 .score-row{display:flex;gap:12px;align-items:center}
 
 /* D-Pad — larger touch targets on mobile */
-.dp{display:grid;grid-template-columns:repeat(3,clamp(44px,10vw,56px));grid-template-rows:repeat(3,clamp(44px,10vw,56px));gap:4px}
+.dp{display:grid;grid-template-columns:repeat(3,clamp(44px,10vw,56px));grid-template-rows:repeat(3,clamp(44px,10vw,56px));gap:4px;background:rgba(10,5,25,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:6px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 .dp b{visibility:hidden}
-.dp button{background:rgba(20,10,40,.7);border:1.5px solid rgba(139,92,246,.3);border-radius:10px;color:#fff;font-size:clamp(16px,3vw,22px);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none}
+.dp button{background:rgba(20,10,40,.7);border:1.5px solid rgba(139,92,246,.3);border-radius:10px;color:#fff;font-size:clamp(16px,3vw,22px);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;touch-action:manipulation}
 .dp button:hover{background:rgba(139,92,246,.25);border-color:rgba(139,92,246,.6);box-shadow:0 0 12px rgba(139,92,246,.3)}
 .dp button:active{transform:scale(.85);background:rgba(139,92,246,.5)}
 
@@ -385,6 +393,21 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
             </div>
           </div>
 
+          {/* HUD: D-Pad — mobile / touch controls */}
+          <div className="hud hud-bl">
+            <div className="dp">
+              <b></b>
+              <button onTouchStart={(e) => { e.preventDefault(); dpad('ArrowUp') }} onClick={() => dpad('ArrowUp')} aria-label="Up">▲</button>
+              <b></b>
+              <button onTouchStart={(e) => { e.preventDefault(); dpad('ArrowLeft') }} onClick={() => dpad('ArrowLeft')} aria-label="Left">◀</button>
+              <b></b>
+              <button onTouchStart={(e) => { e.preventDefault(); dpad('ArrowRight') }} onClick={() => dpad('ArrowRight')} aria-label="Right">▶</button>
+              <b></b>
+              <button onTouchStart={(e) => { e.preventDefault(); dpad('ArrowDown') }} onClick={() => dpad('ArrowDown')} aria-label="Down">▼</button>
+              <b></b>
+            </div>
+          </div>
+
           {/* HUD: Restart */}
           <div className="hud hud-br">
             <button className="rbtn" onClick={handleRestart}>↻ RESTART</button>
@@ -395,7 +418,7 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
             <div className="ib"><span className="ar">◆</span>Arrow Keys to Move<span className="ar">◆</span></div>
           </div>
 
-          <div className="swipe-hint">Swipe to move</div>
+          <div className="swipe-hint">Swipe or use the D-pad to move</div>
         </>
       )}
 

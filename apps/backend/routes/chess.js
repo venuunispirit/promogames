@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../config/db');
 const crypto = require('crypto');
 const auth = require('../middleware/auth');
+const { sendError } = require('../lib/apiError');
 
 /* ── Helper: generate 6-char room code ─────────────────────────── */
 function generateRoomCode() {
@@ -21,7 +22,7 @@ router.get('/settings/:gameId', async (req, res) => {
     const [rows] = await db.query('SELECT * FROM chess_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: rows[0] || null });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -39,7 +40,7 @@ router.put('/settings/:gameId', auth, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -65,7 +66,7 @@ router.post('/room', async (req, res) => {
     );
     res.json({ success: true, room: { id: result.insertId, room_code, status: 'waiting' } });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -85,7 +86,7 @@ router.post('/room/:code/join', async (req, res) => {
     );
     res.json({ success: true, room: { ...room, player2_name: player_name || 'Player 2', status: 'active' } });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -96,7 +97,7 @@ router.get('/room/:code', async (req, res) => {
     if (rooms.length === 0) return res.status(404).json({ success: false, error: 'Room not found' });
     res.json({ success: true, room: rooms[0] });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -129,7 +130,7 @@ router.post('/room/:code/move', async (req, res) => {
 
     res.json({ success: true, move: { notation, move_number: moveNumber, player_color }, next_turn: nextTurn });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -145,7 +146,7 @@ router.get('/room/:code/moves', async (req, res) => {
     );
     res.json({ success: true, moves, room: rooms[0] });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -158,7 +159,7 @@ router.post('/room/:code/end', async (req, res) => {
     await db.query(`UPDATE chess_rooms SET status = 'finished', result = ?, updated_at = NOW() WHERE id = ?`, [result, rooms[0].id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -172,7 +173,7 @@ router.post('/room/:code/resign', async (req, res) => {
     await db.query(`UPDATE chess_rooms SET status = 'finished', result = ?, updated_at = NOW() WHERE id = ?`, [winner, rooms[0].id]);
     res.json({ success: true, winner });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 
@@ -188,7 +189,7 @@ router.post('/room/:code/draw', async (req, res) => {
     }
     res.json({ success: true, draw_offered_by: player_color });
   } catch (err) {
-    res.status(500).json({ success: false, error: err.message });
+    sendError(res, err);
   }
 });
 

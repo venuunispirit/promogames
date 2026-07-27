@@ -91,12 +91,12 @@ async function testEndpoint(baseUrl, method, endpoint, label) {
           resolve({ status: res.statusCode, ok: res.statusCode < 500, time: Date.now() - start });
         });
       });
-      req.on('error', (err) => resolve({ status: 0, ok: false, error: err.message, time: Date.now() - start }));
+      req.on('error', (err) => resolve({ status: 0, ok: false, error: 'Connection failed', time: Date.now() - start }));
       req.on('timeout', () => { req.destroy(); resolve({ status: 0, ok: false, error: 'Timeout', time: Date.now() - start }); });
     });
     return { endpoint: url, label, ...result };
   } catch (e) {
-    return { endpoint: url, label, status: 0, ok: false, error: e.message, time: Date.now() - start };
+    return { endpoint: url, label, status: 0, ok: false, error: 'Request failed', time: Date.now() - start };
   }
 }
 
@@ -108,14 +108,13 @@ router.get('/health', async (req, res) => {
       status: 'healthy',
       timestamp: new Date().toISOString(),
       uptime: process.uptime(),
-      memory: process.memoryUsage(),
       version: process.env.npm_package_version || '1.0.0'
     });
   } catch (error) {
     res.status(503).json({
       status: 'unhealthy',
       timestamp: new Date().toISOString(),
-      error: error.message
+      error: 'Database connection failed'
     });
   }
 });
@@ -126,7 +125,7 @@ router.get('/ready', async (req, res) => {
     await db.query('SELECT 1');
     res.json({ ready: true });
   } catch (error) {
-    res.status(503).json({ ready: false, error: error.message });
+    res.status(503).json({ ready: false, error: 'Database connection failed' });
   }
 });
 
@@ -167,12 +166,12 @@ async function testEndpoint(baseUrl, method, endpoint, label) {
           resolve({ status: res.statusCode, ok: res.statusCode < 500, time: Date.now() - start });
         });
       });
-      req.on('error', (err) => resolve({ status: 0, ok: false, error: err.message, time: Date.now() - start }));
+      req.on('error', (err) => resolve({ status: 0, ok: false, error: 'Connection failed', time: Date.now() - start }));
       req.on('timeout', () => { req.destroy(); resolve({ status: 0, ok: false, error: 'Timeout', time: Date.now() - start }); });
     });
     return { endpoint: url, label, ...result };
   } catch (e) {
-    return { endpoint: url, label, status: 0, ok: false, error: e.message, time: Date.now() - start };
+    return { endpoint: url, label, status: 0, ok: false, error: 'Request failed', time: Date.now() - start };
   }
 }
 
@@ -362,7 +361,7 @@ router.get('/status', async (req, res) => {
         }
       }
     } catch (e) {
-      addResult('Game Types', { name: 'CHECK_ERROR', status: 'fail', message: e.message, expected: 'N/A' });
+      addResult('Game Types', { name: 'CHECK_ERROR', status: 'fail', message: 'Could not check game types', expected: 'N/A' });
     }
 
     addResult('Database', {
@@ -374,7 +373,7 @@ router.get('/status', async (req, res) => {
   } catch (e) {
     addResult('Database', {
       name: 'Connection', status: 'fail',
-      message: `Cannot connect: ${e.message}`, expected: 'MySQL should be running'
+      message: 'Cannot connect to database', expected: 'MySQL should be running'
     });
   }
 

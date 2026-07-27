@@ -2,13 +2,14 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { sendError } = require('../lib/apiError');
 
 router.get('/:gameId/settings', auth, async (req, res) => {
   try {
     const [rows] = await db.query('SELECT * FROM maze_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: rows[0] || null });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -87,7 +88,7 @@ router.put('/:gameId/settings', auth, async (req, res) => {
     const [updated] = await db.query('SELECT * FROM maze_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -161,7 +162,7 @@ router.get('/:gameId/generate', auth, async (req, res) => {
     }
     res.json({ success: true, maze, size, level, collectibles });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -192,7 +193,7 @@ router.post('/:gameId/progress', auth, async (req, res) => {
     const [row] = await db.query('SELECT * FROM maze_progress WHERE id = ?', [result.insertId]);
     res.json({ success: true, progress: row[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -204,7 +205,7 @@ router.get('/:gameId/progress', auth, async (req, res) => {
     );
     res.json({ success: true, progress: rows[0] || null });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

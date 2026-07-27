@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 import { Toast, ColorPicker, ImageUpload, SoundSelector } from '../components/SharedBuilderComponents'
 import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
+import PhoneFrame from '../components/PhoneFrame'
+import FormPreview from '../components/FormPreview'
+import ThankYouPreview from '../components/ThankYouPreview'
 
 function normalizePath(value) {
   try {
@@ -1014,56 +1017,11 @@ export default function SpinBuilderTab() {
 
         </div>{/* ─ end left col ─ */}
 
-        {/* ─── RIGHT COL — Phone Mockup (identical to Quiz Builder) ─── */}
-        <div style={{
-          position:'sticky', top:80,
-          width:320, height:640, borderRadius:36,
-          border:'4px solid #1a1a2e', background:sForm.bg_color||'#F8F8FF',
-          overflow:'hidden', boxShadow:'0 12px 48px rgba(0,0,0,.18)',
-          fontFamily:`'${sForm.font_family||'DM Sans'}',sans-serif`, flexShrink:0,
-          display:'flex', flexDirection:'column', marginRight:20,
-        }}>
-          <div style={{ width:100, height:24, background:'#1a1a2e', borderRadius:'0 0 16px 16px', margin:'0 auto', flexShrink:0 }} />
+        {/* ─── RIGHT COL — Phone Mockup ─── */}
+        <PhoneFrame settings={{ bg_image_url: bgFile ? URL.createObjectURL(bgFile) : normalizePath(sUrls.bg), bg_color: sForm.bg_color, font_family: sForm.font_family }}>
 
           {/* Display + Form preview */}
-          {tab==='display' && (<div style={{
-            flex:1, display:'flex', flexDirection:'column',
-            background:bgFile ? `url(${URL.createObjectURL(bgFile)}) center/cover` : normalizePath(sUrls.bg) ? `url(${normalizePath(sUrls.bg)}) center/cover` : (sForm.bg_color||'#F8F8FF'),
-            padding:'clamp(16px,4vw,20px) 12px', overflow:'auto',
-          }}>
-            <div style={{
-              width:'100%', maxWidth:280, margin:'auto',
-              background: (bgFile || normalizePath(sUrls.bg)) ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.93)',
-              backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)',
-              borderRadius:22, padding:'20px 16px', boxSizing:'border-box',
-              boxShadow: (bgFile || normalizePath(sUrls.bg)) ? '0 8px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.4)' : '0 8px 40px rgba(0,0,0,0.12)',
-              border: (bgFile || normalizePath(sUrls.bg)) ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.85)',
-            }}>
-              {(logoFile ? URL.createObjectURL(logoFile) : normalizePath(sUrls.logo)) && <div style={{ textAlign:'center', marginBottom:14 }}><img src={logoFile ? URL.createObjectURL(logoFile) : normalizePath(sUrls.logo)} alt="" style={{ maxWidth:'100%', maxHeight:80, objectFit:'contain', borderRadius:8 }} /></div>}
-              {sForm.heading_1 && <h1 style={{ fontSize:16, fontWeight:800, textAlign:'center', marginBottom:2, color:sForm.primary_color||'#7C6FF7', lineHeight:1.2 }}>{sForm.heading_1}</h1>}
-              {sForm.heading_2 && <div style={{ fontSize:13, fontWeight:600, textAlign:'center', marginBottom:4, color:'var(--gb-text2)', lineHeight:1.3 }}>{sForm.heading_2}</div>}
-              {sForm.description_text && <div style={{ fontSize:12, color:'var(--gb-text3)', textAlign:'center', marginBottom:10 }}>{sForm.description_text}</div>}
-              {formFields.map((f,i) => (
-                <div key={i} style={{ marginBottom:10 }}>
-                  <div style={{ fontSize:11, fontWeight:700, color: (bgFile || sUrls.bg) ? 'rgba(255,255,255,0.9)' : '#555', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>
-                    {f.field_label}{f.is_required ? <span style={{color:'#ef4444'}}>*</span> : ''}
-                  </div>
-                  {f.field_type === 'textarea' ? (
-                    <textarea rows={2} placeholder={f.field_label} style={{ width:'100%', background:'rgba(255,255,255,0.88)', border:`1.5px solid ${(bgFile || sUrls.bg) ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius:8, padding:'9px 12px', fontSize:13, color:'#1a1a2e', outline:'none', boxSizing:'border-box', resize:'none', fontFamily:'inherit' }} />
-                  ) : (
-                    <input type={f.field_type==='email'?'email':f.field_type==='phone'?'tel':f.field_type==='number'?'number':'text'} placeholder={f.field_label} style={{ width:'100%', background:'rgba(255,255,255,0.88)', border:`1.5px solid ${(bgFile || sUrls.bg) ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius:8, padding:'9px 12px', fontSize:13, color:'#1a1a2e', outline:'none', boxSizing:'border-box', fontFamily:'inherit' }} />
-                  )}
-                </div>
-              ))}
-              {!!sForm.terms_enabled && (
-                <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10, fontSize:11, color: (bgFile || sUrls.bg) ? 'rgba(255,255,255,0.85)' : '#666' }}>
-                  <span style={{ width:14, height:14, border:'1.5px solid currentColor', borderRadius:3, display:'inline-block', flexShrink:0 }} />
-                  {sForm.terms_text || 'Terms & Conditions'}
-                </div>
-              )}
-              <div style={{ marginTop:sForm.terms_enabled ? 0 : 12, width:'100%', textAlign:'center', background:sForm.start_button_bg_color||`linear-gradient(135deg,${sForm.primary_color||'#7C6FF7'},${sForm.primary_color||'#7C6FF7'}cc)`, color:sForm.start_button_text_color||'#fff', borderRadius:24, padding:'12px 0', fontSize:14, fontWeight:700, boxShadow:sForm.start_button_bg_color?`0 4px 14px ${sForm.start_button_bg_color}44`:`0 4px 14px ${sForm.primary_color||'#7C6FF7'}44` }}>{sForm.start_button_text||(sForm.spin_mode==='once'?'🎡 SPIN ONCE':'🎡 SPIN!')}</div>
-            </div>
-          </div>)}
+          {tab==='display' && <FormPreview settings={{...sForm, bg_image_url: bgFile ? URL.createObjectURL(bgFile) : normalizePath(sUrls.bg), game_logo_url: logoFile ? URL.createObjectURL(logoFile) : normalizePath(sUrls.logo)}} formFields={formFields} defaultButtonText={sForm.spin_mode === 'once' ? '🎡 SPIN ONCE' : '🎡 SPIN!'} />}
 
           {/* Segments preview */}
           {tab==='segments' && (<div style={{
@@ -1090,30 +1048,7 @@ export default function SpinBuilderTab() {
           </div>)}
 
           {/* Thank You preview */}
-          {tab==='thankyou' && (<div style={{
-            flex:1, display:'flex', flexDirection:'column',
-            background: (tyFile ? URL.createObjectURL(tyFile) : normalizePath(sUrls.ty)) ? `url(${tyFile ? URL.createObjectURL(tyFile) : normalizePath(sUrls.ty)}) center/cover` : (bgFile ? `url(${URL.createObjectURL(bgFile)}) center/cover` : normalizePath(sUrls.bg) ? `url(${normalizePath(sUrls.bg)}) center/cover` : (sForm.bg_color||'#F8F8FF')),
-            padding:'clamp(16px,4vw,20px) 12px', overflow:'auto',
-          }}>
-            <div style={{
-              width:'100%', maxWidth:280, margin:'auto', textAlign:'center',
-              background:(tyFile || normalizePath(sUrls.ty) || bgFile || normalizePath(sUrls.bg)) ? 'rgba(255,255,255,0.15)' : 'rgba(255,255,255,0.95)',
-              backdropFilter:'blur(24px)', WebkitBackdropFilter:'blur(24px)',
-              borderRadius:22, padding:'24px 16px', boxSizing:'border-box',
-              boxShadow: (tyFile || normalizePath(sUrls.ty) || bgFile || normalizePath(sUrls.bg)) ? '0 16px 60px rgba(0,0,0,0.28)' : '0 16px 60px rgba(0,0,0,0.12)',
-              border: (tyFile || normalizePath(sUrls.ty) || bgFile || normalizePath(sUrls.bg)) ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(0,0,0,0.06)',
-            }}>
-              {normalizePath(sUrls.submitGif) ? <img src={normalizePath(sUrls.submitGif)} alt="" style={{ maxWidth:'100%', maxHeight:120, objectFit:'contain', borderRadius:12, marginBottom:12 }} /> : <div style={{ fontSize:44, marginBottom:8 }}>🎉</div>}
-              <h2 style={{ fontSize:18, fontWeight:800, color:sForm.outro_text_color||'var(--gb-text)', marginBottom:14, lineHeight:1.25, textShadow:(tyFile || normalizePath(sUrls.ty) || bgFile || normalizePath(sUrls.bg))?'0 2px 8px rgba(0,0,0,0.25)':'none' }}>{sForm.outro_text||'Yay! You completed the game!'}</h2>
-              {sForm.thankyou_subtitle && <div style={{ fontSize:12, color:sForm.thankyou_subtitle_color||'var(--gb-text2)', marginTop:8, padding:'6px 10px', background:'rgba(0,0,0,0.04)', borderRadius:8 }}>{sForm.thankyou_subtitle}</div>}
-              <div style={{ marginTop:16, width:'100%', textAlign:'center', background:sForm.submit_button_bg_color||`linear-gradient(135deg,${sForm.primary_color||'#7C6FF7'},${sForm.primary_color||'#7C6FF7'}cc)`, color:sForm.submit_button_text_color||'#fff', borderRadius:12, padding:'12px', fontSize:14, fontWeight:700, boxShadow:sForm.submit_button_bg_color?'0 6px 24px rgba(0,0,0,0.15)':`0 6px 24px ${(sForm.primary_color||'#7C6FF7')}55`, cursor:'pointer' }}>
-                🚀 {sForm.submit_button_text||'Submit & Explore'}
-              </div>
-              {redirectUrl && sForm.continue_button_text && <div style={{ marginTop:10, width:'100%', textAlign:'center', background:sForm.continue_button_bg_color||'rgba(0,0,0,0.06)', color:sForm.continue_button_text_color||'var(--gb-text)', borderRadius:12, padding:'10px', fontSize:13, fontWeight:600, cursor:'pointer' }}>
-                {sForm.continue_button_text}
-              </div>}
-            </div>
-          </div>)}
+          {tab==='thankyou' && <ThankYouPreview settings={{...sForm, thanyou_bg_image_url: tyFile ? URL.createObjectURL(tyFile) : normalizePath(sUrls.ty), submit_button_bg_color: sForm.submit_button_bg_color, submit_button_text_color: sForm.submit_button_text_color, submit_button_text: sForm.submit_button_text, continue_button_text: sForm.continue_button_text, continue_button_bg_color: sForm.continue_button_bg_color, continue_button_text_color: sForm.continue_button_text_color}} />}
 
           {/* Email preview */}
           {tab==='email' && (() => {
@@ -1186,7 +1121,7 @@ export default function SpinBuilderTab() {
             </div>
           </div>)}
 
-        </div>{/* ─ end right col ─ */}
+        </PhoneFrame>{/* ─ end right col ─ */}
 
       </div>{/* ─ end two-col ─ */}
 

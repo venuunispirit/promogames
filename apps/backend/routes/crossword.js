@@ -5,6 +5,7 @@ const auth = require('../middleware/auth');
 const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
+const { sendError } = require('../lib/apiError');
 
 // Helper: delete a file stored as a /uploads/... URL from disk
 function deleteUploadFile(urlPath) {
@@ -31,7 +32,7 @@ router.get('/games/:gameId/words', auth, async (req, res) => {
     );
     res.json({ success: true, words });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -49,7 +50,7 @@ router.post('/games/:gameId/words', auth, upload.single('overlay_image'), async 
     const [word] = await db.query('SELECT * FROM crossword_words WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, word: word[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -76,7 +77,7 @@ router.put('/words/:id', auth, upload.single('overlay_image'), async (req, res) 
     const [updated] = await db.query('SELECT * FROM crossword_words WHERE id = ?', [req.params.id]);
     res.json({ success: true, word: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -88,7 +89,7 @@ router.delete('/words/:id', auth, async (req, res) => {
     await db.query('DELETE FROM crossword_words WHERE id = ?', [req.params.id]);
     res.json({ success: true, message: 'Word deleted' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -101,7 +102,7 @@ router.post('/games/:gameId/words/reorder', auth, async (req, res) => {
     }
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -113,7 +114,7 @@ router.get('/:gameId/settings', auth, async (req, res) => {
     const [settings] = await db.query('SELECT * FROM crossword_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: settings[0] || null });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -135,7 +136,6 @@ intro_text, outro_text, submit_button_text, continue_button_text, start_button_t
     terms_enabled, terms_text, terms_url, meta_description, submit_confirm_gif_url, blank_cell_image_url
   } = req.body;
 
-  console.log('🔍 Crossword settings received:', Object.keys(req.body));
   
   // Handle undefined/empty values with proper defaults
   const gridRows = grid_rows !== undefined && grid_rows !== '' ? Number(grid_rows) : 10;
@@ -216,7 +216,7 @@ await db.query(
     const [updated] = await db.query('SELECT * FROM crossword_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -241,7 +241,7 @@ router.post('/games/:gameId/generate-grid', auth, async (req, res) => {
     await db.query('UPDATE crossword_settings SET grid_rows=?, grid_cols=? WHERE game_id=?', [grid_rows, grid_cols, req.params.gameId]);
     res.json({ success: true, grid_rows, grid_cols });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

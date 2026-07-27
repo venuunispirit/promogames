@@ -4,12 +4,14 @@ const db = require('../config/db');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { geocodePincode } = require('../lib/geocode');
+const { sendError } = require('../lib/apiError');
+const env = require('../config/env');
 
 function boAuth(req, res, next) {
   const token = (req.headers['authorization'] || '').split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'Access token required' });
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const decoded = jwt.verify(token, env.JWT_SECRET);
     if (decoded.role !== 'business_owner') return res.status(403).json({ success: false, message: 'Not authorized' });
     req.bo = decoded;
     next();
@@ -50,13 +52,13 @@ router.post('/login', async (req, res) => {
     if (!bo) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     const token = jwt.sign(
       { id: bo.id, business_name: bo.business_name, email: bo.email, role: 'business_owner', parent_id: bo.parent_id },
-      process.env.JWT_SECRET || 'secret',
+      env.JWT_SECRET,
       { expiresIn: '7d' }
     );
     res.json({ success: true, token, bo: { id: bo.id, business_name: bo.business_name, email: bo.email, parent_id: bo.parent_id } });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -76,7 +78,7 @@ router.post('/create', async (req, res) => {
     res.status(201).json({ success: true, message: 'Business Owner created', id: result.insertId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -93,7 +95,7 @@ router.get('/list', async (req, res) => {
     res.json({ success: true, owners: rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -104,7 +106,7 @@ router.put('/:id/toggle-active', async (req, res) => {
     await db.query('UPDATE business_owners SET is_active = ? WHERE id = ?', [is_active ? 1 : 0, req.params.id]);
     res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -166,7 +168,7 @@ router.get('/games', boAuth, async (req, res) => {
     res.json({ success: true, games: allGames });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -198,7 +200,7 @@ router.post('/games/link', async (req, res) => {
     res.status(201).json({ success: true, message: 'Game linked', id: result.insertId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -255,7 +257,7 @@ router.get('/games/:gameId/locations', async (req, res) => {
     res.json({ success: true, locations: rows });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -283,7 +285,7 @@ router.post('/games/locations', async (req, res) => {
     res.status(201).json({ success: true, id: result.insertId });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -301,7 +303,7 @@ router.put('/games/locations/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -312,7 +314,7 @@ router.delete('/games/locations/:id', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -365,7 +367,7 @@ router.get('/notifications', boAuth, async (req, res) => {
     res.json({ success: true, notifications: sanitized });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -394,7 +396,7 @@ router.get('/unread-count', boAuth, async (req, res) => {
     res.json({ success: true, count: rows[0].count });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -433,7 +435,7 @@ router.post('/verify-code', boAuth, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -506,7 +508,7 @@ router.post('/accept-redemption', boAuth, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -580,7 +582,7 @@ router.post('/accept-with-code', boAuth, async (req, res) => {
     res.json({ success: true, message: 'Redemption accepted' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -602,7 +604,7 @@ router.post('/reject-redemption', boAuth, async (req, res) => {
     res.json({ success: true, message: 'Redemption rejected' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -621,7 +623,7 @@ router.post('/confirm-redemption', async (req, res) => {
     res.json({ success: true, message: 'Redemption confirmed! Enjoy your surprise.' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -636,7 +638,7 @@ router.get('/redemptions/:code', async (req, res) => {
     res.json({ success: true, redemption: rows[0] });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -667,7 +669,7 @@ router.get('/player-redemptions', async (req, res) => {
     res.json({ success: true, redemptions: sanitized });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -742,7 +744,7 @@ router.post('/reveal-code', async (req, res) => {
     res.json({ success: true, code, message: 'Show this code to the business!' });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -878,7 +880,7 @@ router.get('/brand-dashboard', boAuth, async (req, res) => {
     });
   } catch (err) {
     console.error(err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

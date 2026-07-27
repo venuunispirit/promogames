@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const auth = require('../middleware/auth');
+const { sendError } = require('../lib/apiError');
 
 router.get('/:gameId/settings', auth, async (req, res) => {
   try {
@@ -9,7 +10,7 @@ router.get('/:gameId/settings', auth, async (req, res) => {
     res.json({ success: true, settings: rows[0] || null });
   } catch (err) {
     console.error('Error loading 2048 settings:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -87,7 +88,7 @@ router.put('/:gameId/settings', auth, async (req, res) => {
     res.json({ success: true, settings: updated[0] });
   } catch (err) {
     console.error('Error saving 2048 settings:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -103,7 +104,7 @@ router.post('/:gameId/score', async (req, res) => {
     res.json({ success: true });
   } catch (err) {
     console.error('Error saving 2048 score:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -118,7 +119,7 @@ router.get('/:gameId/score', async (req, res) => {
     res.json({ success: true, score: rows[0] || null });
   } catch (err) {
     console.error('Error loading 2048 score:', err);
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

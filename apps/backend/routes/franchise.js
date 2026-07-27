@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const jwt = require('jsonwebtoken');
+const { sendError } = require('../lib/apiError');
+const env = require('../config/env');
 
 // Middleware to verify franchise owner authentication
 function franchiseAuth(req, res, next) {
@@ -11,7 +13,7 @@ function franchiseAuth(req, res, next) {
   }
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    const decoded = jwt.verify(token, env.JWT_SECRET);
     if (!decoded || !decoded.role || decoded.role !== 'business_owner') {
       return res.status(403).json({ success: false, message: 'Not authorized' });
     }
@@ -92,7 +94,7 @@ router.get('/dashboard', franchiseAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Franchise dashboard error:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return sendError(res, error);
   }
 });
 
@@ -159,7 +161,7 @@ router.get('/dashboard/:franchiseId/games', franchiseAuth, async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Franchise games error:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return sendError(res, error);
   }
 });
 
@@ -178,7 +180,7 @@ router.get('/franchises', async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Franchise list error:', error);
-    return res.status(500).json({ success: false, message: error.message });
+    return sendError(res, error);
   }
 });
 

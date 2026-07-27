@@ -3,6 +3,9 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../api'
 import { Toast, ColorPicker, SoundSelector } from '../components/SharedBuilderComponents'
 import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
+import PhoneFrame from '../components/PhoneFrame'
+import FormPreview from '../components/FormPreview'
+import ThankYouPreview from '../components/ThankYouPreview'
 
 const LIGHT = `
 .sf-wrap {
@@ -820,75 +823,42 @@ export default function SoundifyBuilderPage() {
         </div>{/* ─ end left col ─ */}
 
         {/* ─── RIGHT COL — Phone Mockup ─── */}
-        <div style={{ position:'sticky', top:80, width:320, flexShrink:0 }}>
-          <div style={{ width:320, height:580, borderRadius:36, border:'4px solid #1a1a2e', background:'#f4f4ff', overflow:'hidden', boxShadow:'0 12px 48px rgba(0,0,0,.18)', fontFamily: settings.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif", display:'flex', flexDirection:'column' }}>
-            <div style={{ width:100, height:24, background:'#1a1a2e', borderRadius:'0 0 16px 16px', margin:'0 auto', flexShrink:0 }} />
-            <div style={{ flex:1, overflow:'auto', display:'flex', flexDirection:'column' }}>
-
-              {/* Player Form / Settings / Audio preview */}
-              {(activeTab === 'display' || activeTab === 'settings' || activeTab === 'audio') && (
-                <div style={{ flex:1, display:'flex', flexDirection:'column', background: gameBgUrl ? `url(${gameBgUrl}) center/cover` : (settings.bg_color||'#1e1b4b'), padding:'clamp(14px,4vw,20px) 12px', overflow:'auto' }}>
-                  <div style={{ width:'100%', maxWidth:280, margin:'auto', background: gameBgUrl ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.93)', backdropFilter:'blur(28px)', WebkitBackdropFilter:'blur(28px)', borderRadius:22, padding:'20px 16px', boxSizing:'border-box', boxShadow: gameBgUrl ? '0 8px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.4)' : '0 8px 40px rgba(0,0,0,0.12)', border: gameBgUrl ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.85)' }}>
-                    {gameLogoUrl && <div style={{ textAlign:'center', marginBottom:14 }}><img src={gameLogoUrl} alt="" style={{ maxWidth:'100%', maxHeight:60, objectFit:'contain', borderRadius:8 }} /></div>}
-                    <h1 style={{ fontSize:16, fontWeight:800, textAlign:'center', marginBottom:2, color:settings.heading_1_color||'#1a1a2e', lineHeight:1.2, textShadow:gameBgUrl?'0 2px 8px rgba(0,0,0,0.3)':'none' }}>{settings.heading_1 || 'Soundify Game'}</h1>
-                    {settings.heading_2 && <div style={{ fontSize:12, fontWeight:600, textAlign:'center', marginBottom:4, color:settings.heading_2_color||'#666', lineHeight:1.3 }}>{settings.heading_2}</div>}
-                    {settings.heading_3 && <div style={{ fontSize:11, textAlign:'center', marginBottom:10, color:settings.heading_3_color||'#888', lineHeight:1.4 }}>{settings.heading_3}</div>}
-                    {formFields.slice(0,3).map((f,i) => (
-                      <div key={i} style={{ marginBottom:8 }}>
-                        <div style={{ fontSize:10, fontWeight:700, color:gameBgUrl?'rgba(255,255,255,0.9)':'#555', marginBottom:3, textTransform:'uppercase', letterSpacing:'0.05em' }}>{f.field_label}{f.is_required?<span style={{color:'#ef4444'}}>*</span>:''}</div>
-                        <div style={{ width:'100%', background:'rgba(255,255,255,0.88)', border:`1.5px solid ${gameBgUrl?'rgba(255,255,255,0.45)':'#e0e0f0'}`, borderRadius:8, padding:'8px 10px', fontSize:12, color:'#999' }}>Enter {f.field_label.toLowerCase()}...</div>
-                      </div>
-                    ))}
-                    {!!settings.terms_enabled && <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:10, fontSize:10, color:gameBgUrl?'rgba(255,255,255,0.85)':'#666' }}><span style={{ width:12, height:12, border:'1.5px solid currentColor', borderRadius:3, display:'inline-block', flexShrink:0 }} />{settings.terms_text||'Terms & Conditions'}</div>}
-                    <div style={{ width:'100%', textAlign:'center', background:settings.start_button_bg_color||`linear-gradient(135deg, ${settings.primary_color||'#8b5cf6'}, ${(settings.primary_color||'#8b5cf6')}cc)`, color:settings.start_button_text_color||'#ffffff', border:'none', borderRadius:10, padding:'10px', fontSize:13, fontWeight:700, boxShadow:`0 4px 16px ${(settings.primary_color||'#8b5cf6')}44` }}>{settings.start_button_text||'Start Quiz'}</div>
-                  </div>
-                </div>
-              )}
-
-              {/* Songs preview */}
-              {activeTab === 'songs' && (
-                <div style={{ flex:1, display:'flex', flexDirection:'column', background: gameBgUrl ? `url(${gameBgUrl}) center/cover` : (settings.bg_color||'#1e1b4b'), padding:'14px 12px', overflow:'auto' }}>
-                  <div style={{ width:'100%', maxWidth:280, margin:'auto', background:'rgba(255,255,255,0.08)', backdropFilter:'blur(20px)', borderRadius:22, padding:'18px 14px', boxShadow:'0 8px 40px rgba(0,0,0,0.3)' }}>
-                    <div style={{ fontSize:10, color:'rgba(255,255,255,0.5)', textAlign:'center', marginBottom:4 }}>Question {Math.min(1, songs.length)} of {songs.length}</div>
-                    <div style={{ fontSize:14, fontWeight:700, color:'#fff', textAlign:'center', marginBottom:12 }}>{songs[0]?.song_title || 'Song Title'}</div>
-                    <div style={{ width:'100%', height:36, borderRadius:20, background:'rgba(255,255,255,0.15)', marginBottom:12 }} />
-                    {[1,2,3,4].map(n => (
-                      <div key={n} style={{ width:'100%', padding:'10px 14px', borderRadius:12, border:'2px solid rgba(255,255,255,0.15)', background:songs[0]?.correct_option===n ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'rgba(255,255,255,0.08)', color:'#fff', fontSize:12, fontWeight:600, marginBottom:6, textAlign:'center' }}>
+        {activeTab !== 'email' && (
+          <PhoneFrame settings={settings}>
+            {(activeTab === 'display' || activeTab === 'settings' || activeTab === 'audio') && (
+              <FormPreview settings={settings} formFields={formFields} bgUrl={gameBgUrl} logoUrl={gameLogoUrl} />
+            )}
+            {activeTab === 'songs' && (
+              <div style={{ flex:1, display:'flex', flexDirection:'column', background: gameBgUrl ? `url(${gameBgUrl}) center/cover` : (settings.bg_color||'#1e1b4b'), padding:'14px 12px', overflow:'auto' }}>
+                <div style={{ width:'100%', maxWidth:280, margin:'auto', background:'rgba(255,255,255,0.08)', backdropFilter:'blur(20px)', borderRadius:22, padding:'18px 14px', boxShadow:'0 8px 40px rgba(0,0,0,0.3)' }}>
+                  <div style={{ fontSize:10, color:'rgba(255,255,255,0.5)', textAlign:'center', marginBottom:4 }}>Question {Math.min(1, songs.length)} of {songs.length}</div>
+                  <div style={{ fontSize:14, fontWeight:700, color:'#fff', textAlign:'center', marginBottom:12 }}>{songs[0]?.song_title || 'Song Title'}</div>
+                  <div style={{ width:'100%', height:36, borderRadius:20, background:'rgba(255,255,255,0.15)', marginBottom:12 }} />
+                  {[1,2,3,4].map(n => (
+                    <div key={n} style={{ width:'100%', padding:'10px 14px', borderRadius:12, border:'2px solid rgba(255,255,255,0.15)', background:songs[0]?.correct_option===n ? 'linear-gradient(135deg,#22c55e,#16a34a)' : 'rgba(255,255,255,0.08)', color:'#fff', fontSize:12, fontWeight:600, marginBottom:6, textAlign:'center' }}>
                         {songs[0]?.[`option_${n}`] || `Option ${n}`}
-                      </div>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                 </div>
-              )}
+              </div>
+            )}
+            {activeTab === 'thankyou' && (
+              <ThankYouPreview settings={settings} bgUrl={thankyouBgUrl} submitGifUrl={submitGifUrl} />
+            )}
+          </PhoneFrame>
+        )}
 
-              {/* Thankyou preview */}
-              {activeTab === 'thankyou' && (
-                <div style={{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', background: thankyouBgUrl ? `url(${thankyouBgUrl}) center/cover` : (settings.bg_color||'#f7f7fb'), padding:'24px 14px' }}>
-                  <div style={{ width:'100%', maxWidth:280, margin:'0 auto', background: thankyouBgUrl ? 'rgba(255,255,255,0.86)' : '#fff', border:'1px solid rgba(255,255,255,0.7)', borderRadius:22, padding:'22px 16px', boxShadow:'0 10px 36px rgba(0,0,0,0.16)', textAlign:'center' }}>
-                    {submitGifUrl && <img src={submitGifUrl} alt="" style={{ width:'100%', maxHeight:130, objectFit:'contain', display:'block', margin:'0 auto 14px', borderRadius:12, background:'#f9f9f9' }} />}
-                    <h2 style={{ margin:'0 0 8px', fontSize:20, lineHeight:1.18, color:settings.thankyou_heading_color||'#1a1a2e', fontWeight:800 }}>{settings.thankyou_heading_text || 'Yay! You completed the game!'}</h2>
-                    <p style={{ margin:'0 0 18px', fontSize:13, lineHeight:1.45, color:settings.thankyou_subtitle_color||'#444444' }}>{settings.thankyou_subtitle_text || 'Thank you for completing!'}</p>
-                    <div style={{ width:'100%', borderRadius:10, padding:'11px 12px', background:settings.submit_btn_bg_color||'#000000', color:settings.submit_btn_text_color||'#ffffff', fontSize:13, fontWeight:800 }}>{settings.submit_btn_text || 'Submit & Explore'}</div>
-                    {settings.continue_now_btn_text && (
-                      <div style={{ width:'100%', borderRadius:10, padding:'10px 12px', marginTop:10, background:settings.continue_now_btn_bg_color||'#000000', color:settings.continue_now_btn_text_color||'#ffffff', fontSize:12, fontWeight:700 }}>{settings.continue_now_btn_text}</div>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              {/* Email preview */}
-              {activeTab === 'email' && (() => {
-                const html = `
+        {activeTab === 'email' && (() => {
+          const html = `
 <!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0;padding:0;background:#f4f4f6;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif}.wrap{max-width:600px;margin:0 auto;background:#fff}.header{background:${emailTemplate.header_color||'#6366f1'};padding:24px 20px;text-align:center}.header h1{color:#fff;margin:0;font-size:20px;font-weight:700}.body{padding:24px 20px;color:#333;font-size:14px;line-height:1.6}.footer{padding:16px 20px;text-align:center;font-size:11px;color:#999;border-top:1px solid #eee}</style></head><body><div class="wrap"><div class="header"><h1>${emailTemplate.header_text||'Congratulations!'}</h1></div><div class="body">${emailTemplate.body_html||'<p>Thank you for completing the game, {{name}}!</p>'}</div>${emailTemplate.footer_text?`<div class="footer">${emailTemplate.footer_text}</div>`:''}</div></body></html>`.trim()
-                return (
-                  <iframe title="Email Preview" srcDoc={html} style={{ width:'100%', height:'100%', border:'none', background:'#f4f4f6' }} sandbox="allow-same-origin" />
-                )
-              })()}
-
+          return (
+            <div style={{ position:'sticky', top:80, width:320, height:580, flexShrink:0 }}>
+              <div style={{ height:'100%', borderRadius:18, border:'1.5px solid var(--sf-border)', overflow:'hidden', background:'#f4f4f6', boxShadow:'0 12px 48px rgba(0,0,0,.12)' }}>
+                <iframe title="Email Preview" srcDoc={html} style={{ width:'100%', height:'100%', border:'none', background:'#f4f4f6' }} sandbox="allow-same-origin" />
+              </div>
             </div>
-          </div>
-          <div style={{ textAlign:'center', marginTop:10, fontSize:11, color:'var(--sf-text3)', fontWeight:600 }}>Live Preview</div>
-        </div>
+          )
+        })()}
 
       </div>
 

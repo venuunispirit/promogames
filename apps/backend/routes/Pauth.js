@@ -13,6 +13,8 @@ const router     = express.Router();
 const db         = require('../config/db');
 const jwt        = require('jsonwebtoken');
 const nodemailer = require('nodemailer');
+const { sendError } = require('../lib/apiError');
+const env = require('../config/env');
 
 (async () => {
   try { await db.query(`ALTER TABLE promo_players ADD COLUMN IF NOT EXISTS avatar_id VARCHAR(20) DEFAULT 'av-1'`); } catch {}
@@ -63,7 +65,7 @@ function playerAuth(req, res, next) {
   const token = (req.headers['authorization'] || '').split(' ')[1];
   if (!token) return res.status(401).json({ success: false, message: 'Login required' });
   try {
-    req.player = jwt.verify(token, process.env.JWT_SECRET || 'secret');
+    req.player = jwt.verify(token, env.JWT_SECRET);
     next();
   } catch {
     res.status(403).json({ success: false, message: 'Session expired, please login again' });
@@ -115,7 +117,7 @@ router.post('/check-email', async (req, res) => {
     // 4. Brand new user
     return res.json({ success: true, type: 'new' });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -147,7 +149,7 @@ router.post('/send-otp', async (req, res) => {
       console.log(`✅ OTP email sent to ${email}`);
     } catch (emailErr) {
       // If email fails, log OTP to console as fallback
-      console.log(`[DEV] OTP for ${email}: ${otp} (email failed: ${emailErr.message})`);
+      console.error('OTP email delivery failed for', email);
     }
 
     res.json({ success: true, message: `OTP sent to ${email}` });
@@ -193,7 +195,7 @@ router.post('/verify-otp', async (req, res) => {
       const player = playerRows[0];
       const token = jwt.sign(
         { id: player.id, email: player.email, name: player.name, role: 'player' },
-        process.env.JWT_SECRET || 'secret',
+        env.JWT_SECRET,
         { expiresIn: '30d' }
       );
       return res.json({
@@ -223,7 +225,7 @@ router.post('/verify-otp', async (req, res) => {
         const player = newPlayer[0];
         const token = jwt.sign(
           { id: player.id, email: player.email, name: player.name, role: 'player' },
-          process.env.JWT_SECRET || 'secret',
+          env.JWT_SECRET,
           { expiresIn: '30d' }
         );
         return res.json({
@@ -243,13 +245,13 @@ router.post('/verify-otp', async (req, res) => {
     // New user — return a short-lived temp token for registration step
     const tempToken = jwt.sign(
       { email, role: 'pending' },
-      process.env.JWT_SECRET || 'secret',
+      env.JWT_SECRET,
       { expiresIn: '30m' }
     );
     return res.json({ success: true, type: 'new', tempToken });
 
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -270,7 +272,7 @@ router.post('/check-username', async (req, res) => {
     const [[row]] = await db.query('SELECT id FROM promo_players WHERE username = ?', [username])
     res.json({ available: !row })
   } catch (err) {
-    res.status(500).json({ available: false, message: err.message })
+    sendError(res, err)
   }
 });
 
@@ -293,7 +295,7 @@ router.post('/register', async (req, res) => {
 
   let email;
   try {
-    const decoded = jwt.verify(tempToken, process.env.JWT_SECRET || 'secret');
+    const decoded = jwt.verify(tempToken, env.JWT_SECRET);
     if (decoded.role !== 'pending') throw new Error('Invalid token type');
     email = decoded.email;
   } catch {
@@ -336,7 +338,7 @@ router.post('/register', async (req, res) => {
     // Issue full JWT
     const token = jwt.sign(
       { id: playerId, email, name, role: 'player' },
-      process.env.JWT_SECRET || 'secret',
+      env.JWT_SECRET,
       { expiresIn: '30d' }
     );
 
@@ -346,7 +348,7 @@ router.post('/register', async (req, res) => {
       player: { id: playerId, name, email, pc_balance: 100, city, avatar_id: avatar_id || 'av-3' },
     });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -365,7 +367,7 @@ router.get('/me', playerAuth, async (req, res) => {
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Player not found' });
     res.json({ success: true, player: rows[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -403,7 +405,7 @@ router.patch('/me', playerAuth, async (req, res) => {
     );
     res.json({ success: true, player: rows[0] });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -424,7 +426,7 @@ router.get('/transactions', playerAuth, async (req, res) => {
     );
     res.json({ success: true, transactions: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -443,7 +445,7 @@ router.get('/rewards', async (req, res) => {
     );
     res.json({ success: true, rewards: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 
@@ -461,7 +463,7 @@ router.get('/leaderboard', async (req, res) => {
     );
     res.json({ success: true, leaderboard: rows });
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    sendError(res, err);
   }
 });
 

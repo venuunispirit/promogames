@@ -31,6 +31,7 @@ import SpinBuilderTab     from './pages/SpinBuilderTab'
 import MemoryBuilderPage  from './pages/MemoryBuilderPage'
 import JigsawBuilderPage  from './pages/JigsawBuilderPage'
 import WordSearchBuilderPage from './pages/WordSearchBuilderPage'
+import WordSearchPlayerPage from './pages/WordSearchPlayerPage'
 import PouringBuilderPage from './pages/PouringBuilderPage'
 import TyperBuilderPage from './pages/TyperBuilderPage'
 import MathBuilderPage from './pages/MathBuilderPage'
@@ -165,7 +166,7 @@ function AppRoutes() {
         <Route path="games/:id/spin-builder"           element={<SpinBuilderTab />} />
         <Route path="games/:id/memory-builder"        element={<MemoryBuilderPage />} />
         <Route path="games/:id/jigsaw-builder"        element={<JigsawBuilderPage />} />
-        <Route path="games/:id/wordsearch-builder"    element={<WordSearchBuilderPage />} />
+        <Route path="games/:id/wordsearch-builder"    element={<WordSearchPlayerPage />} />
         <Route path="games/:id/pouring-builder"       element={<PouringBuilderPage />} />
         <Route path="games/:id/typer-builder"          element={<TyperBuilderPage />} />
         <Route path="games/:id/math-builder"           element={<MathBuilderPage />} />

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import TYPER_WORDS from '../typerWords'
 
 export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) {
   const containerRef = useRef(null)
@@ -13,11 +14,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
   useEffect(() => {
     if (!containerRef.current) return
 
-    var WORDS = {
-      easy: ["cat","dog","run","jump","blue","tree","fish","book","lamp","door","milk","rain","star","wind","gold","leaf","snow","fire","moon","ship","king","rock","sand","wave","bell","corn","desk","farm","gate","hall","iron","kite","lion","mint","nest","oval","pear","road","salt","tent","vase","wolf","yarn","army","barn","cake","dawn","frog","glow","hive","ink"],
-      medium: ["garden","planet","window","bottle","castle","forest","hunter","jacket","kitchen","orange","pencil","rabbit","thunder","village","whisper","yellow","bridge","camera","dragon","energy","fabric","harvest","island","jungle","ladder","market","nozzle","opera","puzzle","quiver","ribbon","signal","tunnel","upload","valley","weaver","almanac","brisk","cobalt","dusty"],
-      hard: ["adventure","algorithm","blueprint","chronicle","discipline","fantastic","gravity","horizon","imaginary","journalist","knowledge","labyrinth","mechanism","negotiate","obstacle","paradox","quantum","resilient","symphony","telescope","universe","vocabulary","wilderness","yesterday","zealous","cathedral","diplomat","engineer","fortitude","gymnasium","harmonic","insomnia","jubilant","kinetic","luminous","monolith","nostalgia","observant","prophecy"]
-    }
+    var WORDS = TYPER_WORDS;
 
     var EXTRA_WORD_TIME = 1500;
     var WORD_TIME = {
@@ -443,7 +440,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
         var ch = currentWord[i];
         var cls = 'pending';
         if(i < typed.length){
-          cls = (typed[i] === ch) ? 'correct' : 'incorrect';
+          cls = (typed[i].toLowerCase() === ch.toLowerCase()) ? 'correct' : 'incorrect';
           if(i === typed.length - 1 && typed[i] === ch) cls += ' stamp';
         }
         html += '<span class="ch ' + cls + '">' + escapeHtml(ch) + '</span>';
@@ -583,6 +580,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       wordGen++;
       justAdvanced = false;
       hiddenInput.value = '';
+      prevValue = '';
       renderLadder('');
       startRing();
     }
@@ -596,8 +594,8 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       wordLocked = true;
       stopRing();
 
-      var typed = hiddenInput.value;
-      var ok = (!timedOut) && (typed === currentWord);
+      var typed = cleanTyped(hiddenInput.value);
+      var ok = (!timedOut) && (typed.toLowerCase() === currentWord.toLowerCase());
       wordsCompleted++;
       history.push({ word: currentWord, ok: ok });
       if(ok){
@@ -651,6 +649,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       var n = 3;
       countdownOverlay.classList.remove('hidden');
       tapVeil.classList.add('hidden');
+      focusInput();
 
       function step(){
         if(n > 0){
@@ -681,6 +680,8 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       justAdvanced = false;
       wordLocked = false;
       lastSubmitAt = 0;
+      gameActive = true;
+      prevValue = '';
       if(streakLayer) streakLayer.innerHTML = '';
       statTime.classList.remove('warn');
 
@@ -738,6 +739,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     }
 
     function endRound(){
+      gameActive = false;
       playSoundById(gSettings.sound_gameover_id);
       clearTimeout(countdownTimeoutId);
       countdownOverlay.classList.add('hidden');
@@ -792,12 +794,23 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     }
     function onInputFocus(){ tapVeil.classList.add('hidden'); }
 
-    function onInputInput(){
-      updateCurrentWordChars(hiddenInput.value);
-      if(hiddenInput.value === currentWord){
+    var composing = false;
+    var prevValue = '';
+    function onCompositionStart(){ composing = true; }
+    function onCompositionEnd(){ composing = false; flushInput(); }
+    function cleanTyped(s){ return s.replace(/[\u200B\u200C\u200D\uFEFF\u00AD\u2060]/g, ''); }
+    function flushInput(){
+      var typed = cleanTyped(hiddenInput.value);
+      if(typed === prevValue) return;
+      prevValue = typed;
+      updateCurrentWordChars(typed);
+      if(typed.toLowerCase() === currentWord.toLowerCase()){
         justAdvanced = true;
         submitWord(false, wordGen);
       }
+    }
+    function onInputInput(){
+      flushInput();
     }
     function onInputKeydown(e){
       if(e.key === ' ' || e.key === 'Enter'){
@@ -828,10 +841,22 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     hiddenInput.addEventListener('focus', onInputFocus);
     hiddenInput.addEventListener('input', onInputInput);
     hiddenInput.addEventListener('keydown', onInputKeydown);
+    hiddenInput.addEventListener('compositionstart', onCompositionStart);
+    hiddenInput.addEventListener('compositionend', onCompositionEnd);
     startBtn.addEventListener('click', onStartClick);
     retryBtn.addEventListener('click', onRetryClick);
     quitBtn.addEventListener('click', onQuitClick);
     settingsBtn.addEventListener('click', onSettingsClick);
+
+    /* ── Refresh guard ──────────────────────────────────────── */
+    var gameActive = false;
+    function onBeforeUnload(e){
+      if(gameActive){
+        e.preventDefault();
+        e.returnValue = '';
+      }
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
 
     /* ── Chrome tab-throttle guard ──────────────────────────── */
     var savedDeadline = 0;
@@ -864,6 +889,9 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       hiddenInput.removeEventListener('focus', onInputFocus);
       hiddenInput.removeEventListener('input', onInputInput);
       hiddenInput.removeEventListener('keydown', onInputKeydown);
+      hiddenInput.removeEventListener('compositionstart', onCompositionStart);
+      hiddenInput.removeEventListener('compositionend', onCompositionEnd);
+      window.removeEventListener('beforeunload', onBeforeUnload);
       startBtn.removeEventListener('click', onStartClick);
       retryBtn.removeEventListener('click', onRetryClick);
       quitBtn.removeEventListener('click', onQuitClick);
@@ -935,10 +963,10 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
 .key-space:hover svg{ transform: translateX(4px); }
 .hint-row{ display:flex; align-items:center; gap: 8px; margin-top: 14px; color: var(--ink-text-soft); font-size: 12.5px; }
 .hint-row svg{ width:14px; height:14px; flex-shrink:0; opacity:0.7; }
-.game-wrap{ display:none; }
+.game-wrap{ display:none; position:relative; }
 .game-wrap.active{ display:block; }
 .start-wrap.hidden, .end-wrap.hidden{ display:none; }
-.top-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; }
+.top-row{ display:flex; justify-content:space-between; align-items:center; margin-bottom: 18px; position:relative; z-index:10000; }
 .top-row .eyebrow{ margin:0; }
 .icon-btn{ width: 38px; height:38px; border-radius: 50%; background: linear-gradient(180deg, var(--ink-700), var(--ink-800)); border: 1px solid rgba(243,236,216,0.14); color: var(--cream); display:flex; align-items:center; justify-content:center; box-shadow: var(--shadow-soft); transition: transform .12s ease, border-color .15s ease; }
 .icon-btn:hover{ transform: translateY(-2px); border-color: var(--copper-400); }
@@ -1008,7 +1036,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
 .tap-veil{ position:absolute; inset:0; background: rgba(10,28,26,0.78); display:flex; align-items:center; justify-content:center; border-radius: var(--r-md); font-family:'IBM Plex Mono', monospace; color: var(--cream); font-size:13.5px; letter-spacing:0.04em; text-align:center; padding: 20px; gap:10px; flex-direction:column; }
 .tap-veil.hidden{ display:none; }
 .tap-veil svg{ width:26px; height:26px; opacity:0.85; }
-#hidden-input{ position:absolute; opacity:0; height:1px; width:1px; pointer-events:none; }
+#hidden-input{ position:absolute; top:0; left:0; width:100%; height:100%; opacity:1; font-size:16px; border:none; outline:none; background:transparent; color:transparent; caret-color:transparent; z-index:9999; pointer-events:auto; }
 .game-footer{ display:flex; justify-content:space-between; align-items:center; margin-top: 18px; flex-wrap:wrap; gap:10px; }
 .btn-ghost{ background: transparent; color: var(--cream); border: 1.5px solid rgba(243,236,216,0.22); padding: 11px 20px; border-radius: var(--r-sm); font-family:'Special Elite', monospace; font-weight:400; font-size:15.5px; letter-spacing:0.02em; transition: border-color .15s ease, background .15s ease; display:flex; align-items:center; gap:8px; }
 .btn-ghost:hover{ border-color: var(--copper-400); background: rgba(201,124,77,0.08); }
@@ -1107,6 +1135,7 @@ button{ font-family:'Inter', sans-serif; cursor:pointer; border:none; -webkit-ta
           </div>
         </div>
         <div className="game-wrap" id="game-wrap">
+          <input id="hidden-input" type="text" autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck="false" inputMode="text" data-lpignore="true" data-1p-ignore="true" data-gramm="false"/>
           <div className="top-row">
             <div className="eyebrow">Round in progress</div>
             <button className="icon-btn" id="sound-toggle" aria-label="Toggle sound"></button>
@@ -1182,8 +1211,7 @@ button{ font-family:'Inter', sans-serif; cursor:pointer; border:none; -webkit-ta
             <button className="btn-ghost" id="settings-btn">Change settings</button>
           </div>
         </div>
-        <input id="hidden-input" type="text" autoComplete="off" autoCapitalize="off" autoCorrect="off" spellCheck="false" inputMode="text"/>
-      </div>
-    </div>
+        </div>
+        </div>
   )
 }

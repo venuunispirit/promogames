@@ -6,6 +6,63 @@ const upload = require('../config/upload');
 const { sendError } = require('../lib/apiError');
 
 const SETTINGS_TABLE = 'wordscramble_settings';
+const WORDS_TABLE = 'wordscramble_words';
+
+/* ================== WORD SCRAMBLE WORDS ================== */
+
+router.get('/games/:gameId/words', auth, async (req, res) => {
+  try {
+    const [words] = await db.query(
+      'SELECT * FROM wordscramble_words WHERE game_id = ? ORDER BY word_order',
+      [req.params.gameId]
+    );
+    res.json({ success: true, words });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.post('/games/:gameId/words', auth, async (req, res) => {
+  const { word_text, clue_text, word_order } = req.body;
+  try {
+    const [result] = await db.query(
+      `INSERT INTO wordscramble_words (game_id, word_text, clue_text, word_order)
+       VALUES (?, ?, ?, ?)`,
+      [req.params.gameId, (word_text || '').toUpperCase(), clue_text || null, word_order || 0]
+    );
+    const [word] = await db.query('SELECT * FROM wordscramble_words WHERE id = ?', [result.insertId]);
+    res.status(201).json({ success: true, word: word[0] });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.put('/words/:id', auth, async (req, res) => {
+  const { word_text, clue_text, word_order } = req.body;
+  try {
+    const [existing] = await db.query('SELECT * FROM wordscramble_words WHERE id = ?', [req.params.id]);
+    if (!existing.length) return res.status(404).json({ success: false, message: 'Word not found' });
+    await db.query(
+      `UPDATE wordscramble_words SET word_text=?, clue_text=?, word_order=? WHERE id=?`,
+      [(word_text || '').toUpperCase(), clue_text || null, word_order || 0, req.params.id]
+    );
+    const [word] = await db.query('SELECT * FROM wordscramble_words WHERE id = ?', [req.params.id]);
+    res.json({ success: true, word: word[0] });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+router.delete('/words/:id', auth, async (req, res) => {
+  try {
+    const [existing] = await db.query('SELECT * FROM wordscramble_words WHERE id = ?', [req.params.id]);
+    if (!existing.length) return res.status(404).json({ success: false, message: 'Word not found' });
+    await db.query('DELETE FROM wordscramble_words WHERE id = ?', [req.params.id]);
+    res.json({ success: true });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
 
 router.get('/:gameId/settings', auth, async (req, res) => {
   try {

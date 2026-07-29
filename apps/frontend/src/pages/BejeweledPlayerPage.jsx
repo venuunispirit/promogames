@@ -349,7 +349,7 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
         <div style={{ display: 'flex', gap: 12 }}>
           <button
             className="gb-btn gb-btn-ghost"
-            onClick={() => navigate('/arcade')}
+            onClick={() => window.top.location.href = '/arcade'}
             style={{ fontSize: 12 }}
           >
             ← Back to Games
@@ -451,7 +451,7 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
             </button>
             <button
               className="gb-btn gb-btn-ghost"
-              onClick={() => navigate('/arcade')}
+              onClick={() => window.top.location.href = '/arcade'}
             >
               Back to Games
             </button>

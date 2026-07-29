@@ -1139,7 +1139,7 @@ export default function PlayerPage() {
         if (playerProfile) {
           setPhase('thankyou')
         } else {
-          window.location.href = '/arcade'
+          window.top.location.href = '/arcade'
           setCompleting(false)
           completingRef.current = false
           return
@@ -1149,7 +1149,7 @@ export default function PlayerPage() {
       }
     } catch {
       if (game?.game_type === 'promogames') {
-        window.location.href = '/arcade'
+        window.top.location.href = '/arcade'
         setCompleting(false)
         completingRef.current = false
         return
@@ -1167,7 +1167,7 @@ export default function PlayerPage() {
     }
     setRedirectUrl(data?.redirect_url || null)
     if (game?.game_type === 'promogames' && !playerProfile) {
-      window.location.href = '/arcade'
+      window.top.location.href = '/arcade'
       return
     }
     setPhase('thankyou')
@@ -2164,7 +2164,7 @@ export default function PlayerPage() {
 
           {/* Back to Arcade */}
           <button
-            onClick={() => { window.location.href = '/arcade' }}
+            onClick={() => { window.top.location.href = '/arcade' }}
             style={{
               width: '100%',
               background: 'transparent',
@@ -2197,9 +2197,9 @@ const handleSubmitExplore = () => {
 const handleModalConfirm = () => {
   setShowSubmitModal(false)
   if (redirectUrl) {
-    window.location.href = redirectUrl
+    window.top.location.href = redirectUrl
   } else if (playerProfile) {
-    window.location.href = '/player/dashboard'
+    window.top.location.href = '/player/dashboard'
   } else {
     window.location.href = `/play/${gameName}/${companyName}`
   }

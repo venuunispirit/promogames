@@ -596,7 +596,7 @@ export default function SpinPlayerPage({ gameData, sessionToken: initToken, sess
     const delay = parseInt(settings.redirect_delay)
     if (!delay || delay <= 0) return
     const timer = setTimeout(() => {
-      window.location.href = settings.redirect_url
+      window.top.location.href = settings.redirect_url
     }, delay * 1000)
     return () => clearTimeout(timer)
   }, [phase, settings.redirect_url, settings.redirect_delay])

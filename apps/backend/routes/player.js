@@ -903,6 +903,94 @@ router.get('/:gameName/:companyName', async (req, res) => {
       });
     }
 
+    // ── SNAKE & LADDER branch ────────────────────────────────────────────────
+    if (game.category === 'snakeandladder') {
+      const [gameSettings] = await db.query('SELECT * FROM snake_ladder_settings WHERE game_id = ?', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, formFields, soundMap, questions: [],
+        },
+      });
+    }
+
+    // ── LUDO branch ──────────────────────────────────────────────────────────
+    if (game.category === 'ludo') {
+      const [gameSettings] = await db.query('SELECT * FROM ludo_settings WHERE game_id = ?', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, formFields, soundMap, questions: [],
+        },
+      });
+    }
+
+    // ── CAROM branch ─────────────────────────────────────────────────────────
+    if (game.category === 'carom') {
+      const [gameSettings] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, formFields, soundMap, questions: [],
+        },
+      });
+    }
+
+    // ── TIC TAC TOE MULTIPLAYER branch ───────────────────────────────────────
+    if (game.category === 'tictactoemultiplayer') {
+      const [gameSettings] = await db.query('SELECT * FROM tictactoe_multi_settings WHERE game_id = ?', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, formFields, soundMap, questions: [],
+        },
+      });
+    }
+
     // ── QUIZ / SURVEY branch ─────────────────────────────────────────────────
     const [settings]   = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [game.id]);
     const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
@@ -1566,6 +1654,94 @@ router.get('/:gameName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, segments: spinSegments, formFields, soundMap,
+        },
+      });
+    }
+
+    // ── SNAKE & LADDER branch ────────────────────────────────────────────────
+    if (game.category === 'snakeandladder') {
+      const [gameSettings] = await db.query('SELECT * FROM snake_ladder_settings WHERE game_id = ?', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, formFields, soundMap, questions: [],
+        },
+      });
+    }
+
+    // ── LUDO branch ──────────────────────────────────────────────────────────
+    if (game.category === 'ludo') {
+      const [gameSettings] = await db.query('SELECT * FROM ludo_settings WHERE game_id = ?', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, formFields, soundMap, questions: [],
+        },
+      });
+    }
+
+    // ── CAROM branch ─────────────────────────────────────────────────────────
+    if (game.category === 'carom') {
+      const [gameSettings] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, formFields, soundMap, questions: [],
+        },
+      });
+    }
+
+    // ── TIC TAC TOE MULTIPLAYER branch ───────────────────────────────────────
+    if (game.category === 'tictactoemultiplayer') {
+      const [gameSettings] = await db.query('SELECT * FROM tictactoe_multi_settings WHERE game_id = ?', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      return res.json({
+        success: true,
+        game: {
+          id: game.id, name: game.name, category: game.category,
+          description: game.description, redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          settings, formFields, soundMap, questions: [],
         },
       });
     }

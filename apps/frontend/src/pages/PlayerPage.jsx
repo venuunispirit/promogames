@@ -643,189 +643,26 @@ export default function PlayerPage() {
           return
         }
 
-        if (g.category === 'memory') {
+        // ── Generic categories (previously unconditional form blocks) ──
+        // Check canSkipForm; if true, start session and jump to the game directly.
+        if (canSkipForm()) {
           const init = {}
           for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
           setFormData(init)
-          setPhase('form')
+          try { await startSession(init) } catch (sessErr) {
+            const data = sessErr.response?.data
+            if (data?.already_played) { setPhase('already_played'); return }
+            console.error('Session start error:', sessErr)
+          }
+          setPhase(g.questions && g.questions.length ? 'playing' : g.category)
           return
         }
-
-        if (g.category === 'jigsaw') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'wordsearch') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'pouring') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'typer') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'math') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'maze') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'flappy') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'bounce') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'space') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'connect4') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'bowling') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'sudoku') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'minesweeper') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'wordscramble') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'rps') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'arrowescape') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'tetris') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'stack') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'whackamole') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'hanoi') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'breakout') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
-
-        if (g.category === 'bubbleshooter') {
-          const init = {}
-          for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
-          setFormData(init)
-          setPhase('form')
-          return
-        }
+        // Show the form; after submit the handler below transitions to the game.
+        const init = {}
+        for (const ff of (g.formFields || [])) init[ff.field_label] = getPlayerField(profile, ff.field_label) || ''
+        setFormData(init)
+        setPhase('form')
+        return
 
         if (g.category === 'soundify') {
           const init = {}

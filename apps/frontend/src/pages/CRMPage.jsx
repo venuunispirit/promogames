@@ -142,6 +142,7 @@ export default function CRMPage() {
         })
         showToast('Team member created!')
       }
+      showToast(editMember ? 'Member updated' : 'Member created')
       setShowForm(false)
       setEditMember(null)
       setFormFields({ name:'', email:'', phone:'', permissions:[] })
@@ -182,8 +183,9 @@ export default function CRMPage() {
       : [...perms, permKey]
     try {
       await api.put(`/internal-team/${memberId}/permissions`, { permissions: updated })
+      showToast(updated.includes(permKey) ? 'Permission added' : 'Permission removed')
       load()
-    } catch {}
+    } catch { showToast('Failed to update permission', 'error') }
   }
 
   const filtered = team.filter(m => !search || [m.name, m.email, m.phone].some(v => v?.toLowerCase().includes(search.toLowerCase())))

@@ -829,6 +829,118 @@ async function initDB() {
     )
   `, 'snake_settings table');
 
+  /* ── SNAKE & LADDER TABLE ── */
+  console.log('🐍 Creating snake & ladder tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS snake_ladder_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT '#444444',
+      outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT '#444444',
+      thankyou_subtitle VARCHAR(500), thankyou_subtitle_color VARCHAR(20) DEFAULT '#444444',
+      bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#6366f1',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+      submit_button_text VARCHAR(500), submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      submit_button_bg_color VARCHAR(20),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text_color VARCHAR(20) DEFAULT '#ffffff', continue_button_bg_color VARCHAR(20),
+      start_button_text VARCHAR(500), start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20),
+      reveal_text VARCHAR(500), terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
+      terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'snake_ladder_settings table');
+
+  /* ── LUDO TABLE ── */
+  console.log('🎲 Creating ludo tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS ludo_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT '#444444',
+      outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT '#444444',
+      thankyou_subtitle VARCHAR(500), thankyou_subtitle_color VARCHAR(20) DEFAULT '#444444',
+      bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#6366f1',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+      submit_button_text VARCHAR(500), submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      submit_button_bg_color VARCHAR(20),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text_color VARCHAR(20) DEFAULT '#ffffff', continue_button_bg_color VARCHAR(20),
+      start_button_text VARCHAR(500), start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20),
+      reveal_text VARCHAR(500), terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
+      terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'ludo_settings table');
+
+  /* ── CAROM TABLE ── */
+  console.log('🎱 Creating carom tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS carom_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT '#444444',
+      outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT '#444444',
+      thankyou_subtitle VARCHAR(500), thankyou_subtitle_color VARCHAR(20) DEFAULT '#444444',
+      bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#6366f1',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+      submit_button_text VARCHAR(500), submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      submit_button_bg_color VARCHAR(20),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text_color VARCHAR(20) DEFAULT '#ffffff', continue_button_bg_color VARCHAR(20),
+      start_button_text VARCHAR(500), start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20),
+      reveal_text VARCHAR(500), terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
+      terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'carom_settings table');
+
+  /* ── TIC TAC TOE MULTIPLAYER TABLE ── */
+  console.log('🎮 Creating tictactoe multiplayer tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS tictactoe_multi_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT '#444444',
+      outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT '#444444',
+      thankyou_subtitle VARCHAR(500), thankyou_subtitle_color VARCHAR(20) DEFAULT '#444444',
+      bg_color VARCHAR(20) DEFAULT '#0f172a', primary_color VARCHAR(20) DEFAULT '#6366f1',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
+      submit_button_text VARCHAR(500), submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      submit_button_bg_color VARCHAR(20),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text_color VARCHAR(20) DEFAULT '#ffffff', continue_button_bg_color VARCHAR(20),
+      start_button_text VARCHAR(500), start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20),
+      reveal_text VARCHAR(500), terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
+      terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'tictactoe_multi_settings table');
+
   /* ── CATCH FALLING OBJECTS TABLES ── */
   console.log('🧺 Creating catch tables...');
   await safeQuery(connection, `
@@ -1126,7 +1238,7 @@ async function initDB() {
 
   /* GAMES */
   await safeQuery(connection,
-      `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess') DEFAULT 'quiz'`,
+      `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','carom','tictactoemultiplayer') DEFAULT 'quiz'`,
     'games.category ENUM includes all game types'
   );
   await addColumn(connection, 'games', 'client_id', 'INT');

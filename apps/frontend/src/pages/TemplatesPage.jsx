@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api'
+import Toast from '../components/Toast'
 
 const LIGHT = `
 .gb-wrap{ background:#f5f6fb; min-height:100vh; font-family:'DM Sans',system-ui,sans-serif; color:#1a1a2e; padding:24px; }
@@ -16,6 +17,12 @@ export default function TemplatesPage() {
   const navigate = useNavigate()
   const [templates, setTemplates] = useState([])
   const [loading, setLoading] = useState(true)
+  const [toast, setToast] = useState(null)
+
+  const showToast = (msg, type='success') => {
+    setToast({ msg, type })
+    setTimeout(() => setToast(null), 3000)
+  }
 
   useEffect(() => {
     api.get('/templates').then(r => setTemplates(r.data.templates || [])).finally(() => setLoading(false))
@@ -23,8 +30,11 @@ export default function TemplatesPage() {
 
   const remove = async (id) => {
     if (!confirm('Delete this template?')) return
-    await api.delete(`/templates/${id}`)
-    setTemplates(ts => ts.filter(t => t.id !== id))
+    try {
+      await api.delete(`/templates/${id}`)
+      showToast('Template deleted')
+      setTemplates(ts => ts.filter(t => t.id !== id))
+    } catch { showToast('Failed to delete template', 'error') }
   }
 
   return (
@@ -52,6 +62,7 @@ export default function TemplatesPage() {
           </div>
         )}
       </div>
+      {toast && <Toast msg={toast.msg} type={toast.type} onClose={() => setToast(null)} />}
     </div>
   )
 }

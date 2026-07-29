@@ -1257,7 +1257,7 @@ export default function GamesPage() {
   const STATUS_CYCLE = ['development', 'testing', 'live']
 
   const navigateBuilder = (game) => {
-    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',chess:'chess'}
+    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',chess:'chess',snakeandladder:'snakeandladder',ludo:'ludo',carom:'carom',tictactoemultiplayer:'tictactoemultiplayer'}
     const slug = builders[game.category]
     navigate(`/dashboard/games/${game.id}${slug ? '/' + slug + '-builder' : '/builder'}`)
   }
@@ -1585,6 +1585,10 @@ export default function GamesPage() {
                                 else if (game.category === 'soundify') navigate(`/dashboard/games/${game.id}/soundify-builder`)
                                 else if (game.category === 'tictactoe') navigate(`/dashboard/games/${game.id}/tictactoe-builder`)
                                 else if (game.category === 'chess') navigate(`/dashboard/games/${game.id}/chess-builder`)
+                                else if (game.category === 'snakeandladder') navigate(`/dashboard/games/${game.id}/snakeandladder-builder`)
+                                else if (game.category === 'ludo') navigate(`/dashboard/games/${game.id}/ludo-builder`)
+                                else if (game.category === 'carom') navigate(`/dashboard/games/${game.id}/carom-builder`)
+                                else if (game.category === 'tictactoemultiplayer') navigate(`/dashboard/games/${game.id}/tictactoemultiplayer-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">
                               <Ico.wrench/> Builder

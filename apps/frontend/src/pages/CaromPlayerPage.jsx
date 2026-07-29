@@ -123,7 +123,7 @@ async function storageSet(key, val) {
   catch (e) { console.error("[carrom-sync] storageSet failed for", key, e); return false; }
 }
 
-export default function CaromGame({ gameData, sessionToken, onComplete }) {
+export default function CaromPlayerPage({ gameData, sessionToken, onComplete }) {
   const [view, setView] = useState("menu");
   const canvasRef = useRef(null);
   const rafRef = useRef(null);

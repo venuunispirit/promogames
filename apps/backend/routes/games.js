@@ -457,6 +457,62 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
       );
     }
 
+    // Clone snake_ladder_settings
+    const [snakeLadderSettings] = await db.query('SELECT * FROM snake_ladder_settings WHERE game_id = ?', [gameId]);
+    if (snakeLadderSettings[0]) {
+      const ss = snakeLadderSettings[0];
+      const { id, game_id, created_at, updated_at, ...snakeLadderData } = ss;
+      const slKeys = Object.keys(snakeLadderData);
+      await db.query(
+        `INSERT INTO snake_ladder_settings (game_id,${slKeys.join(',')}) VALUES (?,${
+          slKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(snakeLadderData)]
+      );
+    }
+
+    // Clone ludo_settings
+    const [ludoSettings] = await db.query('SELECT * FROM ludo_settings WHERE game_id = ?', [gameId]);
+    if (ludoSettings[0]) {
+      const ls = ludoSettings[0];
+      const { id, game_id, created_at, updated_at, ...ludoData } = ls;
+      const ludoKeys = Object.keys(ludoData);
+      await db.query(
+        `INSERT INTO ludo_settings (game_id,${ludoKeys.join(',')}) VALUES (?,${
+          ludoKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(ludoData)]
+      );
+    }
+
+    // Clone carom_settings
+    const [caromSettings] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [gameId]);
+    if (caromSettings[0]) {
+      const cs = caromSettings[0];
+      const { id, game_id, created_at, updated_at, ...caromData } = cs;
+      const caromKeys = Object.keys(caromData);
+      await db.query(
+        `INSERT INTO carom_settings (game_id,${caromKeys.join(',')}) VALUES (?,${
+          caromKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(caromData)]
+      );
+    }
+
+    // Clone tictactoe_multi_settings
+    const [tttMultiSettings] = await db.query('SELECT * FROM tictactoe_multi_settings WHERE game_id = ?', [gameId]);
+    if (tttMultiSettings[0]) {
+      const ts = tttMultiSettings[0];
+      const { id, game_id, created_at, updated_at, ...tttMultiData } = ts;
+      const tttMultiKeys = Object.keys(tttMultiData);
+      await db.query(
+        `INSERT INTO tictactoe_multi_settings (game_id,${tttMultiKeys.join(',')}) VALUES (?,${
+          tttMultiKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(tttMultiData)]
+      );
+    }
+
     // Clone catch_settings
     const [catchSettings] = await db.query('SELECT * FROM catch_settings WHERE game_id = ?', [gameId]);
     if (catchSettings[0]) {

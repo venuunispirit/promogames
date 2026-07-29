@@ -40,6 +40,10 @@ import CarLaunchPlayerPage from './CarLaunchPlayerPage'
 import SoundifyPlayerPage from './soundifyplayerpage'
 import StressBusterPlayerPage from './frustrationplayerpage'
 import TicTacToePlayerPage from './tictactoeplayer'
+import SnakeAndLadderPlayerPage from './SnakeAndLadderPlayerPage'
+import LudoPlayerPage from './LudoPlayerPage'
+import CaromPlayerPage from './CaromPlayerPage'
+import TicTacToeMultiplayerPlayerPage from './TicTacToeMultiplayerPlayerPage'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -575,9 +579,7 @@ export default function PlayerPage() {
         document.head.appendChild(twitterCardTag)
 
         const canSkipForm = () => {
-          // PromoGames: always skip form (anonymous/public games)
           if (g.game_type === 'promogames') return true
-          // Branded: guest must fill form, registered player skips if profile complete
           if (!profile) return false
           const fields = g.formFields || []
           if (fields.length === 0) return true
@@ -1080,6 +1082,14 @@ export default function PlayerPage() {
         setPhase('stressbuster')
       } else if (game.category === 'tictactoe') {
         setPhase('tictactoe')
+      } else if (game.category === 'snakeandladder') {
+        setPhase('snakeandladder')
+      } else if (game.category === 'ludo') {
+        setPhase('ludo')
+      } else if (game.category === 'carom') {
+        setPhase('carom')
+      } else if (game.category === 'tictactoemultiplayer') {
+        setPhase('tictactoemultiplayer')
       } else {
         setPhase(game.intro_video ? 'intro' : 'playing')
       }
@@ -1124,21 +1134,44 @@ export default function PlayerPage() {
           }
         }
       }
-      // PromoGames: skip thank you page, go to simple completion screen
+      // PromoGames: logged-in players see thankyou; guests skip to arcade
       if (game?.game_type === 'promogames') {
-        setPhase('complete')
+        if (playerProfile) {
+          setPhase('thankyou')
+        } else {
+          window.location.href = '/arcade'
+          setCompleting(false)
+          completingRef.current = false
+          return
+        }
       } else {
         setPhase('thankyou')
       }
     } catch {
       if (game?.game_type === 'promogames') {
-        setPhase('complete')
+        window.location.href = '/arcade'
+        setCompleting(false)
+        completingRef.current = false
+        return
       } else {
         setPhase('thankyou')
       }
     }
     setCompleting(false)
-  }, [game, stopAllSounds])
+  }, [game, playerProfile, stopAllSounds])
+
+  const handleGameComplete = useCallback((data) => {
+    if (data?.session) {
+      setScore(data.session.score || 0)
+      setTotalScoreable(data.session.total_scoreable || 0)
+    }
+    setRedirectUrl(data?.redirect_url || null)
+    if (game?.game_type === 'promogames' && !playerProfile) {
+      window.location.href = '/arcade'
+      return
+    }
+    setPhase('thankyou')
+  }, [game, playerProfile])
 
   const doAdvance = useCallback((isLast, token) => {
     tts.cancel()
@@ -2370,10 +2403,7 @@ const handleModalClose = () => {
       <MemoryPlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={handleGameComplete}
       />
     )
   }
@@ -2383,10 +2413,7 @@ const handleModalClose = () => {
       <JigsawPlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={handleGameComplete}
       />
     )
   }
@@ -2396,10 +2423,7 @@ const handleModalClose = () => {
       <WordSearchPlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={handleGameComplete}
       />
     )
   }
@@ -2409,10 +2433,7 @@ const handleModalClose = () => {
       <PouringPlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={handleGameComplete}
       />
     )
   }
@@ -2422,10 +2443,7 @@ const handleModalClose = () => {
       <TyperPlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={handleGameComplete}
       />
     )
   }
@@ -2435,10 +2453,7 @@ const handleModalClose = () => {
       <MathPlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={handleGameComplete}
       />
     )
   }
@@ -2460,10 +2475,7 @@ const handleModalClose = () => {
       <ScrewPlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={handleGameComplete}
       />
     )
   }
@@ -2473,10 +2485,7 @@ const handleModalClose = () => {
       <Game2048PlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={handleGameComplete}
       />
     )
   }
@@ -2486,28 +2495,36 @@ const handleModalClose = () => {
       <SnakePlayerPage
         gameData={game}
         sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
+        onComplete={handleGameComplete}
+      />
+    )
+  }
+
+  if (phase === 'snakeandladder') {
+    return (
+      <SnakeAndLadderPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={handleGameComplete}
+      />
+    )
+  }
+
+  if (phase === 'ludo') {
+    return <LudoPlayerPage />
+  }
+
+  if (phase === 'carom') {
+    return (
+      <CaromPlayerPage
+        gameData={game}
+        sessionToken={sessionToken}
+        onComplete={handleGameComplete}
       />
     )
   }
 
   if (phase === 'bejeweled') {
-    return (
-      <BejeweledPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
-    )
-  }
-
-  if (phase === 'catch') {
     return (
       <CatchPlayerPage
         gameData={game}
@@ -2770,6 +2787,10 @@ const handleModalClose = () => {
         }}
       />
     )
+  }
+
+  if (phase === 'tictactoemultiplayer') {
+    return <TicTacToeMultiplayerPlayerPage />
   }
 
   return null

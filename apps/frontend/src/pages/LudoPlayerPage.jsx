@@ -745,7 +745,7 @@ function drawLudoBoard(canvas, gs) {
 /* ============================================================
    Component
    ============================================================ */
-export default function LudoGame() {
+export default function LudoPlayerPage() {
   const stateRef = useRef(null);
   const [tick, bump] = useReducer((x) => x + 1, 0);
   const rerender = () => bump();

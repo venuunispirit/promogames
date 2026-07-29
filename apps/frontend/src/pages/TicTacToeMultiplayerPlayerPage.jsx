@@ -41,7 +41,7 @@ const EMPTY_BOARD = () => Array(9).fill(null);
 /* ============================================================
    Component
    ============================================================ */
-export default function TicTacToe() {
+export default function TicTacToeMultiplayerPlayerPage() {
   // 'home' | 'offline' | 'online-menu' | 'online-waiting' | 'online-playing'
   const [page, setPage] = useState("home");
 

@@ -219,7 +219,7 @@ export default function ArcadePage() {
     }
   }, [])
 
-  useEffect(() => {
+  const loadGames = useCallback(() => {
     fetch('/api/play/play-page-games')
       .then(r => r.json())
       .then(d => {
@@ -233,6 +233,8 @@ export default function ArcadePage() {
       .finally(() => setLoading(false))
   }, [])
 
+  useEffect(() => { loadGames() }, [loadGames])
+
   useEffect(() => {
     const onScroll = () => {
       const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100
@@ -244,7 +246,10 @@ export default function ArcadePage() {
 
   const handlePlay = useCallback((game) => setActiveGame(game), [])
   const handleSwitch = useCallback((game) => setActiveGame(game), [])
-  const handleClose = useCallback(() => setActiveGame(null), [])
+  const handleClose = useCallback(() => {
+    setActiveGame(null)
+    loadGames()
+  }, [loadGames])
 
   const allGames = [...featured, ...promogames]
 

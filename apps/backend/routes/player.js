@@ -119,7 +119,7 @@ router.get('/game-data/:gameId', async (req, res) => {
     res.json({
       success: true,
       game: {
-        id: game.id, name: game.name, category: game.category,
+        id: game.id, game_type: game.game_type, name: game.name, category: game.category,
         description: game.description, redirect_url: game.redirect_url,
         client_slug: game.client_slug, company_name: game.company_name,
         game_type: game.game_type, status: game.status,
@@ -183,6 +183,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -230,6 +231,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -272,6 +274,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -322,6 +325,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -363,6 +367,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -402,6 +407,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -443,6 +449,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -479,6 +486,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -514,6 +522,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -552,6 +561,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -587,6 +597,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -619,6 +630,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -650,7 +662,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -675,7 +688,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -700,7 +714,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -725,7 +740,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -751,6 +767,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -783,6 +800,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -815,6 +833,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
+          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -894,7 +913,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
@@ -917,7 +937,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -939,7 +960,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -961,7 +983,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -983,7 +1006,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -1059,7 +1083,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     res.json({
       success: true,
       game: {
-        id: game.id, name: game.name, category: game.category,
+        id: game.id, game_type: game.game_type, name: game.name, category: game.category,
         description: game.description, redirect_url: game.redirect_url,
         client_logo: toAbs(game.client_logo),
         company_name: game.company_name,
@@ -1623,7 +1647,8 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, words: cwWords, soundMap, formFields: cwFormFields, questions: [],
@@ -1650,7 +1675,8 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, segments: spinSegments, formFields, soundMap,
@@ -1672,7 +1698,8 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -1694,7 +1721,8 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -1716,7 +1744,8 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -1738,7 +1767,8 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id, name: game.name, category: game.category,
+          id: game.id,
+          game_type: game.game_type, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           settings, formFields, soundMap, questions: [],
@@ -1794,7 +1824,7 @@ router.get('/:gameName', async (req, res) => {
     res.json({
       success: true,
       game: {
-        id: game.id, name: game.name, category: game.category,
+        id: game.id, game_type: game.game_type, name: game.name, category: game.category,
         description: game.description, redirect_url: game.redirect_url,
         client_logo: toAbs(game.client_logo), company_name: game.company_name,
         intro_video: introVideo, media_list: mediaList,

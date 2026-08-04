@@ -492,6 +492,31 @@ export default function PlayerPage() {
   const qImgWrapRef = useRef(null)
   const tyWrapRef = useRef(null)
 
+  // ── Complete the session on exit (promogames only) so every play counts,
+  // even when an endless arcade game is closed before a natural game over ──
+  const sessionTokenRef = useRef(null)
+  useEffect(() => { sessionTokenRef.current = sessionToken }, [sessionToken])
+  const completedOnExitRef = useRef(false)
+  useEffect(() => {
+    const completeOnExit = () => {
+      if (completedOnExitRef.current) return
+      if (game?.game_type !== 'promogames') return
+      if (completingRef.current) return
+      const token = sessionTokenRef.current
+      if (!token) return
+      completedOnExitRef.current = true
+      try {
+        navigator.sendBeacon?.('/api/play/session/complete', new Blob([JSON.stringify({ session_token: token, player_data: {} })], { type: 'application/json' }))
+      } catch {}
+    }
+    window.addEventListener('pagehide', completeOnExit)
+    window.addEventListener('beforeunload', completeOnExit)
+    return () => {
+      window.removeEventListener('pagehide', completeOnExit)
+      window.removeEventListener('beforeunload', completeOnExit)
+    }
+  }, [game?.game_type])
+
   // ── Known field mapping from player profile ──────────────────────────────
   const KNOWN_FIELD_MAP = {
     name: ['name','full name','fullname','player name','your name','yourname'],
@@ -848,6 +873,7 @@ export default function PlayerPage() {
   const completeSession = useCallback(async (token) => {
     if (completingRef.current) return
     completingRef.current = true
+    completedOnExitRef.current = true
     setCompleting(true)
     try {
       const res = await api.post('/play/session/complete', { session_token: token })
@@ -905,6 +931,7 @@ export default function PlayerPage() {
   }, [game, playerProfile, stopAllSounds])
 
   const handleGameComplete = useCallback((data) => {
+    completedOnExitRef.current = true
     if (data?.session) {
       setScore(data.session.score || 0)
       setTotalScoreable(data.session.total_scoreable || 0)

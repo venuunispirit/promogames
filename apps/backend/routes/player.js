@@ -3,6 +3,8 @@ const router = express.Router();
 const db = require('../config/db');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
+const jwt = require('jsonwebtoken');
+const env = require('../config/env');
 const { sendError } = require('../lib/apiError');
 
 // GET /api/play/game-data/:gameId — full game payload for the Flutter app
@@ -1099,7 +1101,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
 });
 
 router.post('/session/start', async (req, res) => {
-  const { game_id, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
+  const { game_id, player_data, source_type, promo_player_id, device_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
   const validSrc = ['direct', 'link', 'player'];
   const src = validSrc.includes(source_type) ? source_type : 'link';
   try {
@@ -1143,9 +1145,9 @@ router.post('/session/start', async (req, res) => {
 
     const token = uuidv4();
     const [result] = await db.query(
-      `INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, referred_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null,
+      `INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id, device_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, referred_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null, device_id || null,
        utm_source || null, utm_medium || null, utm_campaign || null, utm_term || null, utm_content || null, referredBy]
     );
 
@@ -1245,10 +1247,32 @@ router.post('/session/complete', async (req, res) => {
     let existingData = typeof session.player_data === 'string' ? JSON.parse(session.player_data) : (session.player_data || {});
     const mergedData = { ...existingData, ...(player_data || {}) };
 
+    const finalScore = score !== undefined ? score : session.score;
     await db.query(
       'UPDATE player_sessions SET completed = 1, completed_at = NOW(), score = ?, player_data = ? WHERE id = ?',
-      [score !== undefined ? score : session.score, JSON.stringify(mergedData), session.id]
+      [finalScore, JSON.stringify(mergedData), session.id]
     );
+
+    // ── Best score + game high score tracking (only for meaningful scores) ──
+    try {
+      if (finalScore > 0) {
+        const identity = session.promo_player_id ? { player_id: session.promo_player_id } : (session.device_id ? { device_id: session.device_id } : null);
+        if (identity) {
+          await db.query(
+            `INSERT INTO player_best_scores (player_id, device_id, game_id, best_score, updated_at)
+             VALUES (?, ?, ?, ?, NOW())
+             ON DUPLICATE KEY UPDATE best_score = GREATEST(best_score, VALUES(best_score)), updated_at = NOW()`,
+            [session.promo_player_id || null, session.device_id || null, session.game_id, finalScore]
+          );
+        }
+        await db.query(
+          'UPDATE games SET high_score = GREATEST(COALESCE(high_score, 0), ?) WHERE id = ?',
+          [finalScore, session.game_id]
+        );
+      }
+    } catch (scoreErr) {
+      console.error('Score tracking error:', scoreErr.message);
+    }
 
     const [games]          = await db.query('SELECT * FROM games WHERE id = ?', [session.game_id]);
     const [emailTemplates] = await db.query('SELECT * FROM email_templates WHERE game_id = ?', [session.game_id]);
@@ -1607,6 +1631,90 @@ router.get('/game/:id/play-count', async (req, res) => {
     res.json({ play_count: rows[0]?.play_count || 0 });
   } catch (err) {
     res.status(500).json({ play_count: 0 });
+  }
+});
+
+// ── Score info: game high score + requesting player's best ───────────────
+// Frontend decides where/whether to render these. Returns null where no
+// scores have been recorded for the game yet.
+router.get('/game/:id/score-info', async (req, res) => {
+  try {
+    const [gameRows] = await db.query('SELECT high_score FROM games WHERE id = ?', [req.params.id]);
+    if (gameRows.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+    const highScore = gameRows[0].high_score ?? null;
+
+    let playerId = null;
+    const auth = req.headers['authorization'] || '';
+    const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    if (bearer) {
+      try {
+        const decoded = jwt.verify(bearer, env.JWT_SECRET);
+        if (decoded && decoded.role === 'player' && decoded.id) playerId = decoded.id;
+      } catch {}
+    }
+    const deviceId = req.query.device_id || null;
+
+    let playerBest = null;
+    if (playerId || deviceId) {
+      const [bestRows] = await db.query(
+        `SELECT best_score FROM player_best_scores
+         WHERE game_id = ? AND (player_id = ? OR device_id = ?)
+         ORDER BY best_score DESC LIMIT 1`,
+        [req.params.id, playerId || null, deviceId || null]
+      );
+      playerBest = bestRows[0]?.best_score ?? null;
+    }
+
+    res.json({ success: true, high_score: highScore, player_best: playerBest });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// ── Monthly PC leaderboard (rank by PC earned this month) ─────────────────
+// GET /api/play/leaderboard?limit=50 — optional Bearer token to include own rank.
+// Spends are ignored for ranking; the existing monthly pc_balance reset means
+// the board naturally restarts each month while transaction history is kept.
+router.get('/leaderboard', async (req, res) => {
+  try {
+    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
+    const monthStart = "DATE_FORMAT(CURDATE() - INTERVAL DAY(CURDATE()) - 1 DAY, '%Y-%m-%d 00:00:00')";
+
+    const [rows] = await db.query(
+      `SELECT p.id, p.username, p.name, COALESCE(SUM(t.points), 0) AS monthly_pc,
+              ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(t.points), 0) DESC, p.id) AS rnk
+       FROM promo_players p
+       LEFT JOIN pc_transactions t ON t.player_id = p.id AND t.type = 'earn' AND t.created_at >= ${monthStart}
+       GROUP BY p.id, p.username, p.name
+       ORDER BY monthly_pc DESC, p.id
+       LIMIT ?`,
+      [limit]
+    );
+
+    let me = null;
+    const auth = req.headers['authorization'] || '';
+    const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+    if (bearer) {
+      try {
+        const decoded = jwt.verify(bearer, env.JWT_SECRET);
+        if (decoded && decoded.role === 'player' && decoded.id) {
+          const [meRows] = await db.query(
+            `SELECT p.id, p.username, p.name, COALESCE(SUM(t.points), 0) AS monthly_pc,
+                    ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(t.points), 0) DESC, p.id) AS rnk
+             FROM promo_players p
+             LEFT JOIN pc_transactions t ON t.player_id = p.id AND t.type = 'earn' AND t.created_at >= ${monthStart}
+             WHERE p.id = ?
+             GROUP BY p.id, p.username, p.name`,
+            [decoded.id]
+          );
+          me = meRows[0] || null;
+        }
+      } catch {}
+    }
+
+    res.json({ success: true, month: new Date().toISOString().slice(0, 7), leaderboard: rows, me });
+  } catch (err) {
+    sendError(res, err);
   }
 });
 

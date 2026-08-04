@@ -73,6 +73,15 @@ img{display:block;max-width:100%}
 .arc-row-track{display:flex;gap:10px;overflow-x:auto;padding:4px 0 12px;scrollbar-width:none;-ms-overflow-style:none;scroll-behavior:smooth}
 .arc-row-track::-webkit-scrollbar{display:none}
 
+/* MASONRY (PromoGames) */
+.arc-masonry{columns:8;column-gap:12px;padding:4px 4px 12px}
+.arc-masonry-card{break-inside:avoid;-webkit-column-break-inside:avoid;margin-bottom:14px;border-radius:12px;overflow:hidden;cursor:pointer;position:relative;animation:arcCardIn .35s cubic-bezier(.22,1,.36,1) both;transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s}
+.arc-masonry-card:hover{transform:scale(1.02);box-shadow:0 10px 32px rgba(146,16,246,0.28),0 0 0 2px rgba(146,16,246,0.5)}
+.arc-masonry-thumb{width:100%;aspect-ratio:var(--ar,1/1);object-fit:cover;display:block;transition:transform .3s}
+.arc-masonry-card:hover .arc-masonry-thumb{transform:scale(1.05)}
+.arc-masonry-fallback{width:100%;aspect-ratio:var(--ar,1/1);display:flex;align-items:center;justify-content:center;font-size:56px;background:linear-gradient(135deg,rgba(146,16,246,0.3),rgba(97,4,151,0.15));transition:transform .3s}
+.arc-masonry-card:hover .arc-masonry-fallback{transform:scale(1.05)}
+
 /* ROW CARD */
 .arc-row-card{flex-shrink:0;width:200px;border-radius:12px;overflow:hidden;cursor:pointer;position:relative;animation:arcCardIn .35s cubic-bezier(.22,1,.36,1) both;transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s}
 .arc-row-card:hover{transform:scale(1.06);box-shadow:0 10px 32px rgba(146,16,246,0.28),0 0 0 2px rgba(146,16,246,0.5)}
@@ -162,15 +171,52 @@ img{display:block;max-width:100%}
   .navbar{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}
   .arc-row-track{gap:8px}
   .arc-row-card{width:160px}
+  .arc-masonry{columns:6}
   .footer-main{grid-template-columns:1fr}
 }
 @media(max-width:640px){
   .arc-row-card{width:140px}
+  .arc-masonry{columns:5}
   .arc-row-rank{font-size:24px}
 }
 `
 
 const COLORS = ['#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497']
+
+const RATIOS = [
+  { key: '11', css: '1 / 1' },
+  { key: '34', css: '3 / 4' },
+  { key: '43', css: '4 / 3' },
+  { key: '169', css: '16 / 9' },
+  { key: '916', css: '9 / 16' },
+]
+
+const iconUrlFor = (game, key) => {
+  const cat = game.category || game.slug
+  const urls = []
+  if (cat) {
+    urls.push(`/game-previews/${cat}/${cat}${key}.png`)
+    urls.push(`/game-previews/${cat}/${cat}_${key}.png`)
+  }
+  if (game.slug && game.slug !== cat) {
+    urls.push(`/gameicons/${game.slug}/${game.slug}_${key}.png`)
+  }
+  return urls
+}
+
+async function pickGameRatio(game) {
+  const hits = []
+  for (const r of RATIOS) {
+    for (const url of iconUrlFor(game, r.key)) {
+      try {
+        const res = await fetch(url, { method: 'HEAD' })
+        if (res.ok && (res.headers.get('content-type') || '').startsWith('image/')) { hits.push(r.key); break }
+      } catch {}
+    }
+  }
+  const unique = [...new Set(hits)]
+  return unique.length ? unique[Math.floor(Math.random() * unique.length)] : null
+}
 
 const NAV = [
   { label: "Leaderboard", href: "/leaderboard" },
@@ -186,6 +232,37 @@ function RowCard({ game, index, rank, onPlay }) {
         ? <img className="arc-row-thumb" src={game.game_logo_url || game.bg_image_url} alt={game.name} loading="lazy" />
         : <div className="arc-row-fallback">🎮</div>
       }
+      {rank && <span className={`arc-row-rank ${rankClass}`}>#{rank}</span>}
+      <span className="arc-row-cat">{game.category || 'Quiz'}</span>
+      <div className="arc-row-body">
+        <div className="arc-row-name">{game.name}</div>
+        <div className="arc-row-meta">
+          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          {(game.play_count || 0).toLocaleString()}
+        </div>
+      </div>
+      <div className="arc-row-play-overlay">
+        <div className="arc-row-play-ico">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="#9210f6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function MasonryCard({ game, index, rank, onPlay }) {
+  const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : ''
+  const ratio = RATIOS.find(r => r.key === game.cardRatio) || RATIOS[0]
+  const sources = [...iconUrlFor(game, ratio.key), game.game_logo_url, game.bg_image_url].filter(Boolean)
+  const [stage, setStage] = useState(0)
+  const src = sources[stage]
+  return (
+    <div className="arc-masonry-card" style={{ animationDelay: `${Math.min(index * 60, 400)}ms`, '--ar': ratio.css }} onClick={() => onPlay(game)}>
+      {src ? (
+        <img className="arc-masonry-thumb" src={src} alt={game.name} loading="lazy" onError={() => setStage(s => s + 1)} />
+      ) : (
+        <div className="arc-masonry-fallback">🎮</div>
+      )}
       {rank && <span className={`arc-row-rank ${rankClass}`}>#{rank}</span>}
       <span className="arc-row-cat">{game.category || 'Quiz'}</span>
       <div className="arc-row-body">
@@ -222,11 +299,15 @@ export default function ArcadePage() {
   const loadGames = useCallback(() => {
     fetch('/api/play/play-page-games')
       .then(r => r.json())
-      .then(d => {
+      .then(async (d) => {
         if (d.success) {
           setGames(d.games || [])
           setFeatured(d.featured || [])
-          setPromogames(d.promogames || [])
+          const decorated = await Promise.all((d.promogames || []).map(async (g) => ({
+            ...g,
+            cardRatio: (await pickGameRatio(g)) || RATIOS[Math.floor(Math.random() * RATIOS.length)].key,
+          })))
+          setPromogames(decorated)
         }
       })
       .catch(() => {})
@@ -291,7 +372,7 @@ export default function ArcadePage() {
               </div>
             )}
 
-            {/* Row 2: PromoGames */}
+            {/* Row 2: PromoGames — masonry */}
             {promogames.length > 0 && (
               <div className="arc-row">
                 <div className="arc-row-header">
@@ -300,9 +381,9 @@ export default function ArcadePage() {
                     <span className="arc-row-count">{promogames.length} games</span>
                   </div>
                 </div>
-                <div className="arc-row-track">
+                <div className="arc-masonry">
                   {promogames.map((game, i) => (
-                    <RowCard key={game.id} game={game} index={i} rank={i + 1} onPlay={handlePlay} />
+                    <MasonryCard key={game.id} game={game} index={i} rank={i + 1} onPlay={handlePlay} />
                   ))}
                 </div>
               </div>

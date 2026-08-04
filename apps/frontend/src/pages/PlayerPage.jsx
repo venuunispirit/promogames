@@ -4,6 +4,17 @@ import renderMedia, { isVideoUrl } from '../components/renderMedia'
 import { inAnim } from '../components/animations'
 import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
+
+function getDeviceId() {
+  try {
+    let id = localStorage.getItem('device_id')
+    if (!id) {
+      id = (typeof crypto !== 'undefined' && crypto.randomUUID && crypto.randomUUID()) || `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
+      localStorage.setItem('device_id', id)
+    }
+    return id
+  } catch { return '' }
+}
 import CrosswordPlayerPage from './CrosswordPlayerPage'
 import SpinPlayerPage      from './SpinPlayerPage'
 import MemoryPlayerPage    from './MemoryPlayerPage'
@@ -625,6 +636,7 @@ export default function PlayerPage() {
             game_id: g.id,
             player_data: initData,
             source_type: searchParams.get('source') === 'direct' ? 'direct' : (profile ? 'player' : 'link'),
+            device_id: getDeviceId(),
             utm_source: utmSource,
             utm_medium: utmMedium,
             utm_campaign: utmCampaign,
@@ -772,6 +784,7 @@ export default function PlayerPage() {
         game_id: game.id,
         player_data: formData,
         source_type: searchParams.get('source') === 'direct' ? 'direct' : (playerProfile ? 'player' : 'link'),
+        device_id: getDeviceId(),
         utm_source: utmSource,
         utm_medium: utmMedium,
         utm_campaign: utmCampaign,

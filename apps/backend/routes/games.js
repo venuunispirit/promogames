@@ -36,7 +36,8 @@ router.get('/', requireAdmin, async (req, res) => {
       u.name as updated_by_name,
       bo.business_name as branch_name, bo.pincode as branch_pincode,
       (SELECT COUNT(*) FROM questions q WHERE q.game_id = g.id) as question_count,
-      (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
+      (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count,
+      (SELECT COUNT(*) FROM business_redemptions br WHERE br.game_id = g.id) as redemption_count
       FROM games g LEFT JOIN clients c ON g.client_id = c.id
       LEFT JOIN users u ON g.updated_by = u.id
       LEFT JOIN business_owners bo ON g.business_owner_id = bo.id

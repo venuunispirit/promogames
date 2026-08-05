@@ -2604,6 +2604,50 @@ await safeQuery(connection, `
     console.error('❌ Admin creation failed:', err.message);
   }
 
+  // ── Backfill: link master games to their client's brand owner ──
+  // Master games (parent_game_id IS NULL) created before auto-linking have
+  // business_owner_id NULL and/or no business_owner_games row. Link them to
+  // the client's parent (brand) BO so redemptions + BO logs resolve directly.
+  try {
+    const [masters] = await connection.query(
+      'SELECT id, client_id, business_owner_id, name FROM games WHERE parent_game_id IS NULL'
+    );
+    let linked = 0;
+    for (const game of masters) {
+      let boId = game.business_owner_id;
+      let brandName = null;
+      if (!boId) {
+        const [brandOwners] = await connection.query(
+          'SELECT id, business_name FROM business_owners WHERE client_id = ? AND parent_id IS NULL LIMIT 1',
+          [game.client_id]
+        );
+        if (brandOwners.length === 0) continue;
+        boId = brandOwners[0].id;
+        brandName = brandOwners[0].business_name;
+        await connection.query('UPDATE games SET business_owner_id = ? WHERE id = ?', [boId, game.id]);
+      }
+      const [existing] = await connection.query(
+        'SELECT id FROM business_owner_games WHERE business_owner_id = ? AND game_id = ?',
+        [boId, game.id]
+      );
+      if (existing.length === 0) {
+        if (!brandName) {
+          const [brows] = await connection.query('SELECT business_name FROM business_owners WHERE id = ?', [boId]);
+          brandName = brows[0]?.business_name || '';
+        }
+        await connection.query(
+          'INSERT INTO business_owner_games (business_owner_id, game_id, location_name, reward_text) VALUES (?, ?, ?, ?)',
+          [boId, game.id, brandName, '']
+        );
+      }
+      linked++;
+    }
+    if (linked > 0) console.log(`✅ Linked ${linked} master game(s) to their brand owner`);
+    else console.log('ℹ️ All master games already linked to a brand owner');
+  } catch (err) {
+    console.error('❌ Master-game brand-owner backfill failed:', err.message);
+  }
+
   await connection.end();
   console.log('✅ Migration completed successfully!');
 }

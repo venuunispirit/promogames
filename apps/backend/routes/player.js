@@ -1466,7 +1466,10 @@ router.post('/session/complete', async (req, res) => {
               auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
               tls: { rejectUnauthorized: false },
             });
-            const html = (emailSettings.guest_offer?.body || '')
+            const guestBody = emailSettings.guest_offer?.body
+              || (emailTemplates[0] && (emailTemplates[0].body_html || '').replace(/^```html[\s\S]*?\n/, '').replace(/^```[\s\S]*?\n/, '').replace(/```\s*$/, '').trim())
+              || `<p>Thanks for playing, ${playerName}! Your reward code is <strong>{{code}}</strong>.</p><p>Show this code to redeem your prize.</p>`;
+            const html = guestBody
               .replace(/\{\{code\}\}/g, code)
               .replace(/\{\{name\}\}/g, playerName)
               .replace(/\{\{player_name\}\}/g, playerName)
@@ -1492,7 +1495,10 @@ router.post('/session/complete', async (req, res) => {
               auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
               tls: { rejectUnauthorized: false },
             });
-            const html = (emailSettings.bo_notification?.body || '')
+            const boBody = emailSettings.bo_notification?.body
+              || (emailTemplates[0] && (emailTemplates[0].body_html || '').replace(/^```html[\s\S]*?\n/, '').replace(/^```[\s\S]*?\n/, '').replace(/```\s*$/, '').trim())
+              || `<p>A player played <strong>{{game_name}}</strong> at your location.</p><p>Name: {{player_name}}</p><p>Reward code: <strong>{{code}}</strong></p>`;
+            const html = boBody
               .replace(/\{\{code\}\}/g, code)
               .replace(/\{\{player_name\}\}/g, playerName)
               .replace(/\{\{name\}\}/g, playerName)
@@ -1507,9 +1513,9 @@ router.post('/session/complete', async (req, res) => {
               subject,
               html,
               headers: {
-                'Message-ID': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
-                'In-Reply-To': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
-                'References': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
+                'Message-ID': `<bo-${resolvedBoId}-game-${session.game_id}@promogames>`,
+                'In-Reply-To': `<bo-${resolvedBoId}-game-${session.game_id}@promogames>`,
+                'References': `<bo-${resolvedBoId}-game-${session.game_id}@promogames>`,
               },
             });
             console.log(`✅ BO notification sent to ${boEmail} for ${playerName}`);

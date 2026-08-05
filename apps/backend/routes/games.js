@@ -73,10 +73,29 @@ router.post('/', requireAdmin, async (req, res) => {
     let slug = slugify(name);
     const [existing] = await db.query('SELECT id FROM games WHERE slug = ? AND client_id = ?', [slug, client_id]);
     if (existing.length > 0) slug = `${slug}-${Date.now()}`;
-    const [result] = await db.query(
-      `INSERT INTO games (client_id, name, slug, category, description, redirect_url, game_logo_url, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-      [client_id, name, slug, category || 'quiz', description, redirect_url, null, req.user.id]
+    // Auto-link the master game to the client's brand owner (parent BO), so the
+    // game is owned from day one (redemptions + BO logs resolve without fallbacks).
+    const [brandOwners] = await db.query(
+      'SELECT id, business_name FROM business_owners WHERE client_id = ? AND parent_id IS NULL LIMIT 1',
+      [client_id]
     );
+    const brandOwnerId = brandOwners.length > 0 ? brandOwners[0].id : null;
+    const [result] = await db.query(
+      `INSERT INTO games (client_id, name, slug, category, description, redirect_url, game_logo_url, created_by, business_owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [client_id, name, slug, category || 'quiz', description, redirect_url, null, req.user.id, brandOwnerId]
+    );
+    if (brandOwnerId) {
+      const [linked] = await db.query(
+        'SELECT id FROM business_owner_games WHERE business_owner_id = ? AND game_id = ?',
+        [brandOwnerId, result.insertId]
+      );
+      if (linked.length === 0) {
+        await db.query(
+          'INSERT INTO business_owner_games (business_owner_id, game_id, location_name, reward_text) VALUES (?, ?, ?, ?)',
+          [brandOwnerId, result.insertId, brandOwners[0].business_name, '']
+        );
+      }
+    }
     await db.query('INSERT INTO quiz_settings (game_id) VALUES (?)', [result.insertId]);
     const defaultFields = [['Full Name', 'text', 1, 0], ['Email Address', 'email', 1, 1], ['Phone Number', 'phone', 0, 2]];
     for (const [label, type, required, order] of defaultFields) {

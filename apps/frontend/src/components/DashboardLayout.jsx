@@ -412,6 +412,7 @@ export default function DashboardLayout() {
     { to:'/dashboard',         label:'Dashboard', icon:'🏠', exact:true },
     { to:'/dashboard/clients', label:'Clients',   icon:'🏢' },
     { to:'/dashboard/games',   label:'Games',     icon:'🎮' },
+    { to:'/dashboard/thumbnails', label:'Thumbnail', icon:'🖼️' },
     { to:'/dashboard/crm',     label:'Team',      icon:'👥' },
     { to:'/dashboard/players', label:'Players',   icon:'🎯' },
     { to:'/dashboard/status',  label:'Status',    icon:'📊' },

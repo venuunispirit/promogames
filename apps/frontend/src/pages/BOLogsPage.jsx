@@ -3,8 +3,6 @@ import api from '../api'
 
 const STATE_META = {
   played_not_redeemed:  { label: 'Played · Not Redeemed', color: '#64748b', bg: '#f1f5f9' },
-  pending:              { label: 'Pending',               color: '#d97706', bg: '#fef3c7' },
-  rejected:             { label: 'Rejected',              color: '#dc2626', bg: '#fee2e2' },
   accepted_with_code:   { label: 'Accepted · 6-digit code', color: '#059669', bg: '#dcfce7' },
   accepted_without_code:{ label: 'Accepted · no code',      color: '#b45309', bg: '#fef3c7' },
 }

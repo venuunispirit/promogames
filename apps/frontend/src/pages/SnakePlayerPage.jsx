@@ -13,14 +13,13 @@ function playSound(url) { if (!url) return; try { new Audio(url).play().catch(()
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap');
 .snk *{margin:0;padding:0;box-sizing:border-box}
-.snk{position:fixed;inset:0;width:100vw;height:100vh;overflow:hidden;font-family:'Rajdhani',sans-serif;color:#fff;background:linear-gradient(135deg,#090214,#130525 40%,#1D0838);touch-action:none;-webkit-user-select:none;user-select:none}
+.snk{position:fixed;inset:0;width:100vw;height:100vh;height:100dvh;overflow:hidden;font-family:'Rajdhani',sans-serif;color:#fff;background:linear-gradient(135deg,#090214,#130525 40%,#1D0838);touch-action:none;-webkit-user-select:none;user-select:none}
 .snk::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 50vmax 50vmax at 20% 30%,rgba(139,92,246,.08),transparent 70%),radial-gradient(ellipse 40vmax 40vmax at 80% 70%,rgba(168,85,247,.06),transparent 70%);pointer-events:none;z-index:0}
 .snk .gp{position:absolute;inset:0;pointer-events:none;z-index:0;background-image:linear-gradient(rgba(139,92,246,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(139,92,246,.03) 1px,transparent 1px);background-size:60px 60px}
 .snk .pt{position:absolute;border-radius:50%;pointer-events:none;animation:pf linear infinite}
 @keyframes pf{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-10vh) scale(1);opacity:0}}
 @keyframes fp{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.4);opacity:.3}}
 
-/* Fullscreen support — all browsers */
 :fullscreen .snk,
 :-webkit-full-screen .snk,
 :-moz-full-screen .snk,
@@ -30,33 +29,24 @@ html:-webkit-full-screen,
 html:-moz-full-screen,
 html:-ms-fullscreen{overflow:hidden}
 
-/* HUD */
 .hud{position:fixed;z-index:100;pointer-events:none}
 .hud>*{pointer-events:auto}
-.hud-tl{top:12px;left:12px}
-.hud-tr{top:12px;right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-.hud-br{bottom:12px;right:12px;display:flex;flex-direction:column;align-items:flex-end;gap:8px}
-.hud-bl{bottom:12px;left:12px}
-.hud-bc{bottom:12px;left:50%;transform:translateX(-50%)}
+.hud-tl{top:max(12px,env(safe-area-inset-top));left:max(12px,env(safe-area-inset-left))}
+.hud-tr{top:max(12px,env(safe-area-inset-top));right:max(12px,env(safe-area-inset-right));display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.hud-br{bottom:max(12px,env(safe-area-inset-bottom));right:max(12px,env(safe-area-inset-right));display:flex;flex-direction:column;align-items:flex-end;gap:8px}
+.hud-bc{bottom:max(12px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%)}
 @media(max-width:600px){
-  .hud-tl{top:8px;left:8px}
-  .hud-tr{top:8px;right:8px;gap:6px}
-  .hud-br{bottom:140px;right:8px}
-  .hud-bl{bottom:140px;left:8px}
-  .hud-bc{bottom:8px}
+  .hud-tl{top:max(8px,env(safe-area-inset-top));left:max(8px,env(safe-area-inset-left))}
+  .hud-tr{top:max(8px,env(safe-area-inset-top));right:max(8px,env(safe-area-inset-right));gap:6px}
+  .hud-br{bottom:max(56px,env(safe-area-inset-bottom));right:max(8px,env(safe-area-inset-right))}
+  .hud-bc{bottom:max(8px,env(safe-area-inset-bottom))}
 }
 @media(max-height:500px){
-  .hud-tl{top:4px;left:4px}
-  .hud-tr{top:4px;right:4px;gap:4px}
-  .hud-br{bottom:120px;right:4px}
-  .hud-bl{bottom:120px;left:4px}
-  .hud-bc{bottom:4px}
+  .hud-tl{top:max(4px,env(safe-area-inset-top));left:max(4px,env(safe-area-inset-left))}
+  .hud-tr{top:max(4px,env(safe-area-inset-top));right:max(4px,env(safe-area-inset-right));gap:4px}
+  .hud-br{bottom:max(44px,env(safe-area-inset-bottom));right:max(4px,env(safe-area-inset-right))}
+  .hud-bc{bottom:max(4px,env(safe-area-inset-bottom))}
 }
-
-/* D-pad is hidden on wide, non-touch (desktop) screens; shown on mobile/touch */
-.hud-bl{display:none}
-@media(max-width:900px){.hud-bl{display:block}}
-@media(pointer:coarse){.hud-bl{display:block}}
 
 .gp2{background:rgba(10,5,25,.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:8px 12px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
 @media(max-width:600px){.gp2{padding:5px 8px;border-radius:10px}}
@@ -66,13 +56,6 @@ html:-ms-fullscreen{overflow:hidden}
 .hud .vl.big{font-size:clamp(16px,3vw,28px)}
 .hud .vl.sm{font-size:clamp(11px,2vw,16px);color:#a78bfa;text-shadow:0 0 10px rgba(167,139,250,.3)}
 .score-row{display:flex;gap:12px;align-items:center}
-
-/* D-Pad — larger touch targets on mobile */
-.dp{display:grid;grid-template-columns:repeat(3,clamp(44px,10vw,56px));grid-template-rows:repeat(3,clamp(44px,10vw,56px));gap:4px;background:rgba(10,5,25,.55);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(139,92,246,.2);border-radius:16px;padding:6px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
-.dp b{visibility:hidden}
-.dp button{background:rgba(20,10,40,.7);border:1.5px solid rgba(139,92,246,.3);border-radius:10px;color:#fff;font-size:clamp(16px,3vw,22px);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;user-select:none;-webkit-tap-highlight-color:transparent;-webkit-touch-callout:none;touch-action:manipulation}
-.dp button:hover{background:rgba(139,92,246,.25);border-color:rgba(139,92,246,.6);box-shadow:0 0 12px rgba(139,92,246,.3)}
-.dp button:active{transform:scale(.85);background:rgba(139,92,246,.5)}
 
 .rbtn{padding:8px 16px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:1.5px solid rgba(139,92,246,.5);border-radius:50px;color:#fff;font-family:'Orbitron',sans-serif;font-size:clamp(8px,1.1vw,11px);font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(124,58,237,.3);text-transform:uppercase}
 .rbtn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(124,58,237,.5)}
@@ -111,17 +94,16 @@ html:-ms-fullscreen{overflow:hidden}
 .io .sbtn{width:100%;max-width:280px;padding:14px 0;background:linear-gradient(135deg,#22c55e,#16a34a 50%,#15803d);border:1.5px solid rgba(34,197,94,.5);border-radius:50px;color:#fff;font-family:'Orbitron',sans-serif;font-size:13px;font-weight:700;letter-spacing:3px;cursor:pointer;transition:all .2s;box-shadow:0 6px 24px rgba(34,197,94,.3);text-transform:uppercase}
 .io .sbtn:hover{transform:translateY(-2px);box-shadow:0 8px 30px rgba(34,197,94,.5)}
 
-/* Board */
 .bw{position:relative;border-radius:16px;padding:3px;background:linear-gradient(135deg,rgba(139,92,246,.5),rgba(168,85,247,.3),rgba(99,102,241,.5));box-shadow:0 0 30px rgba(139,92,246,.2),0 0 60px rgba(139,92,246,.1)}
 .bw::before{content:'';position:absolute;inset:-2px;border-radius:18px;z-index:-1;background:linear-gradient(135deg,rgba(139,92,246,.15),transparent,rgba(168,85,247,.15));filter:blur(8px)}
 .b{background:linear-gradient(180deg,#0a0520,#0d0828 50%,#0f0a2e);border-radius:14px;position:relative;overflow:hidden;box-shadow:inset 0 0 60px rgba(0,0,0,.5)}
 
-/* Mobile swipe hint */
-.swipe-hint{display:none;position:fixed;bottom:140px;left:50%;transform:translateX(-50%);z-index:90;font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(255,255,255,.25);letter-spacing:1px;text-transform:uppercase}
+.swipe-hint{display:none;position:fixed;bottom:max(40px,env(safe-area-inset-bottom));left:50%;transform:translateX(-50%);z-index:90;font-family:'Orbitron',sans-serif;font-size:9px;color:rgba(255,255,255,.3);letter-spacing:1px;text-transform:uppercase;pointer-events:none}
 @media(max-width:600px){.swipe-hint{display:block}}
+
 `
 
-export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) {
+function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () => {} }) {
   const { settings, soundMap } = gameData
   const soundMapRef = useRef(soundMap || {})
   const resolveSound = useCallback((id) => { if (!id) return null; const n = parseInt(id); return isNaN(n) ? id : (soundMapRef.current[n] || null) }, [])
@@ -132,12 +114,32 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
   const showTimer = !!settings?.show_timer
   const timeLimit = settings?.time_limit_seconds || 0
 
-  /* Adaptive grid — square cells based on screen aspect ratio */
-  const [winSize, setWinSize] = useState({ w: typeof window !== 'undefined' ? window.innerWidth : 1920, h: typeof window !== 'undefined' ? window.innerHeight : 1080 })
-  useEffect(() => { const r = () => setWinSize({ w: window.innerWidth, h: window.innerHeight }); window.addEventListener('resize', r); return () => window.removeEventListener('resize', r) }, [])
+  const getViewport = () => {
+    if (typeof window === 'undefined') return { w: 1920, h: 1080 }
+    const vv = window.visualViewport
+    return vv ? { w: vv.width, h: vv.height } : { w: window.innerWidth, h: window.innerHeight }
+  }
+  const [winSize, setWinSize] = useState(getViewport())
+  useEffect(() => {
+    const r = () => setWinSize(getViewport())
+    window.addEventListener('resize', r)
+    window.addEventListener('orientationchange', r)
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', r)
+      window.visualViewport.addEventListener('scroll', r)
+    }
+    return () => {
+      window.removeEventListener('resize', r)
+      window.removeEventListener('orientationchange', r)
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', r)
+        window.visualViewport.removeEventListener('scroll', r)
+      }
+    }
+  }, [])
 
   const aspect = winSize.w / winSize.h
-  const baseRows = 20
+  const baseRows = 40
   const boardW = settings?.board_width || Math.max(10, Math.round(baseRows * aspect))
   const boardH = settings?.board_height || baseRows
 
@@ -178,16 +180,19 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
     onComplete?.()
   }, [sessionToken, onComplete])
 
-  /* Fullscreen — works on ALL devices (phone, tablet, laptop) */
   const requestFullscreen = useCallback(() => {
-    const el = document.documentElement
-    const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen || el.mozRequestFullScreen
-    if (rfs) rfs.call(el).catch(() => {})
+    try {
+      const el = document.documentElement
+      const rfs = el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen || el.mozRequestFullScreen
+      if (rfs) rfs.call(el).catch(() => {})
+    } catch {}
   }, [])
 
   const exitFullscreen = useCallback(() => {
-    const dfs = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen || document.mozCancelFullScreen
-    if (dfs && document.fullscreenElement) dfs.call(document).catch(() => {})
+    try {
+      const dfs = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen || document.mozCancelFullScreen
+      if (dfs && document.fullscreenElement) dfs.call(document).catch(() => {})
+    } catch {}
   }, [])
 
   const handleStart = useCallback(() => {
@@ -199,6 +204,20 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
   }, [boardW, boardH, spawnFood, timeLimit, requestFullscreen])
 
   const handleRestart = useCallback(() => { if (timerRef.current) clearInterval(timerRef.current); completedRef.current = false; handleStart() }, [handleStart])
+
+  const handleBackToMenu = useCallback(() => {
+    if (gameLoopRef.current) clearInterval(gameLoopRef.current)
+    if (timerRef.current) clearInterval(timerRef.current)
+    exitFullscreen()
+    setGameActive(false)
+    setGameOver(false)
+    setShowIntro(true)
+  }, [exitFullscreen])
+
+  const handleContinue = useCallback(() => {
+    handleComplete()
+    handleBackToMenu()
+  }, [handleComplete, handleBackToMenu])
 
   useEffect(() => {
     if (!gameActive || gameOver) return
@@ -230,17 +249,13 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
   useEffect(() => { if (score > highScore) setHighScore(score) }, [score])
   useEffect(() => { if (gameOver && !completedRef.current) { setTimeout(() => handleComplete(), 1500); exitFullscreen() } }, [gameOver])
 
-  /* Handle fullscreen change + orientation change */
   useEffect(() => {
-    const onFSChange = () => setWinSize({ w: window.innerWidth, h: window.innerHeight })
-    const onOrientation = () => setTimeout(() => setWinSize({ w: window.innerWidth, h: window.innerHeight }), 200)
+    const onFSChange = () => setWinSize(getViewport())
     document.addEventListener('fullscreenchange', onFSChange)
     document.addEventListener('webkitfullscreenchange', onFSChange)
-    window.addEventListener('orientationchange', onOrientation)
     return () => {
       document.removeEventListener('fullscreenchange', onFSChange)
       document.removeEventListener('webkitfullscreenchange', onFSChange)
-      window.removeEventListener('orientationchange', onOrientation)
     }
   }, [])
 
@@ -249,7 +264,6 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
     window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h)
   }, [])
 
-  /* Prevent scroll/zoom on mobile during gameplay */
   useEffect(() => {
     if (!gameActive) return
     const prevent = (e) => e.preventDefault()
@@ -263,10 +277,16 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
     }
   }, [gameActive])
 
-  /* Touch / swipe — prevent scroll/zoom on mobile */
   const touchStart = useRef(null)
-  const onTouchStart = (e) => { e.preventDefault(); touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY } }
+  const onTouchStart = (e) => {
+    if (!gameActive) return
+    if (e.target.closest('button, a, input, label, .card, .io, .go')) return
+    e.preventDefault()
+    touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+  }
   const onTouchEnd = (e) => {
+    if (!gameActive) return
+    if (e.target.closest('button, a, input, label, .card, .io, .go')) return
     e.preventDefault()
     if (!touchStart.current) return
     const dx = e.changedTouches[0].clientX - touchStart.current.x, dy = e.changedTouches[0].clientY - touchStart.current.y
@@ -277,20 +297,12 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
     if (!(nd.x === -d.x && nd.y === -d.y)) dirRef.current = nd
     touchStart.current = null
   }
-  const dpad = useCallback((dir) => {
-    const c = dirRef.current, nd = { ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0} }[dir]
-    if (nd && !(nd.x === -c.x && nd.y === -c.y)) dirRef.current = nd
-  }, [])
-
-  /* Responsive board sizing — fills entire viewport on ALL devices */
   const pad = 4
   const displayW = winSize.w - pad * 2
   const displayH = winSize.h - pad * 2
 
-  /* Calculate cell sizes — grid adapts to make near-square cells */
   const cellW = (displayW - (boardW - 1) - 4) / boardW
   const cellH = (displayH - (boardH - 1) - 4) / boardH
-  /* Segment fills its grid cell completely — no gaps */
   const segW = cellW + 1
   const segH = cellH + 1
 
@@ -341,17 +353,13 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
 
       {!showIntro && (
         <>
-          {/* Board — fills entire viewport */}
           <div style={{ position: 'fixed', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1 }}>
             <div className="bw" style={{ width: displayW + 6, height: displayH + 6 }}>
               <div className="b" style={{ width: displayW, height: displayH, padding: 2, position: 'relative', overflow: 'hidden' }}>
-                {/* Grid lines */}
                 <div style={{ position: 'absolute', inset: 0, borderRadius: 14, overflow: 'hidden', backgroundImage: `linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px)`, backgroundSize: `${cellW + 1}px ${cellH + 1}px`, backgroundPosition: '2px 2px' }} />
-                {/* Food — fills its grid cell */}
                 <div style={{ position: 'absolute', left: food.x * (cellW + 1) + 2, top: food.y * (cellH + 1) + 2, width: segW, height: segH, borderRadius: 7, background: `radial-gradient(circle at 35% 35%,${foodColor},${foodColor}cc)`, boxShadow: `0 0 ${segW * .3}px ${foodColor},0 0 ${segW * .6}px ${foodColor}88`, zIndex: 50 }}>
                   <div style={{ position: 'absolute', inset: -segW * .15, borderRadius: '50%', background: `radial-gradient(circle,${foodColor}55,transparent 70%)`, animation: 'fp 1.5s ease-in-out infinite' }} />
                 </div>
-                {/* Snake — fills grid cells, no gaps */}
                 {[...smoothSegs].reverse().map((seg, ri) => {
                   const i = smoothSegs.length - 1 - ri, isHead = i === 0
                   const br = snake.length > 1 ? i / (snake.length - 1) : 0, b = 1 - br * .25
@@ -370,8 +378,8 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
             </div>
           </div>
 
-          {/* HUD: Score */}
-          <div className="hud hud-tl">
+          <div className="hud hud-tl" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
+            <button className="rbtn home-btn" onClick={handleBackToMenu} aria-label="Back to main menu" style={{ background: 'linear-gradient(135deg,#334155,#1e293b)', borderColor: 'rgba(148,163,184,.4)' }}>⌂ HOME</button>
             <div className="gp2">
               <div className="score-row">
                 <div><div className="lb">SCORE</div><div className="vl big" style={{ color: '#22c55e' }}>{score}</div></div>
@@ -381,7 +389,6 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
             </div>
           </div>
 
-          {/* HUD: Timer + Difficulty */}
           <div className="hud hud-tr">
             {showTimer && timeLimit > 0 && <div className="gp2" style={{ fontFamily: 'Orbitron', fontSize: 'clamp(11px,2vw,16px)', fontWeight: 700, color: '#fbbf24' }}>{ft(timeLeft)}</div>}
             <div className="gp2">
@@ -393,32 +400,15 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
             </div>
           </div>
 
-          {/* HUD: D-Pad — mobile / touch controls */}
-          <div className="hud hud-bl">
-            <div className="dp">
-              <b></b>
-              <button onTouchStart={(e) => { e.preventDefault(); dpad('ArrowUp') }} onClick={() => dpad('ArrowUp')} aria-label="Up">▲</button>
-              <b></b>
-              <button onTouchStart={(e) => { e.preventDefault(); dpad('ArrowLeft') }} onClick={() => dpad('ArrowLeft')} aria-label="Left">◀</button>
-              <b></b>
-              <button onTouchStart={(e) => { e.preventDefault(); dpad('ArrowRight') }} onClick={() => dpad('ArrowRight')} aria-label="Right">▶</button>
-              <b></b>
-              <button onTouchStart={(e) => { e.preventDefault(); dpad('ArrowDown') }} onClick={() => dpad('ArrowDown')} aria-label="Down">▼</button>
-              <b></b>
-            </div>
-          </div>
-
-          {/* HUD: Restart */}
           <div className="hud hud-br">
             <button className="rbtn" onClick={handleRestart}>↻ RESTART</button>
           </div>
 
-          {/* HUD: Instructions */}
           <div className="hud hud-bc">
             <div className="ib"><span className="ar">◆</span>Arrow Keys to Move<span className="ar">◆</span></div>
           </div>
 
-          <div className="swipe-hint">Swipe or use the D-pad to move</div>
+          <div className="swipe-hint">Swipe to move</div>
         </>
       )}
 
@@ -429,10 +419,14 @@ export default function SnakePlayerPage({ gameData, sessionToken, onComplete }) 
             <h2>GAME OVER</h2>
             <div className="fs">Score: {score}</div>
             <div className="bl">Best: {highScore}</div>
-            <button className="cb" onClick={handleComplete}>{settings?.continue_button_text || 'CONTINUE'}</button>
+            <button className="cb" onClick={handleContinue}>{settings?.continue_button_text || 'CONTINUE'}</button>
           </div>
         </div>
       )}
     </div>
   )
+}
+
+export default function Demo() {
+  return <SnakePlayerPage />
 }

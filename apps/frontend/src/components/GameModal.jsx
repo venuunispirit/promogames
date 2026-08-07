@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 
-const COLORS = ['#9210f6', '#610497', '#7C3AED', '#4F46E5', '#9210f6', '#610497', '#7C3AED', '#4F46E5', '#9210f6', '#610497']
-
 const STYLES = `
   .gm-overlay{position:fixed;inset:0;z-index:8000;background:rgba(5,2,12,0.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:0;animation:gmFadeIn .2s ease both}
   @keyframes gmFadeIn{from{opacity:0}to{opacity:1}}
@@ -23,18 +21,95 @@ const STYLES = `
   .gm-loader-ring{width:40px;height:40px;border-radius:50%;border:3px solid rgba(146,16,246,0.18);border-top-color:#9210f6;animation:gmSpin .75s linear infinite}
   @keyframes gmSpin{to{transform:rotate(360deg)}}
   .gm-loader-txt{font-family:'Karla',sans-serif;font-size:13px;color:rgba(255,255,255,0.58)}
-  .gm-strip{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(10,5,20,0.98);border-top:1px solid rgba(146,16,246,0.10);overflow-x:auto;flex-shrink:0;scrollbar-width:none;min-height:58px}
-  .gm-strip::-webkit-scrollbar{display:none}
-  .gm-strip-label{font-family:'Karla',sans-serif;font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,0.58);white-space:nowrap;flex-shrink:0}
-  .gm-chip{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:100px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);cursor:pointer;transition:background .2s,border-color .2s;flex-shrink:0}
-  .gm-chip:hover{background:rgba(146,16,246,0.18);border-color:rgba(146,16,246,0.4)}
-  .gm-chip.active-chip{background:rgba(146,16,246,0.22);border-color:rgba(146,16,246,0.5)}
-  .gm-chip-thumb{width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0}
-  .gm-chip-fallback{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-  .gm-chip-info{display:flex;flex-direction:column;gap:1px}
-  .gm-chip-name{font-family:'Karla',sans-serif;font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
-  .gm-chip-plays{font-family:'Karla',sans-serif;font-size:10px;color:rgba(255,255,255,0.58);white-space:nowrap}
+  body.gm-pointer-in-iframe .mascot-cursor{opacity:0!important}
 `
+
+const MASCOT_CURSOR_SVG = `
+  <svg viewBox="0 0 90 100" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <linearGradient id="gmMcGrad" x1="0" y1="0" x2="1" y2="1">
+        <stop offset="0%" stop-color="#e7b8ff"/>
+        <stop offset="55%" stop-color="#9210f6"/>
+        <stop offset="100%" stop-color="#5c0499"/>
+      </linearGradient>
+    </defs>
+    <path d="M10 4 C6 2 2 6 4 11 L24 84 C26 91 35 92 38 85 L46 64 L66 80 C73 85 82 78 78 70 L64 50 C75 48 79 38 71 32 L16 6 C14 4 12 3 10 4 Z"
+      fill="url(#gmMcGrad)" stroke="#fff" strokeWidth="3.5" strokeLinejoin="round"/>
+    <path d="M10 4 C6 2 2 6 4 11 L24 84 C26 91 35 92 38 85 L46 64 L66 80 C73 85 82 78 78 70 L64 50 C75 48 79 38 71 32 L16 6 C14 4 12 3 10 4 Z"
+      fill="none" stroke="#f5c842" strokeWidth="1" opacity=".6"/>
+    <path d="M16 20 Q24 12 33 17" fill="none" stroke="#5c0499" strokeWidth="3" strokeLinecap="round"/>
+    <g>
+      <circle cx="27" cy="32" r="8" fill="#fff" stroke="#5c0499" strokeWidth="2"/>
+      <circle class="pupil" cx="27" cy="32" r="3.6" fill="#1a0a26"/>
+    </g>
+    <g>
+      <circle cx="44" cy="30" r="9.5" fill="#fff" stroke="#5c0499" strokeWidth="2"/>
+      <circle class="pupil" cx="44" cy="30" r="4.1" fill="#1a0a26"/>
+    </g>
+    <path class="mc-mouth" d="M22 50 Q32 56 42 48" fill="none" stroke="#5c0499" strokeWidth="2.4" strokeLinecap="round"/>
+  </svg>
+`
+
+function injectMascotCursor(doc) {
+  if (!doc || doc.getElementById('gm-mascot-cursor')) return
+  const style = doc.createElement('style')
+  style.textContent = `
+    #gm-mascot-cursor{position:fixed;top:0;left:0;width:34px;height:38px;pointer-events:none;z-index:2147483647;opacity:0;transition:opacity .2s ease;will-change:transform}
+    #gm-mascot-cursor svg{width:100%;height:100%;display:block;pointer-events:none;filter:drop-shadow(0 4px 10px rgba(92,4,153,0.35))}
+    #gm-mascot-cursor .pupil{transform-origin:center}
+    #gm-mascot-cursor.visible{opacity:1}
+    body.gm-cursor-on, body.gm-cursor-on *{cursor:none!important}
+  `
+  doc.head.appendChild(style)
+
+  const el = doc.createElement('div')
+  el.id = 'gm-mascot-cursor'
+  el.innerHTML = MASCOT_CURSOR_SVG
+  doc.body.appendChild(el)
+
+  let mx = 0, my = 0
+  let pupilX = 0, pupilY = 0, targetPX = 0, targetPY = 0
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+  const onMove = (e) => {
+    const prevX = mx, prevY = my
+    mx = e.clientX; my = e.clientY
+    el.classList.add('visible')
+    doc.body.classList.add('gm-cursor-on')
+    const dx = mx - prevX, dy = my - prevY
+    if (!reduce && Math.hypot(dx, dy) > 1.5) {
+      const dir = Math.atan2(dy, dx)
+      targetPX = Math.cos(dir) * 3.4
+      targetPY = Math.sin(dir) * 3.4
+    }
+  }
+  const onLeave = () => { el.classList.remove('visible'); doc.body.classList.remove('gm-cursor-on') }
+  const onEnter = () => { el.classList.add('visible'); doc.body.classList.add('gm-cursor-on') }
+
+  let raf
+  const loop = () => {
+    pupilX += (targetPX - pupilX) * 0.15
+    pupilY += (targetPY - pupilY) * 0.15
+    el.style.transform = `translate(${mx - 6}px,${my - 4}px) rotate(8deg)`
+    el.querySelectorAll('.pupil').forEach(p => { p.style.transform = `translate(${pupilX}px,${pupilY}px)` })
+    targetPX *= 0.985; targetPY *= 0.985
+    raf = requestAnimationFrame(loop)
+  }
+  raf = requestAnimationFrame(loop)
+
+  doc.addEventListener('mousemove', onMove, { passive: true })
+  doc.addEventListener('mouseleave', onLeave)
+  doc.addEventListener('mouseenter', onEnter)
+
+  el._gmCleanup = () => {
+    cancelAnimationFrame(raf)
+    doc.removeEventListener('mousemove', onMove)
+    doc.removeEventListener('mouseleave', onLeave)
+    doc.removeEventListener('mouseenter', onEnter)
+    el.remove()
+    style.remove()
+    doc.body.classList.remove('gm-cursor-on')
+  }
+}
 
 function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
   const [loaded, setLoaded] = useState(false)
@@ -43,6 +118,25 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
   const src = `/play/${game.slug}/${game.client_slug}?source=${isLoggedIn ? 'player' : 'direct'}`
 
   useEffect(() => { setLoaded(false); setPlayCount(game.play_count || 0) }, [game.id])
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe || !loaded) return
+    const doc = iframe.contentDocument
+    if (doc) injectMascotCursor(doc)
+  }, [loaded, game.id])
+  useEffect(() => {
+    const iframe = iframeRef.current
+    if (!iframe) return
+    const hideParent = () => document.body.classList.add('gm-pointer-in-iframe')
+    const showParent = () => document.body.classList.remove('gm-pointer-in-iframe')
+    iframe.addEventListener('mouseenter', hideParent)
+    iframe.addEventListener('mouseleave', showParent)
+    return () => {
+      iframe.removeEventListener('mouseenter', hideParent)
+      iframe.removeEventListener('mouseleave', showParent)
+      document.body.classList.remove('gm-pointer-in-iframe')
+    }
+  }, [game.id, loaded])
   useEffect(() => {
     const onKey = e => { if (e.key === 'Escape') onClose() }
     document.addEventListener('keydown', onKey)
@@ -59,8 +153,6 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
     }, 10000)
     return () => clearInterval(poll)
   }, [game.id])
-
-  const others = allGames.filter(g => g.id !== game.id)
 
   return (
     <>
@@ -91,23 +183,6 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
               onLoad={() => setLoaded(true)}
             />
           </div>
-          {others.length > 0 && (
-            <div className="gm-strip">
-              <span className="gm-strip-label">More Games</span>
-              {others.map((g, i) => (
-                <div key={g.id} className={`gm-chip${g.id === game.id ? ' active-chip' : ''}`} onClick={() => onSwitch(g)}>
-                  {g.game_logo_url || g.bg_image_url
-                    ? <img className="gm-chip-thumb" src={g.game_logo_url || g.bg_image_url} alt={g.name} loading="lazy" />
-                    : <div className="gm-chip-fallback" style={{ background: `${COLORS[i % COLORS.length]}33` }}>🎮</div>
-                  }
-                  <div className="gm-chip-info">
-                    <span className="gm-chip-name">{g.name}</span>
-                    <span className="gm-chip-plays">{(g.play_count || 0).toLocaleString()} plays</span>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </>

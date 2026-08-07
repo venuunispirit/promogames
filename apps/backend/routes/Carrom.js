@@ -7,7 +7,7 @@ const { sendError } = require('../lib/apiError');
 
 router.get('/:gameId/settings', auth, async (req, res) => {
   try {
-    const [rows] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [req.params.gameId]);
+    const [rows] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: rows[0] || null });
   } catch (err) { sendError(res, err); }
 });
@@ -29,7 +29,7 @@ router.put('/:gameId/settings', auth, upload.fields([
     bg_image_url, thankyou_bg_image_url, game_logo_url, submit_confirm_gif_url,
   } = req.body;
   try {
-    const [existing] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [req.params.gameId]);
+    const [existing] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [req.params.gameId]);
     const e = existing[0] || {};
     const bgImg = req.files?.bg_image ? `/uploads/images/${req.files.bg_image[0].filename}` : (bg_image_url !== undefined ? bg_image_url : (e.bg_image_url || null));
     const tyImg = req.files?.thankyou_bg_image ? `/uploads/images/${req.files.thankyou_bg_image[0].filename}` : (thankyou_bg_image_url !== undefined ? thankyou_bg_image_url : (e.thankyou_bg_image_url || null));
@@ -74,13 +74,13 @@ router.put('/:gameId/settings', auth, upload.fields([
     };
     if (existing.length === 0) {
       const keys = Object.keys(fields);
-      await db.query(`INSERT INTO carom_settings (game_id,${keys.join(',')}) VALUES (?,${
+      await db.query(`INSERT INTO Carrom_settings (game_id,${keys.join(',')}) VALUES (?,${
         keys.map(() => '?').join(',')})`, [req.params.gameId, ...Object.values(fields)]);
     } else {
       const sets = Object.keys(fields).map(k => `${k}=?`).join(',');
-      await db.query(`UPDATE carom_settings SET ${sets} WHERE game_id=?`, [...Object.values(fields), req.params.gameId]);
+      await db.query(`UPDATE Carrom_settings SET ${sets} WHERE game_id=?`, [...Object.values(fields), req.params.gameId]);
     }
-    const [updated] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [req.params.gameId]);
+    const [updated] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [req.params.gameId]);
     res.json({ success: true, settings: updated[0] });
   } catch (err) { sendError(res, err); }
 });

@@ -517,7 +517,7 @@ export default function MemoryPlayerPage({ gameData, sessionToken: initToken, on
           {settings.description_text && <p style={{ color:'rgba(255,255,255,.5)', fontSize:12, marginBottom:16, lineHeight:1.4 }}>{settings.description_text}</p>}
 
           <div className="mem-form">
-            {formFields.map((ff, i) => (
+            {game.game_type !== 'promogames' && formFields.map((ff, i) => (
               <div key={i} className="mem-form-field">
                 <label className="mem-form-label">{ff.field_label} {Number(ff.is_required) === 1 && <span style={{ color:'#e74c3c' }}>*</span>}</label>
                 {ff.field_type === 'textarea' ? (

@@ -37,6 +37,7 @@ import TyperBuilderPage from './pages/TyperBuilderPage'
 import MathBuilderPage from './pages/MathBuilderPage'
 import MazeBuilderPage from './pages/MazeBuilderPage'
 import ScrewBuilderPage from './pages/ScrewBuilderPage'
+import TowerBuilderPage from './pages/TowerBuilderPage'
 import Game2048BuilderPage from './pages/Game2048BuilderPage'
 import SnakeBuilderPage from './pages/SnakeBuilderPage'
 import CatchBuilderPage from './pages/CatchBuilderPage'
@@ -59,7 +60,7 @@ import ChessBuilderPage from './pages/ChessBuilderPage'
 import ChessPlayerPage from './pages/ChessPlayerPage'
 import BlockBlasterBuilderPage from './pages/BlockBlasterBuilderPage'
 import CandyBlastBuilderPage from './pages/CandyBlastBuilderPage'
-import CaromBuilderPage from './pages/CaromBuilderPage'
+import CarromBuilderPage from './pages/CarromBuilderPage'
 import ClassicMazeBuilderPage from './pages/ClassicMazeBuilderPage'
 import LudoBuilderPage from './pages/LudoBuilderPage'
 import SnakeAndLadderBuilderPage from './pages/SnakeAndLadderBuilderPage'
@@ -84,6 +85,7 @@ import BOGames           from './pages/BOGames'
 import BORedemptions     from './pages/BORedemptions'
 import BrandOwnerMyPage  from './pages/BrandOwnerMyPage'
 import GameCategoryPage  from './pages/GameCategoryPage'
+import ThumbnailsPage   from './pages/ThumbnailsPage'
 import TermsPage from './pages/TermsPage'
 import PrivacyPage from './pages/PrivacyPage'
 import CookieBanner from './components/CookieBanner'
@@ -133,6 +135,7 @@ function AppRoutes() {
       <Route path="/play/:gameName/:companyName" element={<PlayerPageWrapper />} />
       <Route path="/play/:gameName" element={<PlayerPageWrapper />} />
       <Route path="/play/bejeweled/:id" element={<BejeweledPlayerPage />} />
+      <Route path="/play/chess" element={<ChessPlayerPage />} />
       <Route path="/play/chess/:gameName/:companyName" element={<ChessPlayerPage />} />
 
       {/* Player dashboard */}
@@ -148,6 +151,7 @@ function AppRoutes() {
         <Route index                                  element={<DashboardHome />} />
         <Route path="clients"                         element={<ClientsPage />} />
         <Route path="games"                           element={<GamesPage />} />
+        <Route path="thumbnails"                      element={<ThumbnailsPage />} />
         <Route path="templates"                       element={<TemplatesPage />} />
         <Route path="templates/new"                   element={<TemplateBuilderPage />} />
         <Route path="templates/:id"                   element={<TemplateBuilderPage />} />
@@ -166,12 +170,13 @@ function AppRoutes() {
         <Route path="games/:id/spin-builder"           element={<SpinBuilderTab />} />
         <Route path="games/:id/memory-builder"        element={<MemoryBuilderPage />} />
         <Route path="games/:id/jigsaw-builder"        element={<JigsawBuilderPage />} />
-        <Route path="games/:id/wordsearch-builder"    element={<WordSearchPlayerPage />} />
+        <Route path="games/:id/wordsearch-builder"    element={<WordSearchBuilderPage />} />
         <Route path="games/:id/pouring-builder"       element={<PouringBuilderPage />} />
         <Route path="games/:id/typer-builder"          element={<TyperBuilderPage />} />
         <Route path="games/:id/math-builder"           element={<MathBuilderPage />} />
         <Route path="games/:id/maze-builder"           element={<MazeBuilderPage />} />
         <Route path="games/:id/screw-builder"          element={<ScrewBuilderPage />} />
+        <Route path="games/:id/tower-builder"          element={<TowerBuilderPage />} />
         <Route path="games/:id/responses"             element={<GameResponsesPage />} />
         <Route path="games/:id/2048-builder"           element={<Game2048BuilderPage />} />
         <Route path="games/:id/snake-builder"          element={<SnakeBuilderPage />} />
@@ -193,7 +198,7 @@ function AppRoutes() {
         <Route path="games/:id/chess-builder"          element={<ChessBuilderPage />} />
         <Route path="games/:id/blockblaster-builder"   element={<BlockBlasterBuilderPage />} />
         <Route path="games/:id/candyblast-builder"     element={<CandyBlastBuilderPage />} />
-        <Route path="games/:id/carom-builder"          element={<CaromBuilderPage />} />
+        <Route path="games/:id/Carrom-builder"          element={<CarromBuilderPage />} />
         <Route path="games/:id/classicmaze-builder"    element={<ClassicMazeBuilderPage />} />
         <Route path="games/:id/ludo-builder"           element={<LudoBuilderPage />} />
         <Route path="games/:id/snakeandladder-builder" element={<SnakeAndLadderBuilderPage />} />

@@ -193,4 +193,106 @@ router.post('/room/:code/draw', async (req, res) => {
   }
 });
 
+/* ═══════════════ MATCHMAKING QUEUE (in-memory) ═══════════════
+   Simple queue with 60-second TTL per entry. No DB needed —
+   restarting the server clears the queue, which is fine.
+   ──────────────────────────────────────────────────────────── */
+
+const matchQueue = []; // { queueId, player_name, rating, time_control, joinedAt, roomCode }
+const QUEUE_TTL_MS = 60_000;  // entries expire after 60s
+
+function pruneQueue() {
+  const now = Date.now();
+  for (let i = matchQueue.length - 1; i >= 0; i--) {
+    if (now - matchQueue[i].joinedAt > QUEUE_TTL_MS) matchQueue.splice(i, 1);
+  }
+}
+
+// POST /api/chess/queue/join  — enter the matchmaking queue
+// Returns { queued: true, queueId, roomCode? } or { matched: true, roomCode, color }
+router.post('/queue/join', async (req, res) => {
+  try {
+    pruneQueue();
+    const { player_name, rating, time_control, game_id } = req.body;
+    const tc = time_control || 600;
+    const myRating = parseInt(rating) || 1200;
+
+    // Look for a waiting opponent with similar time control & rating (±300)
+    const matchIdx = matchQueue.findIndex(e =>
+      e.time_control === tc &&
+      Math.abs(e.rating - myRating) <= 300
+    );
+
+    if (matchIdx !== -1) {
+      // Match found — create a real room, remove them from queue
+      const opponent = matchQueue.splice(matchIdx, 1)[0];
+
+      let room_code;
+      let attempts = 0;
+      do {
+        room_code = generateRoomCode();
+        const [ex] = await db.query('SELECT id FROM chess_rooms WHERE room_code=?', [room_code]);
+        if (ex.length === 0) break;
+      } while (++attempts < 10);
+
+      await db.query(
+        `INSERT INTO chess_rooms (room_code, game_id, player1_name, player2_name, status, time_control, white_time_left, black_time_left)
+         VALUES (?,?,?,?,'active',?,?,?)`,
+        [room_code, game_id || 0, opponent.player_name, player_name || 'Player 2', tc, tc, tc]
+      );
+
+      // Tell opponent their room via their queued entry's roomCode field
+      opponent.roomCode = room_code;
+      opponent.opponentName = player_name || 'Player 2';
+      opponent.myColor = 'white'; // opponent (creator) gets white
+
+      return res.json({
+        matched: true,
+        roomCode: room_code,
+        color: 'black',          // joiner gets black
+        opponentName: opponent.player_name,
+      });
+    }
+
+    // No match yet — add to queue
+    const queueId = crypto.randomBytes(8).toString('hex');
+    matchQueue.push({ queueId, player_name: player_name || 'Player', rating: myRating, time_control: tc, game_id: game_id || 0, joinedAt: Date.now(), roomCode: null });
+    return res.json({ queued: true, queueId });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// GET /api/chess/queue/poll?queueId=xxx  — check if a match was found
+router.get('/queue/poll', (req, res) => {
+  pruneQueue();
+  const { queueId } = req.query;
+  if (!queueId) return res.status(400).json({ success: false, error: 'queueId required' });
+
+  const entry = matchQueue.find(e => e.queueId === queueId);
+  if (!entry) {
+    // Entry gone — either matched (has roomCode) or expired
+    return res.json({ matched: false, expired: true });
+  }
+  if (entry.roomCode) {
+    // Match was found by the other player's /join call
+    const { roomCode, opponentName, myColor } = entry;
+    // Remove from queue now
+    const idx = matchQueue.indexOf(entry);
+    if (idx !== -1) matchQueue.splice(idx, 1);
+    return res.json({ matched: true, roomCode, color: myColor || 'white', opponentName });
+  }
+  return res.json({ matched: false, queued: true, position: matchQueue.indexOf(entry) + 1 });
+});
+
+// DELETE /api/chess/queue/leave  — cancel search
+router.delete('/queue/leave', (req, res) => {
+  const { queueId } = req.body;
+  if (queueId) {
+    const idx = matchQueue.findIndex(e => e.queueId === queueId);
+    if (idx !== -1) matchQueue.splice(idx, 1);
+  }
+  res.json({ success: true });
+});
+
 module.exports = router;

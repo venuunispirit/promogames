@@ -1,468 +1,599 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
+/* ─── API helper ─── */
+const api = {
+  post: async (url, body) => {
+    const res = await fetch('/api' + url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const data = await res.json()
+    return { data }
+  },
+}
+
+/* ─── Sound helpers ─── */
 function playSound(url) {
   if (!url) return
-  try {
-    const a = new Audio(url)
-    a.play().catch(() => {})
-  } catch {}
+  try { new Audio(url).play().catch(() => {}) } catch {}
 }
 
-const DIFFICULTY_TAPS = { easy: 1, medium: 2, hard: 3 }
+/* ─── Color palette for screws ─── */
+const DEFAULT_COLORS = [
+  '#ef4444', '#3b82f6', '#22c55e', '#f59e0b', '#8b5cf6',
+  '#ec4899', '#14b8a6', '#f97316', '#6366f1', '#84cc16',
+  '#0ea5e9', '#a855f7',
+]
 
-function generateBoard(rows, cols, blockColors, screwsPerBlock, difficulty, emptyHoles) {
-  const colors = (blockColors || '#8B4513,#A0522D,#CD853F,#D2691E,#B8860B').split(',').map(s => s.trim()).filter(Boolean)
-  const tapsNeeded = DIFFICULTY_TAPS[difficulty] || 1
+/* ─── CSS ─── */
+const STYLES = `
+  @keyframes spin    { to { transform: rotate(360deg) } }
+  @keyframes popIn   { 0%{transform:scale(0);opacity:0} 60%{transform:scale(1.15)} 100%{transform:scale(1);opacity:1} }
+  @keyframes fadeIn  { from{opacity:0} to{opacity:1} }
+  @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes scaleIn { from{opacity:0;transform:scale(0.85)} to{opacity:1;transform:scale(1)} }
+  @keyframes bounce  { 0%,100%{transform:scale(1)} 50%{transform:scale(1.18)} }
+  @keyframes wiggle  { 0%,100%{transform:rotate(0deg)} 25%{transform:rotate(-8deg)} 75%{transform:rotate(8deg)} }
+  @keyframes confettiFall { 0%{transform:translateY(-10px) rotate(0deg);opacity:1} 100%{transform:translateY(110vh) rotate(720deg);opacity:0} }
+  @keyframes pulse   { 0%,100%{box-shadow:0 0 0 0 rgba(255,255,255,.4)} 50%{box-shadow:0 0 0 8px rgba(255,255,255,0)} }
 
-  const grid = Array.from({ length: rows }, (_, r) =>
-    Array.from({ length: cols }, (_, c) => ({ row: r, col: c, blockId: null, hasScrew: false, isEmpty: true }))
-  )
-  const blocks = []
-  const occupied = new Set()
-  let blockId = 0
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; padding: 0; overscroll-behavior: none; }
 
-  const totalCells = rows * cols
-  const targetCovered = totalCells - (emptyHoles || 0)
-  let covered = 0
-  let attempts = 0
-  const maxAttempts = 500
-
-  while (covered < targetCovered && attempts < maxAttempts) {
-    attempts++
-    const w = Math.random() > 0.4 ? 2 : 1
-    const h = w === 1 && Math.random() > 0.5 ? 2 : 1
-
-    const sr = Math.floor(Math.random() * (rows - h + 1))
-    const sc = Math.floor(Math.random() * (cols - w + 1))
-
-    let fits = true
-    for (let dr = 0; dr < h && fits; dr++)
-      for (let dc = 0; dc < w && fits; dc++)
-        if (occupied.has(`${sr + dr},${sc + dc}`)) fits = false
-
-    if (!fits) continue
-
-    const cells = []
-    for (let dr = 0; dr < h; dr++)
-      for (let dc = 0; dc < w; dc++) {
-        const key = `${sr + dr},${sc + dc}`
-        occupied.add(key)
-        cells.push({ row: sr + dr, col: sc + dc })
-        grid[sr + dr][sc + dc].blockId = blockId
-        grid[sr + dr][sc + dc].isEmpty = false
-      }
-
-    const numScrews = Math.min(screwsPerBlock, cells.length)
-    const shuffled = [...cells].sort(() => Math.random() - 0.5)
-    const screws = []
-    for (let s = 0; s < numScrews; s++) {
-      screws.push({ row: shuffled[s].row, col: shuffled[s].col, tapsRemaining: tapsNeeded })
-      grid[shuffled[s].row][shuffled[s].col].hasScrew = true
-    }
-
-    blocks.push({
-      id: blockId,
-      row: sr, col: sc,
-      width: w, height: h,
-      color: colors[blockId % colors.length],
-      cells, screws,
-      screwCount: numScrews,
-      falling: false, fallen: false,
-    })
-    blockId++
-    covered += cells.length
+  .screw-root {
+    position: fixed; inset: 0;
+    display: flex; flex-direction: column; align-items: center;
+    overflow: hidden;
+    font-family: 'DM Sans', sans-serif;
   }
 
-  return { grid, blocks }
+  .screw-board {
+    display: grid;
+    gap: clamp(6px, 2vw, 12px);
+    padding: clamp(10px, 3vw, 20px);
+  }
+
+  .screw-cell {
+    position: relative;
+    border-radius: 14px;
+    cursor: pointer;
+    transition: transform .15s, box-shadow .15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+  .screw-cell:active { transform: scale(0.93); }
+  .screw-cell.selected { animation: pulse 1s ease infinite; }
+
+  .screw-hole {
+    width: 100%;
+    aspect-ratio: 1;
+    border-radius: 50%;
+    border: 3px solid rgba(0,0,0,0.25);
+    display: flex; align-items: center; justify-content: center;
+    transition: background .2s;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .screw-head {
+    width: 62%;
+    height: 62%;
+    border-radius: 50%;
+    border: 2px solid rgba(255,255,255,0.4);
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.3), 0 2px 6px rgba(0,0,0,0.2);
+    position: relative;
+  }
+  .screw-head::after {
+    content: '';
+    position: absolute;
+    inset: 30% 45%;
+    background: rgba(255,255,255,0.5);
+    border-radius: 2px;
+    box-shadow: 4px 0 0 rgba(255,255,255,0.5);
+  }
+
+  .screw-count-badge {
+    position: absolute;
+    top: -6px; right: -6px;
+    background: rgba(0,0,0,0.7);
+    color: #fff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 20px;
+    padding: 1px 5px;
+    pointer-events: none;
+  }
+
+  .overlay-win {
+    position: fixed; inset: 0; z-index: 100;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    background: rgba(0,0,0,0.75); backdrop-filter: blur(8px);
+    padding: 20px;
+  }
+  .overlay-card {
+    background: #fff; border-radius: 28px;
+    padding: clamp(24px,6vw,40px) clamp(20px,5vw,36px);
+    max-width: 380px; width: 100%; text-align: center;
+    animation: scaleIn .45s cubic-bezier(0.34,1.56,0.64,1);
+    box-shadow: 0 24px 80px rgba(0,0,0,0.4);
+  }
+`
+
+/* ─── Board generation ─── */
+function generateBoard(rows, cols, screwsPerBlock, emptyHoles, blockColors) {
+  const totalCells = rows * cols
+  // Number of distinct colors = how many full groups we can fit
+  const groupSize = screwsPerBlock
+  const maxGroups = Math.floor((totalCells - emptyHoles) / groupSize)
+  const numColors = Math.min(maxGroups, blockColors.length)
+  const usedColors = blockColors.slice(0, numColors)
+
+  // Build list of screws: each color repeated groupSize times
+  const screwList = []
+  for (const color of usedColors) {
+    for (let i = 0; i < groupSize; i++) screwList.push(color)
+  }
+
+  // Pad with nulls for empty holes
+  while (screwList.length < totalCells) screwList.push(null)
+
+  // Shuffle
+  for (let i = screwList.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [screwList[i], screwList[j]] = [screwList[j], screwList[i]]
+  }
+
+  // Build cell grid
+  const cells = []
+  let idx = 0
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      cells.push({ id: idx, row: r, col: c, color: screwList[idx] })
+      idx++
+    }
+  }
+  return { cells, numColors, usedColors }
 }
 
+/* ─── Check win: each non-null group must all be same color, or all cells solved ─── */
+function checkWin(cells, screwsPerBlock, usedColors) {
+  if (usedColors.length === 0) return true
+  for (const color of usedColors) {
+    const group = cells.filter(c => c.color === color)
+    if (group.length !== screwsPerBlock) return false
+  }
+  return true
+}
+
+/* ─── Main Component ─── */
 export default function ScrewPlayerPage({ gameData, sessionToken, onComplete }) {
-  const { settings, soundMap } = gameData
-  const soundMapRef = useRef(soundMap || {})
-  const completedRef = useRef(false)
-
-  const resolveSound = useCallback((id) => {
-    if (!id) return null
-    const n = parseInt(id)
-    return isNaN(n) ? id : (soundMapRef.current[n] || null)
-  }, [])
-
-  const primaryColor = settings?.primary_color || '#8B4513'
-  const fontFamily = settings?.font_family || 'DM Sans'
+  const s = gameData?.settings || {}
+  const primaryColor = s.primary_color || '#7c6ff7'
+  const fontFamily = s.font_family || 'DM Sans'
   const ff = `'${fontFamily}', sans-serif`
-  const boardRows = parseInt(settings?.board_rows) || 6
-  const boardCols = parseInt(settings?.board_cols) || 6
-  const screwsPerBlock = parseInt(settings?.screws_per_block) || 2
-  const emptyHolesCount = parseInt(settings?.empty_holes) || 3
-  const difficulty = settings?.difficulty || 'medium'
-  const revealImageUrl = settings?.reveal_image_url
-  const revealText = settings?.reveal_text || '🎉 Revealed!'
-  const showTimer = settings?.show_timer
-  const timeLimit = parseInt(settings?.time_limit_seconds) || 120
-  const blockColorsRaw = settings?.block_colors || '#8B4513,#A0522D,#CD853F,#D2691E,#B8860B'
 
-  const [gameState, setGameState] = useState('intro')
-  const [board, setBoard] = useState(null)
-  const [timeLeft, setTimeLeft] = useState(timeLimit)
-  const [screwsRemoved, setScrewsRemoved] = useState(0)
-  const [blocksCleared, setBlocksCleared] = useState(0)
-  const [totalBlocks, setTotalBlocks] = useState(0)
-  const [tappingScrew, setTappingScrew] = useState(null)
-  const [showReveal, setShowReveal] = useState(false)
+  const rows = parseInt(s.board_rows) || 6
+  const cols = parseInt(s.board_cols) || 6
+  const screwsPerBlock = parseInt(s.screws_per_block) || 2
+  const emptyHoles = parseInt(s.empty_holes) || 3
+  const difficulty = s.difficulty || 'easy'
+  const tapsRequired = difficulty === 'hard' ? 3 : difficulty === 'medium' ? 2 : 1
+  const timeLimit = parseInt(s.time_limit_seconds) || 0
 
-  const bgStyle = settings?.bg_image_url
-    ? { backgroundImage: `url(${settings.bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { background: settings?.bg_color || '#f0e6d3' }
-
-  const cellSize = Math.min(52, Math.floor((Math.min(window.innerWidth - 40, 420)) / Math.max(boardCols, 1)))
-
-  const handleComplete = useCallback(async () => {
-    if (completedRef.current) return
-    completedRef.current = true
+  // Parse block_colors from settings
+  const blockColors = (() => {
     try {
-      if (sessionToken) {
-        await fetch('/api/play/session/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ session_token: sessionToken, score: blocksCleared, player_data: {} }),
-        })
+      if (s.block_colors) {
+        const parsed = typeof s.block_colors === 'string' ? JSON.parse(s.block_colors) : s.block_colors
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed
       }
     } catch {}
-    onComplete?.()
-  }, [sessionToken, onComplete, blocksCleared])
+    return DEFAULT_COLORS
+  })()
 
-  const handleStart = () => {
-    const b = generateBoard(boardRows, boardCols, blockColorsRaw, screwsPerBlock, difficulty, emptyHolesCount)
-    setBoard(b)
-    setTotalBlocks(b.blocks.length)
-    setBlocksCleared(0)
-    setScrewsRemoved(0)
-    setTimeLeft(timeLimit)
-    setTappingScrew(null)
-    setShowReveal(false)
-    completedRef.current = false
-    setGameState('playing')
+  const soundMap = gameData?.soundMap || {}
+  const resolveSound = (id) => {
+    if (!id) return null
+    const numId = parseInt(id)
+    return soundMap[numId] || null
   }
+  const soundScrew   = resolveSound(s.sound_screw_id)
+  const soundFall    = resolveSound(s.sound_fall_id)
+  const soundReveal  = resolveSound(s.sound_reveal_id)
 
-  const handleScrewTap = (row, col) => {
-    if (gameState !== 'playing' || !board) return
+  // Board state
+  const [cells, setCells] = useState([])
+  const [usedColors, setUsedColors] = useState([])
+  const [selected, setSelected] = useState(null)   // { id, tapCount }
+  const [tapCounts, setTapCounts] = useState({})   // id -> current tap count
+  const [moves, setMoves] = useState(0)
+  const [phase, setPhase] = useState('playing')     // 'playing' | 'won' | 'timeout'
+  const [timeLeft, setTimeLeft] = useState(timeLimit > 0 ? timeLimit : null)
+  const [submitting, setSubmitting] = useState(false)
+  const completingRef = useRef(false)
+  const timerRef = useRef(null)
 
-    const cell = board.grid[row][col]
-    if (!cell.hasScrew || cell.blockId === null) return
+  // Computed cell size
+  const cellSize = Math.min(
+    Math.floor((Math.min(window.innerWidth, 480) - 40) / cols),
+    Math.floor((window.innerHeight * 0.65) / rows)
+  )
 
-    const block = board.blocks.find(b => b.id === cell.blockId)
-    if (!block || block.falling || block.fallen) return
+  // Init board
+  useEffect(() => {
+    const { cells: newCells, usedColors: uc } = generateBoard(rows, cols, screwsPerBlock, emptyHoles, blockColors)
+    setCells(newCells)
+    setUsedColors(uc)
+    setTapCounts({})
+    setSelected(null)
+    setMoves(0)
+    setPhase('playing')
+    if (timeLimit > 0) setTimeLeft(timeLimit)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
-    const screw = block.screws.find(s => s.row === row && s.col === col)
-    if (!screw) return
+  // Timer
+  useEffect(() => {
+    if (phase !== 'playing' || timeLeft === null) return
+    if (timeLeft <= 0) { setPhase('timeout'); return }
+    timerRef.current = setTimeout(() => setTimeLeft(t => t - 1), 1000)
+    return () => clearTimeout(timerRef.current)
+  }, [timeLeft, phase])
 
-    setTappingScrew({ row, col })
-    setTimeout(() => setTappingScrew(null), 400)
-    playSound(resolveSound(settings?.sound_screw_id))
+  // Submit session result
+  const submitResult = useCallback(async (won) => {
+    if (completingRef.current) return
+    completingRef.current = true
+    setSubmitting(true)
+    try {
+      if (sessionToken) {
+        const res = await api.post('/play/session/complete', { session_token: sessionToken })
+        onComplete?.({ session: res.data.session, redirect_url: res.data.redirect_url })
+      } else {
+        onComplete?.({ session: null, redirect_url: null })
+      }
+    } catch {
+      onComplete?.({ session: null, redirect_url: null })
+    }
+    setSubmitting(false)
+  }, [sessionToken, onComplete])
 
-    const newBoard = JSON.parse(JSON.stringify(board))
-    const newBlock = newBoard.blocks.find(b => b.id === block.id)
-    const newScrew = newBlock.screws.find(s => s.row === row && s.col === col)
+  // Handle win
+  useEffect(() => {
+    if (phase === 'won') {
+      playSound(soundReveal)
+      const t = setTimeout(() => submitResult(true), 2200)
+      return () => clearTimeout(t)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
 
-    newScrew.tapsRemaining--
+  // Handle timeout
+  useEffect(() => {
+    if (phase === 'timeout') {
+      const t = setTimeout(() => submitResult(false), 2000)
+      return () => clearTimeout(t)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase])
 
-    if (newScrew.tapsRemaining <= 0) {
-      newBlock.screws = newBlock.screws.filter(s => !(s.row === row && s.col === col))
-      newBlock.screwCount--
-      newBoard.grid[row][col].hasScrew = false
-      setScrewsRemoved(prev => prev + 1)
+  const handleCellTap = useCallback((cell) => {
+    if (phase !== 'playing') return
+    if (cell.color === null) {
+      // Empty cell: if something is selected, move it here
+      if (selected !== null) {
+        const fromCell = cells.find(c => c.id === selected)
+        if (!fromCell || fromCell.color === null) { setSelected(null); return }
+        playSound(soundFall)
+        const newCells = cells.map(c => {
+          if (c.id === fromCell.id) return { ...c, color: null }
+          if (c.id === cell.id) return { ...c, color: fromCell.color }
+          return c
+        })
+        setCells(newCells)
+        setSelected(null)
+        setTapCounts(prev => ({ ...prev, [fromCell.id]: 0 }))
+        setMoves(m => m + 1)
+        if (checkWin(newCells, screwsPerBlock, usedColors)) setPhase('won')
+      }
+      return
+    }
 
-      if (newBlock.screwCount <= 0) {
-        newBlock.falling = true
-        playSound(resolveSound(settings?.sound_fall_id))
+    // Tap on a filled cell
+    if (tapsRequired === 1) {
+      // Single-tap mode: select or swap immediately
+      if (selected === null) {
+        setSelected(cell.id)
+        playSound(soundScrew)
+      } else if (selected === cell.id) {
+        setSelected(null)
+      } else {
+        // Swap the two cells
+        const fromCell = cells.find(c => c.id === selected)
+        playSound(soundFall)
+        const newCells = cells.map(c => {
+          if (c.id === fromCell.id) return { ...c, color: cell.color }
+          if (c.id === cell.id) return { ...c, color: fromCell.color }
+          return c
+        })
+        setCells(newCells)
+        setSelected(null)
+        setMoves(m => m + 1)
+        if (checkWin(newCells, screwsPerBlock, usedColors)) setPhase('won')
+      }
+    } else {
+      // Multi-tap mode: need tapsRequired taps to "unscrew" before moving
+      const currentTaps = tapCounts[cell.id] || 0
+      const newTaps = currentTaps + 1
+      playSound(soundScrew)
 
-        setTimeout(() => {
-          setBoard(prev => {
-            const nb = JSON.parse(JSON.stringify(prev))
-            const bl = nb.blocks.find(b => b.id === block.id)
-            if (bl) {
-              bl.falling = false
-              bl.fallen = true
-              for (const c of bl.cells) {
-                nb.grid[c.row][c.col].blockId = null
-                nb.grid[c.row][c.col].isEmpty = true
-                nb.grid[c.row][c.col].hasScrew = false
-              }
-              bl.screws = []
-            }
-            return nb
+      if (newTaps >= tapsRequired) {
+        // Fully unscrewed — now select it
+        setTapCounts(prev => ({ ...prev, [cell.id]: 0 }))
+        if (selected === null) {
+          setSelected(cell.id)
+        } else if (selected === cell.id) {
+          setSelected(null)
+        } else {
+          const fromCell = cells.find(c => c.id === selected)
+          playSound(soundFall)
+          const newCells = cells.map(c => {
+            if (c.id === fromCell.id) return { ...c, color: cell.color }
+            if (c.id === cell.id) return { ...c, color: fromCell.color }
+            return c
           })
-          setBlocksCleared(prev => prev + 1)
-        }, 600)
+          setCells(newCells)
+          setSelected(null)
+          setMoves(m => m + 1)
+          if (checkWin(newCells, screwsPerBlock, usedColors)) setPhase('won')
+        }
+      } else {
+        setTapCounts(prev => ({ ...prev, [cell.id]: newTaps }))
+        // If this cell was previously selected, deselect on re-tap
+        if (selected === cell.id) setSelected(null)
       }
     }
+  }, [phase, cells, selected, tapCounts, tapsRequired, usedColors, screwsPerBlock, soundScrew, soundFall])
 
-    setBoard(newBoard)
-  }
+  const bgStyle = s.bg_image_url
+    ? { backgroundImage: `url(${s.bg_image_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { background: s.bg_color || '#1a1a2e' }
 
-  useEffect(() => {
-    if (gameState !== 'playing') return
-    if (!showTimer || timeLimit <= 0) return
-    const timer = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(timer)
-          setGameState('timeup')
-          return 0
-        }
-        return prev - 1
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [gameState, showTimer, timeLimit])
+  const gameLogo = s.game_logo_url || gameData?.client_logo
+  const totalScrews = usedColors.length * screwsPerBlock
 
-  useEffect(() => {
-    if (gameState !== 'playing' || !board) return
-    const allFallen = board.blocks.length > 0 && board.blocks.every(b => b.fallen)
-    if (allFallen) {
-      setGameState('won')
-    }
-  }, [board, gameState])
-
-  useEffect(() => {
-    if (gameState === 'won' && !showReveal) {
-      playSound(resolveSound(settings?.sound_reveal_id))
-      setShowReveal(true)
-      const timer = setTimeout(() => handleComplete(), 3000)
-      return () => clearTimeout(timer)
-    }
-  }, [gameState, showReveal, settings, resolveSound, handleComplete])
-
-  if (gameState === 'intro') {
-    return (
-      <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '20px 16px', fontFamily: ff }}>
-        <div style={{ width: '100%', maxWidth: 440, padding: 'clamp(24px,6vw,36px)', borderRadius: 28, background: 'rgba(255,255,255,0.93)', backdropFilter: 'blur(28px)', boxShadow: '0 8px 40px rgba(0,0,0,0.12)', textAlign: 'center' }}>
-          {settings?.game_logo_url && <img src={settings.game_logo_url} alt="" style={{ maxWidth: '100%', maxHeight: 60, marginBottom: 16, objectFit: 'contain' }} />}
-          <h1 style={{ fontSize: 'clamp(22px,6vw,30px)', fontWeight: 800, color: settings?.heading_1_color || '#1a1a2e', marginBottom: 8, fontFamily: ff }}>{settings?.heading_1 || 'Screw & Reveal'}</h1>
-          {settings?.heading_2 && <p style={{ fontSize: 15, fontWeight: 600, color: settings?.heading_2_color || '#666', marginBottom: 8 }}>{settings.heading_2}</p>}
-          {settings?.heading_3 && <p style={{ fontSize: 13, color: settings?.heading_3_color || '#888', marginBottom: 16 }}>{settings.heading_3}</p>}
-          <div style={{ background: '#f5f0eb', borderRadius: 12, padding: 16, marginBottom: 20 }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: '#5D4037', marginBottom: 6 }}>How to Play</p>
-            <p style={{ fontSize: 12, color: '#8D6E63', lineHeight: 1.6 }}>Tap each screw to unscrew it. Keep tapping until it comes out! When all screws on a block are removed, the block falls away. Clear every block to reveal the hidden image.</p>
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginBottom: 20 }}>
-            <div style={{ background: 'rgba(139,69,19,0.08)', borderRadius: 10, padding: 10 }}>
-              <div style={{ fontSize: 10, color: '#8D6E63' }}>BOARD</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#5D4037' }}>{boardRows}x{boardCols}</div>
-            </div>
-            <div style={{ background: 'rgba(139,69,19,0.08)', borderRadius: 10, padding: 10 }}>
-              <div style={{ fontSize: 10, color: '#8D6E63' }}>SCREWS</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#5D4037' }}>{screwsPerBlock}/blk</div>
-            </div>
-            <div style={{ background: 'rgba(139,69,19,0.08)', borderRadius: 10, padding: 10 }}>
-              <div style={{ fontSize: 10, color: '#8D6E63' }}>DIFFICULTY</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#5D4037' }}>{difficulty}</div>
-            </div>
-          </div>
-          {showTimer && timeLimit > 0 && (
-            <div style={{ background: 'rgba(139,69,19,0.08)', borderRadius: 10, padding: 10, marginBottom: 20 }}>
-              <div style={{ fontSize: 10, color: '#8D6E63' }}>TIME LIMIT</div>
-              <div style={{ fontSize: 16, fontWeight: 800, color: '#5D4037' }}>{timeLimit}s</div>
-            </div>
-          )}
-          <button onClick={handleStart} style={{ background: `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 12, padding: '15px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 6px 20px ${primaryColor}44`, width: '100%', maxWidth: 280 }}>
-            {settings?.start_button_text || 'Start Revealing'}
-          </button>
-        </div>
-      </div>
-    )
-  }
-
-  if (!board) return null
-
-  const remainingBlocks = board.blocks.filter(b => !b.fallen).length
-  const progress = totalBlocks > 0 ? Math.round(((totalBlocks - remainingBlocks) / totalBlocks) * 100) : 0
+  // Group completion
+  const completedGroups = usedColors.filter(color => {
+    const group = cells.filter(c => c.color === color)
+    return group.length === screwsPerBlock
+  })
+  const progress = usedColors.length > 0 ? (completedGroups.length / usedColors.length) * 100 : 0
 
   return (
-    <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', fontFamily: ff, padding: '12px 16px', userSelect: 'none' }}>
-      {settings?.game_logo_url && <img src={settings.game_logo_url} alt="" style={{ height: 40, marginBottom: 4, objectFit: 'contain' }} />}
-      <h2 style={{ fontSize: 18, fontWeight: 800, color: settings?.heading_1_color || '#1a1a2e', marginBottom: 4, textAlign: 'center' }}>{settings?.heading_1 || 'Screw & Reveal'}</h2>
+    <>
+      <style>{STYLES}</style>
 
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
-        <div style={{ background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(12px)', borderRadius: 12, padding: '8px 16px', display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 14, fontWeight: 700, color: primaryColor }}>🔩 {screwsRemoved}</span>
-          <span style={{ fontSize: 12, color: '#888' }}>removed</span>
-        </div>
-        <div style={{ background: 'rgba(255,255,255,0.85)', borderRadius: 12, padding: '8px 16px' }}>
-          <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>📦 {blocksCleared}/{totalBlocks} blocks</span>
-        </div>
-        {showTimer && timeLimit > 0 && (
-          <div style={{ background: 'rgba(255,255,255,0.85)', borderRadius: 12, padding: '8px 16px' }}>
-            <span style={{ fontSize: 12, fontWeight: 600, color: timeLeft <= 15 ? '#ef4444' : '#888' }}>
-              ⏱ {Math.floor(timeLeft / 60)}:{String(timeLeft % 60).padStart(2, '0')}
-            </span>
-          </div>
-        )}
-      </div>
+      <div className="screw-root" style={{ ...bgStyle, fontFamily: ff }}>
 
-      <div style={{ width: '100%', maxWidth: 400, height: 6, background: 'rgba(0,0,0,0.06)', borderRadius: 6, overflow: 'hidden', marginBottom: 16 }}>
-        <div style={{ height: '100%', width: `${progress}%`, background: `linear-gradient(90deg,${primaryColor},#d4a574)`, borderRadius: 6, transition: 'width 0.5s ease' }} />
-      </div>
-
-      <div style={{ display: 'inline-grid', gridTemplateColumns: `repeat(${boardCols},${cellSize}px)`, gap: 2, padding: 6, background: '#8B7355', borderRadius: 12, boxShadow: '0 8px 32px rgba(0,0,0,0.2), inset 0 2px 4px rgba(255,255,255,0.1)' }}>
-        {Array.from({ length: boardRows }, (_, r) =>
-          Array.from({ length: boardCols }, (_, c) => {
-            const cell = board.grid[r][c]
-            const block = cell.blockId !== null ? board.blocks.find(b => b.id === cell.blockId) : null
-            const isEmpty = cell.isEmpty
-            const isScrew = cell.hasScrew
-            const isTapping = tappingScrew?.row === r && tappingScrew?.col === c
-
-            if (block && block.fallen) {
-              return <div key={`${r}-${c}`} style={{ width: cellSize, height: cellSize, borderRadius: 4, background: 'rgba(0,0,0,0.05)', border: '1px solid rgba(0,0,0,0.08)' }} />
-            }
-
-            if (block && block.falling) {
-              return (
-                <div key={`${r}-${c}`} style={{
-                  width: cellSize, height: cellSize, borderRadius: 4,
-                  background: block.color,
-                  opacity: 0.5, transform: 'translateY(20px)',
-                  transition: 'all 0.6s ease',
-                  border: '2px solid rgba(255,255,255,0.3)',
-                }} />
-              )
-            }
-
-            const screwInBlock = block ? block.screws.find(s => s.row === r && s.col === c) : null
-            const tapsLeft = screwInBlock ? screwInBlock.tapsRemaining : 0
-            const isTopLeft = block && r === block.row && c === block.col
-
-            return (
-              <div
-                key={`${r}-${c}`}
-                onClick={() => handleScrewTap(r, c)}
-                style={{
-                  width: cellSize, height: cellSize, borderRadius: 4,
-                  cursor: isScrew && block && !block.falling ? 'pointer' : 'default',
-                  position: 'relative', overflow: 'hidden',
-                  background: isTopLeft ? block.color : isEmpty ? 'rgba(139,115,85,0.3)' : block ? `${block.color}40` : 'rgba(139,115,85,0.15)',
-                  border: isTapping ? '2px solid #F59E0B' : isScrew ? '1.5px solid rgba(139,69,19,0.4)' : '1px solid rgba(139,69,19,0.15)',
-                  boxShadow: isTapping ? '0 0 12px rgba(245,158,11,0.4)' : 'none',
-                  transition: 'all 0.2s ease',
-                }}
-              >
-                {isTopLeft && (
-                  <div style={{
-                    position: 'absolute', inset: 0, background: block.color,
-                    borderRadius: 3, opacity: 0.9,
-                  }} />
-                )}
-
-                {isScrew && (
-                  <div style={{
-                    position: 'absolute', top: '50%', left: '50%',
-                    transform: `translate(-50%,-50%) ${isTapping ? 'rotate(30deg) scale(1.15)' : 'rotate(0deg)'}`,
-                    width: cellSize * 0.45, height: cellSize * 0.45,
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg,#A0522D,#6B3A1F)',
-                    border: `2px solid ${isTapping ? '#F59E0B' : '#4A2810'}`,
-                    boxShadow: `0 1px 3px rgba(0,0,0,0.3)${isTapping ? ', 0 0 8px rgba(245,158,11,0.4)' : ''}`,
-                    zIndex: 3,
-                    transition: 'transform 0.15s ease',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}>
-                    <div style={{
-                      position: 'absolute',
-                      width: '60%', height: 2,
-                      background: '#3D1E0C',
-                      borderRadius: 1,
-                      transform: 'rotate(0deg)',
-                    }} />
-                    <div style={{
-                      position: 'absolute',
-                      width: 2, height: '60%',
-                      background: '#3D1E0C',
-                      borderRadius: 1,
-                      transform: 'rotate(0deg)',
-                    }} />
-                    <div style={{
-                      width: cellSize * 0.1, height: cellSize * 0.1,
-                      borderRadius: '50%', background: '#4A2810',
-                      zIndex: 1,
-                    }} />
-                    {tapsLeft > 1 && (
-                      <div style={{
-                        position: 'absolute', bottom: -2, right: -2,
-                        background: '#F59E0B', color: '#fff',
-                        fontSize: 7, fontWeight: 700,
-                        width: 12, height: 12,
-                        borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        zIndex: 4, lineHeight: 1,
-                      }}>
-                        {tapsLeft}
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                {isEmpty && !isScrew && (
-                  <div style={{
-                    position: 'absolute', top: '50%', left: '50%',
-                    transform: 'translate(-50%,-50%)',
-                    width: cellSize * 0.3, height: cellSize * 0.3,
-                    borderRadius: '50%',
-                    background: 'rgba(93,58,26,0.15)',
-                    border: '1px dashed rgba(93,58,26,0.2)',
-                  }} />
-                )}
-              </div>
-            )
-          })
-        )}
-      </div>
-
-      <p style={{ fontSize: 11, color: '#8D6E63', marginTop: 12, textAlign: 'center' }}>
-        Tap screws to unscrew them. Remove all screws from a block to make it fall!
-      </p>
-
-      {gameState === 'won' && showReveal && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)', animation: 'revealFade 0.5s ease' }}>
-          <div style={{ textAlign: 'center', padding: '40px 24px', maxWidth: 420, width: '100%' }}>
-            <div style={{ fontSize: 48, marginBottom: 16, animation: 'revealBounce 0.8s ease' }}>🎉</div>
-            <h2 style={{ fontSize: 24, fontWeight: 800, color: '#fff', marginBottom: 12, animation: 'revealSlide 0.6s ease 0.3s both' }}>{revealText}</h2>
-            {revealImageUrl && (
-              <div style={{ animation: 'revealZoom 0.8s ease 0.5s both', marginBottom: 20 }}>
-                <img src={revealImageUrl} alt="Revealed" style={{ maxWidth: '100%', maxHeight: 300, borderRadius: 16, boxShadow: '0 16px 48px rgba(0,0,0,0.4)' }} />
+        {/* ── Header ── */}
+        <div style={{
+          width: '100%', maxWidth: 480,
+          padding: '12px 16px 8px',
+          display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+          flexShrink: 0,
+        }}>
+          {gameLogo
+            ? <img src={gameLogo} alt="Logo" style={{ height: 36, width: 'auto', objectFit: 'contain' }} />
+            : <span style={{ color: '#fff', fontWeight: 800, fontSize: 18 }}>{s.heading_1 || 'Screw Sort'}</span>
+          }
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+            {timeLeft !== null && (
+              <div style={{
+                background: timeLeft <= 10 ? '#ef4444' : 'rgba(255,255,255,0.15)',
+                borderRadius: 20, padding: '4px 12px',
+                color: '#fff', fontWeight: 700, fontSize: 14,
+                transition: 'background .3s',
+              }}>
+                ⏱ {timeLeft}s
               </div>
             )}
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 13, marginBottom: 24 }}>
-              {blocksCleared} blocks cleared | {screwsRemoved} screws removed
-            </p>
-            <button onClick={handleComplete} style={{ background: `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 8px 28px ${primaryColor}55`, width: '100%', maxWidth: 280 }}>
-              {settings?.continue_button_text || 'Continue'}
-            </button>
+            <div style={{
+              background: 'rgba(255,255,255,0.15)', borderRadius: 20,
+              padding: '4px 12px', color: '#fff', fontWeight: 700, fontSize: 14,
+            }}>
+              🔄 {moves}
+            </div>
           </div>
         </div>
-      )}
 
-      {gameState === 'timeup' && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 2000, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(12px)' }}>
-          <div style={{ background: 'rgba(255,255,255,0.08)', border: '1px solid rgba(255,255,255,0.15)', borderRadius: 28, padding: 'clamp(28px,7vw,44px)', maxWidth: 400, width: '100%', textAlign: 'center', backdropFilter: 'blur(20px)' }}>
-            <div style={{ fontSize: 64, marginBottom: 16 }}>⏰</div>
-            <h2 style={{ fontSize: 22, fontWeight: 800, color: '#fff', marginBottom: 8 }}>Time's Up!</h2>
-            <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: 14, marginBottom: 24 }}>
-              Cleared {blocksCleared} of {totalBlocks} blocks · {screwsRemoved} screws removed
-            </p>
-            <button onClick={handleComplete} style={{ background: `linear-gradient(135deg,${primaryColor},${primaryColor}cc)`, color: '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: `0 8px 28px ${primaryColor}55`, width: '100%' }}>
-              {settings?.continue_button_text || 'Continue'}
-            </button>
+        {/* ── Progress bar ── */}
+        <div style={{ width: '100%', maxWidth: 480, padding: '0 16px 8px', flexShrink: 0 }}>
+          <div style={{ height: 6, background: 'rgba(255,255,255,0.15)', borderRadius: 6, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%', borderRadius: 6,
+              width: `${progress}%`,
+              background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`,
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 4, fontSize: 11, color: 'rgba(255,255,255,0.6)', fontWeight: 600 }}>
+            <span>{completedGroups.length} / {usedColors.length} groups done</span>
+            <span>{totalScrews} screws total</span>
           </div>
         </div>
-      )}
 
-      <style>{`
-        @keyframes revealFade { from{opacity:0} to{opacity:1} }
-        @keyframes revealBounce { 0%{transform:scale(0);opacity:0} 50%{transform:scale(1.2)} 100%{transform:scale(1);opacity:1} }
-        @keyframes revealSlide { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
-        @keyframes revealZoom { from{opacity:0;transform:scale(0.5)} to{opacity:1;transform:scale(1)} }
-      `}</style>
-    </div>
+        {/* ── Board ── */}
+        <div style={{ flex: 1, minHeight: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', width: '100%' }}>
+          <div
+            className="screw-board"
+            style={{
+              gridTemplateColumns: `repeat(${cols}, ${cellSize}px)`,
+              gridTemplateRows: `repeat(${rows}, ${cellSize}px)`,
+            }}
+          >
+            {cells.map(cell => {
+              const isSelected = selected === cell.id
+              const tapCount = tapCounts[cell.id] || 0
+              const tapsLeft = cell.color !== null ? tapsRequired - tapCount : 0
+              const isEmpty = cell.color === null
+              const cellColor = cell.color
+
+              return (
+                <div
+                  key={cell.id}
+                  className={`screw-cell${isSelected ? ' selected' : ''}`}
+                  onClick={() => handleCellTap(cell)}
+                  style={{
+                    width: cellSize,
+                    height: cellSize,
+                    background: isEmpty
+                      ? 'rgba(255,255,255,0.06)'
+                      : isSelected
+                        ? `${cellColor}dd`
+                        : `${cellColor}99`,
+                    boxShadow: isSelected
+                      ? `0 0 0 3px #fff, 0 0 20px ${cellColor}88`
+                      : isEmpty
+                        ? 'inset 0 2px 8px rgba(0,0,0,0.3)'
+                        : `0 4px 14px ${cellColor}55`,
+                    border: isSelected
+                      ? `2px solid #fff`
+                      : isEmpty
+                        ? '2px dashed rgba(255,255,255,0.15)'
+                        : `2px solid ${cellColor}`,
+                    transform: isSelected ? 'scale(1.08)' : 'scale(1)',
+                    zIndex: isSelected ? 2 : 1,
+                  }}
+                >
+                  {!isEmpty && (
+                    <>
+                      <div className="screw-hole" style={{ background: `${cellColor}cc` }}>
+                        <div className="screw-head" style={{ background: cellColor }} />
+                      </div>
+                      {tapsRequired > 1 && tapsLeft > 0 && (
+                        <div className="screw-count-badge">{tapsLeft}</div>
+                      )}
+                    </>
+                  )}
+                  {isEmpty && selected !== null && (
+                    <div style={{
+                      width: '40%', height: '40%', borderRadius: '50%',
+                      border: '2px dashed rgba(255,255,255,0.35)',
+                      animation: 'pulse 1.5s ease infinite',
+                    }} />
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
+        {/* ── Footer hint ── */}
+        <div style={{ flexShrink: 0, padding: '8px 16px 20px', textAlign: 'center' }}>
+          <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: 12, margin: 0, fontFamily: ff }}>
+            {tapsRequired > 1
+              ? `Tap a screw ${tapsRequired}× to unscrew it, then tap destination`
+              : 'Tap a screw to select, then tap a destination to move it'}
+          </p>
+        </div>
+
+        {/* ── Win overlay ── */}
+        {phase === 'won' && (
+          <div className="overlay-win">
+            {/* Confetti */}
+            <div style={{ position: 'fixed', inset: 0, pointerEvents: 'none', zIndex: 99 }}>
+              {Array.from({ length: 40 }).map((_, i) => (
+                <div key={i} style={{
+                  position: 'absolute', top: -10,
+                  left: `${5 + (i * 2.4) % 90}%`,
+                  width: 8 + (i % 3) * 4, height: 8 + (i % 3) * 4,
+                  borderRadius: i % 2 === 0 ? '50%' : 2,
+                  background: blockColors[i % blockColors.length] || '#7c6ff7',
+                  animation: `confettiFall ${2 + (i % 4) * 0.5}s ${(i * 0.1) % 2}s ease-in forwards`,
+                }} />
+              ))}
+            </div>
+
+            <div className="overlay-card">
+              <div style={{ fontSize: 60, marginBottom: 12, animation: 'bounce 0.6s ease' }}>🎉</div>
+              <h2 style={{ fontSize: 28, fontWeight: 800, color: '#1a1a2e', marginBottom: 8, fontFamily: ff }}>
+                {s.reveal_text || 'Puzzle Solved!'}
+              </h2>
+              {s.reveal_image_url && (
+                <img src={s.reveal_image_url} alt="Reveal" style={{
+                  maxWidth: '100%', maxHeight: 200, objectFit: 'contain',
+                  borderRadius: 14, marginBottom: 16,
+                }} />
+              )}
+              <p style={{ color: '#666', fontSize: 15, marginBottom: 20, fontFamily: ff }}>
+                Completed in <strong>{moves}</strong> move{moves !== 1 ? 's' : ''} 🏆
+              </p>
+              {submitting && (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, color: '#888', fontSize: 14 }}>
+                  <span style={{ width: 16, height: 16, border: `2px solid ${primaryColor}44`, borderTopColor: primaryColor, borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+                  Saving…
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ── Timeout overlay ── */}
+        {phase === 'timeout' && (
+          <div className="overlay-win">
+            <div className="overlay-card">
+              <div style={{ fontSize: 60, marginBottom: 12 }}>⏰</div>
+              <h2 style={{ fontSize: 26, fontWeight: 800, color: '#1a1a2e', marginBottom: 8, fontFamily: ff }}>
+                Time's Up!
+              </h2>
+              <p style={{ color: '#666', fontSize: 15, marginBottom: 20, fontFamily: ff }}>
+                You made <strong>{moves}</strong> move{moves !== 1 ? 's' : ''}. Keep trying!
+              </p>
+              <button
+                onClick={() => {
+                  completingRef.current = false
+                  const { cells: newCells, usedColors: uc } = generateBoard(rows, cols, screwsPerBlock, emptyHoles, blockColors)
+                  setCells(newCells)
+                  setUsedColors(uc)
+                  setTapCounts({})
+                  setSelected(null)
+                  setMoves(0)
+                  setPhase('playing')
+                  if (timeLimit > 0) setTimeLeft(timeLimit)
+                }}
+                style={{
+                  background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
+                  color: '#fff', border: 'none', borderRadius: 50,
+                  padding: '14px 36px', fontSize: 16, fontWeight: 700,
+                  cursor: 'pointer', fontFamily: ff,
+                  boxShadow: `0 8px 24px ${primaryColor}55`,
+                }}
+              >
+                Try Again →
+              </button>
+            </div>
+          </div>
+        )}
+
+        {submitting && phase !== 'won' && (
+          <div style={{
+            position: 'fixed', inset: 0, zIndex: 200,
+            background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+          }}>
+            <div style={{ color: '#fff', fontSize: 16, display: 'flex', alignItems: 'center', gap: 12 }}>
+              <span style={{ width: 24, height: 24, border: '3px solid rgba(255,255,255,.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
+              Saving your progress…
+            </div>
+          </div>
+        )}
+      </div>
+    </>
   )
 }

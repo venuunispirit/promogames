@@ -805,6 +805,30 @@ async function initDB() {
     )
   `, 'screw_settings table');
 
+  /* TOWER SETTINGS */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS tower_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      target_score INT DEFAULT 1000,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      bg_color VARCHAR(20) DEFAULT '#f95240',
+      primary_color VARCHAR(20) DEFAULT '#ff735c',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      start_button_text VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'tower_settings table');
+
   /* ── SNAKE TABLES ── */
   console.log('🐍 Creating snake tables...');
   await safeQuery(connection, `
@@ -885,10 +909,10 @@ async function initDB() {
     )
   `, 'ludo_settings table');
 
-  /* ── CAROM TABLE ── */
-  console.log('🎱 Creating carom tables...');
+  /* ── Carrom TABLE ── */
+  console.log('🎱 Creating Carrom tables...');
   await safeQuery(connection, `
-    CREATE TABLE IF NOT EXISTS carom_settings (
+    CREATE TABLE IF NOT EXISTS Carrom_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
       heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
       heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
@@ -911,7 +935,7 @@ async function initDB() {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
     )
-  `, 'carom_settings table');
+  `, 'Carrom_settings table');
 
   /* ── TIC TAC TOE MULTIPLAYER TABLE ── */
   console.log('🎮 Creating tictactoe multiplayer tables...');
@@ -1045,6 +1069,23 @@ async function initDB() {
       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
     )
   `, 'connect4_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS candyblast_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      grid_size INT DEFAULT 8,
+      logo_url VARCHAR(500) DEFAULT '',
+      logo_name VARCHAR(255) DEFAULT '',
+      levels_json TEXT DEFAULT '[]',
+      candy_types INT DEFAULT 6,
+      match_score INT DEFAULT 10,
+      combo_multiplier INT DEFAULT 40,
+      special_spawn_rate DECIMAL(4,2) DEFAULT 0.17,
+      is_active TINYINT(1) DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'candyblast_settings table');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS flappy_settings (
@@ -1238,7 +1279,7 @@ async function initDB() {
 
   /* GAMES */
   await safeQuery(connection,
-      `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','carom','tictactoemultiplayer') DEFAULT 'quiz'`,
+      `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer') DEFAULT 'quiz'`,
     'games.category ENUM includes all game types'
   );
   await addColumn(connection, 'games', 'client_id', 'INT');
@@ -1270,6 +1311,7 @@ async function initDB() {
   /* GAMES — template link + intro video */
   await addColumn(connection, 'games', 'template_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'games', 'intro_video_url', 'VARCHAR(500)');
+  await addColumn(connection, 'games', 'thumbnail_url', 'VARCHAR(500)');
 
   /* QUIZ SETTINGS — animation/timing overrides (merged over template) */
   await addColumn(connection, 'quiz_settings', 'anim_config_json', 'JSON');
@@ -2475,6 +2517,9 @@ await safeQuery(connection, `
    /* GAMES — add email_settings JSON column */
    await addColumn(connection, 'games', 'email_settings', "JSON DEFAULT NULL");
 
+   /* GAMES — add game_type column for branded/promogames distinction */
+   await addColumn(connection, 'games', 'game_type', "VARCHAR(50) DEFAULT 'promogames'");
+
    /* PROMO_PLAYERS — ensure required columns exist */
    await addColumn(connection, 'promo_players', 'username', "VARCHAR(100) DEFAULT NULL");
    await addColumn(connection, 'promo_players', 'avatar_id', "VARCHAR(50) DEFAULT NULL");
@@ -2604,48 +2649,27 @@ await safeQuery(connection, `
     console.error('❌ Admin creation failed:', err.message);
   }
 
-  // ── Backfill: link master games to their client's brand owner ──
-  // Master games (parent_game_id IS NULL) created before auto-linking have
-  // business_owner_id NULL and/or no business_owner_games row. Link them to
-  // the client's parent (brand) BO so redemptions + BO logs resolve directly.
+  /* TOWER GAME SEED */
   try {
-    const [masters] = await connection.query(
-      'SELECT id, client_id, business_owner_id, name FROM games WHERE parent_game_id IS NULL'
-    );
-    let linked = 0;
-    for (const game of masters) {
-      let boId = game.business_owner_id;
-      let brandName = null;
-      if (!boId) {
-        const [brandOwners] = await connection.query(
-          'SELECT id, business_name FROM business_owners WHERE client_id = ? AND parent_id IS NULL LIMIT 1',
-          [game.client_id]
-        );
-        if (brandOwners.length === 0) continue;
-        boId = brandOwners[0].id;
-        brandName = brandOwners[0].business_name;
-        await connection.query('UPDATE games SET business_owner_id = ? WHERE id = ?', [boId, game.id]);
+    const [existingTower] = await connection.query('SELECT id FROM games WHERE slug = ?', ['tower']);
+    if (existingTower.length === 0) {
+      const [clientRows] = await connection.query("SELECT id FROM clients WHERE slug = 'promo' LIMIT 1");
+      let clientId = clientRows.length > 0 ? clientRows[0].id : null;
+      if (!clientId) {
+        const [anyClients] = await connection.query('SELECT id FROM clients LIMIT 1');
+        clientId = anyClients.length > 0 ? anyClients[0].id : null;
       }
-      const [existing] = await connection.query(
-        'SELECT id FROM business_owner_games WHERE business_owner_id = ? AND game_id = ?',
-        [boId, game.id]
-      );
-      if (existing.length === 0) {
-        if (!brandName) {
-          const [brows] = await connection.query('SELECT business_name FROM business_owners WHERE id = ?', [boId]);
-          brandName = brows[0]?.business_name || '';
-        }
+      if (clientId) {
         await connection.query(
-          'INSERT INTO business_owner_games (business_owner_id, game_id, location_name, reward_text) VALUES (?, ?, ?, ?)',
-          [boId, game.id, brandName, '']
+          `INSERT INTO games (name, company_name, category, game_type, slug, client_id, is_active, show_in_play_page, status)
+           VALUES ('Tower Building', 'promo', 'tower', 'promogames', 'tower', ?, 1, 1, 'live')`,
+          [clientId]
         );
+        console.log('✅ Tower game seeded');
       }
-      linked++;
     }
-    if (linked > 0) console.log(`✅ Linked ${linked} master game(s) to their brand owner`);
-    else console.log('ℹ️ All master games already linked to a brand owner');
   } catch (err) {
-    console.error('❌ Master-game brand-owner backfill failed:', err.message);
+    console.error('❌ Tower game seed failed:', err.message);
   }
 
   await connection.end();

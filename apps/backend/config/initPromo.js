@@ -266,52 +266,10 @@ async function initPromo() {
     )
   `, 'internal_team table');
 
-  // ── 13. HIGH SCORES & PLAYER BEST SCORES ──────────────────────────────────
-  try {
-    const [hsCols] = await connection.query(`SHOW COLUMNS FROM \`games\` LIKE 'high_score'`);
-    if (hsCols.length === 0) {
-      await connection.query('ALTER TABLE \`games\` ADD COLUMN \`high_score\` INT NULL DEFAULT NULL');
-      console.log("✅ games.high_score column added");
-    }
-  } catch (err) {
-    console.error("❌ games.high_score migration:", err.message);
-  }
-
-  await safeQuery(connection, `
-    CREATE TABLE IF NOT EXISTS player_best_scores (
-      id          INT AUTO_INCREMENT PRIMARY KEY,
-      player_id   INT NULL,
-      device_id   VARCHAR(64) NULL,
-      game_id     INT NOT NULL,
-      best_score  INT NOT NULL DEFAULT 0,
-      updated_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      UNIQUE KEY uniq_player_game (player_id, game_id),
-      UNIQUE KEY uniq_device_game (device_id, game_id),
-      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
-    )
-  `, 'player_best_scores table');
-
-  try {
-    const [devCols] = await connection.query(`SHOW COLUMNS FROM \`player_sessions\` LIKE 'device_id'`);
-    if (devCols.length === 0) {
-      await connection.query('ALTER TABLE \`player_sessions\` ADD COLUMN \`device_id\` VARCHAR(64) NULL');
-      console.log("✅ player_sessions.device_id column added");
-    }
-  } catch (err) {
-    console.error("❌ player_sessions.device_id migration:", err.message);
-  }
-
-  try {
-    await connection.query('ALTER TABLE \`pc_transactions\` ADD INDEX idx_leaderboard (player_id, type, created_at)');
-    console.log("✅ pc_transactions leaderboard index ensured");
-  } catch (err) {
-    console.log("ℹ️  pc_transactions leaderboard index already exists");
-  }
-
   await connection.end();
   console.log('\n🎉 PromoPlayer migration completed successfully!');
-  console.log('Tables created: promo_players, otp_tokens, trusted_devices, pc_transactions, brand_rewards, redemptions, internal_team, player_best_scores');
-  console.log('Columns added: games.game_type, games.high_score, player_sessions.pc_awarded, player_sessions.promo_player_id, player_sessions.device_id');
+  console.log('Tables created: promo_players, otp_tokens, trusted_devices, pc_transactions, brand_rewards, redemptions, internal_team');
+  console.log('Columns added: games.game_type, player_sessions.pc_awarded, player_sessions.promo_player_id');
 }
 
 initPromo().catch(err => {

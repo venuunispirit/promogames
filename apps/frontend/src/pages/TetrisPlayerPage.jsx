@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+
 const COLS = 10, ROWS = 20, CELL = 24;
 
 const COLORS = {

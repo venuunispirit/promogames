@@ -76,7 +76,7 @@ const MascotCursor = () => {
         pupilX += (targetPX - pupilX) * 0.15;
         pupilY += (targetPY - pupilY) * 0.15;
         scale += (targetScale - scale) * 0.18;
-        mascot.style.transform = `translate(${mx - 6}px,${my - 4}px) rotate(-8deg) scale(${scale})`;
+        mascot.style.transform = `translate(${mx - 6}px,${my - 4}px) rotate(8deg) scale(${scale})`;
         pupils.forEach(p => { p.style.transform = `translate(${pupilX}px,${pupilY}px)`; });
         targetPX *= 0.985; targetPY *= 0.985;
         raf = requestAnimationFrame(loop);

@@ -1,9 +1,15 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import GameModal from '../components/GameModal'
 import PlayerNavbar from '../components/PlayerNavbar'
 import MascotBubble from '../components/MascotBubble'
 import MascotCursor from '../components/MascotCursor'
+
+const ChevronRight = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+    <polyline points="9 18 15 12 9 6"/>
+  </svg>
+)
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
@@ -15,7 +21,6 @@ const CSS = `
   --purple:#9210f6;
   --purple2:#610497;
   --purple3:#7C3AED;
-  --purple4:#4F46E5;
   --accent:#c040ff;
   --gold:#f5c842;
   --glass:rgba(255,255,255,0.05);
@@ -28,258 +33,189 @@ const CSS = `
 html{scroll-behavior:smooth}
 body{font-family:var(--fb);background:var(--bg);color:#fff;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 img{display:block;max-width:100%}
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:var(--purple);border-radius:3px}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:rgba(255,255,255,0.03)}
+::-webkit-scrollbar-thumb{background:rgba(146,16,246,0.4);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:rgba(146,16,246,0.6)}
 
-/* SCROLL BAR */
 .arc-scroll-bar{position:fixed;top:0;left:0;height:3px;z-index:9999;background:linear-gradient(90deg,var(--purple),var(--purple3));width:var(--scroll-pct,0%);transition:width .05s linear;box-shadow:0 0 10px var(--purple)}
 
-/* NAV (LandingPage style) */
-.nav-wrap{position:fixed;top:0;left:0;right:0;z-index:1000;padding:18px 0;pointer-events:none;display:flex;justify-content:center}
-.navbar{pointer-events:all;width:62%;max-width:700px;min-width:580px;display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:11px 20px 11px 18px;border-radius:100px;background:rgba(7,4,15,0.88);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(146,16,246,0.22);box-shadow:0 8px 48px rgba(0,0,0,0.60)}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-mark{width:auto;height:60px;border-radius:9px;flex-shrink:0;background:transparent;display:grid;place-items:center;font-family:var(--fb);font-weight:800;font-size:18px;margin-right:0}
-.logo-name{font-family:var(--fh);font-weight:400;font-size:20px;color:#fff;white-space:nowrap;letter-spacing:2px}
-.nav-links{list-style:none;display:flex;gap:26px;align-items:center}
-.nav-links a{font-family:var(--fb);font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;position:relative;transition:color .22s}
-.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--purple3));transition:width .25s}
-.nav-links a:hover{color:#fff}
-.nav-links a:hover::after{width:100%}
-.nav-btn-cta{position:relative;overflow:hidden;display:inline-flex;align-items:center;height:38px;padding:0 22px;border-radius:100px;border:none;background:linear-gradient(90deg,var(--purple2),var(--purple));text-decoration:none;font-family:var(--fb);font-weight:700;font-size:13px;color:#fff!important;transition:opacity .2s;margin-left:0}
-.nav-btn-cta:hover{opacity:.85;color:#fff!important}
-.nav-btn-cta::after{display:none!important}
-.ham{display:none;flex-direction:column;gap:5px;background:none;border:none;padding:4px}
-.ham span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:all .3s}
-.ham.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-.ham.open span:nth-child(2){opacity:0}
-.ham.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-.mob-overlay{display:none;position:fixed;inset:0;top:74px;background:rgba(7,4,15,0.97);backdrop-filter:blur(20px);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:30px}
-.mob-overlay.open{display:flex}
-.mob-overlay a{font-family:var(--fh);font-size:26px;color:#fff;text-decoration:none;opacity:.80;transition:opacity .2s;letter-spacing:2px}
-.mob-overlay a:hover{opacity:1}
-.mob-cta{margin-top:8px;padding:14px 40px;border-radius:100px;background:linear-gradient(90deg,var(--purple2),var(--purple));color:#fff;font-family:var(--fb);font-size:17px;font-weight:700;text-decoration:none}
+.arc-container{max-width:100%;margin:0;padding:0}
+.arc-content{padding-top:120px}
 
-/* CONTENT */
-.arc-content{padding-top:100px;padding-bottom:40px;min-height:100vh}
+.arc-featured{padding:40px 0 24px}
+.arc-featured > .arc-container{max-width:1720px;margin:0 auto;padding:0 10px}
+.arc-section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.arc-section-title{font-family:var(--fh);font-size:24px;font-weight:400;letter-spacing:3px;color:#fff;text-transform:uppercase}
+.arc-view-all{display:inline-flex;align-items:center;gap:6px;font-family:var(--fb);font-size:14px;font-weight:600;color:var(--accent);text-decoration:none;transition:gap .2s}
+.arc-view-all:hover{gap:10px}
+.arc-featured-scroll{display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x mandatory;padding-bottom:12px;margin:0;padding-left:0;padding-right:0}
+.arc-featured-card{flex:0 0 auto;width:280px;scroll-snap-align:start;border-radius:16px;overflow:hidden;cursor:pointer;background:#171a23;border:1px solid rgba(255,255,255,0.08);transition:transform .3s,box-shadow .3s,border-color .3s}
+.arc-featured-card:hover{transform:translateY(-6px);box-shadow:0 20px 48px rgba(0,0,0,0.6),0 0 0 1px rgba(146,16,246,0.4);border-color:rgba(146,16,246,0.5)}
+.arc-featured-thumb{position:relative;width:100%;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(150deg,rgba(146,16,246,0.25),rgba(97,4,151,0.12))}
+.arc-featured-thumb img{width:100%;height:100%;object-fit:cover;transition:transform .4s}
+.arc-featured-card:hover .arc-featured-thumb img{transform:scale(1.1)}
+.arc-featured-info{padding:14px 16px}
+.arc-featured-name{font-family:var(--fb);font-size:15px;font-weight:700;color:#fff;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.arc-featured-meta{font-size:12px;color:rgba(255,255,255,0.5);display:flex;align-items:center;gap:8px}
+.arc-featured-cat{font-family:var(--fm);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:rgba(146,16,246,0.2);border:1px solid rgba(146,16,246,0.4);color:#c084fc}
 
-/* NETFLIX ROWS */
-.arc-row{margin-bottom:36px;padding:0 4%}
-.arc-row-header{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:16px;padding:0 4px}
-.arc-row-label{font-family:var(--fh);font-size:clamp(22px,2.8vw,36px);font-weight:400;letter-spacing:2px;color:#fff;display:flex;align-items:center;gap:12px}
-.arc-row-count{font-family:var(--fm);font-size:11px;color:var(--muted);font-weight:400;letter-spacing:1px}
-.arc-row-seeall{font-family:var(--fb);font-size:13px;font-weight:600;color:var(--muted);text-decoration:none;transition:color .2s}
-.arc-row-seeall:hover{color:var(--accent)}
-.arc-row-track{display:flex;gap:10px;overflow-x:auto;padding:4px 0 12px;scrollbar-width:none;-ms-overflow-style:none;scroll-behavior:smooth}
-.arc-row-track::-webkit-scrollbar{display:none}
+.arc-grid-section{padding:0 0 5px}
+.arc-grid-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
+.arc-grid-label{font-family:var(--fh);font-size:clamp(20px,2.4vw,30px);font-weight:400;letter-spacing:2px;color:#fff;display:flex;align-items:center;gap:12px}
+.arc-grid-count{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:1px}
+.arc-toolbar{display:flex;align-items:center;gap:12px}
+.arc-filters{display:flex;gap:6px}
+.arc-filter-btn{padding:7px 16px;border-radius:100px;font-family:var(--fb);font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:capitalize;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);color:rgba(255,255,255,0.7);cursor:pointer;transition:all .2s}
+.arc-filter-btn:hover{color:#fff;border-color:rgba(146,16,246,0.5)}
+.arc-filter-btn.active{background:linear-gradient(90deg,var(--purple2),var(--purple));border-color:transparent;color:#fff;box-shadow:0 4px 16px rgba(146,16,246,0.3)}
+.arc-view-toggle{display:flex;gap:4px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px}
+.arc-view-btn{width:36px;height:32px;border-radius:8px;background:none;border:none;color:var(--muted);cursor:pointer;display:grid;place-items:center;transition:all .2s}
+.arc-view-btn.active{background:rgba(146,16,246,0.25);color:#fff}
+.arc-view-btn:hover{color:#fff}
 
-/* MASONRY (PromoGames) */
-.arc-masonry{columns:8;column-gap:12px;padding:4px 4px 12px}
-.arc-masonry-card{break-inside:avoid;-webkit-column-break-inside:avoid;margin-bottom:14px;border-radius:12px;overflow:hidden;cursor:pointer;position:relative;animation:arcCardIn .35s cubic-bezier(.22,1,.36,1) both;transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s}
-.arc-masonry-card:hover{transform:scale(1.02);box-shadow:0 10px 32px rgba(146,16,246,0.28),0 0 0 2px rgba(146,16,246,0.5)}
-.arc-masonry-thumb{width:100%;aspect-ratio:var(--ar,1/1);object-fit:cover;display:block;transition:transform .3s}
-.arc-masonry-card:hover .arc-masonry-thumb{transform:scale(1.05)}
-.arc-masonry-fallback{width:100%;aspect-ratio:var(--ar,1/1);display:flex;align-items:center;justify-content:center;font-size:56px;background:linear-gradient(135deg,rgba(146,16,246,0.3),rgba(97,4,151,0.15));transition:transform .3s}
-.arc-masonry-card:hover .arc-masonry-fallback{transform:scale(1.05)}
+/* ── Play grid — CrazyGames-style mixed tiles ─────────────────── */
+/* Fluid container: scales with the viewport up to a readable cap, so the
+   grid adapts to any resolution (small laptops → ultrawide / 4K). */
+.arc-grid-section > .arc-container{max-width:1720px;margin:0 auto;padding:0 10px;container-type:inline-size}
+.pg-grid{display:grid;grid-template-columns:repeat(12,1fr);grid-auto-flow:row dense;gap:clamp(10px,1.1vw,18px)}
+/* row heights in cqw (% of container width) keep every tile proportional at any size */
+.pg-grid{grid-auto-rows:176px;grid-auto-rows:16.5cqw}
+.pg-tile{position:relative;border-radius:16px;overflow:hidden;cursor:pointer;background:#171a23;border:1px solid rgba(255,255,255,0.07);text-decoration:none;animation:pgIn .45s cubic-bezier(.22,1,.36,1) both;transition:transform .25s cubic-bezier(.22,1,.36,1),box-shadow .25s,border-color .25s}
+.pg-tile:hover{transform:translateY(-4px);box-shadow:0 20px 48px rgba(0,0,0,0.6),0 0 0 1px rgba(146,16,246,0.4);border-color:rgba(146,16,246,0.5);z-index:3}
+@keyframes pgIn{from{opacity:0;transform:translateY(16px) scale(0.96)}to{opacity:1;transform:none}}
+.pg-tile-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s cubic-bezier(.22,1,.36,1)}
+.pg-tile:hover .pg-tile-bg{transform:scale(1.07)}
+.pg-tile-fallback{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:42px;background:linear-gradient(150deg,rgba(146,16,246,0.32),rgba(97,4,151,0.16))}
+.pg-tile-shade{position:absolute;inset:0;background:linear-gradient(to top,rgba(8,10,16,0.9) 0%,rgba(8,10,16,0.42) 38%,rgba(8,10,16,0.05) 60%)}
+.pg-tile-cat{position:absolute;top:10px;left:10px;z-index:2;font-family:var(--fm);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:rgba(8,8,16,0.62);border:1px solid rgba(255,255,255,0.16);color:rgba(255,255,255,0.85);backdrop-filter:blur(6px)}
+.pg-tile-info{position:absolute;left:0;right:0;bottom:0;padding:14px;z-index:2}
+.pg-tile-name{font-family:var(--fb);font-size:13.5px;font-weight:700;color:#fff;line-height:1.28;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;text-shadow:0 2px 10px rgba(0,0,0,0.6)}
+.pg-tile-meta{display:flex;align-items:center;gap:5px;font-size:11px;font-weight:600;color:rgba(255,255,255,0.6);margin-top:4px}
+.pg-tile-meta svg{width:9px;height:9px;flex-shrink:0;color:rgba(255,255,255,0.4)}
+.pg-tile-play{position:absolute;inset:0;z-index:3;display:flex;align-items:center;justify-content:center;background:rgba(8,10,16,0.34);opacity:0;transition:opacity .22s}
+.pg-tile:hover .pg-tile-play{opacity:1}
+.pg-tile-play-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.97);display:grid;place-items:center;box-shadow:0 6px 24px rgba(0,0,0,0.55);transform:scale(0.5) translateY(8px);transition:transform .28s cubic-bezier(.34,1.56,.64,1)}
+.pg-tile:hover .pg-tile-play-btn{transform:scale(1) translateY(0)}
 
-/* ROW CARD */
-.arc-row-card{flex-shrink:0;width:200px;border-radius:12px;overflow:hidden;cursor:pointer;position:relative;animation:arcCardIn .35s cubic-bezier(.22,1,.36,1) both;transition:transform .22s cubic-bezier(.22,1,.36,1),box-shadow .22s}
-.arc-row-card:hover{transform:scale(1.06);box-shadow:0 10px 32px rgba(146,16,246,0.28),0 0 0 2px rgba(146,16,246,0.5)}
-@keyframes arcCardIn{from{opacity:0;transform:scale(0.92)}to{opacity:1;transform:none}}
-.arc-row-thumb{width:100%;aspect-ratio:2/3;object-fit:cover;display:block;transition:transform .3s}
-.arc-row-card:hover .arc-row-thumb{transform:scale(1.08)}
-.arc-row-fallback{width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;font-size:48px;background:linear-gradient(135deg,rgba(146,16,246,0.3),rgba(97,4,151,0.15));transition:transform .3s}
-.arc-row-card:hover .arc-row-fallback{transform:scale(1.06)}
-.arc-row-rank{position:absolute;top:6px;left:6px;font-family:var(--fh);font-size:32px;line-height:1;color:rgba(255,255,255,0.9);text-shadow:0 2px 12px rgba(0,0,0,0.7);-webkit-text-stroke:1px rgba(0,0,0,0.3)}
-.arc-row-rank.gold{color:var(--gold)}
-.arc-row-rank.silver{color:#c0c0c0}
-.arc-row-rank.bronze{color:#cd7f32}
-.arc-row-body{position:absolute;bottom:0;left:0;right:0;background:linear-gradient(to top,rgba(5,2,12,0.95) 0%,rgba(5,2,12,0.7) 60%,transparent 100%);padding:36px 8px 8px}
-.arc-row-name{font-family:var(--fb);font-size:13px;font-weight:700;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:3px}
-.arc-row-meta{font-family:var(--fb);font-size:10px;color:rgba(255,255,255,0.55);display:flex;align-items:center;gap:4px}
-.arc-row-cat{position:absolute;top:6px;right:6px;font-family:var(--fb);font-size:8.5px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:2px 7px;border-radius:100px;background:rgba(10,5,20,0.75);border:1px solid rgba(146,16,246,0.4);color:#c084fc;backdrop-filter:blur(6px)}
-.arc-row-play-overlay{position:absolute;inset:0;background:rgba(146,16,246,0.12);opacity:0;transition:opacity .22s;display:flex;align-items:center;justify-content:center}
-.arc-row-card:hover .arc-row-play-overlay{opacity:1}
-.arc-row-play-ico{width:42px;height:42px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.5);transform:scale(0.5);transition:transform .25s cubic-bezier(.34,1.56,.64,1);margin-bottom:32px}
-.arc-row-card:hover .arc-row-play-ico{transform:scale(1)}
+/* hero placements — 12-column layout:
+   1 big square · vertical 2-stack · 1 wide tile · 3 small · 4 medium */
+.pg-h0{grid-column:1 / span 4;grid-row:1 / span 2}
+.pg-h1{grid-column:5 / span 2;grid-row:1}
+.pg-h2{grid-column:5 / span 2;grid-row:2}
+.pg-h3{grid-column:7 / span 6;grid-row:1}
+.pg-h4{grid-column:7 / span 2;grid-row:2}
+.pg-h5{grid-column:9 / span 2;grid-row:2}
+.pg-h6{grid-column:11 / span 2;grid-row:2}
+.pg-h7{grid-column:1 / span 3;grid-row:3}
+.pg-h8{grid-column:4 / span 3;grid-row:3}
+.pg-h9{grid-column:7 / span 3;grid-row:3}
+.pg-h10{grid-column:10 / span 3;grid-row:3}
+.pg-rest{grid-column:span 2}
 
-/* EMPTY / LOADING */
-.arc-empty{text-align:center;padding:80px 20px}
-.arc-empty-ico{font-size:48px;margin-bottom:16px}
-.arc-empty-txt{font-family:var(--fb);font-size:15px;color:var(--muted);line-height:1.7}
-.arc-loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:80px 20px;font-family:var(--fb);font-size:14px;color:var(--muted)}
-.arc-spin{width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(146,16,246,0.2);border-top-color:var(--purple);animation:arcSpin .7s linear infinite;flex-shrink:0}
-@keyframes arcSpin{to{transform:rotate(360deg)}}
+/* big-tile typography */
+.pg-h0 .pg-tile-info{padding:18px}
+.pg-h0 .pg-tile-name{font-family:var(--fh);font-weight:400;font-size:clamp(24px,2.4vw,32px);letter-spacing:1.5px;line-height:1.02}
+.pg-h0 .pg-tile-meta{font-size:12.5px}
+.pg-h3 .pg-tile-name{font-size:17px}
+.pg-rest .pg-tile-name{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block;-webkit-line-clamp:unset}
 
-/* GAME MODAL (unchanged) */
-.gm-overlay{position:fixed;inset:0;z-index:8000;background:rgba(5,2,12,0.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:0;animation:gmFadeIn .2s ease both}
-@keyframes gmFadeIn{from{opacity:0}to{opacity:1}}
-.gm-modal{position:relative;width:100%;height:100dvh;display:flex;flex-direction:column;background:#0a0514;animation:gmSlideUp .28s cubic-bezier(.22,1,.36,1) both;overflow:hidden}
-@media(min-width:640px){
-  .gm-modal{width:calc(100% - 48px);height:94dvh;max-width:1000px;border-radius:20px;border:1px solid rgba(146,16,246,0.25);box-shadow:0 40px 100px rgba(0,0,0,0.85),0 0 0 1px rgba(146,16,246,0.08)}
-}
-@keyframes gmSlideUp{from{opacity:0;transform:translateY(30px) scale(0.96)}to{opacity:1;transform:none}}
-.gm-bar{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(10,5,20,0.98);border-bottom:1px solid rgba(146,16,246,0.15);flex-shrink:0;min-height:52px}
-.gm-bar-cat{font-family:var(--fb);font-size:9.5px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;padding:3px 10px;border-radius:100px;background:rgba(146,16,246,0.2);border:1px solid rgba(146,16,246,0.35);color:#c084fc;flex-shrink:0}
-.gm-bar-name{font-family:var(--fb);font-size:15px;color:#fff;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.gm-bar-plays{font-family:var(--fb);font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px;flex-shrink:0}
-.gm-close{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.13);color:rgba(255,255,255,0.7);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:15px;transition:background .2s,transform .2s,color .2s}
-.gm-close:hover{background:rgba(255,255,255,0.16);color:#fff;transform:rotate(90deg)}
-.gm-iframe-wrap{flex:1;position:relative;overflow:hidden;background:#0a0514;min-height:0}
-.gm-iframe{width:100%;height:100%;border:none;display:block}
-.gm-loader{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0a0514;z-index:5;transition:opacity .35s,visibility .35s}
-.gm-loader.gone{opacity:0;visibility:hidden}
-.gm-loader-ring{width:40px;height:40px;border-radius:50%;border:3px solid rgba(146,16,246,0.18);border-top-color:var(--purple);animation:arcSpin .75s linear infinite}
-.gm-loader-txt{font-family:var(--fb);font-size:13px;color:var(--muted)}
-.gm-strip{display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(10,5,20,0.98);border-top:1px solid rgba(146,16,246,0.10);overflow-x:auto;flex-shrink:0;scrollbar-width:none;min-height:58px}
-.gm-strip::-webkit-scrollbar{display:none}
-.gm-strip-label{font-family:var(--fb);font-size:9.5px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);white-space:nowrap;flex-shrink:0}
-.gm-chip{display:flex;align-items:center;gap:8px;padding:7px 14px;border-radius:100px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.09);cursor:pointer;transition:background .2s,border-color .2s;flex-shrink:0}
-.gm-chip:hover{background:rgba(146,16,246,0.18);border-color:rgba(146,16,246,0.4)}
-.gm-chip.active-chip{background:rgba(146,16,246,0.22);border-color:rgba(146,16,246,0.5)}
-.gm-chip-thumb{width:28px;height:28px;border-radius:6px;object-fit:cover;flex-shrink:0}
-.gm-chip-fallback{width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
-.gm-chip-info{display:flex;flex-direction:column;gap:1px}
-.gm-chip-name{font-family:var(--fb);font-size:12px;font-weight:700;color:#fff;white-space:nowrap}
-.gm-chip-plays{font-family:var(--fb);font-size:10px;color:var(--muted);white-space:nowrap}
-
-/* FOOTER (LandingPage style) */
-.footer{border-top:1px solid rgba(255,255,255,0.07);margin-top:60px}
-.footer-main{padding:60px 6%;display:grid;grid-template-columns:1.4fr 1fr 1.6fr;gap:40px;max-width:1440px;margin:0 auto}
-.footer-brand-name{font-family:var(--fh);font-size:32px;letter-spacing:4px;margin-bottom:8px}
-.footer-tagline{font-family:var(--fm);font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
-.footer-desc{font-family:var(--fb);font-size:14px;color:var(--muted);line-height:1.75;max-width:360px;margin-bottom:28px}
-.socials{display:flex;gap:10px}
-.soc{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,0.05);border:1px solid var(--gb);display:grid;place-items:center;color:#fff;font-family:var(--fb);font-size:12px;font-weight:700;text-decoration:none;transition:background .2s}
-.soc:hover{background:rgba(146,16,246,0.25)}
-.footer-links-title{font-family:var(--fm);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:20px}
-.footer-links{display:flex;flex-direction:column;gap:12px}
-.footer-links a{font-family:var(--fb);font-size:14px;color:var(--muted);text-decoration:none;transition:color .2s}
-.footer-links a:hover{color:#fff}
-.footer-contact{display:flex;flex-direction:column;gap:10px;margin-top:28px}
-.footer-contact a{font-family:var(--fb);font-size:14px;color:var(--muted);text-decoration:none;transition:color .2s}
-.footer-contact a:hover{color:#fff}
-.footer-bar{border-top:1px solid rgba(255,255,255,0.07);padding:18px 6%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-family:var(--fm);font-size:11px;color:rgba(255,255,255,0.3);max-width:1440px;margin:0 auto;letter-spacing:.5px}
-.footer-bar a{color:rgba(255,255,255,0.3);text-decoration:none;transition:color .2s}
-.footer-bar a:hover{color:#fff}
-
-@media(max-width:1100px){.navbar{width:78%}}
-@media(max-width:900px){
-  .nav-links,.nav-btn-cta{display:none}
-  .ham{display:flex}
-  .nav-wrap{padding:12px 20px;display:block}
-  .navbar{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}
-  .arc-row-track{gap:8px}
-  .arc-row-card{width:160px}
-  .arc-masonry{columns:6}
-  .footer-main{grid-template-columns:1fr}
+@media(max-width:1024px){
+  .pg-grid{grid-template-columns:repeat(6,1fr);gap:clamp(10px,1.5vw,14px)}
+  .pg-grid{grid-auto-rows:118px;grid-auto-rows:24cqw}
+  .pg-h0{grid-column:1 / span 4;grid-row:1 / span 2}
+  .pg-h1{grid-column:5 / span 2;grid-row:1}
+  .pg-h2{grid-column:5 / span 2;grid-row:2}
+  .pg-h3{grid-column:1 / span 6;grid-row:3}
+  .pg-h4{grid-column:1 / span 3;grid-row:4}
+  .pg-h5{grid-column:4 / span 3;grid-row:4}
+  .pg-h6{grid-column:1 / span 3;grid-row:5}
+  .pg-h7{grid-column:4 / span 3;grid-row:5}
+  .pg-h8{grid-column:1 / span 3;grid-row:6}
+  .pg-h9{grid-column:4 / span 3;grid-row:6}
+  .pg-h10{grid-column:1 / span 6;grid-row:7}
+  .pg-rest{grid-column:span 2}
 }
 @media(max-width:640px){
-  .arc-row-card{width:140px}
-  .arc-masonry{columns:5}
-  .arc-row-rank{font-size:24px}
+  .pg-grid{grid-template-columns:repeat(4,1fr);gap:clamp(6px,2.2vw,10px)}
+  .pg-grid{grid-auto-rows:88px;grid-auto-rows:25cqw}
+  .pg-h0{grid-column:1 / span 2;grid-row:1 / span 2}
+  .pg-h1{grid-column:3 / span 2;grid-row:1}
+  .pg-h2{grid-column:3;grid-row:2}
+  .pg-h3{grid-column:4;grid-row:2}
+  .pg-h4{grid-column:1 / span 2;grid-row:3}
+  .pg-h5{grid-column:3;grid-row:3}
+  .pg-h6{grid-column:4;grid-row:3}
+  .pg-h7{grid-column:1;grid-row:4}
+  .pg-h8{grid-column:2;grid-row:4}
+  .pg-h9{grid-column:3 / span 2;grid-row:4}
+  .pg-h10{grid-column:1 / span 4;grid-row:5}
+  .pg-rest{grid-column:span 1}
+  .pg-rest:nth-child(3n+12){grid-column:span 2}
+  .pg-tile{border-radius:12px}
+  .pg-tile-info{padding:10px}
+  .pg-h0 .pg-tile-info{padding:14px}
+  .pg-h0 .pg-tile-name{font-size:clamp(18px,5.5vw,24px)}
+}
+
+.arc-empty{text-align:center;padding:90px 20px}
+.arc-empty-ico{font-size:46px;margin-bottom:14px;opacity:.9}
+.arc-empty-txt{font-family:var(--fb);font-size:15px;color:var(--muted);line-height:1.7}
+.arc-loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:140px 20px 80px;font-family:var(--fb);font-size:14px;color:var(--muted)}
+.arc-spin{width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(146,16,246,0.2);border-top-color:var(--purple);animation:arcSpin .7s linear infinite}
+@keyframes arcSpin{to{transform:rotate(360deg)}}
+
+@media(max-width:768px){
+  .arc-content{padding-top:84px}
+  .arc-featured{padding:24px 0 16px}
+  .arc-featured-card{width:220px}
+  .arc-featured-scroll{margin:0;padding-left:0;padding-right:0;gap:12px}
+  .arc-grid-section{padding:0 0 5px}
+  .arc-grid-head{flex-direction:column;align-items:flex-start}
+  .arc-toolbar{width:100%;justify-content:space-between}
+  .arc-chips{gap:6px}
+  .arc-chip{padding:6px 14px;font-size:11px}
+  .arc-filter-btn{padding:6px 12px;font-size:11px}
+}
+
+@media(max-width:400px){
+  .arc-content{padding-top:76px}
+  .arc-featured-card{width:180px}
+  .arc-section-title{font-size:20px}
 }
 `
 
-const COLORS = ['#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497']
+const HERO_SIZES = ['pg-h0','pg-h1','pg-h2','pg-h3','pg-h4','pg-h5','pg-h6','pg-h7','pg-h8','pg-h9','pg-h10']
 
-const RATIOS = [
-  { key: '11', css: '1 / 1' },
-  { key: '34', css: '3 / 4' },
-  { key: '43', css: '4 / 3' },
-  { key: '169', css: '16 / 9' },
-  { key: '916', css: '9 / 16' },
-]
-
-const iconUrlFor = (game, key) => {
-  const cat = game.category || game.slug
-  const urls = []
-  if (cat) {
-    urls.push(`/game-previews/${cat}/${cat}${key}.png`)
-    urls.push(`/game-previews/${cat}/${cat}_${key}.png`)
-  }
-  if (game.slug && game.slug !== cat) {
-    urls.push(`/gameicons/${game.slug}/${game.slug}_${key}.png`)
-  }
-  return urls
-}
-
-async function pickGameRatio(game) {
-  const hits = []
-  for (const r of RATIOS) {
-    for (const url of iconUrlFor(game, r.key)) {
-      try {
-        const res = await fetch(url, { method: 'HEAD' })
-        if (res.ok && (res.headers.get('content-type') || '').startsWith('image/')) { hits.push(r.key); break }
-      } catch {}
-    }
-  }
-  const unique = [...new Set(hits)]
-  return unique.length ? unique[Math.floor(Math.random() * unique.length)] : null
-}
-
-const NAV = [
-  { label: "Leaderboard", href: "/leaderboard" },
-]
-
-
-
-function RowCard({ game, index, rank, onPlay }) {
-  const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : ''
+function PlayTile({ game, sizeClass, delay, onPlay }) {
+  const thumb = game.thumbnail_url || game.game_logo_url || game.bg_image_url
   return (
-    <div className="arc-row-card" style={{ animationDelay: `${Math.min(index * 50, 300)}ms` }} onClick={() => onPlay(game)}>
-      {game.game_logo_url || game.bg_image_url
-        ? <img className="arc-row-thumb" src={game.game_logo_url || game.bg_image_url} alt={game.name} loading="lazy" />
-        : <div className="arc-row-fallback">🎮</div>
-      }
-      {rank && <span className={`arc-row-rank ${rankClass}`}>#{rank}</span>}
-      <span className="arc-row-cat">{game.category || 'Quiz'}</span>
-      <div className="arc-row-body">
-        <div className="arc-row-name">{game.name}</div>
-        <div className="arc-row-meta">
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          {(game.play_count || 0).toLocaleString()}
-        </div>
-      </div>
-      <div className="arc-row-play-overlay">
-        <div className="arc-row-play-ico">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="#9210f6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function MasonryCard({ game, index, rank, onPlay }) {
-  const rankClass = index === 0 ? 'gold' : index === 1 ? 'silver' : index === 2 ? 'bronze' : ''
-  const ratio = RATIOS.find(r => r.key === game.cardRatio) || RATIOS[0]
-  const sources = [...iconUrlFor(game, ratio.key), game.game_logo_url, game.bg_image_url].filter(Boolean)
-  const [stage, setStage] = useState(0)
-  const src = sources[stage]
-  return (
-    <div className="arc-masonry-card" style={{ animationDelay: `${Math.min(index * 60, 400)}ms`, '--ar': ratio.css }} onClick={() => onPlay(game)}>
-      {src ? (
-        <img className="arc-masonry-thumb" src={src} alt={game.name} loading="lazy" onError={() => setStage(s => s + 1)} />
+    <div className={`pg-tile ${sizeClass}`} style={{ animationDelay: `${delay}ms` }} onClick={() => onPlay(game)}>
+      {thumb ? (
+        <img className="pg-tile-bg" src={thumb} alt={game.name} loading="lazy" />
       ) : (
-        <div className="arc-masonry-fallback">🎮</div>
+        <>
+          <div className="pg-tile-fallback">🎮</div>
+          <div className="pg-tile-shade" />
+          <span className="pg-tile-cat">{game.category || 'Game'}</span>
+          <div className="pg-tile-info">
+            <div className="pg-tile-name">{game.name}</div>
+            <div className="pg-tile-meta">
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+              <span>{(game.play_count || 0).toLocaleString()} plays</span>
+            </div>
+          </div>
+        </>
       )}
-      {rank && <span className={`arc-row-rank ${rankClass}`}>#{rank}</span>}
-      <span className="arc-row-cat">{game.category || 'Quiz'}</span>
-      <div className="arc-row-body">
-        <div className="arc-row-name">{game.name}</div>
-        <div className="arc-row-meta">
-          <svg width="8" height="8" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-          {(game.play_count || 0).toLocaleString()}
-        </div>
-      </div>
-      <div className="arc-row-play-overlay">
-        <div className="arc-row-play-ico">
+      <div className="pg-tile-play">
+        <div className="pg-tile-play-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="#9210f6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
         </div>
       </div>
     </div>
   )
 }
+
 
 export default function ArcadePage() {
   const location = useLocation()
@@ -289,6 +225,7 @@ export default function ArcadePage() {
   const [loading, setLoading] = useState(true)
   const [activeGame, setActiveGame] = useState(null)
   const [showWelcome, setShowWelcome] = useState(location.state?.welcomeBonus === true)
+  const featuredRef = useRef(null)
 
   useEffect(() => {
     if (location.state?.welcomeBonus) {
@@ -296,25 +233,19 @@ export default function ArcadePage() {
     }
   }, [])
 
-  const loadGames = useCallback(() => {
+  useEffect(() => {
     fetch('/api/play/play-page-games')
       .then(r => r.json())
-      .then(async (d) => {
+      .then(d => {
         if (d.success) {
           setGames(d.games || [])
           setFeatured(d.featured || [])
-          const decorated = await Promise.all((d.promogames || []).map(async (g) => ({
-            ...g,
-            cardRatio: (await pickGameRatio(g)) || RATIOS[Math.floor(Math.random() * RATIOS.length)].key,
-          })))
-          setPromogames(decorated)
+          setPromogames(d.promogames || [])
         }
       })
       .catch(() => {})
       .finally(() => setLoading(false))
   }, [])
-
-  useEffect(() => { loadGames() }, [loadGames])
 
   useEffect(() => {
     const onScroll = () => {
@@ -327,12 +258,11 @@ export default function ArcadePage() {
 
   const handlePlay = useCallback((game) => setActiveGame(game), [])
   const handleSwitch = useCallback((game) => setActiveGame(game), [])
-  const handleClose = useCallback(() => {
-    setActiveGame(null)
-    loadGames()
-  }, [loadGames])
+  const handleClose = useCallback(() => setActiveGame(null), [])
 
   const allGames = [...featured, ...promogames]
+
+  const filteredGames = allGames
 
   return (
     <>
@@ -341,70 +271,76 @@ export default function ArcadePage() {
       <MascotCursor />
       <div className="arc-scroll-bar" />
 
-      {/* NAV */}
       <PlayerNavbar />
 
-      {/* CONTENT */}
       <div className="arc-content">
         {loading ? (
-          <div className="arc-loading" style={{ paddingTop:140 }}><div className="arc-spin" /> Loading games…</div>
-        ) : allGames.length === 0 ? (
-          <div className="arc-empty" style={{ paddingTop:140 }}>
-            <div className="arc-empty-ico">🎮</div>
-            <div className="arc-empty-txt">No games available right now — check back soon!</div>
-          </div>
+          <div className="arc-loading"><div className="arc-spin" /> Loading games…</div>
         ) : (
           <>
-            {/* Row 1: Featured Games (hero games with rank badges) */}
+            {/* FEATURED */}
             {featured.length > 0 && (
-              <div className="arc-row">
-                <div className="arc-row-header">
-                  <div className="arc-row-label">
-                    🏆 Featured Games
-                    <span className="arc-row-count">{featured.length} games</span>
+              <section className="arc-featured">
+                <div className="arc-container">
+                  <div className="arc-section-head">
+                    <h2 className="arc-section-title">Featured Games</h2>
+                    <a href="#all-games" className="arc-view-all">
+                      View All <ChevronRight />
+                    </a>
+                  </div>
+                  <div className="arc-featured-scroll" ref={featuredRef}>
+                    {featured.map((game, i) => {
+                      const hasThumb = game.thumbnail_url || game.game_logo_url || game.bg_image_url
+                      return (
+                        <div className="arc-featured-card" key={game.id} onClick={() => handlePlay(game)}>
+                          <div className="arc-featured-thumb">
+                            {hasThumb
+                              ? <img src={hasThumb} alt={game.name} loading="lazy" />
+                              : <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:44, background:'linear-gradient(150deg,rgba(146,16,246,0.35),rgba(97,4,151,0.18))' }}>🎮</div>
+                            }
+                          </div>
+                          <div className="arc-featured-info">
+                            <div className="arc-featured-name">{game.name}</div>
+                            <div className="arc-featured-meta">
+                              <span className="arc-featured-cat">{game.category || 'Quiz'}</span>
+                              <span>{(game.play_count || 0).toLocaleString()} plays</span>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
                 </div>
-                <div className="arc-row-track">
-                  {featured.map((game, i) => (
-                    <RowCard key={game.id} game={game} index={i} rank={i + 1} onPlay={handlePlay} />
-                  ))}
-                </div>
-              </div>
+              </section>
             )}
 
-            {/* Row 2: PromoGames — masonry */}
-            {promogames.length > 0 && (
-              <div className="arc-row">
-                <div className="arc-row-header">
-                  <div className="arc-row-label">
-                    🎮 PromoGames
-                    <span className="arc-row-count">{promogames.length} games</span>
+            {/* ALL GAMES */}
+            <section className="arc-grid-section" id="all-games">
+              <div className="arc-container">
+                <div className="arc-grid-head">
+                  <div className="arc-grid-label">
+                    All Games
+                    <span className="arc-grid-count">{filteredGames.length} games</span>
                   </div>
                 </div>
-                <div className="arc-masonry">
-                  {promogames.map((game, i) => (
-                    <MasonryCard key={game.id} game={game} index={i} rank={i + 1} onPlay={handlePlay} />
-                  ))}
-                </div>
-              </div>
-            )}
 
-            {/* Fallback: if no featured/promogames, show all as one row */}
-            {featured.length === 0 && promogames.length === 0 && games.length > 0 && (
-              <div className="arc-row">
-                <div className="arc-row-header">
-                  <div className="arc-row-label">
-                    🎮 All Games
-                    <span className="arc-row-count">{games.length} games</span>
+                {filteredGames.length === 0 ? (
+                  <div className="arc-empty">
+                    <div className="arc-empty-ico">🔍</div>
+                    <div className="arc-empty-txt">No games found — try a different filter</div>
                   </div>
-                </div>
-                <div className="arc-row-track">
-                  {games.map((game, i) => (
-                    <RowCard key={game.id} game={game} index={i} rank={null} onPlay={handlePlay} />
-                  ))}
-                </div>
+                ) : (
+                  <div className="pg-grid">
+                    {filteredGames.slice(0, 11).map((game, i) => (
+                      <PlayTile key={game.id} game={game} sizeClass={HERO_SIZES[i]} delay={Math.min(i * 45, 360)} onPlay={handlePlay} />
+                    ))}
+                    {filteredGames.slice(11).map((game, i) => (
+                      <PlayTile key={game.id} game={game} sizeClass="pg-rest" delay={Math.min(i * 25, 280)} onPlay={handlePlay} />
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
+            </section>
           </>
         )}
       </div>
@@ -412,14 +348,13 @@ export default function ArcadePage() {
       {activeGame && (
         <GameModal
           game={activeGame}
-          allGames={allGames}
+          allGames={filteredGames}
           onClose={handleClose}
           onSwitch={handleSwitch}
           isLoggedIn={!!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))}
         />
       )}
 
-      {/* ── Welcome Bonus Modal ── */}
       {showWelcome && (
         <div style={{
           position: 'fixed', inset: 0, zIndex: 9000,

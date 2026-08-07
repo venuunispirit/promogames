@@ -129,6 +129,7 @@ export default function FlappyPlayerPage() {
   }, [resetGame]);
 
   const togglePause = useCallback((e) => {
+    e.preventDefault();
     e.stopPropagation();
     const g = gRef.current;
     if (g.state === "playing") {
@@ -141,6 +142,7 @@ export default function FlappyPlayerPage() {
   }, []);
 
   const resume = useCallback((e) => {
+    e.preventDefault();
     e.stopPropagation();
     gRef.current.state = "playing";
     setUiState("playing");
@@ -148,6 +150,7 @@ export default function FlappyPlayerPage() {
 
   const goHome = useCallback(
     (e) => {
+      e.preventDefault();
       e.stopPropagation();
       resetGame();
     },
@@ -155,6 +158,7 @@ export default function FlappyPlayerPage() {
   );
 
   const toggleSound = useCallback((e) => {
+    e.preventDefault();
     e.stopPropagation();
     gRef.current.soundOn = !gRef.current.soundOn;
     setSoundOn(gRef.current.soundOn);
@@ -325,12 +329,16 @@ export default function FlappyPlayerPage() {
           </div>
         </div>
 
-        <button onClick={toggleSound} title="Toggle sound" style={iconBtnStyle({ right: 10 })}>
+        <button
+          onPointerDown={toggleSound}
+          title="Toggle sound"
+          style={iconBtnStyle({ right: 10 })}
+        >
           {soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
         </button>
 
         {(uiState === "playing" || uiState === "paused") && (
-          <button onClick={togglePause} title="Pause" style={iconBtnStyle({ left: 10 })}>
+          <button onPointerDown={togglePause} title="Pause" style={iconBtnStyle({ left: 10 })}>
             {uiState === "paused" ? <Play size={18} /> : <Pause size={18} />}
           </button>
         )}
@@ -348,13 +356,29 @@ export default function FlappyPlayerPage() {
               alignItems: "center",
             }}
           >
-            <button onClick={resume} style={pillBtnStyle}>
+            <button onPointerDown={resume} style={pillBtnStyle}>
               <Play size={16} />
               Resume
             </button>
-            <button onClick={goHome} style={pillBtnStyle}>
+            <button onPointerDown={goHome} style={pillBtnStyle}>
               <HomeIcon size={16} />
               Menu
+            </button>
+          </div>
+        )}
+
+        {uiState === "over" && (
+          <div
+            style={{
+              position: "absolute",
+              left: "50%",
+              top: "72%",
+              transform: "translate(-50%, -50%)",
+            }}
+          >
+            <button onPointerDown={goHome} style={pillBtnStyle}>
+              <HomeIcon size={16} />
+              Home
             </button>
           </div>
         )}
@@ -397,6 +421,7 @@ function iconBtnStyle(pos) {
     padding: 0,
     WebkitTapHighlightColor: "transparent",
     outline: "none",
+    touchAction: "manipulation",
   };
 }
 
@@ -414,6 +439,7 @@ const pillBtnStyle = {
   cursor: "pointer",
   WebkitTapHighlightColor: "transparent",
   outline: "none",
+  touchAction: "manipulation",
 };
 
 function drawSky(ctx, clouds) {

@@ -444,14 +444,9 @@ router.post('/accept-redemption', boAuth, async (req, res) => {
   const { redemption_id } = req.body;
   if (!redemption_id) return res.status(400).json({ success: false, message: 'redemption_id required' });
   try {
-    let ids = [req.bo.id]
-    if (!req.bo.parent_id) {
-      const [children] = await db.query('SELECT id FROM business_owners WHERE parent_id = ?', [req.bo.id])
-      ids = ids.concat(children.map(c => c.id))
-    }
     const [rows] = await db.query(
-      "SELECT * FROM business_redemptions WHERE id = ? AND business_owner_id IN (?) AND status IN ('pending','code_revealed','code_entered')",
-      [redemption_id, ids]
+      "SELECT * FROM business_redemptions WHERE id = ? AND status IN ('pending','code_revealed','code_entered')",
+      [redemption_id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Redemption not found or already processed' });
     const redemption = rows[0];
@@ -596,14 +591,9 @@ router.post('/reject-redemption', boAuth, async (req, res) => {
   const { redemption_id, reason } = req.body;
   if (!redemption_id) return res.status(400).json({ success: false, message: 'redemption_id required' });
   try {
-    let ids = [req.bo.id]
-    if (!req.bo.parent_id) {
-      const [children] = await db.query('SELECT id FROM business_owners WHERE parent_id = ?', [req.bo.id])
-      ids = ids.concat(children.map(c => c.id))
-    }
     const [rows] = await db.query(
-      "SELECT * FROM business_redemptions WHERE id = ? AND business_owner_id IN (?) AND status IN ('pending','code_revealed','code_entered')",
-      [redemption_id, ids]
+      "SELECT * FROM business_redemptions WHERE id = ? AND status IN ('pending','code_revealed','code_entered')",
+      [redemption_id]
     );
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Redemption not found or already processed' });
     const redemption = rows[0];

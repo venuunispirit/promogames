@@ -41,6 +41,7 @@ const CATEGORY_META = {
   bejeweled: { label:'Bejeweled',      bg:'#FDF2F8', fg:'#BE185D', dot:'#EC4899', icon:'💎', desc:'Match gems in a grid' },
   tetris:    { label:'Tetris',         bg:'var(--text)', fg:'#00f0f0', dot:'#00f0f0', icon:'🧱', desc:'Classic block-stacking puzzle' },
   stack:     { label:'Stack',          bg:'var(--text)', fg:'#6366f1', dot:'#818CF8', icon:'📦', desc:'Stack blocks as high as you can' },
+  tower:     { label:'Tower',          bg:'#FEF2F2', fg:'#B45309', dot:'#F59E0B', icon:'🗼', desc:'Build the tower block by block' },
   bowling:   { label:'Bowling',        bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'🎳', desc:'Roll strikes and spares' },
   sudoku:    { label:'Sudoku',         bg:'#EFF6FF', fg:'#1E40AF', dot:'#3B82F6', icon:'🔢', desc:'Fill the grid with numbers' },
   minesweeper:{ label:'Minesweeper',   bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'💣', desc:'Find all safe cells' },
@@ -58,7 +59,7 @@ const CATEGORY_META = {
   chess:      { label:'Chess',          bg:'#F7F7F7', fg:'#4B5563', dot:'#6B7280', icon:'♟️', desc:'Two-player online chess' },
   blockblaster:{ label:'Block Blaster',  bg:'#F5F3FF', fg:'#6D28D9', dot:'#8B5CF6', icon:'💥', desc:'Explosive block-clearing puzzle' },
   candyblast: { label:'Candy Blast',     bg:'#FDF2F8', fg:'#BE185D', dot:'#EC4899', icon:'🍬', desc:'Match and blast candy combos' },
-  carom:      { label:'Carrom',          bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'🎯', desc:'Classic carrom board game' },
+  Carrom:      { label:'Carrom',          bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'🎯', desc:'Classic carrom board game' },
   classicmaze:{ label:'Classic Maze',    bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'🏰', desc:'Navigate through the maze' },
   ludo:       { label:'Ludo',            bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'🎲', desc:'Classic Ludo board game' },
   snakeandladder:{ label:'Snake & Ladder', bg:'#ECFEFF', fg:'#0E7490', dot:'#06B6D4', icon:'🪜', desc:'Roll dice, climb the ladder' },
@@ -72,7 +73,7 @@ const CATEGORY_ICON = {
   pouring:'Droplets', typer:'Keyboard', screw:'Wrench',   math:'Calculator', maze:'Route',
   '2048':'Grid3x3',   snake:'Snail', catch:'ShoppingBasket', reaction:'Zap', simon:'Target',
   flappy:'Bird', bounce:'CircleDot', space:'Rocket', connect4:'CircleDot',   bejeweled:'Sparkles',
-  tetris:'Layers', stack:'Layers', bowling:'Building', sudoku:'Grid3x3', minesweeper:'Bomb',
+  tetris:'Layers', stack:'Layers', tower:'TowerControl', bowling:'Building', sudoku:'Grid3x3', minesweeper:'Bomb',
   wordscramble:'Shuffle', rps:'Hand', whackamole:'Hammer', hanoi:'TowerControl', breakout:'Boxes',
   bubbleshooter:'CircleDot', carlaunch:'Car', arrowescape:'ArrowRight', stressbuster:'Frown',
   soundify:'Volume2', tictactoe:'CircleX', chess:'Crown',
@@ -403,6 +404,8 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/maze-builder`)
     } else if (game.category === 'screw') {
       navigate(`/dashboard/games/${game.id}/screw-builder`)
+    } else if (game.category === 'tower') {
+      navigate(`/dashboard/games/${game.id}/tower-builder`)
     } else if (game.category === '2048') {
       navigate(`/dashboard/games/${game.id}/2048-builder`)
     } else if (game.category === 'snake') {
@@ -461,8 +464,8 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/blockblaster-builder`)
     } else if (game.category === 'candyblast') {
       navigate(`/dashboard/games/${game.id}/candyblast-builder`)
-    } else if (game.category === 'carom') {
-      navigate(`/dashboard/games/${game.id}/carom-builder`)
+    } else if (game.category === 'Carrom') {
+      navigate(`/dashboard/games/${game.id}/Carrom-builder`)
     } else if (game.category === 'classicmaze') {
       navigate(`/dashboard/games/${game.id}/classicmaze-builder`)
     } else if (game.category === 'ludo') {
@@ -1257,7 +1260,7 @@ export default function GamesPage() {
   const STATUS_CYCLE = ['development', 'testing', 'live']
 
   const navigateBuilder = (game) => {
-    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',chess:'chess',snakeandladder:'snakeandladder',ludo:'ludo',carom:'carom',tictactoemultiplayer:'tictactoemultiplayer'}
+    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',tower:'tower',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',chess:'chess',snakeandladder:'snakeandladder',ludo:'ludo',Carrom:'Carrom',tictactoemultiplayer:'tictactoemultiplayer'}
     const slug = builders[game.category]
     navigate(`/dashboard/games/${game.id}${slug ? '/' + slug + '-builder' : '/builder'}`)
   }
@@ -1556,6 +1559,7 @@ export default function GamesPage() {
                                 else if (game.category === 'pouring') navigate(`/dashboard/games/${game.id}/pouring-builder`)
                                 else if (game.category === 'typer') navigate(`/dashboard/games/${game.id}/typer-builder`)
                                 else if (game.category === 'screw') navigate(`/dashboard/games/${game.id}/screw-builder`)
+                                else if (game.category === 'tower') navigate(`/dashboard/games/${game.id}/tower-builder`)
                                 else if (game.category === 'math') navigate(`/dashboard/games/${game.id}/math-builder`)
                                 else if (game.category === 'maze') navigate(`/dashboard/games/${game.id}/maze-builder`)
                                 else if (game.category === '2048') navigate(`/dashboard/games/${game.id}/2048-builder`)
@@ -1587,7 +1591,7 @@ export default function GamesPage() {
                                 else if (game.category === 'chess') navigate(`/dashboard/games/${game.id}/chess-builder`)
                                 else if (game.category === 'snakeandladder') navigate(`/dashboard/games/${game.id}/snakeandladder-builder`)
                                 else if (game.category === 'ludo') navigate(`/dashboard/games/${game.id}/ludo-builder`)
-                                else if (game.category === 'carom') navigate(`/dashboard/games/${game.id}/carom-builder`)
+                                else if (game.category === 'Carrom') navigate(`/dashboard/games/${game.id}/Carrom-builder`)
                                 else if (game.category === 'tictactoemultiplayer') navigate(`/dashboard/games/${game.id}/tictactoemultiplayer-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">

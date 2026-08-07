@@ -34,6 +34,7 @@ export default function ChessBuilderPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [toast, setToast] = useState(null)
+  const [game, setGame] = useState(null)
 
   const [settings, setSettings] = useState({
     difficulty: 'medium', time_control: 0, board_theme: 'classic',
@@ -44,8 +45,12 @@ export default function ChessBuilderPage() {
   useEffect(() => {
     const load = async () => {
       try {
-        const res = await api.get(`/chess/settings/${id}`)
-        if (res.data.settings) setSettings(s => ({ ...s, ...res.data.settings }))
+        const [gRes, sRes] = await Promise.all([
+          api.get(`/games/${id}`),
+          api.get(`/chess/settings/${id}`)
+        ])
+        if (gRes.data.game) setGame(gRes.data.game)
+        if (sRes.data.settings) setSettings(s => ({ ...s, ...sRes.data.settings }))
       } catch (e) { console.error(e) }
       setLoading(false)
     }
@@ -81,7 +86,7 @@ export default function ChessBuilderPage() {
           <h1 style={{ margin: 0, fontSize: 24, fontWeight: 700, fontFamily: 'Syne, DM Sans' }}>♚ Chess Settings</h1>
         </div>
         <div style={{ display: 'flex', gap: 8 }}>
-          <button onClick={() => navigate(`/play/chess/${id}`)} className="cb-btn cb-btn-ghost">Preview</button>
+          <button onClick={() => navigate(game && game.slug ? `/play/${game.slug}/${game.client_slug}` : `/play/chess/${id}/${id}`)} className="cb-btn cb-btn-ghost">Preview</button>
           <button onClick={handleSave} disabled={saving} className="cb-btn cb-btn-primary">
             {saving ? 'Saving...' : 'Save Settings'}
           </button>

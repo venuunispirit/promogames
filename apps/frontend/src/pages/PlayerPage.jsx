@@ -4,17 +4,6 @@ import renderMedia, { isVideoUrl } from '../components/renderMedia'
 import { inAnim } from '../components/animations'
 import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
-
-function getDeviceId() {
-  try {
-    let id = localStorage.getItem('device_id')
-    if (!id) {
-      id = (typeof crypto !== 'undefined' && crypto.randomUUID && crypto.randomUUID()) || `dev-${Date.now()}-${Math.random().toString(36).slice(2, 10)}`
-      localStorage.setItem('device_id', id)
-    }
-    return id
-  } catch { return '' }
-}
 import CrosswordPlayerPage from './CrosswordPlayerPage'
 import SpinPlayerPage      from './SpinPlayerPage'
 import MemoryPlayerPage    from './MemoryPlayerPage'
@@ -24,7 +13,6 @@ import PouringPlayerPage from './PouringPlayerPage'
 import TyperPlayerPage from './TyperPlayerPage'
 import MathPlayerPage from './MathPlayerPage'
 import MazePlayerPage from './MazePlayerPage'
-import ScrewPlayerPage from './ScrewPlayerPage'
 import Game2048PlayerPage from './Game2048PlayerPage'
 import SnakePlayerPage from './SnakePlayerPage'
 import CatchPlayerPage from './CatchPlayerPage'
@@ -53,8 +41,11 @@ import StressBusterPlayerPage from './frustrationplayerpage'
 import TicTacToePlayerPage from './tictactoeplayer'
 import SnakeAndLadderPlayerPage from './SnakeAndLadderPlayerPage'
 import LudoPlayerPage from './LudoPlayerPage'
-import CaromPlayerPage from './CaromPlayerPage'
+import CarromPlayerPage from './CarromPlayerPage'
 import TicTacToeMultiplayerPlayerPage from './TicTacToeMultiplayerPlayerPage'
+import ChessPlayerPage from './ChessPlayerPage'
+import screwPlayerHtml from './ScrewPlayerPage.html?raw'
+import towerPlayerHtml from './TowerPlayerPage.html?raw'
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -503,31 +494,6 @@ export default function PlayerPage() {
   const qImgWrapRef = useRef(null)
   const tyWrapRef = useRef(null)
 
-  // ── Complete the session on exit (promogames only) so every play counts,
-  // even when an endless arcade game is closed before a natural game over ──
-  const sessionTokenRef = useRef(null)
-  useEffect(() => { sessionTokenRef.current = sessionToken }, [sessionToken])
-  const completedOnExitRef = useRef(false)
-  useEffect(() => {
-    const completeOnExit = () => {
-      if (completedOnExitRef.current) return
-      if (game?.game_type !== 'promogames') return
-      if (completingRef.current) return
-      const token = sessionTokenRef.current
-      if (!token) return
-      completedOnExitRef.current = true
-      try {
-        navigator.sendBeacon?.('/api/play/session/complete', new Blob([JSON.stringify({ session_token: token, player_data: {} })], { type: 'application/json' }))
-      } catch {}
-    }
-    window.addEventListener('pagehide', completeOnExit)
-    window.addEventListener('beforeunload', completeOnExit)
-    return () => {
-      window.removeEventListener('pagehide', completeOnExit)
-      window.removeEventListener('beforeunload', completeOnExit)
-    }
-  }, [game?.game_type])
-
   // ── Known field mapping from player profile ──────────────────────────────
   const KNOWN_FIELD_MAP = {
     name: ['name','full name','fullname','player name','your name','yourname'],
@@ -573,6 +539,9 @@ export default function PlayerPage() {
         let g = res.data.game
         setGame(g)
         if (g.settings?.font_family) loadFont(g.settings.font_family)
+
+        // Chess is a self-contained game (no question bank) — open the chess player directly.
+        if (g.category === 'chess') { setPhase('chess'); return }
 
         // Update OG meta tags for social sharing
         if (g.settings?.game_logo_url) {
@@ -636,7 +605,6 @@ export default function PlayerPage() {
             game_id: g.id,
             player_data: initData,
             source_type: searchParams.get('source') === 'direct' ? 'direct' : (profile ? 'player' : 'link'),
-            device_id: getDeviceId(),
             utm_source: utmSource,
             utm_medium: utmMedium,
             utm_campaign: utmCampaign,
@@ -784,7 +752,6 @@ export default function PlayerPage() {
         game_id: game.id,
         player_data: formData,
         source_type: searchParams.get('source') === 'direct' ? 'direct' : (playerProfile ? 'player' : 'link'),
-        device_id: getDeviceId(),
         utm_source: utmSource,
         utm_medium: utmMedium,
         utm_campaign: utmCampaign,
@@ -868,10 +835,14 @@ export default function PlayerPage() {
         setPhase('snakeandladder')
       } else if (game.category === 'ludo') {
         setPhase('ludo')
-      } else if (game.category === 'carom') {
-        setPhase('carom')
+      } else if (game.category === 'Carrom') {
+        setPhase('Carrom')
       } else if (game.category === 'tictactoemultiplayer') {
         setPhase('tictactoemultiplayer')
+      } else if (game.category === 'chess') {
+        setPhase('chess')
+      } else if (game.category === 'tower') {
+        setPhase('tower')
       } else {
         setPhase(game.intro_video ? 'intro' : 'playing')
       }
@@ -886,7 +857,6 @@ export default function PlayerPage() {
   const completeSession = useCallback(async (token) => {
     if (completingRef.current) return
     completingRef.current = true
-    completedOnExitRef.current = true
     setCompleting(true)
     try {
       const res = await api.post('/play/session/complete', { session_token: token })
@@ -944,7 +914,6 @@ export default function PlayerPage() {
   }, [game, playerProfile, stopAllSounds])
 
   const handleGameComplete = useCallback((data) => {
-    completedOnExitRef.current = true
     if (data?.session) {
       setScore(data.session.score || 0)
       setTotalScoreable(data.session.total_scoreable || 0)
@@ -2146,6 +2115,10 @@ const handleModalClose = () => {
     )
   }
 
+  if (phase === 'chess') {
+    return <ChessPlayerPage />
+  }
+
   if (phase === 'spin') {
     return (
       <SpinPlayerPage
@@ -2256,10 +2229,20 @@ const handleModalClose = () => {
 
   if (phase === 'screw') {
     return (
-      <ScrewPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
+      <iframe
+        title="Screw & Reveal"
+        srcDoc={screwPlayerHtml}
+        style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', border: 'none', background: '#140c06' }}
+      />
+    )
+  }
+
+  if (phase === 'tower') {
+    return (
+      <iframe
+        title="Tower Building"
+        srcDoc={towerPlayerHtml}
+        style={{ position: 'fixed', inset: 0, width: '100%', height: '100%', border: 'none', background: '#f95240' }}
       />
     )
   }
@@ -2298,9 +2281,9 @@ const handleModalClose = () => {
     return <LudoPlayerPage />
   }
 
-  if (phase === 'carom') {
+  if (phase === 'Carrom') {
     return (
-      <CaromPlayerPage
+      <CarromPlayerPage
         gameData={game}
         sessionToken={sessionToken}
         onComplete={handleGameComplete}

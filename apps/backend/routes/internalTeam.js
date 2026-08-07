@@ -316,14 +316,11 @@ router.get('/bo-logs/:boId/entries', auth, async (req, res) => {
       try { playerData = typeof r.player_data === 'string' ? JSON.parse(r.player_data) : (r.player_data || {}); }
       catch { playerData = {}; }
       const codePresent = r.code != null && String(r.code).trim() !== '';
-      const processed = r.redemption_status === 'completed' || r.redemption_status === 'player_confirmed';
       let redemptionState = 'played_not_redeemed';
       if (r.redemption_id) {
-        if (r.redemption_status === 'rejected') redemptionState = 'rejected';
-        else if (processed) redemptionState = codePresent ? 'accepted_with_code' : 'accepted_without_code';
-        else redemptionState = 'pending';
+        redemptionState = codePresent ? 'accepted_with_code' : 'accepted_without_code';
       }
-      const acceptedAt = processed ? (r.accepted_at || r.redemption_updated_at || null) : null;
+      const acceptedAt = r.accepted_at || (r.redemption_status ? (r.redemption_updated_at || r.played_at) : null);
       return {
         session_id: r.session_id,
         game_id: r.game_id,
@@ -339,7 +336,7 @@ router.get('/bo-logs/:boId/entries', auth, async (req, res) => {
         redemption_state: redemptionState,
         code_present: codePresent,
         code: r.code,
-        accepted_at: acceptedAt,
+        accepted_at: r.accepted_at,
         rejected_at: r.rejected_at,
         reject_reason: r.reject_reason,
         table_number: r.table_number,

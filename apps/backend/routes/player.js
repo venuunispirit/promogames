@@ -3,8 +3,6 @@ const router = express.Router();
 const db = require('../config/db');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
-const jwt = require('jsonwebtoken');
-const env = require('../config/env');
 const { sendError } = require('../lib/apiError');
 
 // GET /api/play/game-data/:gameId — full game payload for the Flutter app
@@ -32,7 +30,7 @@ router.get('/game-data/:gameId', async (req, res) => {
     const categorySettingsMap = {
       quiz: 'quiz_settings', crossword: 'crossword_settings', spin: 'spin_settings',
       memory: 'memory_settings', jigsaw: 'jigsaw_settings', wordsearch: 'wordsearch_settings',
-      pouring: 'pouring_settings', typer: 'typer_settings', screw: 'screw_settings',
+      pouring: 'pouring_settings', typer: 'typer_settings', screw: 'screw_settings', tower: 'tower_settings',
       math: 'math_settings', maze: 'maze_settings', '2048': 'game2048_settings',
       snake: 'snake_settings', catch: 'catch_settings', reaction: 'reaction_settings',
       simon: 'simon_settings', connect4: 'connect4_settings', flappy: 'flappy_settings',
@@ -44,7 +42,7 @@ router.get('/game-data/:gameId', async (req, res) => {
       sudoku: 'sudoku_settings', minesweeper: 'minesweeper_settings', wordscramble: 'wordscramble_settings',
       rps: 'rps_settings',
       snakeandladder: 'snake_ladder_settings', ludo: 'ludo_settings',
-      carom: 'carom_settings', tictactoemultiplayer: 'tictactoe_multi_settings',
+      Carrom: 'Carrom_settings', tictactoemultiplayer: 'tictactoe_multi_settings',
     };
 
     let settings = {};
@@ -92,6 +90,9 @@ router.get('/game-data/:gameId', async (req, res) => {
     } else if (game.category === 'wordsearch') {
       const [wRows] = await db.query('SELECT * FROM wordsearch_words WHERE game_id = ? ORDER BY word_order', [gameId]);
       words = wRows;
+    } else if (game.category === 'wordscramble') {
+      const [wRows] = await db.query('SELECT * FROM wordscramble_words WHERE game_id = ? ORDER BY word_order', [gameId]);
+      words = wRows;
     } else if (game.category === 'typer') {
       const [wRows] = await db.query('SELECT * FROM typer_words WHERE game_id = ? ORDER BY word_order', [gameId]);
       words = wRows;
@@ -121,7 +122,7 @@ router.get('/game-data/:gameId', async (req, res) => {
     res.json({
       success: true,
       game: {
-        id: game.id, game_type: game.game_type, name: game.name, category: game.category,
+        id: game.id, name: game.name, category: game.category,
         description: game.description, redirect_url: game.redirect_url,
         client_slug: game.client_slug, company_name: game.company_name,
         game_type: game.game_type, status: game.status,
@@ -185,13 +186,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           words: cwWords,
           soundMap,
@@ -233,13 +234,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           segments: spinSegments,
           formFields,
@@ -276,7 +277,6 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
@@ -284,6 +284,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           game_logo_url: toAbs(game.game_logo_url),
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           tiles: memTiles,
           formFields,
@@ -327,13 +328,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -369,13 +370,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           words: wsWords,
           formFields,
@@ -409,13 +410,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -451,13 +452,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           words: typerWords,
           formFields,
@@ -488,13 +489,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -524,13 +525,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -563,13 +564,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -599,13 +600,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -632,13 +633,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -664,10 +665,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -690,18 +691,18 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
     }
 
-    // ── CAROM branch ──────────────────────────────────────────────────────────
-    if (game.category === 'carom') {
-      const [gameSettings] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [game.id]);
+    // ── Carrom branch ──────────────────────────────────────────────────────────
+    if (game.category === 'Carrom') {
+      const [gameSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [game.id]);
       const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
@@ -716,10 +717,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -742,10 +743,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -769,13 +770,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -802,13 +803,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -835,13 +836,13 @@ router.get('/:gameName/:companyName', async (req, res) => {
         success: true,
         game: {
           id: game.id,
-          game_type: game.game_type,
           name: game.name,
           category: game.category,
           description: game.description,
           redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings,
           formFields,
           soundMap,
@@ -865,6 +866,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       memory:     'memory_settings',
       crossword:  'crossword_settings',
       spin:       'spin_settings',
+      tower:      'tower_settings',
       math:       'math_settings',
       space:      'space_settings',
       bejeweled:  'bejeweled_settings',
@@ -915,11 +917,11 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -939,10 +941,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -962,18 +964,18 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
     }
 
-    // ── CAROM branch ─────────────────────────────────────────────────────────
-    if (game.category === 'carom') {
-      const [gameSettings] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [game.id]);
+    // ── Carrom branch ─────────────────────────────────────────────────────────
+    if (game.category === 'Carrom') {
+      const [gameSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [game.id]);
       const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
@@ -985,10 +987,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1008,10 +1010,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1085,10 +1087,11 @@ router.get('/:gameName/:companyName', async (req, res) => {
     res.json({
       success: true,
       game: {
-        id: game.id, game_type: game.game_type, name: game.name, category: game.category,
+        id: game.id, name: game.name, category: game.category,
         description: game.description, redirect_url: game.redirect_url,
         client_logo: toAbs(game.client_logo),
         company_name: game.company_name,
+        game_type: game.game_type,
         intro_video: introVideo,
         media_list: mediaList,
         settings: safeSettings, formFields, questions, soundMap,
@@ -1101,7 +1104,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
 });
 
 router.post('/session/start', async (req, res) => {
-  const { game_id, player_data, source_type, promo_player_id, device_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
+  const { game_id, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
   const validSrc = ['direct', 'link', 'player'];
   const src = validSrc.includes(source_type) ? source_type : 'link';
   try {
@@ -1145,9 +1148,9 @@ router.post('/session/start', async (req, res) => {
 
     const token = uuidv4();
     const [result] = await db.query(
-      `INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id, device_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, referred_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null, device_id || null,
+      `INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, referred_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null,
        utm_source || null, utm_medium || null, utm_campaign || null, utm_term || null, utm_content || null, referredBy]
     );
 
@@ -1247,32 +1250,10 @@ router.post('/session/complete', async (req, res) => {
     let existingData = typeof session.player_data === 'string' ? JSON.parse(session.player_data) : (session.player_data || {});
     const mergedData = { ...existingData, ...(player_data || {}) };
 
-    const finalScore = score !== undefined ? score : session.score;
     await db.query(
       'UPDATE player_sessions SET completed = 1, completed_at = NOW(), score = ?, player_data = ? WHERE id = ?',
-      [finalScore, JSON.stringify(mergedData), session.id]
+      [score !== undefined ? score : session.score, JSON.stringify(mergedData), session.id]
     );
-
-    // ── Best score + game high score tracking (only for meaningful scores) ──
-    try {
-      if (finalScore > 0) {
-        const identity = session.promo_player_id ? { player_id: session.promo_player_id } : (session.device_id ? { device_id: session.device_id } : null);
-        if (identity) {
-          await db.query(
-            `INSERT INTO player_best_scores (player_id, device_id, game_id, best_score, updated_at)
-             VALUES (?, ?, ?, ?, NOW())
-             ON DUPLICATE KEY UPDATE best_score = GREATEST(best_score, VALUES(best_score)), updated_at = NOW()`,
-            [session.promo_player_id || null, session.device_id || null, session.game_id, finalScore]
-          );
-        }
-        await db.query(
-          'UPDATE games SET high_score = GREATEST(COALESCE(high_score, 0), ?) WHERE id = ?',
-          [finalScore, session.game_id]
-        );
-      }
-    } catch (scoreErr) {
-      console.error('Score tracking error:', scoreErr.message);
-    }
 
     const [games]          = await db.query('SELECT * FROM games WHERE id = ?', [session.game_id]);
     const [emailTemplates] = await db.query('SELECT * FROM email_templates WHERE game_id = ?', [session.game_id]);
@@ -1466,10 +1447,7 @@ router.post('/session/complete', async (req, res) => {
               auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
               tls: { rejectUnauthorized: false },
             });
-            const guestBody = emailSettings.guest_offer?.body
-              || (emailTemplates[0] && (emailTemplates[0].body_html || '').replace(/^```html[\s\S]*?\n/, '').replace(/^```[\s\S]*?\n/, '').replace(/```\s*$/, '').trim())
-              || `<p>Thanks for playing, ${playerName}! Your reward code is <strong>{{code}}</strong>.</p><p>Show this code to redeem your prize.</p>`;
-            const html = guestBody
+            const html = (emailSettings.guest_offer?.body || '')
               .replace(/\{\{code\}\}/g, code)
               .replace(/\{\{name\}\}/g, playerName)
               .replace(/\{\{player_name\}\}/g, playerName)
@@ -1495,10 +1473,7 @@ router.post('/session/complete', async (req, res) => {
               auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
               tls: { rejectUnauthorized: false },
             });
-            const boBody = emailSettings.bo_notification?.body
-              || (emailTemplates[0] && (emailTemplates[0].body_html || '').replace(/^```html[\s\S]*?\n/, '').replace(/^```[\s\S]*?\n/, '').replace(/```\s*$/, '').trim())
-              || `<p>A player played <strong>{{game_name}}</strong> at your location.</p><p>Name: {{player_name}}</p><p>Reward code: <strong>{{code}}</strong></p>`;
-            const html = boBody
+            const html = (emailSettings.bo_notification?.body || '')
               .replace(/\{\{code\}\}/g, code)
               .replace(/\{\{player_name\}\}/g, playerName)
               .replace(/\{\{name\}\}/g, playerName)
@@ -1513,9 +1488,9 @@ router.post('/session/complete', async (req, res) => {
               subject,
               html,
               headers: {
-                'Message-ID': `<bo-${resolvedBoId}-game-${session.game_id}@promogames>`,
-                'In-Reply-To': `<bo-${resolvedBoId}-game-${session.game_id}@promogames>`,
-                'References': `<bo-${resolvedBoId}-game-${session.game_id}@promogames>`,
+                'Message-ID': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
+                'In-Reply-To': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
+                'References': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
               },
             });
             console.log(`✅ BO notification sent to ${boEmail} for ${playerName}`);
@@ -1568,7 +1543,7 @@ router.get('/play-page-games', async (req, res) => {
     const [branded] = await db.query(`
       SELECT g.id, g.name, g.slug, g.category, g.game_type,
              c.slug as client_slug, c.company_name,
-             qs.game_logo_url, qs.bg_image_url,
+             g.thumbnail_url, qs.game_logo_url, qs.bg_image_url,
              (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
       FROM games g
       JOIN clients c ON g.client_id = c.id
@@ -1581,7 +1556,7 @@ router.get('/play-page-games', async (req, res) => {
     const [promoGames] = await db.query(`
       SELECT g.id, g.name, g.slug, g.category, g.game_type,
              c.slug as client_slug, c.company_name,
-             qs.game_logo_url, qs.bg_image_url,
+             g.thumbnail_url, qs.game_logo_url, qs.bg_image_url,
              (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
       FROM games g
       JOIN clients c ON g.client_id = c.id
@@ -1640,90 +1615,6 @@ router.get('/game/:id/play-count', async (req, res) => {
   }
 });
 
-// ── Score info: game high score + requesting player's best ───────────────
-// Frontend decides where/whether to render these. Returns null where no
-// scores have been recorded for the game yet.
-router.get('/game/:id/score-info', async (req, res) => {
-  try {
-    const [gameRows] = await db.query('SELECT high_score FROM games WHERE id = ?', [req.params.id]);
-    if (gameRows.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
-    const highScore = gameRows[0].high_score ?? null;
-
-    let playerId = null;
-    const auth = req.headers['authorization'] || '';
-    const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-    if (bearer) {
-      try {
-        const decoded = jwt.verify(bearer, env.JWT_SECRET);
-        if (decoded && decoded.role === 'player' && decoded.id) playerId = decoded.id;
-      } catch {}
-    }
-    const deviceId = req.query.device_id || null;
-
-    let playerBest = null;
-    if (playerId || deviceId) {
-      const [bestRows] = await db.query(
-        `SELECT best_score FROM player_best_scores
-         WHERE game_id = ? AND (player_id = ? OR device_id = ?)
-         ORDER BY best_score DESC LIMIT 1`,
-        [req.params.id, playerId || null, deviceId || null]
-      );
-      playerBest = bestRows[0]?.best_score ?? null;
-    }
-
-    res.json({ success: true, high_score: highScore, player_best: playerBest });
-  } catch (err) {
-    sendError(res, err);
-  }
-});
-
-// ── Monthly PC leaderboard (rank by PC earned this month) ─────────────────
-// GET /api/play/leaderboard?limit=50 — optional Bearer token to include own rank.
-// Spends are ignored for ranking; the existing monthly pc_balance reset means
-// the board naturally restarts each month while transaction history is kept.
-router.get('/leaderboard', async (req, res) => {
-  try {
-    const limit = Math.min(parseInt(req.query.limit) || 50, 200);
-    const monthStart = "DATE_FORMAT(CURDATE() - INTERVAL DAY(CURDATE()) - 1 DAY, '%Y-%m-%d 00:00:00')";
-
-    const [rows] = await db.query(
-      `SELECT p.id, p.username, p.name, COALESCE(SUM(t.points), 0) AS monthly_pc,
-              ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(t.points), 0) DESC, p.id) AS rnk
-       FROM promo_players p
-       LEFT JOIN pc_transactions t ON t.player_id = p.id AND t.type = 'earn' AND t.created_at >= ${monthStart}
-       GROUP BY p.id, p.username, p.name
-       ORDER BY monthly_pc DESC, p.id
-       LIMIT ?`,
-      [limit]
-    );
-
-    let me = null;
-    const auth = req.headers['authorization'] || '';
-    const bearer = auth.startsWith('Bearer ') ? auth.slice(7) : null;
-    if (bearer) {
-      try {
-        const decoded = jwt.verify(bearer, env.JWT_SECRET);
-        if (decoded && decoded.role === 'player' && decoded.id) {
-          const [meRows] = await db.query(
-            `SELECT p.id, p.username, p.name, COALESCE(SUM(t.points), 0) AS monthly_pc,
-                    ROW_NUMBER() OVER (ORDER BY COALESCE(SUM(t.points), 0) DESC, p.id) AS rnk
-             FROM promo_players p
-             LEFT JOIN pc_transactions t ON t.player_id = p.id AND t.type = 'earn' AND t.created_at >= ${monthStart}
-             WHERE p.id = ?
-             GROUP BY p.id, p.username, p.name`,
-            [decoded.id]
-          );
-          me = meRows[0] || null;
-        }
-      } catch {}
-    }
-
-    res.json({ success: true, month: new Date().toISOString().slice(0, 7), leaderboard: rows, me });
-  } catch (err) {
-    sendError(res, err);
-  }
-});
-
 // ── Game by slug only (no client/company required) ─────────────────────
 // MUST be registered AFTER all static routes so it doesn't shadow them.
 router.get('/:gameName', async (req, res) => {
@@ -1761,10 +1652,10 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, words: cwWords, soundMap, formFields: cwFormFields, questions: [],
         },
       });
@@ -1789,10 +1680,10 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, segments: spinSegments, formFields, soundMap,
         },
       });
@@ -1812,10 +1703,10 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1835,18 +1726,18 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
     }
 
-    // ── CAROM branch ─────────────────────────────────────────────────────────
-    if (game.category === 'carom') {
-      const [gameSettings] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [game.id]);
+    // ── Carrom branch ─────────────────────────────────────────────────────────
+    if (game.category === 'Carrom') {
+      const [gameSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [game.id]);
       const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
@@ -1858,10 +1749,10 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1881,10 +1772,10 @@ router.get('/:gameName', async (req, res) => {
       return res.json({
         success: true,
         game: {
-          id: game.id,
-          game_type: game.game_type, name: game.name, category: game.category,
+          id: game.id, name: game.name, category: game.category,
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
+          game_type: game.game_type,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1938,9 +1829,10 @@ router.get('/:gameName', async (req, res) => {
     res.json({
       success: true,
       game: {
-        id: game.id, game_type: game.game_type, name: game.name, category: game.category,
+        id: game.id, name: game.name, category: game.category,
         description: game.description, redirect_url: game.redirect_url,
         client_logo: toAbs(game.client_logo), company_name: game.company_name,
+        game_type: game.game_type,
         intro_video: introVideo, media_list: mediaList,
         settings: safeSettings, formFields, questions, soundMap,
       },

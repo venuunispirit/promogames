@@ -172,12 +172,92 @@ const HOMECOLS = {
   yellow: [[7,13],[7,12],[7,11],[7,10],[7,9],[7,8]],
   blue:   [[13,7],[12,7],[11,7],[10,7],[9,7],[8,7]],
 };
-const TRACK_LEN = TRACK.length; // 56
+const TRACK_LEN = TRACK.length; // 56 — physical length of the shared outer loop
 const START_OFFSET = { red: 0, green: 14, yellow: 28, blue: 42 };
-const SAFE_IDX = [0, 8, 14, 22, 28, 36, 42, 50];
+const SAFE_IDX = [0, 9, 14, 23, 28, 37, 42, 51];
 const START_IDX_COLOR = { 0: "red", 14: "green", 28: "yellow", 42: "blue" };
-const HOME_STEPS = 6; // home-col cells per color
-const WIN_STEP = 56 + HOME_STEPS; // 62 = reached center
+/*
+ * MAIN_STEPS = number of outer-track cells a token actually travels for ITS
+ * OWN color before turning into its home lane. This is NOT the same as
+ * TRACK_LEN: TRACK_LEN (56) is the physical length of the shared loop used
+ * for board geometry / safe-square lookups, but every color turns off into
+ * its home lane one cell early — at the track cell that is diagonally
+ * adjacent to nothing else but directly orthogonal to its own home-lane
+ * entrance (verified for all 4 colors: relative step 55, i.e. after 55
+ * track cells, absolute index (START_OFFSET[color] + 54) % TRACK_LEN).
+ * Using TRACK_LEN (56) here was the bug: it kept every token on the outer
+ * loop for one extra cell, which is not adjacent to the home-lane's first
+ * cell, producing a diagonal "jump" into the home lane and back out.
+ */
+/*
+ * ── Custom rule: four "fly-over" corner tiles ──────────────────────────
+ * The four physical TRACK cells diagonally adjacent to the center
+ * (indices 5, 19, 33, 47 — the corner where each arm turns) are kept as
+ * fully rendered, visible board tiles, but are intentionally EXCLUDED
+ * from the movement graph: no token may stop on them, be captured on
+ * them, treat them as safe, or count them as a dice step. A token
+ * animates straight through them in the same hop.
+ *
+ * This is implemented as a separate LOGICAL step space that every piece
+ * of game logic (movement, capture, safe-square checks, bot AI, and
+ * animation) uses instead of raw physical TRACK offsets. Only the
+ * renderer's cell lookup (cellForToken) needs to translate a logical
+ * step into the corresponding physical TRACK index — nothing about
+ * TRACK itself, BOARD_MAP, or BOARD_CELLS changes.
+ *
+ * Because SKIP_PHYSICAL_IDX values are spaced exactly 14 apart — the
+ * same spacing as START_OFFSET — every color's own arm contains exactly
+ * one fly-over tile at the same RELATIVE physical offset (5). The skip
+ * therefore applies identically and symmetrically to all four colors:
+ * no color gains or loses distance relative to the others.
+ */
+const SKIP_PHYSICAL_IDX = new Set([5, 19, 33, 47]); // visual-only tiles — never part of movement
+// Relative offsets (from any color's own start) at which a fly-over tile
+// falls during that color's arm traversal. Numerically identical to
+// SKIP_PHYSICAL_IDX because the skip spacing (14) matches START_OFFSET
+// spacing, so this holds for all four colors symmetrically.
+const SKIP_PHYSICAL_IDX_RELATIVE_ARM = new Set([5, 19, 33, 47]);
+
+// A full arm traversal covers physical relative offsets 0..54 (55 cells,
+// the original MAIN_STEPS) before turning into the home column. Because
+// SKIP_PHYSICAL_IDX are spaced 14 apart — identical to START_OFFSET
+// spacing — the four fly-over tiles land at relative offsets 5, 19, 33,
+// and 47 for EVERY color, and all four of those fall inside the 0..54
+// range. That means one full arm traversal crosses all four fly-over
+// tiles, not just one — so the mapping needs a lookup table (four
+// removed points), not a single +1 shift.
+//
+// REL_OFFSETS is that lookup: index = logical (dice-counted) step,
+// value = the physical relative offset it actually lands on. It has
+// 55 - 4 = 51 entries, built once at module scope.
+const REL_OFFSETS = (() => {
+  const arr = [];
+  for (let r = 0; r <= 54; r++) if (!SKIP_PHYSICAL_IDX_RELATIVE_ARM.has(r)) arr.push(r);
+  return arr;
+})();
+
+// Converts a color-relative LOGICAL step (0-based, dice-counted, with all
+// four fly-over tiles already removed) into the color-relative PHYSICAL
+// offset along TRACK.
+function physicalOffsetForLogicalStep(logicalStep) {
+  return REL_OFFSETS[logicalStep];
+}
+
+// Physical TRACK cell a given color/logical-step actually lands on.
+function physicalTrackIdx(color, step) {
+  return (START_OFFSET[color] + physicalOffsetForLogicalStep(step)) % TRACK_LEN;
+}
+
+// MAIN_STEPS: logical (dice-counted) length of a color's own arm.
+// Previously 55 physical cells; four of those (the fly-over tiles) are no
+// longer countable steps, so the same physical distance is now covered in
+// 51 logical steps: logical 0..50 map onto REL_OFFSETS (physical relative
+// offsets 0,1,2,3,4, 6,...,18, 20,...,32, 34,...,46, 48,...,54) — offsets
+// 5, 19, 33, 47 (the fly-over tiles) are never assigned to any logical
+// step and are therefore never landed on, captured on, or counted.
+const MAIN_STEPS = 51;
+const HOME_STEPS = 6; // all six home-column cells are used, including the one nearest the center
+const WIN_STEP = MAIN_STEPS + HOME_STEPS; // 57 — reached center
 const BASESPOTS = {
   red:    [[1,1],[1,4],[4,1],[4,4]],
   green:  [[1,10],[1,13],[4,10],[4,13]],
@@ -284,8 +364,8 @@ for (let r = 0; r < 15; r++) {
 function cellForToken(color, tokenIdx, step) {
   if (step === -1) return BASESPOTS[color][tokenIdx];
   if (step === WIN_STEP) return [7, 7];
-  if (step < TRACK_LEN) return TRACK[(START_OFFSET[color] + step) % TRACK_LEN];
-  return HOMECOLS[color][step - TRACK_LEN];
+  if (step < MAIN_STEPS) return TRACK[physicalTrackIdx(color, step)];
+  return HOMECOLS[color][step - MAIN_STEPS];
 }
 
 function getMovable(player, dice) {
@@ -306,26 +386,60 @@ function colorsForCount(n) {
   return ["red", "green", "yellow", "blue"];
 }
 
+/* ============================================================
+   Player-card layout — data-driven, one card per color, ever.
+   Fixes the "duplicated card/dice" bug caused by ad-hoc JSX
+   conditionals that didn't account for every color combination
+   (e.g. a 2-player red+yellow game rendered RED in two slots).
+   ============================================================ */
+const PLAYER_META = {
+  red:    { label: "P1 (RED)",    avatarType: "boy1",  color: "#B71C1C", accent: "#E53935" },
+  green:  { label: "P2 (GREEN)",  avatarType: "girl1", color: "#1B5E20", accent: "#4CAF50" },
+  yellow: { label: "P3 (YELLOW)", avatarType: "man2",  color: "#E65100", accent: "#FB8C00" },
+  blue:   { label: "P4 (BLUE)",   avatarType: "man1",  color: "#0D47A1", accent: "#1E88E5" },
+};
+
+// Returns { top: [leftColorOrNull, rightColorOrNull], bottom: [leftColorOrNull, rightColorOrNull] }
+// Every color present in `players` shows up in EXACTLY ONE slot, guaranteed.
+function getCardLayout(players) {
+  const has = (c) => players.some((p) => p.color === c);
+  const n = players.length;
+
+  if (n === 2) {
+    if (has("green")) {
+      // red vs green (e.g. "Play vs Bot")
+      return { top: ["green", null], bottom: [null, "red"] };
+    }
+    // red vs yellow (standard local 2-player)
+    return { top: ["red", null], bottom: [null, "yellow"] };
+  }
+  if (n === 3) {
+    return { top: ["red", "green"], bottom: [null, "yellow"] };
+  }
+  // 4 players
+  return { top: ["red", "green"], bottom: ["blue", "yellow"] };
+}
+
 /* ---- bot AI helpers ---- */
 function wouldCapture(gs, pIdx, tIdx) {
   const player = gs.players[pIdx];
   const tok = player.tokens[tIdx];
   const dice = gs.dice;
   const newStep = tok.step === -1 ? 0 : tok.step + dice;
-  if (newStep > TRACK_LEN - 1) return false;
-  const cellIdx = (START_OFFSET[player.color] + newStep) % TRACK_LEN;
+  if (newStep > MAIN_STEPS - 1) return false;
+  const cellIdx = physicalTrackIdx(player.color, newStep);
   if (SAFE_IDX.includes(cellIdx)) return false;
   const stackCounts = {};
   gs.players.forEach((op, opIdx) => {
     if (opIdx === pIdx) return;
     op.tokens.forEach((ot) => {
-      if (ot.step >= 0 && ot.step <= TRACK_LEN - 1 && (START_OFFSET[op.color] + ot.step) % TRACK_LEN === cellIdx) {
+      if (ot.step >= 0 && ot.step <= MAIN_STEPS - 1 && physicalTrackIdx(op.color, ot.step) === cellIdx) {
         stackCounts[op.color] = (stackCounts[op.color] || 0) + 1;
       }
     });
   });
   return gs.players.some((op, opIdx) => opIdx !== pIdx && (stackCounts[op.color] || 0) < 2 && op.tokens.some((ot) =>
-    ot.step >= 0 && ot.step <= TRACK_LEN - 1 && (START_OFFSET[op.color] + ot.step) % TRACK_LEN === cellIdx
+    ot.step >= 0 && ot.step <= MAIN_STEPS - 1 && physicalTrackIdx(op.color, ot.step) === cellIdx
   ));
 }
 
@@ -348,8 +462,8 @@ function chooseBotMove(gs, pIdx, difficulty) {
     const safeIdx = movable.find((tIdx) => {
       const tok = player.tokens[tIdx];
       const newStep = tok.step === -1 ? 0 : tok.step + gs.dice;
-      if (newStep > TRACK_LEN - 1) return false;
-      return SAFE_IDX.includes((START_OFFSET[player.color] + newStep) % TRACK_LEN);
+      if (newStep > MAIN_STEPS - 1) return false;
+      return SAFE_IDX.includes(physicalTrackIdx(player.color, newStep));
     });
     if (safeIdx !== undefined) return safeIdx;
 
@@ -378,8 +492,8 @@ function chooseBotMove(gs, pIdx, difficulty) {
   const safeNormal = movable.filter((tIdx) => {
     const tok = player.tokens[tIdx];
     const newStep = tok.step === -1 ? 0 : tok.step + gs.dice;
-    if (newStep > TRACK_LEN - 1) return false;
-    return SAFE_IDX.includes((START_OFFSET[player.color] + newStep) % TRACK_LEN);
+    if (newStep > MAIN_STEPS - 1) return false;
+    return SAFE_IDX.includes(physicalTrackIdx(player.color, newStep));
   });
   if (safeNormal.length > 0 && Math.random() < 0.6) {
     return safeNormal[Math.floor(Math.random() * safeNormal.length)];
@@ -614,7 +728,7 @@ function drawLudoBoard(canvas, gs) {
   drawHomeBase(bedMargin, bedMargin + bedSize - quadSize, 'blue');
 
   // 4. GRID TRACK & PATH TILES
-  const SAFE_TILES = [[6,1],[3,6],[1,8],[6,11],[8,13],[11,8],[13,6],[8,3]];
+  const SAFE_TILES = [[6,1],[2,6],[1,8],[6,12],[8,13],[12,8],[13,6],[8,2]];
   const drawStar = (cx, cy, spikes = 5, outerRadius = 12, innerRadius = 5) => {
     let rot = (Math.PI / 2) * 3;
     const step = Math.PI / spikes;
@@ -946,6 +1060,18 @@ export default function LudoPlayerPage() {
   }
 
   function setupOnlineListeners(s) {
+    // Guard against duplicate registration: if this socket already has
+    // these handlers attached (e.g. setupOnlineListeners gets called again
+    // during a rejoin/reconnect flow), strip the old ones first. Without
+    // this, every ludo:* event fires its handler multiple times, which
+    // shows up as double-animated dice rolls, moves applied twice, and
+    // duplicate game-over/winner popups.
+    if (s.__ludoListenersAttached) {
+      ["ludo:dice-rolled", "ludo:state-update", "ludo:turn-change", "ludo:game-over", "ludo:quick-msg", "ludo:opponent-left"]
+        .forEach((evt) => s.removeAllListeners(evt));
+    }
+    s.__ludoListenersAttached = true;
+
     s.on("ludo:dice-rolled", ({ diceValue, rolledBy, playerName }) => {
       // Animate dice on both clients
       const activeColor = ["red", "green", "yellow", "blue"][rolledBy];
@@ -1121,6 +1247,30 @@ export default function LudoPlayerPage() {
   function finalizeRoll() {
     const gs = stateRef.current;
     const player = gs.players[gs.current];
+
+    // Official triple-six rule: the six-streak has to be evaluated the
+    // instant the dice value is known, BEFORE any movable tokens are
+    // computed. Previously the streak was only checked in endTurn(),
+    // which ran *after* the player had already moved a token on the
+    // third six — letting a capture/exit/finish slip through on a turn
+    // that should have been void. Now the third six forfeits the turn
+    // immediately with no movable tokens offered at all.
+    if (gs.dice === 6) {
+      gs.sixStreak = (gs.sixStreak || 0) + 1;
+    } else {
+      gs.sixStreak = 0;
+    }
+
+    if (gs.sixStreak >= 3) {
+      gs.movable = [];
+      gs.msg = `${NAME[player.color]} rolled three sixes in a row — turn forfeited!`;
+      gs.sixStreak = 0;
+      rerender();
+      pushState();
+      setTimeout(() => endTurn(false), 900);
+      return;
+    }
+
     const movable = getMovable(player, gs.dice);
     gs.movable = movable;
     gs.msg =
@@ -1185,17 +1335,17 @@ export default function LudoPlayerPage() {
     const capturedKeys = [];
 
     const reachedFinish = tok.step === WIN_STEP;
-    const onTrack = tok.step >= 0 && tok.step <= TRACK_LEN - 1;
+    const onTrack = tok.step >= 0 && tok.step <= MAIN_STEPS - 1;
 
     if (onTrack) {
-      const cellIdx = (START_OFFSET[player.color] + tok.step) % TRACK_LEN;
+      const cellIdx = physicalTrackIdx(player.color, tok.step);
       if (!SAFE_IDX.includes(cellIdx)) {
         const stackCounts = {};
         gs.players.forEach((op, opIdx) => {
           if (opIdx === pIdx) return;
           op.tokens.forEach((otok) => {
-            if (otok.step >= 0 && otok.step <= TRACK_LEN - 1) {
-              const oCellIdx = (START_OFFSET[op.color] + otok.step) % TRACK_LEN;
+            if (otok.step >= 0 && otok.step <= MAIN_STEPS - 1) {
+              const oCellIdx = physicalTrackIdx(op.color, otok.step);
               if (oCellIdx === cellIdx) {
                 stackCounts[op.color] = (stackCounts[op.color] || 0) + 1;
               }
@@ -1206,8 +1356,8 @@ export default function LudoPlayerPage() {
           if (opIdx === pIdx) return;
           if ((stackCounts[op.color] || 0) >= 2) return;
           op.tokens.forEach((otok, oTIdx) => {
-            if (otok.step >= 0 && otok.step <= TRACK_LEN - 1) {
-              const oCellIdx = (START_OFFSET[op.color] + otok.step) % TRACK_LEN;
+            if (otok.step >= 0 && otok.step <= MAIN_STEPS - 1) {
+              const oCellIdx = physicalTrackIdx(op.color, otok.step);
               if (oCellIdx === cellIdx) {
                 otok.step = -1;
                 captured = true;
@@ -1266,13 +1416,10 @@ export default function LudoPlayerPage() {
   function endTurn(extraIn) {
     const gs = stateRef.current;
     if (!gs || gs.winner != null) return;
-    let extra = extraIn;
-    if (gs.dice === 6) gs.sixStreak++; else gs.sixStreak = 0;
-    if (gs.sixStreak >= 3) {
-      extra = false;
-      gs.sixStreak = 0;
-      gs.msg = "Three sixes in a row — turn forfeited!";
-    }
+    const extra = extraIn;
+    // NOTE: six-streak is now tracked and enforced in finalizeRoll(), the
+    // moment the dice value is known — see comment there. Doing it here
+    // (after a move already happened) was the bug.
     if (!extra) {
       gs.current = (gs.current + 1) % gs.players.length;
       gs.sixStreak = 0;
@@ -1716,86 +1863,76 @@ export default function LudoPlayerPage() {
             )}
 
             <div className="board-area">
-              {/* Top row */}
-              <div className="top-row">
-                {gs.players.length <= 2 && gs.players.find(p => p.color === 'green') ? (
-                  <PlayerCard name={gs.players.find(p => p.color === 'green')?.isBot ? "BOT" : "P2 (GREEN)"} avatarType="girl1" color="#1B5E20" accent="#4CAF50"
-                    isRight={false} isActive={gs.players[gs.current]?.color === 'green'}
-                    diceValue={rollingColor === 'green' ? diceFace : gs.dice}
-                    isRolling={rollingColor === 'green'}
-                    onClick={() => { if (gs.players[gs.current]?.color === 'green') rollDice(); }} />
-                ) : gs.players.find(p => p.color === 'red') && (
-                  <PlayerCard name="P1 (RED)" avatarType="boy1" color="#B71C1C" accent="#E53935"
-                    isRight={false} isActive={gs.players[gs.current]?.color === 'red'}
-                    diceValue={rollingColor === 'red' ? diceFace : gs.dice}
-                    isRolling={rollingColor === 'red'}
-                    onClick={() => { if (gs.players[gs.current]?.color === 'red') rollDice(); }} />
-                )}
-                {gs.players.find(p => p.color === 'green') && gs.players.length > 2 && (
-                  <PlayerCard name="P2 (GREEN)" avatarType="girl1" color="#1B5E20" accent="#4CAF50"
-                    isRight={true} isActive={gs.players[gs.current]?.color === 'green'}
-                    diceValue={rollingColor === 'green' ? diceFace : gs.dice}
-                    isRolling={rollingColor === 'green'}
-                    onClick={() => { if (gs.players[gs.current]?.color === 'green') rollDice(); }} />
-                )}
-                {gs.players.length <= 2 && <div style={{width:138}} />}
-              </div>
-              {/* Board */}
-              <div className="board-frame">
-                <canvas ref={canvasBoardRef} width={1000} height={1000}
-                  style={{ width: '100%', height: '100%', borderRadius: '16px', cursor: 'pointer' }}
-                  onClick={(e) => {
-                    const canvas = canvasBoardRef.current;
-                    if (!canvas || !boardMetaRef.current || !stateRef.current) return;
-                    const rect = canvas.getBoundingClientRect();
-                    const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
-                    const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
-                    const gs2 = stateRef.current;
-                    const { bedMargin, gridStep, homeSlotCoords } = boardMetaRef.current;
-                    gs2.players.forEach((player, pIdx) => {
-                      player.tokens.forEach((tok, tIdx) => {
-                        let px, py;
-                        if (tok.step === -1) {
-                          const slot = homeSlotCoords[player.color]?.[tIdx];
-                          if (!slot) return;
-                          px = slot.cx; py = slot.cy;
-                        } else if (tok.step === WIN_STEP) {
-                          px = bedMargin + 7.5 * gridStep; py = bedMargin + 7.5 * gridStep;
-                        } else {
-                          const [gr, gc] = cellForToken(player.color, tIdx, tok.step);
-                          px = bedMargin + gc * gridStep + gridStep / 2;
-                          py = bedMargin + gr * gridStep + gridStep / 2;
-                        }
-                        if (Math.hypot(clickX - px, clickY - py) < 28) onTokenClick(pIdx, tIdx);
-                      });
-                    });
-                  }} />
-              </div>
-              {/* Bottom row */}
-              <div className="bottom-row">
-                {gs.players.length <= 2 && <div style={{width:138}} />}
-                {gs.players.length <= 2 && gs.players.find(p => p.color === 'red') && (
-                  <PlayerCard name={gs.players.find(p => p.color === 'red')?.isBot ? "BOT" : "P1 (RED)"} avatarType="boy1" color="#B71C1C" accent="#E53935"
-                    isRight={true} isActive={gs.players[gs.current]?.color === 'red'}
-                    diceValue={rollingColor === 'red' ? diceFace : gs.dice}
-                    isRolling={rollingColor === 'red'}
-                    onClick={() => { if (gs.players[gs.current]?.color === 'red') rollDice(); }} />
-                )}
-                {gs.players.find(p => p.color === 'blue') && (
-                  <PlayerCard name="P4 (BLUE)" avatarType="man1" color="#0D47A1" accent="#1E88E5"
-                    isRight={false} isActive={gs.players[gs.current]?.color === 'blue'}
-                    diceValue={rollingColor === 'blue' ? diceFace : gs.dice}
-                    isRolling={rollingColor === 'blue'}
-                    onClick={() => { if (gs.players[gs.current]?.color === 'blue') rollDice(); }} />
-                )}
-                {gs.players.find(p => p.color === 'yellow') && (
-                  <PlayerCard name="P3 (YELLOW)" avatarType="man2" color="#E65100" accent="#FB8C00"
-                    isRight={true} isActive={gs.players[gs.current]?.color === 'yellow'}
-                    diceValue={rollingColor === 'yellow' ? diceFace : gs.dice}
-                    isRolling={rollingColor === 'yellow'}
-                    onClick={() => { if (gs.players[gs.current]?.color === 'yellow') rollDice(); }} />
-                )}
-              </div>
+              {(() => {
+                // Single source of truth for which color goes in which slot.
+                // Guarantees every color renders in EXACTLY one place — no dupes.
+                const layout = getCardLayout(gs.players);
+                const renderSlot = (color, isRight) => {
+                  if (!color) return <div key={`empty-${isRight}`} style={{ width: 138 }} />;
+                  const player = gs.players.find(p => p.color === color);
+                  if (!player) return <div key={`empty-${color}`} style={{ width: 138 }} />;
+                  const meta = PLAYER_META[color];
+                  return (
+                    <PlayerCard
+                      key={color}
+                      name={player.isBot ? "BOT" : meta.label}
+                      avatarType={meta.avatarType}
+                      color={meta.color}
+                      accent={meta.accent}
+                      isRight={isRight}
+                      isActive={gs.players[gs.current]?.color === color}
+                      diceValue={rollingColor === color ? diceFace : gs.dice}
+                      isRolling={rollingColor === color}
+                      onClick={() => { if (gs.players[gs.current]?.color === color) rollDice(); }}
+                    />
+                  );
+                };
+                return (
+                  <>
+                    {/* Top row */}
+                    <div className="top-row">
+                      {renderSlot(layout.top[0], false)}
+                      {renderSlot(layout.top[1], true)}
+                    </div>
+                    {/* Board */}
+                    <div className="board-frame">
+                      <canvas ref={canvasBoardRef} width={1000} height={1000}
+                        style={{ width: '100%', height: '100%', borderRadius: '16px', cursor: 'pointer' }}
+                        onClick={(e) => {
+                          const canvas = canvasBoardRef.current;
+                          if (!canvas || !boardMetaRef.current || !stateRef.current) return;
+                          const rect = canvas.getBoundingClientRect();
+                          const clickX = (e.clientX - rect.left) * (canvas.width / rect.width);
+                          const clickY = (e.clientY - rect.top) * (canvas.height / rect.height);
+                          const gs2 = stateRef.current;
+                          const { bedMargin, gridStep, homeSlotCoords } = boardMetaRef.current;
+                          gs2.players.forEach((player, pIdx) => {
+                            player.tokens.forEach((tok, tIdx) => {
+                              let px, py;
+                              if (tok.step === -1) {
+                                const slot = homeSlotCoords[player.color]?.[tIdx];
+                                if (!slot) return;
+                                px = slot.cx; py = slot.cy;
+                              } else if (tok.step === WIN_STEP) {
+                                px = bedMargin + 7.5 * gridStep; py = bedMargin + 7.5 * gridStep;
+                              } else {
+                                const [gr, gc] = cellForToken(player.color, tIdx, tok.step);
+                                px = bedMargin + gc * gridStep + gridStep / 2;
+                                py = bedMargin + gr * gridStep + gridStep / 2;
+                              }
+                              if (Math.hypot(clickX - px, clickY - py) < 28) onTokenClick(pIdx, tIdx);
+                            });
+                          });
+                        }} />
+                    </div>
+                    {/* Bottom row */}
+                    <div className="bottom-row">
+                      {renderSlot(layout.bottom[0], false)}
+                      {renderSlot(layout.bottom[1], true)}
+                    </div>
+                  </>
+                );
+              })()}
             </div>
             {/* Quick messages */}
             <div className="quick-msgs">

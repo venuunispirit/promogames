@@ -1,364 +1,1283 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import api from '../api'
-import { useUploadErrors, uploadErrorMessage } from '../lib/builderUpload'
+import React, { useState, useRef, useEffect } from "react";
+import {
+  Image as ImageIcon, Type, ListChecks, FileText, Video, Plus, Trash2,
+  Save, Upload, MapPin, Mail, HelpCircle, PartyPopper, Volume2, SlidersHorizontal,
+  Smartphone, Rocket, Palette, GlassWater, Check, Music, CheckCircle2, XCircle,
+  Trophy, LayoutGrid, Link as LinkIcon, Share2,
+} from "lucide-react";
 
-const FONT_URL = 'https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap'
+const TABS = [
+  { id: "player", label: "Player Form", icon: SlidersHorizontal },
+  { id: "thanks", label: "Thank You Page", icon: PartyPopper },
+  { id: "email", label: "Email", icon: Mail },
+  { id: "audio", label: "Audio", icon: Volume2 },
+  { id: "settings", label: "Settings", icon: HelpCircle },
+  { id: "locations", label: "Locations", icon: MapPin },
+];
 
-const LIGHT = `
-@import url('${FONT_URL}');
-.pw-wrap *,.pw-wrap *::before,.pw-wrap *::after{box-sizing:border-box}
-.pw-wrap{font-family:'DM Sans',sans-serif;color:#111827;background:#f4f6fb;min-height:100vh}
-@keyframes pwFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@keyframes pwToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-@keyframes pwSpin{to{transform:rotate(360deg)}}
-.pw-input,.pw-select{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid #E5E7EB;font-size:14px;font-family:'DM Sans',sans-serif;color:#111;background:#fafafa;outline:none;transition:border-color .15s,background .15s}
-.pw-input:focus,.pw-select:focus{border-color:#818CF8;background:#fff}
-.pw-select{appearance:none;cursor:pointer}
-.pw-label{display:block;font-size:10.5px;font-weight:700;color:#9CA3AF;text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
-.pw-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:#18181B;color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:background .14s,transform .1s}
-.pw-btn:hover{background:#27272A}
-.pw-btn:active{transform:scale(.98)}
-.pw-btn:disabled{opacity:.55;cursor:not-allowed}
-.pw-btn-sm{padding:7px 14px;font-size:12px}
-.pw-btn-secondary{background:#fff;color:#374151;border:1.5px solid #E5E7EB}
-.pw-btn-secondary:hover{background:#F3F4F6;border-color:#D1D5DB}
-.pw-icon-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid #E5E7EB;background:#F9FAFB;display:inline-flex;align-items:center;justify-content:center;cursor:pointer;color:#374151;transition:background .13s;flex-shrink:0}
-.pw-icon-btn:hover{background:#F0F0F0}
-.pw-card{background:#fff;border:1.5px solid #EAECF0;border-radius:14px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,.04);animation:pwFadeUp .25s ease both}
-.pw-card-title{font-size:13px;font-weight:700;color:#6B7280;text-transform:uppercase;letter-spacing:.08em;margin-bottom:14px}
-.pw-2col{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.pw-fg{display:flex;flex-direction:column;gap:4px;flex:1;min-width:120px}
-.pw-swatch{width:28px;height:28px;border-radius:6px;border:2px solid #E5E7EB;cursor:pointer;flex-shrink:0}
-.pw-cpop{position:absolute;top:calc(100%+6px);left:0;z-index:300;background:#fff;border:1.5px solid #E5E7EB;border-radius:10px;padding:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);display:grid;grid-template-columns:repeat(7,1fr);gap:5px;width:220px}
-.pw-thumb{height:44px;width:auto;border-radius:6px;border:1px solid #E5E7EB;object-fit:contain}
-.pw-header{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:12px 24px;background:#fff;border-bottom:1.5px solid #EAECF0;position:sticky;top:62px;z-index:50;min-height:56px}
-.pw-tabs{display:flex;gap:4px}
-.pw-tab{padding:8px 16px;border-radius:8px;border:none;background:transparent;color:#6B7280;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;transition:all .14s;white-space:nowrap}
-.pw-tab:hover{background:#F3F4F6;color:#374151}
-.pw-tab.active{background:#EEF2FF;color:#4338CA;font-weight:600}
-.pw-body{display:grid;grid-template-columns:1fr 320px;gap:24px;padding:24px;max-width:1200px;margin:0 auto}
-.pw-phone{width:280px;height:560px;border-radius:36px;border:3px solid #D1D5DB;background:#F9FAFB;overflow:hidden;position:sticky;top:80px;box-shadow:0 8px 32px rgba(0,0,0,.12),inset 0 0 0 1px rgba(0,0,0,.05)}
-.pw-phone-notch{width:120px;height:18px;background:#111;border-radius:0 0 14px 14px;margin:0 auto;position:relative;z-index:2}
-.pw-phone-screen{height:calc(100% - 18px);overflow-y:auto;position:relative}
-`
+const FIELD_TYPES = ["Text", "Email", "Phone", "Number", "Date"];
 
-const COLOR_PRESETS = ['#1a1a2e','#ffffff','#000000','#ef4444','#22c55e','#3b82f6','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#84cc16','#0ea5e9']
+const BACKGROUND_PRESETS = [
+  { id: "twilight", name: "Twilight", css: "linear-gradient(180deg,#2B0F52 0%,#5C2680 100%)" },
+];
+
+const DEFAULT_BOTTLES = [
+  { id: uidSafe("b1"), name: "Citrus Fizz", liquidA: "#FFC93D", liquidB: "#FF8A3D" },
+  { id: uidSafe("b2"), name: "Blue Lagoon", liquidA: "#7EE7F0", liquidB: "#2FB6D9" },
+  { id: uidSafe("b3"), name: "Berry Pink", liquidA: "#FF8FD0", liquidB: "#E64BA3" },
+  { id: uidSafe("b4"), name: "Limeade", liquidA: "#B6FF6B", liquidB: "#5FC93D" },
+  { id: uidSafe("b5"), name: "Grape Soda", liquidA: "#C8A2FF", liquidB: "#8A4BE6" },
+];
+
+const BOTTLE_DESIGNS = [
+  {
+    id: "soda",
+    name: "Soda Bottle",
+    viewBox: "0 0 34 60",
+    d: "M12 2h10v5a3 3 0 0 1 2 2.8v3.4c2.2 2.6 4 5.6 4 9.3v29a5 5 0 0 1-5 5H11a5 5 0 0 1-5-5V22.5c0-3.7 1.8-6.7 4-9.3V9.8A3 3 0 0 1 12 7V2z",
+  },
+  {
+    id: "juice",
+    name: "Juice Bottle",
+    viewBox: "0 0 34 60",
+    d: "M11 2h12v4.5c1.7.6 3 2 3 4V17c2.4 2.7 4 6.4 4 10.5V47a9 9 0 0 1-9 9H13a9 9 0 0 1-9-9V27.5C4 23.4 5.6 19.7 8 17v-6.5c0-2 1.3-3.4 3-4V2z",
+  },
+  {
+    id: "sports",
+    name: "Sports Bottle",
+    viewBox: "0 0 34 60",
+    d: "M14 2h6v3h2a2 2 0 0 1 2 2v3.5c1.6.9 2.5 2.3 2.5 4V51a6 6 0 0 1-6 6H15.5a6 6 0 0 1-6-6V14.5c0-1.7.9-3.1 2.5-4V7a2 2 0 0 1 2-2h2V2h-2z",
+  },
+  {
+    id: "mason",
+    name: "Mason Jar",
+    viewBox: "0 0 34 60",
+    d: "M11 4h12v3.5H11V4zM9 7.5h16a2 2 0 0 1 2 2V13a2 2 0 0 1-1 1.7c1.3 1 2 2.6 2 4.6v29.2a9 9 0 0 1-9 9H15a9 9 0 0 1-9-9V19.3c0-2 .7-3.6 2-4.6A2 2 0 0 1 7 13V9.5a2 2 0 0 1 2-2z",
+  },
+  {
+    id: "smoothie",
+    name: "Smoothie Cup",
+    viewBox: "0 0 34 60",
+    d: "M15 0H18V20H15Z M6 19Q16.5 2 27 19Z M7 21H26L23 54A5 5 0 0 1 18 59H15A5 5 0 0 1 10 54Z",
+  },
+  {
+    id: "wine",
+    name: "Wine Bottle",
+    viewBox: "0 0 34 60",
+    d: "M15 0H19V9C21 11 22 13 22 16V52A8 8 0 0 1 14 60A8 8 0 0 1 6 52V16C6 13 7 11 9 9V0H15Z M14 0H19V4H14Z",
+  },
+  {
+    id: "gin",
+    name: "Gin Bottle",
+    viewBox: "0 0 34 60",
+    d: "M14 0H20V6H22V10C24 12 25 14 25 17V52A5 5 0 0 1 20 57H14A5 5 0 0 1 9 52V17C9 14 10 12 12 10V6H14Z",
+  },
+  {
+    id: "whiskey",
+    name: "Whiskey Bottle",
+    viewBox: "0 0 34 60",
+    d: "M13 0H20V10H13Z M7 10H26V51A5 5 0 0 1 21 56H12A5 5 0 0 1 7 51Z",
+  },
+  {
+    id: "rum",
+    name: "Rum Bottle",
+    viewBox: "0 0 34 60",
+    d: "M14 0H19V6C22 8 24 11 24 15V50A9 9 0 0 1 15 59A9 9 0 0 1 6 50V15C6 11 8 8 11 6V0H14Z",
+  },
+  {
+    id: "vodka",
+    name: "Vodka Bottle",
+    viewBox: "0 0 34 60",
+    d: "M14 0H19V8H14Z M12 8H21A2 2 0 0 1 23 10V54A5 5 0 0 1 18 59H15A5 5 0 0 1 10 54V10A2 2 0 0 1 12 8Z",
+  },
+  {
+    id: "tequila",
+    name: "Tequila Bottle",
+    viewBox: "0 0 34 60",
+    d: "M13 0H21V6A3 3 0 0 1 24 9V13C26 15 27 17 27 20V51A9 9 0 0 1 18 60H16A9 9 0 0 1 7 51V20C7 17 8 15 10 13V9A3 3 0 0 1 13 6Z",
+  },
+  {
+    id: "champagne",
+    name: "Champagne Bottle",
+    viewBox: "0 0 34 60",
+    d: "M15 0H18V14C20 17 21 20 21 24V51A9 9 0 0 1 12 60A9 9 0 0 1 3 51V24C3 20 4 17 6 14V0H9Z",
+  },
+];
+
 const FONT_CATEGORIES = [
-  { name:'Handwriting', icon:'✍️', fonts:['Dancing Script','Pacifico','Caveat','Shadows Into Light','Satisfy','Kalam','Patrick Hand','Permanent Marker','Indie Flower','Gloria Hallelujah','Bad Script','Reenie Beanie'] },
-  { name:'Professional', icon:'💼', fonts:['DM Sans','Inter','Poppins','Raleway','Nunito','Lato','Montserrat','Source Sans 3','Work Sans','Rubik','Roboto','Open Sans'] },
-  { name:'Luxury', icon:'👑', fonts:['Playfair Display','Cormorant Garamond','Cinzel','Bodoni Moda','Prata','Taviraj','Libre Baskerville','Old Standard TT','Abril Fatface','Forum','Goudy Bookletter 1911','Marcellus'] },
-  { name:'Playful', icon:'🎮', fonts:['Quicksand','Josefin Sans','Exo 2','Cabin','Ubuntu','Comfortaa','Bubblegum Sans','Fredoka One','Baloo 2','Righteous','Fugaz One','Lilita One'] },
-]
-const WATER_COLORS = ['#4da6ff','#22c55e','#ef4444','#f59e0b','#8b5cf6','#ec4899','#14b8a6','#f97316','#6366f1','#000000']
+  {
+    name: "Handwriting",
+    emoji: "✍️",
+    stack: "cursive",
+    fonts: [
+      "Dancing Script", "Pacifico", "Caveat", "Shadows Into Light", "Satisfy", "Kalam",
+      "Patrick Hand", "Permanent Marker", "Indie Flower", "Gloria Hallelujah", "Bad Script", "Kaushan Script",
+    ],
+  },
+  {
+    name: "Professional",
+    emoji: "💼",
+    stack: "'Helvetica Neue', Arial, sans-serif",
+    fonts: [
+      "DM Sans", "Inter", "Poppins", "Raleway", "Nunito", "Lato",
+      "Montserrat", "Source Sans 3", "Work Sans", "Rubik", "Roboto", "Open Sans",
+    ],
+  },
+  {
+    name: "Luxury",
+    emoji: "👑",
+    stack: "Georgia, 'Times New Roman', serif",
+    fonts: [
+      "Playfair Display", "Cormorant Garamond", "Cinzel", "Bodoni Moda", "Prata", "Tenor Sans",
+      "Libre Baskerville", "Old Standard TT", "Abril Fatface", "Forum", "Cousine Bookletter 1911", "Marcellus",
+    ],
+  },
+  {
+    name: "Playful",
+    emoji: "🎨",
+    stack: "'Comic Sans MS', cursive, sans-serif",
+    fonts: [
+      "Quicksand", "Josefin Sans", "Exo 2", "Cabin", "Ubuntu", "Comfortaa",
+      "Bubblegum Sans", "Fredoka One", "Baloo 2", "Righteous", "Fugaz One", "Lilita One",
+    ],
+  },
+];
 
-function Toast({ msg, type, onClose }) {
-  useEffect(() => { const t = setTimeout(onClose, 3200); return () => clearTimeout(t) }, [])
-  return <div style={{ position:'fixed',bottom:24,right:24,zIndex:9999,padding:'12px 18px',borderRadius:10,color:'#fff',fontWeight:600,fontSize:13,fontFamily:"'DM Sans',sans-serif",boxShadow:'0 8px 24px rgba(0,0,0,.15)',maxWidth:320,background: type==='success'?'#16a34a':'#dc2626',animation:'pwToastIn .28s cubic-bezier(.34,1.56,.64,1)' }}>{type==='success'?'✅':'❌'} {msg}</div>
+function uidSafe(seed) {
+  return seed + "-" + Math.random().toString(36).slice(2, 7);
 }
 
-function ColorPicker({ value, onChange, label }) {
-  const [show, setShow] = useState(false)
-  const ref = useRef()
-  useEffect(() => { const fn = e => { if(ref.current&&!ref.current.contains(e.target)) setShow(false) }; document.addEventListener('mousedown',fn); return () => document.removeEventListener('mousedown',fn) }, [])
-  return (
-    <div ref={ref} style={{ position:'relative',display:'inline-flex',flexDirection:'column',gap:4 }}>
-      {label && <span className="pw-label">{label}</span>}
-      <div style={{ display:'flex',alignItems:'center',gap:8 }}>
-        <div className="pw-swatch" style={{ background:value||'#6366f1' }} onClick={()=>setShow(s=>!s)} />
-        <input className="pw-input" value={value||''} onChange={e=>onChange(e.target.value)} placeholder="#000000" style={{ width:90,fontSize:12,padding:'5px 8px',background:'transparent' }} />
-      </div>
-      {show && <div className="pw-cpop">
-        {COLOR_PRESETS.map(c=><div key={c} onClick={()=>{onChange(c);setShow(false)}} style={{ width:22,height:22,background:c,borderRadius:4,cursor:'pointer',border:value===c?'2px solid #6366f1':'1px solid #E5E7EB' }} />)}
-        <input type="color" value={value||'#000000'} onChange={e=>onChange(e.target.value)} style={{ gridColumn:'span 7',width:'100%',height:28,padding:0,border:'none',background:'none',cursor:'pointer' }} />
-        <button type="button" className="pw-btn pw-btn-secondary pw-btn-sm" style={{ gridColumn:'span 7',justifyContent:'center' }} onClick={()=>setShow(false)}>Close</button>
-      </div>}
-    </div>
-  )
+function uid() {
+  return Math.random().toString(36).slice(2, 9);
 }
 
-function ImageUpload({ label, url, onFile, onClear, accept, error }) {
-  const ref = useRef()
-  return <div className={error ? 'gb-img-error' : ''}>{label&&<span className="pw-label">{label}</span>}<input type="file" ref={ref} accept={accept||'image/png,image/jpeg,image/jpg,image/gif,image/webp'} style={{ display:'none' }} onChange={e=>{const f=e.target.files[0];if(f)onFile(f)}} /><div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap',marginTop:4 }}><button type="button" className="pw-btn pw-btn-secondary pw-btn-sm" onClick={()=>ref.current.click()}>📷 Upload</button>{url&&<img src={url} className="pw-thumb" alt="" />}{url&&<button type="button" className="pw-icon-btn" style={{ border:'1.5px solid #FEE2E2',background:'#FFF5F5',color:'#DC2626' }} onClick={onClear}>✕</button>}</div>{error&&<div className="gb-img-error-msg">⚠️ {error}</div>}</div>
-}
+function ColorSwatch({ value, onChange }) {
+  const [text, setText] = useState(value);
 
-function SoundSelect({ label, value, onChange, sounds }) {
-  return <div className="pw-fg"><span className="pw-label">{label}</span><select className="pw-select" value={value||''} onChange={e=>onChange(e.target.value)}><option value="">— None —</option>{sounds.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-}
+  React.useEffect(() => {
+    setText(value);
+  }, [value]);
 
-function RangeSlider({ label, value, onChange, min, max, step, unit }) {
-  return (
-    <div className="pw-fg">
-      <div style={{ display:'flex',justifyContent:'space-between',alignItems:'baseline' }}><span className="pw-label">{label}</span><span style={{ fontSize:12,fontWeight:700,color:'#6366f1' }}>{value}{unit||''}</span></div>
-      <input type="range" min={min} max={max} step={step||1} value={value} onChange={e=>onChange(parseFloat(e.target.value))} style={{ width:'100%',accentColor:'#6366f1' }} />
-    </div>
-  )
-}
-
-function PhonePreview({ settings, heading1Color, heading2Color }) {
-  const waterColor = settings.water_color || '#4da6ff'
-  const targetMl = settings.target_ml || 50
-  const maxMl = settings.max_ml || 200
-  const fillPct = Math.min((targetMl / maxMl) * 100, 100)
-  return (
-    <div className="pw-phone">
-      <div className="pw-phone-notch" />
-      <div className="pw-phone-screen" style={{ background:settings.bg_color||'#f0f4ff',padding:12,display:'flex',flexDirection:'column',alignItems:'center',gap:12 }}>
-        {settings.game_logo_url && <img src={settings.game_logo_url} alt="" style={{ width:'100%',maxHeight:40,objectFit:'contain',borderRadius:6 }} />}
-        <h2 style={{ fontSize:14,fontWeight:800,color:heading1Color,textAlign:'center',fontFamily:settings.font_family||'DM Sans' }}>{settings.heading_1||'Pouring Water'}</h2>
-        {settings.heading_2 && <p style={{ fontSize:11,color:heading2Color,textAlign:'center' }}>{settings.heading_2}</p>}
-        <div style={{ fontSize:12,fontWeight:700,color:settings.primary_color||'#6366f1',background:'rgba(255,255,255,0.8)',borderRadius:8,padding:'8px 16px',border:`2px solid ${settings.primary_color||'#6366f1'}30` }}>
-          Target: {targetMl}ml ±{settings.tolerance_ml||5}ml
-        </div>
-        <div style={{ display:'flex',gap:20,alignItems:'flex-end',justifyContent:'center',margin:'12px 0' }}>
-          <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:4 }}>
-            <div style={{ width:50,height:100,borderRadius:'4px 4px 8px 8px',border:`3px solid ${waterColor}50`,overflow:'hidden',position:'relative',background:'rgba(255,255,255,0.5)' }}>
-              <div style={{ position:'absolute',bottom:0,left:0,right:0,height:'100%',background:waterColor,opacity:0.3 }} />
-            </div>
-            <span style={{ fontSize:9,color:'#999' }}>Bottle</span>
-          </div>
-          <div style={{ display:'flex',flexDirection:'column',alignItems:'center',gap:4 }}>
-            <div style={{ width:70,height:100,borderRadius:'4px 4px 10px 10px',border:'3px solid #d1d5db',overflow:'hidden',position:'relative',background:'rgba(255,255,255,0.5)' }}>
-              <div style={{ position:'absolute',bottom:0,left:0,right:0,height:`${fillPct}%`,background:waterColor,transition:'height 0.3s',opacity:0.7 }} />
-              <div style={{ position:'absolute',top:'50%',left:2,right:2,borderTop:'1px dashed #999',opacity:0.5 }} />
-              <span style={{ position:'absolute',top:'48%',right:2,fontSize:8,color:'#666',fontWeight:700 }}>{targetMl}ml</span>
-            </div>
-            <span style={{ fontSize:9,color:'#999' }}>Tumbler</span>
-          </div>
-        </div>
-        <button style={{ background:`linear-gradient(135deg,${settings.primary_color||'#6366f1'},${settings.primary_color||'#6366f1'}cc)`,color:'#fff',border:'none',borderRadius:8,padding:'8px 20px',fontSize:12,fontWeight:700,cursor:'pointer',fontFamily:settings.font_family||'DM Sans' }}>
-          {settings.start_button_text||'Start Pouring →'}
-        </button>
-      </div>
-    </div>
-  )
-}
-
-export default function PouringBuilderPage() {
-  const { id } = useParams()
-  const navigate = useNavigate()
-  const [game, setGame] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [fetchError, setFetchError] = useState(null)
-  const [tab, setTab] = useState('display')
-  const [toast, setToast] = useState(null)
-  const [settings, setSettings] = useState({})
-  const [sounds, setSounds] = useState([])
-  const [saving, setSaving] = useState(false)
-  const [soundUploading, setSoundUploading] = useState(false)
-  const [formFields, setFormFields] = useState([])
-  const [emailTemplate, setEmailTemplate] = useState({})
-  const [redirectUrl, setRedirectUrl] = useState('')
-  const [heading1Color, setHeading1Color] = useState('#1a1a2e')
-  const [heading2Color, setHeading2Color] = useState('#666666')
-  const [heading3Color, setHeading3Color] = useState('#777777')
-  const [descColor, setDescColor] = useState('#888888')
-  const [text1, setText1] = useState('')
-
-  const upload = useUploadErrors()
-  const showToast = (msg, type='success') => setToast({ msg, type })
-
-  const loadData = useCallback(() => {
-    setLoading(true); setFetchError(null)
-    Promise.all([
-      api.get(`/games/${id}`), api.get(`/pouring/${id}/settings`), api.get(`/sounds/games/${id}/sounds`),
-    ]).then(([gRes, sRes, soundRes]) => {
-      const g = gRes.data.game
-      setGame(g); setSettings(sRes.data.settings || {}); setSounds(soundRes.data.sounds || [])
-      setFormFields(g.formFields || []); setEmailTemplate(g.emailTemplate || {}); setRedirectUrl(g.redirect_url || '')
-      setText1(g.name || '')
-      const s = sRes.data.settings || {}
-      setHeading1Color(s.heading_1_color||'#1a1a2e'); setHeading2Color(s.heading_2_color||'#666666')
-      setHeading3Color(s.heading_3_color||'#777777'); setDescColor(s.description_color||'#888888')
-    }).catch(err => { setFetchError(err.response?.data?.message || err.message) }).finally(() => setLoading(false))
-  }, [id])
-
-  useEffect(() => { loadData() }, [loadData])
-
-  const saveSettings = async () => {
-    setSaving(true)
-    try {
-      const fd = new FormData()
-      const fields = ['target_ml','tolerance_ml','max_ml','pour_speed','viscosity','water_color',
-        'show_timer','time_limit_seconds','allow_retries','max_retries',
-        'heading_1','heading_2','heading_3','description_text',
-        'heading_1_color','heading_2_color','heading_3_color','description_color',
-        'bg_color','primary_color','font_family','meta_description',
-        'sound_correct_id','sound_wrong_id','sound_pour_id',
-        'intro_text','outro_text','submit_button_text','continue_button_text','start_button_text',
-        'terms_enabled','terms_text','terms_url']
-      for (const f of fields) fd.append(f, settings[f]??'')
-      if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile); else if (settings.bg_image_url !== undefined) fd.append('bg_image_url', settings.bg_image_url)
-      if (settings._tyBgImageFile) fd.append('thankyou_bg_image', settings._tyBgImageFile); else if (settings.thankyou_bg_image_url !== undefined) fd.append('thankyou_bg_image_url', settings.thankyou_bg_image_url)
-      if (settings._gameLogoFile) fd.append('game_logo', settings._gameLogoFile); else if (settings.game_logo_url !== undefined) fd.append('game_logo_url', settings.game_logo_url||'')
-      if (settings._submitGifFile) fd.append('submit_confirm_gif', settings._submitGifFile); else if (settings.submit_confirm_gif_url !== undefined) fd.append('submit_confirm_gif_url', settings.submit_confirm_gif_url||'')
-      await api.put(`/pouring/${id}/settings`, fd)
-      showToast('Settings saved ✅')
-    } catch (err) {
-      const msg = uploadErrorMessage(err)
-      if (settings._bgImageFile) upload.setFieldError('bg_image_url', msg)
-      if (settings._gameLogoFile) upload.setFieldError('game_logo_url', msg)
-      if (settings._tyBgImageFile) upload.setFieldError('thankyou_bg_image_url', msg)
-      if (settings._submitGifFile) upload.setFieldError('submit_confirm_gif_url', msg)
-      if (!settings._bgImageFile && !settings._gameLogoFile && !settings._tyBgImageFile && !settings._submitGifFile) upload.setFieldError('bg_image_url', msg)
-      showToast(msg, 'error')
+  function commitHex(raw) {
+    let v = raw.trim();
+    if (!v.startsWith("#")) v = "#" + v;
+    if (/^#([0-9a-fA-F]{6}|[0-9a-fA-F]{3})$/.test(v)) {
+      if (v.length === 4) {
+        v = "#" + v[1] + v[1] + v[2] + v[2] + v[3] + v[3];
+      }
+      onChange(v.toUpperCase());
+    } else {
+      setText(value);
     }
-    setSaving(false)
   }
-
-  const saveDisplaySettings = async () => {
-    setSaving(true)
-    try {
-      const fd = new FormData()
-      const sFields = ['heading_1','heading_2','heading_3','description_text','intro_text','meta_description','font_family',
-        'bg_color','primary_color','show_timer','time_limit_seconds','allow_retries','max_retries',
-        'target_ml','tolerance_ml','max_ml','pour_speed','viscosity','water_color',
-        'sound_correct_id','sound_wrong_id','sound_pour_id']
-      for (const f of sFields) fd.append(f, settings[f]??'')
-      fd.append('heading_1_color', heading1Color); fd.append('heading_2_color', heading2Color)
-      fd.append('heading_3_color', heading3Color); fd.append('description_color', descColor)
-      if (settings._bgImageFile) fd.append('bg_image', settings._bgImageFile); else if (settings.bg_image_url !== undefined) fd.append('bg_image_url', settings.bg_image_url)
-      if (settings._gameLogoFile) fd.append('game_logo', settings._gameLogoFile); else if (settings.game_logo_url !== undefined) fd.append('game_logo_url', settings.game_logo_url||'')
-      await api.put(`/pouring/${id}/settings`, fd)
-      await api.put(`/games/${id}`, { name: text1 || game?.name })
-      showToast('Display settings saved ✅')
-    } catch (err) { showToast('Error: '+(err.response?.data?.message||err.message), 'error') }
-    setSaving(false)
-  }
-
-  const saveFormFields = async () => { setSaving(true); try { await api.put(`/games/${id}/form-fields`, { fields: formFields }); showToast('Form fields saved') } catch { showToast('Error', 'error') }; setSaving(false) }
-  const saveEmailTemplate = async () => { setSaving(true); try { await api.put(`/games/${id}/email-template`, emailTemplate); showToast('Email saved') } catch { showToast('Error', 'error') }; setSaving(false) }
-  const addFormField = () => setFormFields([...formFields, { field_label:'New Field', field_type:'text', is_required:0, field_options:[] }])
-  const removeFormField = i => { const f=[...formFields]; f.splice(i,1); setFormFields(f) }
-  const updateFormField = (i,key,val) => { const f=[...formFields]; f[i]={...f[i],[key]:val}; setFormFields(f) }
-  const uploadSound = async e => { const file=e.target.files[0]; if(!file)return; const fd=new FormData(); fd.append('file',file); fd.append('name',file.name.replace(/\.[^.]+$/,'')); fd.append('sound_type','custom'); setSoundUploading(true); try{const res=await api.post(`/sounds/games/${id}/sounds`,fd);setSounds(prev=>[res.data.sound,...prev]);showToast('Uploaded ✅')}catch(err){showToast('Error','error')}; setSoundUploading(false);e.target.value='' }
-  const deleteSound = async s => { try{await api.delete(`/sounds/sounds/${s.id}`);setSounds(prev=>prev.filter(x=>x.id!==s.id));showToast('Deleted')}catch{showToast('Error','error')} }
-
-  const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
-  const TABS = [
-    { id:'display', label:'🎨 Display' }, { id:'gameplay', label:'🎮 Gameplay' }, { id:'sounds', label:'🔊 Sounds' },
-    { id:'form', label:'📋 Form' }, { id:'thankyou', label:'🙏 Thank You' }, { id:'email', label:'📧 Email' }, { id:'settings', label:'⚙️ Settings' },
-  ]
-  const TAB_FIELDS = {
-    form: ['bg_image_url', 'game_logo_url'],
-    thankyou: ['thankyou_bg_image_url', 'submit_confirm_gif_url'],
-  }
-
-  if (loading) return <div className="pw-wrap" style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh' }}><style>{LIGHT}</style><div style={{ textAlign:'center',color:'#9CA3AF' }}><div style={{ width:40,height:40,borderRadius:'50%',border:'3px solid #E5E7EB',borderTopColor:'#6366f1',animation:'pwSpin .8s linear infinite',margin:'0 auto 16px' }} />Loading…</div></div>
-  if (fetchError) return <div className="pw-wrap" style={{ display:'flex',alignItems:'center',justifyContent:'center',minHeight:'100vh' }}><style>{LIGHT}</style><div style={{ textAlign:'center' }}><h2 style={{ color:'#DC2626' }}>Error</h2><p style={{ color:'#9CA3AF' }}>{fetchError}</p><button className="pw-btn" onClick={loadData}>Retry</button></div></div>
 
   return (
-    <div className="pw-wrap">
-      <style>{LIGHT}</style>
-      <div className="pw-header">
-        <div style={{ display:'flex',alignItems:'center',gap:8 }}><button className="pw-btn pw-btn-secondary pw-btn-sm" onClick={()=>navigate('/dashboard/games')}>←</button><span style={{ fontWeight:700,fontSize:14 }}>{game?.name}</span></div>
-        <div className="pw-tabs">{TABS.map(t=>{const hasErr=upload.tabHasError(t.id,TAB_FIELDS[t.id]||[]);return <button key={t.id} className={`pw-tab${tab===t.id?' active':''}`} onClick={()=>setTab(t.id)}>{t.label}{hasErr&&<span className="gb-tab-err-dot" />}</button>})}</div>
-        <div style={{ display:'flex',gap:6,justifyContent:'flex-end' }}><button className="pw-btn pw-btn-secondary pw-btn-sm" onClick={()=>{navigator.clipboard.writeText(gameLink);showToast('Copied!')}}>🔗</button><a href={gameLink} target="_blank" rel="noreferrer" className="pw-btn pw-btn-secondary pw-btn-sm">👁</a></div>
-      </div>
-      <div className="pw-body">
-        <div style={{ minWidth:0 }}>
-          {tab==='display' && <div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">🎮 Game Name</div><input className="pw-input" value={text1||''} onChange={e=>setText1(e.target.value)} placeholder="Pouring Water" /></div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">🖼️ Images</div><div className="pw-2col">
-              <ImageUpload label="Background" url={settings.bg_image_url} error={upload.errors.bg_image_url} onFile={f=>{upload.clearFieldError('bg_image_url');const r=new FileReader();r.onload=e=>setSettings({...settings,bg_image_url:e.target.result,_bgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,bg_image_url:'',_bgImageFile:null})} />
-              <ImageUpload label="Logo" url={settings.game_logo_url} error={upload.errors.game_logo_url} onFile={f=>{upload.clearFieldError('game_logo_url');const r=new FileReader();r.onload=e=>setSettings({...settings,game_logo_url:e.target.result,_gameLogoFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,game_logo_url:'',_gameLogoFile:null})} />
-            </div></div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">📝 Headings</div>
-              {[['Heading 1','heading_1',heading1Color,setHeading1Color],['Heading 2','heading_2',heading2Color,setHeading2Color],['Heading 3','heading_3',heading3Color,setHeading3Color]].map(([l,k,c,s])=><div className="pw-fg" key={k} style={{ marginBottom:10 }}><span className="pw-label">{l}</span><div style={{ display:'flex',gap:8,alignItems:'flex-end' }}><input className="pw-input" value={settings[k]||''} onChange={e=>setSettings({...settings,[key]:e.target.value})} style={{ flex:1 }} /><ColorPicker value={c} onChange={s} label="Color" /></div></div>)}
-              <div className="pw-fg"><span className="pw-label">Description</span><div style={{ display:'flex',gap:8,alignItems:'flex-end' }}><textarea className="pw-input" rows={2} value={settings.description_text||''} onChange={e=>setSettings({...settings,description_text:e.target.value})} style={{ flex:1,resize:'vertical' }} /><ColorPicker value={descColor} onChange={setDescColor} label="Color" /></div></div>
-            </div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">🎨 Colors & Fonts</div><div className="pw-2col" style={{ marginBottom:12 }}>
-              <ColorPicker value={settings.bg_color||'#f0f4ff'} onChange={v=>setSettings({...settings,bg_color:v})} label="BG Color" />
-              <ColorPicker value={settings.primary_color||'#6366f1'} onChange={v=>setSettings({...settings,primary_color:v})} label="Primary Color" />
-            </div>
-            <div className="pw-fg"><span className="pw-label">Font</span><select className="pw-select" value={settings.font_family||'DM Sans'} onChange={e=>setSettings({...settings,font_family:e.target.value})}>{FONT_CATEGORIES.map(cat=><optgroup key={cat.name} label={`${cat.icon} ${cat.name}`}>{cat.fonts.map(f=><option key={f} value={f}>{f}</option>)}</optgroup>)}</select></div></div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">🎯 Button</div><div className="pw-fg" style={{ maxWidth:280 }}><span className="pw-label">Start Button Text</span><input className="pw-input" value={settings.start_button_text||''} onChange={e=>setSettings({...settings,start_button_text:e.target.value})} placeholder="Start Pouring →" /></div></div>
-            <div style={{ display:'flex',justifyContent:'flex-end',marginTop:20 }}><button className="pw-btn" onClick={saveDisplaySettings} disabled={saving} style={{ padding:'10px 28px' }}>{saving?'⏳…':'💾 Save'}</button></div>
-          </div>}
+    <div className="gb-swatch">
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="gb-swatch-input"
+        aria-label="Pick color"
+      />
+      <input
+        type="text"
+        value={text}
+        onChange={(e) => setText(e.target.value)}
+        onBlur={(e) => commitHex(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") {
+            commitHex(e.target.value);
+            e.target.blur();
+          }
+        }}
+        className="gb-swatch-hex-input"
+        spellCheck={false}
+        maxLength={7}
+        placeholder="#000000"
+        aria-label="Hex color code"
+      />
+    </div>
+  );
+}
 
-          {tab==='gameplay' && <div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">🎯 Target & Difficulty</div>
-              <div className="pw-2col" style={{ marginBottom:14 }}>
-                <RangeSlider label="Target Amount" value={settings.target_ml||50} onChange={v=>setSettings({...settings,target_ml:v})} min={5} max={settings.max_ml||200} step={5} unit="ml" />
-                <RangeSlider label="Tolerance" value={settings.tolerance_ml||5} onChange={v=>setSettings({...settings,tolerance_ml:v})} min={1} max={50} step={1} unit="ml" />
+function ImageUploader({ label, value, onChange }) {
+  const inputRef = useRef(null);
+  return (
+    <div className="gb-uploader">
+      <div className="gb-uploader-label">{label}</div>
+      <div
+        className="gb-uploader-box"
+        onClick={() => inputRef.current && inputRef.current.click()}
+        role="button"
+        tabIndex={0}
+      >
+        {value ? (
+          <img src={value} alt={label} className="gb-uploader-preview" />
+        ) : (
+          <>
+            <ImageIcon size={15} strokeWidth={1.8} />
+            <span>Upload</span>
+          </>
+        )}
+      </div>
+      <input
+        ref={inputRef}
+        type="file"
+        accept="image/*"
+        style={{ display: "none" }}
+        onChange={(e) => {
+          const file = e.target.files && e.target.files[0];
+          if (file) onChange(URL.createObjectURL(file));
+        }}
+      />
+    </div>
+  );
+}
+
+export default function GameBuilder() {
+  const [activeTab, setActiveTab] = useState("player");
+
+  const [bgImage, setBgImage] = useState(null);
+  const [logoImage, setLogoImage] = useState(null);
+  const [bgPresetId, setBgPresetId] = useState("twilight");
+  const [customBgTop, setCustomBgTop] = useState("#2B0F52");
+  const [customBgBottom, setCustomBgBottom] = useState("#5C2680");
+
+  const [bottles, setBottles] = useState(DEFAULT_BOTTLES);
+  const [activeBottleId, setActiveBottleId] = useState(DEFAULT_BOTTLES[0].id);
+  const [editingBottleId, setEditingBottleId] = useState(null);
+  const [activeDesignId, setActiveDesignId] = useState(BOTTLE_DESIGNS[0].id);
+
+  function updateBottle(id, patch) {
+    setBottles((bs) => bs.map((b) => (b.id === id ? { ...b, ...patch } : b)));
+  }
+  function addBottle() {
+    const newBottle = { id: uidSafe("b"), name: "New Bottle", liquidA: "#FFC93D", liquidB: "#FF8A3D" };
+    setBottles((bs) => [...bs, newBottle]);
+    setEditingBottleId(newBottle.id);
+  }
+  function removeBottle(id) {
+    setBottles((bs) => {
+      const next = bs.filter((b) => b.id !== id);
+      if (activeBottleId === id && next.length) setActiveBottleId(next[0].id);
+      return next;
+    });
+    if (editingBottleId === id) setEditingBottleId(null);
+  }
+
+  const [title, setTitle] = useState("Tilt & Pour");
+  const [titleColor, setTitleColor] = useState("#1a1a2e");
+  const [subtitle, setSubtitle] = useState("Tilt to pour, fill the line, don't spill.");
+  const [subtitleColor, setSubtitleColor] = useState("#1a1a2e");
+  const [introText, setIntroText] = useState(
+    "Tilt your phone forward to tip the bottle and pour. Bring it back upright to stop. Fill each cup to the perfect line before you play."
+  );
+  const [introColor, setIntroColor] = useState("#444444");
+
+  const [fields, setFields] = useState([
+    { id: uid(), label: "Full Name", type: "Text", required: true },
+    { id: uid(), label: "Email Address", type: "Email", required: true },
+    { id: uid(), label: "Phone Number", type: "Phone", required: false },
+  ]);
+
+  function updateField(id, patch) {
+    setFields((fs) => fs.map((f) => (f.id === id ? { ...f, ...patch } : f)));
+  }
+  function removeField(id) {
+    setFields((fs) => fs.filter((f) => f.id !== id));
+  }
+  function addField() {
+    setFields((fs) => [...fs, { id: uid(), label: "", type: "Text", required: false }]);
+  }
+
+  const [requireTerms, setRequireTerms] = useState(false);
+  const [termsLabel, setTermsLabel] = useState("Terms & Conditions");
+  const [termsUrl, setTermsUrl] = useState("");
+  const [sendCompletionEmail, setSendCompletionEmail] = useState(true);
+
+  const [template, setTemplate] = useState("none");
+  const [introVideo, setIntroVideo] = useState(null);
+  const introVideoRef = useRef(null);
+
+  const [startText, setStartText] = useState("Start Pouring");
+  const [startTextColor, setStartTextColor] = useState("#ffffff");
+  const [startBgColor, setStartBgColor] = useState("#6C4CE0");
+
+  const [savedPulse, setSavedPulse] = useState(false);
+
+  const [thanksBgImage, setThanksBgImage] = useState(null);
+  const [thanksHeading, setThanksHeading] = useState("Yay! You completed the game!");
+  const [thanksHeadingColor, setThanksHeadingColor] = useState("#1a1a2e");
+  const [submitBtnText, setSubmitBtnText] = useState("Submit & Explore");
+  const [submitBtnTextColor, setSubmitBtnTextColor] = useState("#ffffff");
+  const [submitBtnBgColor, setSubmitBtnBgColor] = useState("#6366F1");
+  const [submitGif, setSubmitGif] = useState(null);
+  const submitGifRef = useRef(null);
+  const [redirectUrl, setRedirectUrl] = useState("");
+  const [continueBtnText, setContinueBtnText] = useState("Continue Now");
+  const [continueTextColor, setContinueTextColor] = useState("#ffffff");
+  const [continueBgColor, setContinueBgColor] = useState("#6366F1");
+
+  const [enableEmailNotifications, setEnableEmailNotifications] = useState(false);
+  const [sendOnCompletion, setSendOnCompletion] = useState(false);
+  const [senderName, setSenderName] = useState("");
+  const [senderEmail, setSenderEmail] = useState("");
+  const [emailSubject, setEmailSubject] = useState("Thanks for playing {{game_name}}!");
+  const [emailHeaderText, setEmailHeaderText] = useState("Congratulations!");
+  const [emailHeaderColor, setEmailHeaderColor] = useState("#6366F1");
+  const [emailBodyHtml, setEmailBodyHtml] = useState(
+    "<p>Hi {{name}},</p><p>You scored {{score}}/{{total}} on {{game_name}}!</p>"
+  );
+  const [emailFooterText, setEmailFooterText] = useState("© Your Company");
+
+  const [sounds, setSounds] = useState([]);
+  const soundUploadRef = useRef(null);
+  const [soundAssignments, setSoundAssignments] = useState({
+    cardFlip: "",
+    match: "",
+    noMatch: "",
+    win: "",
+  });
+  function assignSound(event, soundId) {
+    setSoundAssignments((a) => ({ ...a, [event]: soundId }));
+  }
+
+  const [gameSlug, setGameSlug] = useState("memory-match");
+  const [settingsBgColor, setSettingsBgColor] = useState("#F8F8FF");
+  const [settingsPrimaryColor, setSettingsPrimaryColor] = useState("#6366F1");
+  const [selectedFont, setSelectedFont] = useState("DM Sans");
+  const [metaDescription, setMetaDescription] = useState("");
+
+  useEffect(() => {
+    const families = FONT_CATEGORIES.flatMap((c) => c.fonts)
+      .map((f) => "family=" + f.replace(/ /g, "+") + ":wght@400;700")
+      .join("&");
+    const href = "https://fonts.googleapis.com/css2?" + families + "&display=swap";
+    if (!document.querySelector('link[data-gb-fonts="1"]')) {
+      const link = document.createElement("link");
+      link.rel = "stylesheet";
+      link.href = href;
+      link.setAttribute("data-gb-fonts", "1");
+      document.head.appendChild(link);
+    }
+  }, []);
+
+  function saveAll() {
+    setSavedPulse(true);
+    setTimeout(() => setSavedPulse(false), 1400);
+  }
+
+  return (
+    <div className="gb-root">
+      <style>{`
+        .gb-root{
+          --pink:#D6339F; --purple:#6C4CE0; --purple-dark:#5638C4;
+          --ink:#1F2430; --sub:#6B7280; --line:#E6E7EC; --panel:#FFFFFF; --page:#F3F4F8;
+          --danger:#EF4444;
+          font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+          background:var(--page); color:var(--ink); min-height:100vh; width:100%;
+        }
+        .gb-root *{ box-sizing:border-box; }
+        .gb-topnav{ display:flex; align-items:center; gap:26px; padding:0 24px; height:48px; background:#fff; border-bottom:1px solid var(--line); overflow-x:auto; }
+        .gb-tab{ display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:var(--sub); background:none; border:none; cursor:pointer; padding:6px 2px; white-space:nowrap; position:relative; }
+        .gb-tab.active{ color:var(--pink); }
+        .gb-tab.active::after{ content:""; position:absolute; left:0; right:0; bottom:-13px; height:2px; background:var(--pink); }
+        .gb-body{ display:flex; gap:20px; padding:24px; align-items:flex-start; max-width:1240px; margin:0 auto; }
+        .gb-left{ flex:1; min-width:0; display:flex; flex-direction:column; gap:16px; }
+        .gb-card{ background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:18px 20px; }
+        .gb-card-head{ display:flex; align-items:center; gap:7px; font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--pink); margin-bottom:14px; }
+        .gb-row2{ display:grid; grid-template-columns:1fr 1fr; gap:20px; }
+        .gb-row3{ display:grid; grid-template-columns:1fr auto auto; gap:20px; align-items:start; }
+        .gb-email-highlight{ background:#F0FBF4; border:1px solid #BBEBCB; border-radius:10px; padding:12px 14px; margin-bottom:14px; }
+        .gb-email-notice{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; background:#FFF9E6; border:1px solid #F5DE9B; border-radius:10px; padding:10px 14px; font-size:12px; color:#8A6D1D; margin-bottom:16px; }
+        .gb-email-notice code{ background:#FFF1C2; border-radius:5px; padding:1px 5px; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:11px; }
+        .gb-font-category{ font-size:11.5px; font-weight:700; color:var(--pink); margin-bottom:8px; }
+        .gb-font-grid{ display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+        .gb-font-btn{ display:flex; flex-direction:column; align-items:flex-start; gap:3px; text-align:left; border:1px solid var(--line); border-radius:9px; padding:9px 11px; background:#FAFAFC; cursor:pointer; }
+        .gb-font-btn.active{ border-color:var(--purple); background:#FAF9FF; box-shadow:0 0 0 2px rgba(108,76,224,0.12); }
+        .gb-font-name{ font-size:13px; font-weight:700; color:var(--ink); line-height:1.2; }
+        .gb-font-sample{ font-size:11px; color:var(--sub); line-height:1.2; }
+        .gb-field{ margin-bottom:14px; }
+        .gb-field:last-child{ margin-bottom:0; }
+        .gb-label{ display:block; font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--sub); margin-bottom:6px; }
+        .gb-input, .gb-select, .gb-textarea{ width:100%; border:1px solid var(--line); border-radius:8px; padding:9px 11px; font-size:13.5px; color:var(--ink); background:#fff; }
+        .gb-input:focus, .gb-select:focus, .gb-textarea:focus{ outline:none; border-color:var(--purple); box-shadow:0 0 0 3px rgba(108,76,224,0.12); }
+        .gb-textarea{ resize:vertical; min-height:56px; font-family:inherit; }
+        .gb-field-with-swatch{ display:flex; align-items:center; gap:10px; }
+        .gb-field-with-swatch .gb-input{ flex:1; }
+        .gb-swatch{ display:flex; align-items:center; gap:6px; border:1px solid var(--line); border-radius:8px; padding:5px 8px; }
+        .gb-swatch-input{ width:18px; height:18px; border:none; padding:0; background:none; cursor:pointer; }
+        .gb-swatch-hex-input{ width:72px; border:1px solid var(--line); border-radius:6px; padding:4px 6px; font-size:12px; color:var(--ink); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; background:#fff; }
+        .gb-swatch-hex-input:focus{ outline:none; border-color:var(--purple); box-shadow:0 0 0 2px rgba(108,76,224,0.12); }
+        .gb-uploader{ }
+        .gb-uploader-label{ font-size:10.5px; font-weight:700; letter-spacing:.05em; text-transform:uppercase; color:var(--sub); margin-bottom:8px; text-align:center; }
+        .gb-uploader-box{ height:64px; border:1.5px dashed var(--line); border-radius:10px; display:flex; align-items:center; justify-content:center; gap:6px; font-size:12.5px; color:var(--sub); cursor:pointer; background:#FAFAFC; overflow:hidden; }
+        .gb-uploader-box:hover{ border-color:var(--purple); color:var(--purple); }
+        .gb-uploader-preview{ width:100%; height:100%; object-fit:cover; }
+        .gb-hint{ font-size:12px; color:var(--sub); margin:2px 0 14px; }
+        .gb-bgpresets{ display:flex; gap:10px; flex-wrap:wrap; }
+        .gb-bgswatch{ width:44px; height:44px; border-radius:10px; border:2px solid transparent; cursor:pointer; display:flex; align-items:center; justify-content:center; padding:0; }
+        .gb-bgswatch.active{ border-color:var(--purple); box-shadow:0 0 0 2px rgba(108,76,224,0.18); }
+        .gb-designs{ display:grid; grid-template-columns:repeat(5,1fr); gap:8px; }
+        .gb-design{ position:relative; display:flex; flex-direction:column; align-items:center; gap:6px; padding:10px 4px 8px; border:1px solid var(--line); border-radius:10px; background:#FAFAFC; cursor:pointer; }
+        .gb-design.active{ border-color:var(--purple); background:#FAF9FF; }
+        .gb-design span{ font-size:10px; font-weight:600; color:var(--sub); text-align:center; line-height:1.2; }
+        .gb-design.active span{ color:var(--purple); }
+        .gb-design-check{ position:absolute; top:-6px; right:-6px; width:16px; height:16px; border-radius:50%; background:var(--purple); color:#fff; display:flex; align-items:center; justify-content:center; }
+        .gb-bottles{ display:flex; flex-direction:column; gap:10px; }
+        .gb-bottle{ display:flex; align-items:center; gap:10px; padding:8px 10px; border:1px solid var(--line); border-radius:10px; flex-wrap:wrap; }
+        .gb-bottle.active{ border-color:var(--purple); background:#FAF9FF; }
+        .gb-bottle-select{ position:relative; width:34px; height:34px; border-radius:8px; border:1px solid var(--line); padding:0; cursor:pointer; flex:none; }
+        .gb-bottle-glass{ position:absolute; inset:0; border-radius:7px; }
+        .gb-bottle-check{ position:absolute; inset:0; display:flex; align-items:center; justify-content:center; color:#fff; background:rgba(0,0,0,0.18); border-radius:7px; }
+        .gb-bottle-name{ flex:1; min-width:110px; border:none; background:none; font-size:13px; font-weight:600; color:var(--ink); padding:6px 2px; }
+        .gb-bottle-name:focus{ outline:none; border-bottom:1px solid var(--purple); }
+        .gb-bottle-edit{ width:30px; height:30px; border-radius:8px; border:1px solid var(--line); background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--sub); flex:none; }
+        .gb-bottle-edit:hover{ color:var(--purple); border-color:var(--purple); }
+        .gb-bottle-colors{ display:flex; gap:16px; width:100%; padding-top:8px; border-top:1px solid var(--line); margin-top:4px; }
+        .gb-fieldrow{ display:grid; grid-template-columns:1fr 150px auto auto; gap:14px; align-items:end; padding:12px 0; border-bottom:1px solid var(--line); }
+        .gb-fieldrow:last-of-type{ border-bottom:none; }
+        .gb-check-wrap{ display:flex; align-items:center; gap:6px; padding-bottom:9px; }
+        .gb-check-wrap label{ font-size:12.5px; color:var(--sub); font-weight:600; }
+        .gb-icon-btn{ width:34px; height:34px; border-radius:8px; border:1px solid var(--line); background:#fff; display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--danger); }
+        .gb-icon-btn:hover{ background:#FEF2F2; border-color:#FCA5A5; }
+        .gb-fieldbar{ display:flex; justify-content:center; gap:10px; margin-top:16px; }
+        .gb-btn{ display:inline-flex; align-items:center; gap:7px; font-size:13px; font-weight:700; border-radius:9px; padding:9px 16px; border:1px solid var(--line); background:#fff; color:var(--ink); cursor:pointer; }
+        .gb-btn:hover{ background:#F7F7FA; }
+        .gb-btn-primary{ background:linear-gradient(180deg,#7C5CFC,var(--purple-dark)); border:none; color:#fff; }
+        .gb-btn-primary:hover{ filter:brightness(1.05); }
+        .gb-checkbox-row{ display:flex; align-items:center; gap:8px; margin-bottom:14px; font-size:13px; font-weight:600; }
+        .gb-checkbox-row input{ width:15px; height:15px; accent-color:var(--purple); }
+        .gb-select-wrap select{ appearance:none; }
+        .gb-manage-btn{ margin-top:10px; font-size:12.5px; padding:7px 12px; }
+        .gb-savebar{ display:flex; justify-content:flex-end; padding-top:4px; }
+        .gb-saved-msg{ font-size:12.5px; color:#059669; font-weight:700; align-self:center; margin-right:12px; }
+
+        .gb-right{ position:sticky; top:24px; width:300px; flex:none; display:flex; justify-content:center; }
+        .gb-phone{ width:270px; height:560px; border:9px solid #17171c; border-radius:40px; background:#000; position:relative; box-shadow:0 20px 44px rgba(20,10,50,.18); overflow:hidden; }
+        .gb-phone-notch{ position:absolute; top:9px; left:50%; transform:translateX(-50%); width:90px; height:20px; background:#17171c; border-radius:0 0 14px 14px; z-index:5; }
+        .gb-phone-screen{ position:absolute; inset:0; border-radius:31px; overflow:hidden; background-size:cover; background-position:center; display:flex; flex-direction:column; }
+        .gb-phone-logo{ display:flex; justify-content:center; padding-top:34px; }
+        .gb-phone-logo img{ width:34px; height:34px; border-radius:9px; object-fit:cover; }
+        .gb-phone-content{ flex:1; display:flex; flex-direction:column; align-items:center; padding:14px 20px 20px; overflow-y:auto; }
+        .gb-phone-title{ font-size:17px; font-weight:800; text-align:center; margin:6px 0 4px; line-height:1.25; }
+        .gb-phone-sub{ font-size:11.5px; text-align:center; opacity:.85; margin-bottom:8px; line-height:1.4; }
+        .gb-phone-intro{ font-size:10.5px; text-align:center; line-height:1.5; margin-bottom:16px; opacity:.85; }
+        .gb-phone-form{ width:100%; display:flex; flex-direction:column; gap:9px; margin-top:auto; }
+        .gb-phone-flabel{ font-size:8.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; opacity:.65; margin-bottom:3px; }
+        .gb-phone-finput{ width:100%; border:1px solid rgba(0,0,0,0.12); border-radius:8px; padding:8px 9px; font-size:11px; background:rgba(255,255,255,0.9); color:#333; }
+        .gb-phone-terms{ display:flex; align-items:center; gap:6px; font-size:9.5px; opacity:.75; margin-top:2px; }
+        .gb-phone-start{ width:100%; border:none; border-radius:9px; padding:11px; font-size:12.5px; font-weight:800; margin-top:8px; cursor:default; }
+        .gb-phone-tag{ display:flex; align-items:center; justify-content:center; gap:5px; font-size:9px; color:#fff; opacity:.55; padding:8px 0 12px; }
+      `}</style>
+
+      <div className="gb-topnav">
+        {TABS.map((t) => {
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.id}
+              className={"gb-tab" + (activeTab === t.id ? " active" : "")}
+              onClick={() => setActiveTab(t.id)}
+            >
+              <Icon size={13} strokeWidth={2} />
+              {t.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {activeTab === "settings" ? (
+        <div className="gb-body">
+          <div className="gb-left">
+            <div className="gb-card">
+              <div className="gb-card-head"><LinkIcon size={13} /> URL Slug & Colors</div>
+              <div className="gb-field">
+                <label className="gb-label">Game URL Slug</label>
+                <input
+                  className="gb-input"
+                  value={gameSlug}
+                  onChange={(e) => setGameSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, "-"))}
+                />
+                <p className="gb-hint" style={{ marginTop: 6, marginBottom: 0 }}>
+                  /play/{gameSlug || "your-slug"}/promogames
+                </p>
               </div>
-              <RangeSlider label="Max Tumbler Capacity" value={settings.max_ml||200} onChange={v=>setSettings({...settings,max_ml:v})} min={50} max={500} step={10} unit="ml" />
-              <p style={{ fontSize:11,color:'#999',margin:'4px 0 14px' }}>Win condition: pour between {Math.max(0,(settings.target_ml||50)-(settings.tolerance_ml||5))}ml and {(settings.target_ml||50)+(settings.tolerance_ml||5)}ml</p>
-            </div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">💧 Water Physics</div>
-              <div className="pw-2col" style={{ marginBottom:14 }}>
-                <RangeSlider label="Pour Speed" value={settings.pour_speed||1} onChange={v=>setSettings({...settings,pour_speed:v})} min={0.3} max={3} step={0.1} unit="x" />
-                <RangeSlider label="Viscosity" value={settings.viscosity||1} onChange={v=>setSettings({...settings,viscosity:v})} min={0.3} max={3} step={0.1} unit="x" />
-              </div>
-              <p style={{ fontSize:11,color:'#999',marginBottom:12 }}>Higher viscosity = slower pour, more control needed. Lower = faster, harder to stop precisely.</p>
-              <div>
-                <span className="pw-label">Water Color</span>
-                <div style={{ display:'flex',gap:6,flexWrap:'wrap',marginTop:4 }}>
-                  {WATER_COLORS.map(c=><div key={c} onClick={()=>setSettings({...settings,water_color:c})} style={{ width:32,height:32,borderRadius:8,background:c,cursor:'pointer',border:settings.water_color===c?'3px solid #333':'3px solid transparent',boxShadow:'0 2px 4px rgba(0,0,0,0.1)' }} />)}
-                  <input type="color" value={settings.water_color||'#4da6ff'} onChange={e=>setSettings({...settings,water_color:e.target.value})} style={{ width:32,height:32,borderRadius:8,border:'none',cursor:'pointer',padding:0 }} />
+              <div className="gb-row2" style={{ marginTop: 14 }}>
+                <div className="gb-field">
+                  <label className="gb-label">Background Color</label>
+                  <ColorSwatch value={settingsBgColor} onChange={setSettingsBgColor} />
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">Primary Color</label>
+                  <ColorSwatch value={settingsPrimaryColor} onChange={setSettingsPrimaryColor} />
                 </div>
               </div>
             </div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">🔄 Retries & Timer</div>
-              <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:10 }}><input type="checkbox" id="showTimer" checked={Number(settings.show_timer)===1} onChange={e=>setSettings({...settings,show_timer:e.target.checked?1:0})} style={{ width:16,height:16 }} /><label htmlFor="showTimer" style={{ fontWeight:600,cursor:'pointer' }}>Show Timer</label></div>
-              {Number(settings.show_timer)===1 && <div className="pw-fg" style={{ maxWidth:200,marginBottom:10 }}><span className="pw-label">Time Limit (0=unlimited)</span><input className="pw-input" type="number" min="0" value={settings.time_limit_seconds||0} onChange={e=>setSettings({...settings,time_limit_seconds:parseInt(e.target.value)||0})} /></div>}
-              <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:10 }}><input type="checkbox" id="allowRetries" checked={Number(settings.allow_retries)===1} onChange={e=>setSettings({...settings,allow_retries:e.target.checked?1:0})} style={{ width:16,height:16 }} /><label htmlFor="allowRetries" style={{ fontWeight:600,cursor:'pointer' }}>Allow Retries</label></div>
-              {Number(settings.allow_retries)===1 && <div className="pw-fg" style={{ maxWidth:200 }}><span className="pw-label">Max Retries</span><input className="pw-input" type="number" min="1" max="10" value={settings.max_retries||3} onChange={e=>setSettings({...settings,max_retries:parseInt(e.target.value)||3})} /></div>}
+
+            <div className="gb-card">
+              <div className="gb-card-head"><Type size={13} /> Font Family</div>
+              <p className="gb-hint">Selected: {selectedFont}</p>
+              {FONT_CATEGORIES.map((cat) => (
+                <div key={cat.name} style={{ marginBottom: 16 }}>
+                  <div className="gb-font-category">{cat.emoji} {cat.name}</div>
+                  <div className="gb-font-grid">
+                    {cat.fonts.map((f) => (
+                      <button
+                        key={f}
+                        type="button"
+                        className={"gb-font-btn" + (selectedFont === f ? " active" : "")}
+                        onClick={() => setSelectedFont(f)}
+                        style={{ fontFamily: `'${f}', ${cat.stack}` }}
+                      >
+                        <span className="gb-font-name">{f}</span>
+                        <span className="gb-font-sample">The quick brown fox</span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              ))}
             </div>
-            <div style={{ display:'flex',justifyContent:'flex-end',marginTop:20 }}><button className="pw-btn" onClick={saveDisplaySettings} disabled={saving}>{saving?'⏳…':'💾 Save Gameplay'}</button></div>
-          </div>}
 
-          {tab==='sounds' && <div>
-            <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:14 }}><h3 style={{ fontWeight:700,fontSize:16 }}>Sounds</h3><div><input type="file" accept="audio/*" onChange={uploadSound} style={{ display:'none' }} id="pwSound" /><button className="pw-btn" onClick={()=>document.getElementById('pwSound').click()} disabled={soundUploading}>{soundUploading?'⏳':'+ Upload'}</button></div></div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">🔊 Assign Sounds</div><div className="pw-2col">
-              <SoundSelect label="Correct Sound" value={settings.sound_correct_id} onChange={v=>setSettings({...settings,sound_correct_id:v})} sounds={sounds} />
-              <SoundSelect label="Wrong Sound" value={settings.sound_wrong_id} onChange={v=>setSettings({...settings,sound_wrong_id:v})} sounds={sounds} />
-            </div><div className="pw-fg" style={{ marginTop:10, maxWidth:200 }}><SoundSelect label="Pour Sound" value={settings.sound_pour_id} onChange={v=>setSettings({...settings,sound_pour_id:v})} sounds={sounds} /></div>
-            <div style={{ display:'flex',justifyContent:'flex-end',marginTop:12 }}><button className="pw-btn" onClick={saveSettings} disabled={saving}>{saving?'⏳':'💾 Save'}</button></div></div>
-          </div>}
-
-          {tab==='form' && <div>
-            <div className="pw-card" style={{ marginBottom:14 }}><div className="pw-card-title">📋 Fields</div>
-              {formFields.map((f,i)=><div key={i} style={{ display:'flex',gap:10,flexWrap:'wrap',alignItems:'flex-end',marginBottom:8,padding:'10px 12px',background:'#F9FAFB',borderRadius:8 }}>
-                <div className="pw-fg" style={{ flex:2,minWidth:130 }}><span className="pw-label">Label</span><input className="pw-input" value={f.field_label} onChange={e=>updateFormField(i,'field_label',e.target.value)} /></div>
-                <div className="pw-fg" style={{ flex:1,minWidth:110 }}><span className="pw-label">Type</span><select className="pw-select" value={f.field_type} onChange={e=>updateFormField(i,'field_type',e.target.value)}><option value="text">Text</option><option value="email">Email</option><option value="phone">Phone</option><option value="number">Number</option><option value="textarea">Textarea</option></select></div>
-                <label style={{ display:'flex',alignItems:'center',gap:6,fontSize:13,paddingBottom:2 }}><input type="checkbox" checked={Number(f.is_required)===1} onChange={e=>updateFormField(i,'is_required',e.target.checked?1:0)} style={{ width:16,height:16 }} />Required</label>
-                <button className="pw-icon-btn" style={{ border:'1.5px solid #FEE2E2',background:'#FFF5F5',color:'#DC2626' }} onClick={()=>removeFormField(i)}>✕</button>
-              </div>)}
-              <div style={{ textAlign:'center',marginTop:10 }}><button className="pw-btn pw-btn-secondary" onClick={addFormField}>+ Add Field</button></div>
-              <div style={{ display:'flex',justifyContent:'flex-end',marginTop:14 }}><button className="pw-btn" onClick={saveFormFields} disabled={saving}>{saving?'⏳':'💾 Save'}</button></div>
+            <div className="gb-card">
+              <div className="gb-card-head"><Share2 size={13} /> Social Share Preview</div>
+              <div className="gb-field">
+                <label className="gb-label">Meta Description</label>
+                <textarea
+                  className="gb-textarea"
+                  value={metaDescription}
+                  maxLength={100}
+                  placeholder="Brief description for social sharing…"
+                  onChange={(e) => setMetaDescription(e.target.value)}
+                />
+                <p className="gb-hint" style={{ textAlign: "right", marginTop: 4, marginBottom: 0 }}>
+                  {metaDescription.length}/100
+                </p>
+              </div>
             </div>
-          </div>}
 
-          {tab==='thankyou' && <div className="pw-card">
-            <div className="pw-card-title">🙏 Thank You</div>
-            <div className="pw-2col" style={{ marginBottom:14 }}>
-              <ImageUpload label="Thank You BG" url={settings.thankyou_bg_image_url} error={upload.errors.thankyou_bg_image_url} onFile={f=>{upload.clearFieldError('thankyou_bg_image_url');const r=new FileReader();r.onload=e=>setSettings({...settings,thankyou_bg_image_url:e.target.result,_tyBgImageFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,thankyou_bg_image_url:'',_tyBgImageFile:null})} />
-              <ImageUpload label="Confirm GIF" url={settings.submit_confirm_gif_url} error={upload.errors.submit_confirm_gif_url} onFile={f=>{upload.clearFieldError('submit_confirm_gif_url');const r=new FileReader();r.onload=e=>setSettings({...settings,submit_confirm_gif_url:e.target.result,_submitGifFile:f});r.readAsDataURL(f)}} onClear={()=>setSettings({...settings,submit_confirm_gif_url:'',_submitGifFile:null})} />
+            <div className="gb-savebar">
+              <span className="gb-saved-msg" style={{ opacity: savedPulse ? 1 : 0, transition: "opacity .3s" }}>Saved</span>
+              <button className="gb-btn gb-btn-primary" onClick={saveAll}><Save size={14} /> Save Settings</button>
             </div>
-            <div className="pw-fg" style={{ marginBottom:10 }}><span className="pw-label">Outro</span><textarea className="pw-input" rows={2} value={settings.outro_text||''} onChange={e=>setSettings({...settings,outro_text:e.target.value})} style={{ resize:'vertical' }} /></div>
-            <div style={{ display:'flex',justifyContent:'flex-end' }}><button className="pw-btn" onClick={saveSettings} disabled={saving}>{saving?'⏳':'💾 Save'}</button></div>
-          </div>}
+          </div>
 
-          {tab==='email' && <div className="pw-card">
-            <div className="pw-card-title">📧 Email</div>
-            <div className="pw-2col" style={{ marginBottom:12 }}><div className="pw-fg"><span className="pw-label">Sender Name</span><input className="pw-input" value={emailTemplate.sender_name||''} onChange={e=>setEmailTemplate({...emailTemplate,sender_name:e.target.value})} /></div><div className="pw-fg"><span className="pw-label">Sender Email</span><input className="pw-input" type="email" value={emailTemplate.sender_email||''} onChange={e=>setEmailTemplate({...emailTemplate,sender_email:e.target.value})} /></div></div>
-            <div className="pw-fg" style={{ marginBottom:12 }}><span className="pw-label">Subject</span><input className="pw-input" value={emailTemplate.subject||''} onChange={e=>setEmailTemplate({...emailTemplate,subject:e.target.value})} /></div>
-            <div className="pw-fg" style={{ marginBottom:12 }}><span className="pw-label">Body HTML</span><textarea className="pw-input" rows={6} value={emailTemplate.body_html||''} onChange={e=>setEmailTemplate({...emailTemplate,body_html:e.target.value})} style={{ resize:'vertical',fontFamily:'monospace',fontSize:12 }} /></div>
-            <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:14 }}><input type="checkbox" checked={!!emailTemplate.is_enabled} onChange={e=>setEmailTemplate({...emailTemplate,is_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} /><span style={{ fontWeight:600 }}>Enable</span></div>
-            <div style={{ display:'flex',justifyContent:'flex-end' }}><button className="pw-btn" onClick={saveEmailTemplate} disabled={saving}>{saving?'⏳':'💾 Save'}</button></div>
-          </div>}
-
-          {tab==='settings' && <div className="pw-card">
-            <div className="pw-card-title">⚙️ Settings</div>
-            <div className="pw-fg" style={{ marginBottom:12 }}><span className="pw-label">Redirect URL</span><input className="pw-input" type="url" value={redirectUrl} onChange={e=>setRedirectUrl(e.target.value)} placeholder="https://..." /></div>
-            <div className="pw-fg" style={{ marginBottom:12 }}><span className="pw-label">Meta Description</span><textarea className="pw-input" rows={2} value={settings.meta_description||''} onChange={e=>setSettings({...settings,meta_description:e.target.value})} style={{ resize:'vertical' }} /></div>
-            <div style={{ display:'flex',justifyContent:'flex-end' }}><button className="pw-btn" onClick={saveSettings} disabled={saving}>{saving?'⏳':'💾 Save'}</button></div>
-          </div>}
+          <div className="gb-right">
+            <div className="gb-phone">
+              <div className="gb-phone-notch" />
+              <div className="gb-phone-screen" style={{ background: settingsBgColor }}>
+                <div className="gb-phone-content">
+                  <div className="gb-phone-title" style={{ color: "var(--ink)", marginTop: 30, fontFamily: `'${selectedFont}', sans-serif` }}>
+                    {title || "Untitled"}
+                  </div>
+                  <div className="gb-phone-form">
+                    {fields.map((f) => (
+                      <div key={f.id}>
+                        <div className="gb-phone-finput" style={{ color: "var(--sub)", fontFamily: `'${selectedFont}', sans-serif` }}>
+                          {f.label || "Untitled field"}{f.required ? " *" : ""}
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      className="gb-phone-start"
+                      style={{ background: settingsPrimaryColor, color: "#fff", fontFamily: `'${selectedFont}', sans-serif` }}
+                    >
+                      {startText || "Start"} &rarr;
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
-        <PhonePreview settings={settings} heading1Color={heading1Color} heading2Color={heading2Color} />
-      </div>
-      {toast && <Toast msg={toast.msg} type={toast.type} onClose={()=>setToast(null)} />}
+      ) : activeTab === "audio" ? (
+        <div className="gb-body">
+          <div className="gb-left">
+            <div className="gb-card">
+              <div className="gb-card-head"><Volume2 size={13} /> Sound Library</div>
+              <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 18 }}>
+                <button
+                  className="gb-btn"
+                  onClick={() => soundUploadRef.current && soundUploadRef.current.click()}
+                  type="button"
+                >
+                  <Music size={13} /> Upload Sound
+                </button>
+                <span className="gb-hint" style={{ margin: 0 }}>MP3, WAV, or OGG</span>
+                <input
+                  ref={soundUploadRef}
+                  type="file"
+                  accept=".mp3,.wav,.ogg,audio/*"
+                  multiple
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const files = Array.from(e.target.files || []);
+                    if (files.length) {
+                      setSounds((ss) => [...ss, ...files.map((f) => ({ id: uid(), name: f.name }))]);
+                    }
+                  }}
+                />
+              </div>
+
+              <div className="gb-card-head">Assign Sounds</div>
+              <div className="gb-row2">
+                <div className="gb-field">
+                  <label className="gb-label" style={{ display: "flex", alignItems: "center", gap: 5 }}>
+                    <LayoutGrid size={11} /> Card Flip
+                  </label>
+                  <select
+                    className="gb-select"
+                    value={soundAssignments.cardFlip}
+                    onChange={(e) => assignSound("cardFlip", e.target.value)}
+                  >
+                    <option value="">— None —</option>
+                    {sounds.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label" style={{ display: "flex", alignItems: "center", gap: 5, color: "#059669" }}>
+                    <CheckCircle2 size={11} /> Match
+                  </label>
+                  <select
+                    className="gb-select"
+                    value={soundAssignments.match}
+                    onChange={(e) => assignSound("match", e.target.value)}
+                  >
+                    <option value="">— None —</option>
+                    {sounds.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label" style={{ display: "flex", alignItems: "center", gap: 5, color: "var(--danger)" }}>
+                    <XCircle size={11} /> No Match
+                  </label>
+                  <select
+                    className="gb-select"
+                    value={soundAssignments.noMatch}
+                    onChange={(e) => assignSound("noMatch", e.target.value)}
+                  >
+                    <option value="">— None —</option>
+                    {sounds.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label" style={{ display: "flex", alignItems: "center", gap: 5, color: "#B45309" }}>
+                    <Trophy size={11} /> Win
+                  </label>
+                  <select
+                    className="gb-select"
+                    value={soundAssignments.win}
+                    onChange={(e) => assignSound("win", e.target.value)}
+                  >
+                    <option value="">— None —</option>
+                    {sounds.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
+                  </select>
+                </div>
+              </div>
+
+              <button className="gb-btn gb-btn-primary" style={{ marginTop: 16 }} onClick={saveAll}>
+                <Save size={14} /> Save Sound Assignments
+              </button>
+            </div>
+
+            {sounds.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "48px 24px", color: "var(--sub)" }}>
+                <Music size={30} strokeWidth={1.5} color="#C7C9D6" />
+                <div style={{ fontSize: 13, fontWeight: 700, marginTop: 10 }}>No sounds uploaded yet</div>
+                <div style={{ fontSize: 12, marginTop: 4, opacity: 0.8 }}>Upload MP3, WAV, or OGG files above</div>
+              </div>
+            ) : (
+              <div className="gb-card">
+                <div className="gb-card-head"><Music size={13} /> Uploaded Sounds</div>
+                <div className="gb-bottles">
+                  {sounds.map((s) => (
+                    <div className="gb-bottle" key={s.id}>
+                      <span style={{ flex: 1, fontSize: 13, fontWeight: 600 }}>{s.name}</span>
+                      <button
+                        className="gb-icon-btn"
+                        onClick={() => setSounds((ss) => ss.filter((x) => x.id !== s.id))}
+                        aria-label="Remove sound"
+                        type="button"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+
+          <div className="gb-right">
+            <div className="gb-phone">
+              <div className="gb-phone-notch" />
+              <div className="gb-phone-screen" style={{ background: "#fff" }}>
+                <div className="gb-phone-content">
+                  <div className="gb-phone-title" style={{ color: "var(--ink)", marginTop: 30 }}>{title || "Untitled"}</div>
+                  <div className="gb-phone-form">
+                    {fields.map((f) => (
+                      <div key={f.id}>
+                        <div className="gb-phone-finput" style={{ color: "var(--sub)" }}>
+                          {f.label || "Untitled field"}{f.required ? " *" : ""}
+                        </div>
+                      </div>
+                    ))}
+                    <button
+                      className="gb-phone-start"
+                      style={{ background: startBgColor, color: startTextColor }}
+                    >
+                      {startText || "Start"} &rarr;
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : activeTab === "email" ? (
+        <div className="gb-body">
+          <div className="gb-left">
+            <div className="gb-card">
+              <div className="gb-checkbox-row">
+                <input type="checkbox" checked={enableEmailNotifications} onChange={(e) => setEnableEmailNotifications(e.target.checked)} id="enablemail" />
+                <label htmlFor="enablemail">Enable email notifications</label>
+              </div>
+              <div className="gb-email-highlight">
+                <div className="gb-checkbox-row" style={{ marginBottom: 0, justifyContent: "space-between" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <input type="checkbox" checked={sendOnCompletion} onChange={(e) => setSendOnCompletion(e.target.checked)} id="sendoncomplete" />
+                    <label htmlFor="sendoncomplete" style={{ color: "var(--ink)" }}>Send email on game completion</label>
+                  </div>
+                  <span className="gb-hint" style={{ margin: 0 }}>Requires template below to be enabled</span>
+                </div>
+              </div>
+
+              <div className="gb-email-notice">
+                <HelpCircle size={13} /> Available placeholders: <code>{"{{name}}"}</code> <code>{"{{score}}"}</code> <code>{"{{total}}"}</code> <code>{"{{game_name}}"}</code>
+              </div>
+
+              <div className="gb-row2">
+                <div className="gb-field">
+                  <label className="gb-label">Sender Name</label>
+                  <input className="gb-input" value={senderName} onChange={(e) => setSenderName(e.target.value)} />
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">Sender Email</label>
+                  <input className="gb-input" value={senderEmail} onChange={(e) => setSenderEmail(e.target.value)} />
+                </div>
+              </div>
+
+              <div className="gb-field">
+                <label className="gb-label">Subject</label>
+                <input className="gb-input" value={emailSubject} onChange={(e) => setEmailSubject(e.target.value)} />
+              </div>
+
+              <div className="gb-row2">
+                <div className="gb-field">
+                  <label className="gb-label">Header Text</label>
+                  <input className="gb-input" value={emailHeaderText} onChange={(e) => setEmailHeaderText(e.target.value)} />
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">Header Color</label>
+                  <ColorSwatch value={emailHeaderColor} onChange={setEmailHeaderColor} />
+                </div>
+              </div>
+
+              <div className="gb-field">
+                <label className="gb-label">Body HTML</label>
+                <textarea className="gb-textarea" style={{ minHeight: 90 }} value={emailBodyHtml} onChange={(e) => setEmailBodyHtml(e.target.value)} />
+              </div>
+
+              <div className="gb-field">
+                <label className="gb-label">Footer Text</label>
+                <input className="gb-input" value={emailFooterText} onChange={(e) => setEmailFooterText(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="gb-savebar">
+              <span className="gb-saved-msg" style={{ opacity: savedPulse ? 1 : 0, transition: "opacity .3s" }}>Saved</span>
+              <button className="gb-btn gb-btn-primary" onClick={saveAll}><Save size={14} /> Save Email Template</button>
+            </div>
+          </div>
+
+          <div className="gb-right">
+            <div className="gb-phone">
+              <div className="gb-phone-notch" />
+              <div className="gb-phone-screen" style={{ background: "#EDEDF3" }}>
+                <div style={{ background: emailHeaderColor, color: "#fff", fontWeight: 800, fontSize: 15, textAlign: "center", padding: "34px 16px 14px" }}>
+                  {emailHeaderText || "Header"}
+                </div>
+                <div style={{ background: "#fff", margin: 14, borderRadius: 10, padding: "14px 12px", fontSize: 11.5, color: "var(--ink)", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}>
+                  Thanks for playing
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : activeTab === "thanks" ? (
+        <div className="gb-body">
+          <div className="gb-left">
+            <div className="gb-row2">
+              <div className="gb-card">
+                <div className="gb-card-head"><ImageIcon size={13} /> Background</div>
+                <ImageUploader label="Thank You Background" value={thanksBgImage} onChange={setThanksBgImage} />
+              </div>
+
+              <div className="gb-card">
+                <div className="gb-card-head"><PartyPopper size={13} /> Thank You Message</div>
+                <div className="gb-field">
+                  <label className="gb-label">Heading</label>
+                  <textarea className="gb-textarea" value={thanksHeading} onChange={(e) => setThanksHeading(e.target.value)} />
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">Heading Color</label>
+                  <ColorSwatch value={thanksHeadingColor} onChange={setThanksHeadingColor} />
+                </div>
+              </div>
+            </div>
+
+            <div className="gb-card">
+              <div className="gb-card-head"><Rocket size={13} /> Submit Button</div>
+              <div className="gb-row3">
+                <div className="gb-field">
+                  <label className="gb-label">Button Text</label>
+                  <input className="gb-input" value={submitBtnText} onChange={(e) => setSubmitBtnText(e.target.value)} />
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">Text Color</label>
+                  <ColorSwatch value={submitBtnTextColor} onChange={setSubmitBtnTextColor} />
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">BG Color</label>
+                  <ColorSwatch value={submitBtnBgColor} onChange={setSubmitBtnBgColor} />
+                </div>
+              </div>
+            </div>
+
+            <div className="gb-row2">
+              <div className="gb-card">
+                <div className="gb-card-head"><ImageIcon size={13} /> Submit Confirmation GIF</div>
+                <button className="gb-btn gb-manage-btn" onClick={() => submitGifRef.current && submitGifRef.current.click()}>
+                  <Upload size={13} /> Upload
+                </button>
+                <input
+                  ref={submitGifRef}
+                  type="file"
+                  accept="image/gif,image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const f = e.target.files && e.target.files[0];
+                    if (f) setSubmitGif(f.name);
+                  }}
+                />
+                {submitGif && <div className="gb-hint" style={{ marginTop: 8, marginBottom: 0 }}>{submitGif}</div>}
+              </div>
+
+              <div className="gb-card">
+                <div className="gb-card-head" style={{ color: "var(--purple)" }}><Rocket size={13} /> Redirect & Continue</div>
+                <div className="gb-field">
+                  <label className="gb-label">Redirect URL</label>
+                  <input className="gb-input" value={redirectUrl} onChange={(e) => setRedirectUrl(e.target.value)} placeholder="https://yoursite.com/thankyou" />
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">Continue Button Text</label>
+                  <input className="gb-input" value={continueBtnText} onChange={(e) => setContinueBtnText(e.target.value)} />
+                </div>
+                <div className="gb-row2">
+                  <div className="gb-field">
+                    <label className="gb-label">Text Color</label>
+                    <ColorSwatch value={continueTextColor} onChange={setContinueTextColor} />
+                  </div>
+                  <div className="gb-field">
+                    <label className="gb-label">BG Color</label>
+                    <ColorSwatch value={continueBgColor} onChange={setContinueBgColor} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="gb-savebar">
+              <span className="gb-saved-msg" style={{ opacity: savedPulse ? 1 : 0, transition: "opacity .3s" }}>Saved</span>
+              <button className="gb-btn gb-btn-primary" onClick={saveAll}><Save size={14} /> Save Settings</button>
+            </div>
+          </div>
+
+          <div className="gb-right">
+            <div className="gb-phone">
+              <div className="gb-phone-notch" />
+              <div
+                className="gb-phone-screen"
+                style={{
+                  background: thanksBgImage ? `url(${thanksBgImage}) center/cover` : "#F5F5FA",
+                }}
+              >
+                <div className="gb-phone-content" style={{ justifyContent: "space-between" }}>
+                  <div style={{ marginTop: 40, textAlign: "center" }}>
+                    <div style={{ fontSize: 26, marginBottom: 8 }}>🎉</div>
+                    <div className="gb-phone-title" style={{ color: thanksHeadingColor }}>{thanksHeading || "Untitled"}</div>
+                  </div>
+                  <button
+                    className="gb-phone-start"
+                    style={{ background: submitBtnBgColor, color: submitBtnTextColor, marginBottom: 20 }}
+                  >
+                    {submitBtnText || "Submit"} &rarr;
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      ) : activeTab !== "player" ? (
+        <div style={{ padding: "60px 24px", textAlign: "center", color: "var(--sub)", fontSize: 14 }}>
+          The {TABS.find((t) => t.id === activeTab).label} section isn't wired up yet — this preview only builds out Player Form and Thank You Page.
+        </div>
+      ) : (
+        <div className="gb-body">
+          <div className="gb-left">
+            <div className="gb-card">
+              <div className="gb-card-head"><ImageIcon size={13} /> Visuals</div>
+              <div className="gb-row2">
+                <ImageUploader label="Game Background Image" value={bgImage} onChange={setBgImage} />
+                <ImageUploader label="Game Logo" value={logoImage} onChange={setLogoImage} />
+              </div>
+
+              <div className="gb-field" style={{ marginTop: 16 }}>
+                <label className="gb-label">Background Theme (used when no image is uploaded)</label>
+                <div className="gb-bgpresets">
+                  {BACKGROUND_PRESETS.map((p) => (
+                    <button
+                      key={p.id}
+                      className={"gb-bgswatch" + (bgPresetId === p.id && !bgImage ? " active" : "")}
+                      style={{ background: p.css }}
+                      onClick={() => { setBgPresetId(p.id); setBgImage(null); }}
+                      title={p.name}
+                      type="button"
+                    >
+                      {bgPresetId === p.id && !bgImage && <Check size={13} color="#fff" strokeWidth={3} />}
+                    </button>
+                  ))}
+                  <button
+                    className={"gb-bgswatch" + (bgPresetId === "custom" && !bgImage ? " active" : "")}
+                    style={{ background: `linear-gradient(180deg, ${customBgTop}, ${customBgBottom})` }}
+                    onClick={() => { setBgPresetId("custom"); setBgImage(null); }}
+                    title="Custom"
+                    type="button"
+                  >
+                    {bgPresetId === "custom" && !bgImage && <Check size={13} color="#fff" strokeWidth={3} />}
+                  </button>
+                </div>
+                {bgImage && <p className="gb-hint" style={{ marginBottom: 0 }}>An uploaded image is active — remove it to use a theme instead.</p>}
+                {bgImage && (
+                  <button className="gb-btn" style={{ marginTop: 8 }} onClick={() => setBgImage(null)}>Remove uploaded image</button>
+                )}
+                <div className="gb-row2" style={{ marginTop: 12 }}>
+                  <div>
+                    <label className="gb-label">Custom Top Color</label>
+                    <ColorSwatch value={customBgTop} onChange={(v) => { setCustomBgTop(v); setBgPresetId("custom"); setBgImage(null); }} />
+                  </div>
+                  <div>
+                    <label className="gb-label">Custom Bottom Color</label>
+                    <ColorSwatch value={customBgBottom} onChange={(v) => { setCustomBgBottom(v); setBgPresetId("custom"); setBgImage(null); }} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="gb-card">
+              <div className="gb-card-head"><GlassWater size={13} /> Bottles</div>
+              <p className="gb-hint">Pick which bottle pours in the game, and tune each one's liquid colors.</p>
+
+              <div className="gb-field">
+                <label className="gb-label">Bottle Design</label>
+                <div className="gb-designs">
+                  {BOTTLE_DESIGNS.map((d) => (
+                    <button
+                      key={d.id}
+                      type="button"
+                      className={"gb-design" + (activeDesignId === d.id ? " active" : "")}
+                      onClick={() => setActiveDesignId(d.id)}
+                      title={d.name}
+                    >
+                      <svg width="22" height="38" viewBox={d.viewBox}>
+                        <path d={d.d} fill={activeDesignId === d.id ? "var(--purple)" : "#C7C9D6"} />
+                      </svg>
+                      <span>{d.name}</span>
+                      {activeDesignId === d.id && <span className="gb-design-check"><Check size={10} strokeWidth={3} /></span>}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="gb-bottles">
+                {bottles.map((b) => (
+                  <div key={b.id} className={"gb-bottle" + (activeBottleId === b.id ? " active" : "")}>
+                    <button
+                      type="button"
+                      className="gb-bottle-select"
+                      onClick={() => setActiveBottleId(b.id)}
+                      title={"Use " + b.name}
+                    >
+                      <svg width="34" height="34" viewBox={(BOTTLE_DESIGNS.find((d) => d.id === activeDesignId) || BOTTLE_DESIGNS[0]).viewBox} style={{ position: "absolute", inset: 0 }}>
+                        <defs>
+                          <linearGradient id={"grad-" + b.id} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={b.liquidB} />
+                            <stop offset="100%" stopColor={b.liquidA} />
+                          </linearGradient>
+                        </defs>
+                        <path d={(BOTTLE_DESIGNS.find((d) => d.id === activeDesignId) || BOTTLE_DESIGNS[0]).d} fill={`url(#grad-${b.id})`} />
+                      </svg>
+                      {activeBottleId === b.id && <span className="gb-bottle-check"><Check size={11} strokeWidth={3} /></span>}
+                    </button>
+                    <input
+                      className="gb-bottle-name"
+                      value={b.name}
+                      onChange={(e) => updateBottle(b.id, { name: e.target.value })}
+                    />
+                    <button
+                      type="button"
+                      className="gb-bottle-edit"
+                      onClick={() => setEditingBottleId(editingBottleId === b.id ? null : b.id)}
+                      title="Edit colors"
+                    >
+                      <Palette size={13} />
+                    </button>
+                    <button
+                      type="button"
+                      className="gb-bottle-edit"
+                      onClick={() => removeBottle(b.id)}
+                      title="Remove bottle"
+                      style={{ color: "var(--danger)" }}
+                    >
+                      <Trash2 size={13} />
+                    </button>
+                    {editingBottleId === b.id && (
+                      <div className="gb-bottle-colors">
+                        <div>
+                          <label className="gb-label">Top Color</label>
+                          <ColorSwatch value={b.liquidB} onChange={(v) => updateBottle(b.id, { liquidB: v })} />
+                        </div>
+                        <div>
+                          <label className="gb-label">Bottom Color</label>
+                          <ColorSwatch value={b.liquidA} onChange={(v) => updateBottle(b.id, { liquidA: v })} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+              <button className="gb-btn" style={{ marginTop: 12 }} onClick={addBottle} type="button">
+                <Plus size={14} /> Add Bottle
+              </button>
+            </div>
+
+            <div className="gb-card">
+              <div className="gb-card-head"><Type size={13} /> Game Texts</div>
+              <div className="gb-field">
+                <label className="gb-label">Heading 1 (Title — text 1)</label>
+                <div className="gb-field-with-swatch">
+                  <input className="gb-input" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Main title" />
+                  <ColorSwatch value={titleColor} onChange={setTitleColor} />
+                </div>
+              </div>
+              <div className="gb-field">
+                <label className="gb-label">Heading 2 (Subtitle — text 2)</label>
+                <div className="gb-field-with-swatch">
+                  <input className="gb-input" value={subtitle} onChange={(e) => setSubtitle(e.target.value)} placeholder="Sub-heading" />
+                  <ColorSwatch value={subtitleColor} onChange={setSubtitleColor} />
+                </div>
+              </div>
+              <div className="gb-field">
+                <label className="gb-label">Intro Text (body — text 3, shown before quiz)</label>
+                <div className="gb-field-with-swatch" style={{ alignItems: "flex-start" }}>
+                  <textarea className="gb-textarea" value={introText} onChange={(e) => setIntroText(e.target.value)} />
+                  <ColorSwatch value={introColor} onChange={setIntroColor} />
+                </div>
+              </div>
+            </div>
+
+            <div className="gb-card">
+              <div className="gb-card-head"><ListChecks size={13} /> Player Registration Fields</div>
+              <p className="gb-hint">These fields appear on the player registration screen before the pour starts.</p>
+              {fields.map((f) => (
+                <div className="gb-fieldrow" key={f.id}>
+                  <div>
+                    <label className="gb-label">Label</label>
+                    <input
+                      className="gb-input"
+                      value={f.label}
+                      onChange={(e) => updateField(f.id, { label: e.target.value })}
+                      placeholder="Field label"
+                    />
+                  </div>
+                  <div>
+                    <label className="gb-label">Type</label>
+                    <select
+                      className="gb-select"
+                      value={f.type}
+                      onChange={(e) => updateField(f.id, { type: e.target.value })}
+                    >
+                      {FIELD_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+                    </select>
+                  </div>
+                  <div className="gb-check-wrap">
+                    <input
+                      type="checkbox"
+                      checked={f.required}
+                      onChange={(e) => updateField(f.id, { required: e.target.checked })}
+                      id={"req-" + f.id}
+                    />
+                    <label htmlFor={"req-" + f.id}>Required</label>
+                  </div>
+                  <button className="gb-icon-btn" onClick={() => removeField(f.id)} aria-label="Remove field">
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))}
+              <div className="gb-fieldbar">
+                <button className="gb-btn" onClick={addField}><Plus size={14} /> Add Field</button>
+                <button className="gb-btn gb-btn-primary" onClick={saveAll}><Save size={14} /> Save Form</button>
+              </div>
+            </div>
+
+            <div className="gb-row2">
+              <div className="gb-card">
+                <div className="gb-card-head"><FileText size={13} /> Terms & Conditions</div>
+                <div className="gb-checkbox-row">
+                  <input type="checkbox" checked={requireTerms} onChange={(e) => setRequireTerms(e.target.checked)} id="reqterms" />
+                  <label htmlFor="reqterms">Require acceptance</label>
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">Label Text</label>
+                  <input className="gb-input" value={termsLabel} onChange={(e) => setTermsLabel(e.target.value)} />
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">URL (optional)</label>
+                  <input className="gb-input" value={termsUrl} onChange={(e) => setTermsUrl(e.target.value)} placeholder="https://yoursite.com/terms" />
+                </div>
+                <div className="gb-checkbox-row" style={{ marginTop: 4 }}>
+                  <input type="checkbox" checked={sendCompletionEmail} onChange={(e) => setSendCompletionEmail(e.target.checked)} id="sendmail" />
+                  <label htmlFor="sendmail">Send completion email</label>
+                </div>
+
+                <div className="gb-card-head" style={{ marginTop: 18 }}><Rocket size={13} /> Start Button</div>
+                <div className="gb-field">
+                  <label className="gb-label">Button Text</label>
+                  <input className="gb-input" value={startText} onChange={(e) => setStartText(e.target.value)} />
+                </div>
+                <div className="gb-row2">
+                  <div className="gb-field">
+                    <label className="gb-label">Text Color</label>
+                    <ColorSwatch value={startTextColor} onChange={setStartTextColor} />
+                  </div>
+                  <div className="gb-field">
+                    <label className="gb-label">Background Color</label>
+                    <ColorSwatch value={startBgColor} onChange={setStartBgColor} />
+                  </div>
+                </div>
+              </div>
+
+              <div className="gb-card">
+                <div className="gb-card-head"><Video size={13} /> Template & Intro Video</div>
+                <div className="gb-field">
+                  <label className="gb-label">Apply Template (skin / animations / voice)</label>
+                  <select className="gb-select" value={template} onChange={(e) => setTemplate(e.target.value)}>
+                    <option value="none">— No template (manual settings) —</option>
+                    <option value="citrus">Citrus Splash</option>
+                    <option value="tropical">Tropical Fizz</option>
+                    <option value="midnight">Midnight Pour</option>
+                  </select>
+                  <button className="gb-btn gb-manage-btn">Manage Templates</button>
+                </div>
+                <div className="gb-field">
+                  <label className="gb-label">Intro Video (plays with audio before questions)</label>
+                  <button className="gb-btn gb-manage-btn" onClick={() => introVideoRef.current && introVideoRef.current.click()}>
+                    <Upload size={13} /> Upload
+                  </button>
+                  <input
+                    ref={introVideoRef}
+                    type="file"
+                    accept="video/*"
+                    style={{ display: "none" }}
+                    onChange={(e) => {
+                      const f = e.target.files && e.target.files[0];
+                      if (f) setIntroVideo(f.name);
+                    }}
+                  />
+                  {introVideo && <div className="gb-hint" style={{ marginTop: 8, marginBottom: 0 }}>{introVideo}</div>}
+                </div>
+              </div>
+            </div>
+
+            <div className="gb-savebar">
+              <span className="gb-saved-msg" style={{ opacity: savedPulse ? 1 : 0, transition: "opacity .3s" }}>Saved</span>
+              <button className="gb-btn gb-btn-primary" onClick={saveAll}><Save size={14} /> Save Settings</button>
+            </div>
+          </div>
+
+          <div className="gb-right">
+            <div className="gb-phone">
+              <div className="gb-phone-notch" />
+              <div
+                className="gb-phone-screen"
+                style={{
+                  background: bgImage
+                    ? `url(${bgImage}) center/cover`
+                    : bgPresetId === "custom"
+                    ? `linear-gradient(180deg, ${customBgTop}, ${customBgBottom})`
+                    : (BACKGROUND_PRESETS.find((p) => p.id === bgPresetId) || BACKGROUND_PRESETS[0]).css,
+                }}
+              >
+                <div className="gb-phone-logo">
+                  {logoImage ? <img src={logoImage} alt="logo" /> : <Smartphone size={26} strokeWidth={1.5} color="#9B8FD1" />}
+                </div>
+                <div className="gb-phone-content">
+                  {(() => {
+                    const activeBottle = bottles.find((b) => b.id === activeBottleId) || bottles[0];
+                    const design = BOTTLE_DESIGNS.find((d) => d.id === activeDesignId) || BOTTLE_DESIGNS[0];
+                    return (
+                      <svg width="26" height="46" viewBox={design.viewBox} style={{ marginBottom: 6 }}>
+                        <defs>
+                          <linearGradient id="gb-bottle-grad" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="0%" stopColor={activeBottle.liquidB} />
+                            <stop offset="100%" stopColor={activeBottle.liquidA} />
+                          </linearGradient>
+                        </defs>
+                        <path d={design.d} fill="url(#gb-bottle-grad)" opacity="0.95" />
+                        <path d={design.d} fill="none" stroke="rgba(255,255,255,0.55)" strokeWidth="1.4" />
+                      </svg>
+                    );
+                  })()}
+                  <div className="gb-phone-title" style={{ color: titleColor }}>{title || "Untitled"}</div>
+                  <div className="gb-phone-sub" style={{ color: subtitleColor }}>{subtitle}</div>
+                  <div className="gb-phone-intro" style={{ color: introColor }}>{introText}</div>
+
+                  <div className="gb-phone-form">
+                    {fields.map((f) => (
+                      <div key={f.id}>
+                        <div className="gb-phone-flabel">{f.label || "Untitled field"}{f.required ? " *" : ""}</div>
+                        <div className="gb-phone-finput">{f.type === "Email" ? "name@email.com" : f.type === "Phone" ? "+1 555 000 0000" : "…"}</div>
+                      </div>
+                    ))}
+                    {requireTerms && (
+                      <div className="gb-phone-terms">
+                        <input type="checkbox" disabled style={{ width: 11, height: 11 }} />
+                        <span>I accept the {termsLabel || "Terms & Conditions"}</span>
+                      </div>
+                    )}
+                    <button
+                      className="gb-phone-start"
+                      style={{ background: startBgColor, color: startTextColor }}
+                    >
+                      {startText || "Start"} &rarr;
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
-  )
+  );
 }

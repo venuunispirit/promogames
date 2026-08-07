@@ -107,7 +107,7 @@ function Toast({ msg, type, onClose }) {
   )
 }
 
-export default function CaromBuilderPage() {
+export default function CarromBuilderPage() {
   const { id }   = useParams()
   const navigate = useNavigate()
 
@@ -131,7 +131,7 @@ export default function CaromBuilderPage() {
     setLoading(true); setFetchError(null)
     Promise.all([
       api.get(`/games/${id}`),
-      api.get(`/carom/${id}/settings`),
+      api.get(`/Carrom/${id}/settings`),
     ]).then(([gRes, sRes]) => {
       const g = gRes.data.game; setGame(g)
       setSettings(sRes.data.settings || {})
@@ -165,7 +165,7 @@ export default function CaromBuilderPage() {
       else fd.append('bg_image_url', settings.bg_image_url || '')
       if (settings._logoFile) fd.append('game_logo', settings._logoFile)
       else fd.append('game_logo_url', settings.game_logo_url || '')
-      await api.put(`/carom/${id}/settings`, fd)
+      await api.put(`/Carrom/${id}/settings`, fd)
       await api.put(`/games/${id}`, { redirect_url: redirectUrl, slug: slugInput.trim() || undefined })
       showToast('Settings saved')
     } catch (err) {
@@ -395,7 +395,7 @@ export default function CaromBuilderPage() {
               <div className="gb-row">
                 <div className="gb-fg">
                   <span className="gb-label">Custom Slug</span>
-                  <input value={slugInput} onChange={e => setSlugInput(e.target.value)} placeholder="my-carom-game" />
+                  <input value={slugInput} onChange={e => setSlugInput(e.target.value)} placeholder="my-Carrom-game" />
                 </div>
                 <div className="gb-fg">
                   <span className="gb-label">Redirect URL (after game)</span>

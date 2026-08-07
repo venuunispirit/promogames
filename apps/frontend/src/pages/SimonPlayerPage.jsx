@@ -173,7 +173,7 @@ export default function SimonPlayerPage({ gameData, sessionToken, onComplete }) 
             <div><span style={{ fontWeight:700, color:'#fff', fontSize:18 }}>{maxRounds}</span><br/>Rounds</div>
             <div><span style={{ fontWeight:700, color:'#fff', fontSize:18 }}>{numColors}</span><br/>Colors</div>
           </div>
-          {gameData?.formFields?.map((f,i) => (
+          {gameData?.game_type !== 'promogames' && gameData?.formFields?.map((f,i) => (
             <div key={i} style={{ marginBottom:10, textAlign:'left' }}>
               <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.7)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>{f.field_label}{f.is_required ? '*' : ''}</div>
               <input type={f.field_type === 'email' ? 'email' : f.field_type === 'number' ? 'number' : 'text'} placeholder={f.field_label} style={{ width:'100%', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:8, padding:'10px 12px', fontSize:14, color:'#fff', outline:'none' }} />

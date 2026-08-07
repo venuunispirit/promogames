@@ -36,8 +36,7 @@ router.get('/', requireAdmin, async (req, res) => {
       u.name as updated_by_name,
       bo.business_name as branch_name, bo.pincode as branch_pincode,
       (SELECT COUNT(*) FROM questions q WHERE q.game_id = g.id) as question_count,
-      (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count,
-      (SELECT COUNT(*) FROM business_redemptions br WHERE br.game_id = g.id) as redemption_count
+      (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
       FROM games g LEFT JOIN clients c ON g.client_id = c.id
       LEFT JOIN users u ON g.updated_by = u.id
       LEFT JOIN business_owners bo ON g.business_owner_id = bo.id
@@ -74,29 +73,10 @@ router.post('/', requireAdmin, async (req, res) => {
     let slug = slugify(name);
     const [existing] = await db.query('SELECT id FROM games WHERE slug = ? AND client_id = ?', [slug, client_id]);
     if (existing.length > 0) slug = `${slug}-${Date.now()}`;
-    // Auto-link the master game to the client's brand owner (parent BO), so the
-    // game is owned from day one (redemptions + BO logs resolve without fallbacks).
-    const [brandOwners] = await db.query(
-      'SELECT id, business_name FROM business_owners WHERE client_id = ? AND parent_id IS NULL LIMIT 1',
-      [client_id]
-    );
-    const brandOwnerId = brandOwners.length > 0 ? brandOwners[0].id : null;
     const [result] = await db.query(
-      `INSERT INTO games (client_id, name, slug, category, description, redirect_url, game_logo_url, created_by, business_owner_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      [client_id, name, slug, category || 'quiz', description, redirect_url, null, req.user.id, brandOwnerId]
+      `INSERT INTO games (client_id, name, slug, category, description, redirect_url, game_logo_url, created_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [client_id, name, slug, category || 'quiz', description, redirect_url, null, req.user.id]
     );
-    if (brandOwnerId) {
-      const [linked] = await db.query(
-        'SELECT id FROM business_owner_games WHERE business_owner_id = ? AND game_id = ?',
-        [brandOwnerId, result.insertId]
-      );
-      if (linked.length === 0) {
-        await db.query(
-          'INSERT INTO business_owner_games (business_owner_id, game_id, location_name, reward_text) VALUES (?, ?, ?, ?)',
-          [brandOwnerId, result.insertId, brandOwners[0].business_name, '']
-        );
-      }
-    }
     await db.query('INSERT INTO quiz_settings (game_id) VALUES (?)', [result.insertId]);
     const defaultFields = [['Full Name', 'text', 1, 0], ['Email Address', 'email', 1, 1], ['Phone Number', 'phone', 0, 2]];
     for (const [label, type, required, order] of defaultFields) {
@@ -109,7 +89,7 @@ router.post('/', requireAdmin, async (req, res) => {
 
 router.put('/:id', requireAdmin, upload.single('intro_video'), async (req, res) => {
   try {
-    const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type','status','template_id','intro_video_url'];
+    const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type','status','template_id','intro_video_url','thumbnail_url'];
     const booleans = ['is_active','show_in_play_page','show_in_hero_page'];
     const fields = []; const values = [];
     for (const key of allowed) {
@@ -136,6 +116,31 @@ router.put('/:id', requireAdmin, upload.single('intro_video'), async (req, res) 
     values.push(req.params.id);
     await db.query(`UPDATE games SET ${fields.join(', ')} WHERE id=?`, values);
     res.json({ success: true, message: 'Game updated' });
+  } catch (err) { console.error(err); sendError(res, err); }
+});
+
+// PUT /api/games/:id/thumbnail — upload or replace a game thumbnail
+router.put('/:id/thumbnail', requireAdmin, upload.single('thumbnail'), async (req, res) => {
+  try {
+    const [games] = await db.query('SELECT id, thumbnail_url FROM games WHERE id = ?', [req.params.id]);
+    if (games.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+    if (!req.file) return res.status(400).json({ success: false, message: 'No thumbnail file provided' });
+
+    const url = `/uploads/images/${req.file.filename}`;
+    deleteUploadFile(games[0].thumbnail_url);
+    await db.query('UPDATE games SET thumbnail_url = ?, updated_by = ? WHERE id = ?', [url, req.user.id, req.params.id]);
+    res.json({ success: true, thumbnail_url: url, message: 'Thumbnail saved' });
+  } catch (err) { console.error(err); sendError(res, err); }
+});
+
+// DELETE /api/games/:id/thumbnail — remove the game thumbnail
+router.delete('/:id/thumbnail', requireAdmin, async (req, res) => {
+  try {
+    const [games] = await db.query('SELECT id, thumbnail_url FROM games WHERE id = ?', [req.params.id]);
+    if (games.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+    deleteUploadFile(games[0].thumbnail_url);
+    await db.query('UPDATE games SET thumbnail_url = NULL, updated_by = ? WHERE id = ?', [req.user.id, req.params.id]);
+    res.json({ success: true, message: 'Thumbnail removed' });
   } catch (err) { console.error(err); sendError(res, err); }
 });
 
@@ -505,17 +510,17 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
       );
     }
 
-    // Clone carom_settings
-    const [caromSettings] = await db.query('SELECT * FROM carom_settings WHERE game_id = ?', [gameId]);
-    if (caromSettings[0]) {
-      const cs = caromSettings[0];
-      const { id, game_id, created_at, updated_at, ...caromData } = cs;
-      const caromKeys = Object.keys(caromData);
+    // Clone Carrom_settings
+    const [CarromSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [gameId]);
+    if (CarromSettings[0]) {
+      const cs = CarromSettings[0];
+      const { id, game_id, created_at, updated_at, ...CarromData } = cs;
+      const CarromKeys = Object.keys(CarromData);
       await db.query(
-        `INSERT INTO carom_settings (game_id,${caromKeys.join(',')}) VALUES (?,${
-          caromKeys.map(() => '?').join(',')
+        `INSERT INTO Carrom_settings (game_id,${CarromKeys.join(',')}) VALUES (?,${
+          CarromKeys.map(() => '?').join(',')
         })`,
-        [newId, ...Object.values(caromData)]
+        [newId, ...Object.values(CarromData)]
       );
     }
 

@@ -56,7 +56,7 @@ const CSS = `
   .pn-mob-avatar{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px}
   .pn-mob-name{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:0}
   /* Hanging wire */
-  .pn-wire-wrap{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:2px;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:1001}
+  .pn-wire-wrap{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:2px;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:100000}
   .pn-wire{width:2px;background:linear-gradient(180deg,rgba(146,16,246,0.6),rgba(146,16,246,0.15));border-radius:1px;transition:height .4s cubic-bezier(.22,1,.36,1)}
   .pn-wire-handle{
     width:28px;height:28px;border-radius:50%;
@@ -300,6 +300,7 @@ export default function PlayerNavbar() {
   };
 
   const isAuth = !!player;
+  const showTrigger = location.pathname === '/';
   const visibleDropdown = DROPDOWN_ITEMS.filter(item => {
     if (item.divider) return true;
     return location.pathname !== item.href;
@@ -361,6 +362,7 @@ export default function PlayerNavbar() {
           ) : (
             <div style={{ position: 'relative' }}>
               <a href="/login" className="pn-cta">Login</a>
+              {showTrigger && (
               <div className="pn-wire-wrap" ref={wireRef}>
                 <div className="pn-wire" style={{ height: wireDragging ? 80 : 40, transition: wireDragging ? 'none' : 'height .4s cubic-bezier(.22,1,.36,1)' }} />
                 <div
@@ -386,6 +388,7 @@ export default function PlayerNavbar() {
                   )}
                 </div>
               </div>
+              )}
             </div>
           )}
 

@@ -5,17 +5,17 @@ const ACCENT = '#a855f7'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 
-// ── Glass + flat styling tokens ──
+// ── Glass + flat styling tokens (theme-aware) ──
 const C = {
-  card: 'rgba(255,255,255,0.55)',
-  cardBorder: 'rgba(255,255,255,0.7)',
-  hair: 'rgba(0,0,0,0.08)',
-  text: '#1f2233',
-  text2: '#8b8fa3',
-  text3: '#aab',
-  danger: '#ef4444',
-  dangerBg: 'rgba(239,68,68,0.08)',
-  dangerBorder: 'rgba(239,68,68,0.35)',
+  card: 'var(--surface2)',
+  cardBorder: 'var(--border)',
+  hair: 'var(--border-light)',
+  text: 'var(--text)',
+  text2: 'var(--text2)',
+  text3: 'var(--text3)',
+  danger: 'var(--error)',
+  dangerBg: 'var(--error-bg)',
+  dangerBorder: 'var(--error-border)',
 }
 
 function Row({ icon, title, subtitle, chevron, onClick, right }) {
@@ -215,7 +215,7 @@ function ProfilePanel({ user, onLogout, isDark, toggleTheme, MiniCalendar, Chang
                 <input
                   value={color}
                   onChange={e => { const v = e.target.value; if (/^#([0-9a-fA-F]{6})$/.test(v)) { setColor(v); commit(v) } else setColor(v) }}
-                  style={{ flex: 1, fontSize: 13, padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.hair}`, background: 'rgba(255,255,255,0.7)', color: C.text, outline: 'none', fontFamily: 'monospace' }}
+                  style={{ flex: 1, fontSize: 13, padding: '9px 10px', borderRadius: 8, border: `1px solid ${C.hair}`, background: 'var(--bg-secondary)', color: C.text, outline: 'none', fontFamily: 'monospace' }}
                 />
               </div>
               <div style={{ display: 'flex', gap: 8, marginBottom: 4 }}>

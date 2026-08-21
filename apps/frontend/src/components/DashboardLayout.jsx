@@ -376,7 +376,7 @@ function AvatarDropdown({ user, onLogout }) {
       </button>
 
       {open && (
-        <div className="nav-dropdown" style={{ width: 400, background: 'rgba(255,255,255,0.35)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid rgba(255,255,255,0.6)' }}>
+        <div className="nav-dropdown" style={{ width: 400, background: 'var(--surface)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid var(--border)' }}>
           <ProfilePanel
             user={user}
             onLogout={onLogout}
@@ -396,6 +396,7 @@ function AvatarDropdown({ user, onLogout }) {
 ═══════════════════════════════════════ */
 export default function DashboardLayout() {
   const { user, logout } = useAuth()
+  const { isDark } = useTheme()
   const navigate         = useNavigate()
   const location         = useLocation()
   const [greeting, setGreeting] = useState(getGreeting())
@@ -431,7 +432,7 @@ export default function DashboardLayout() {
         {/* LEFT — Logo only */}
         <div>
           <Link to="/dashboard" className="nav-logo">
-            <img src="/favicon3.png" alt="PromoGames" />
+            <img src={isDark ? '/favicon2.png' : '/favicon3.png'} alt="PromoGames" />
           </Link>
         </div>
 

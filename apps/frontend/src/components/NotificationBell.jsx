@@ -14,10 +14,10 @@ const timeAgo = date => {
 }
 
 const TYPE_STYLES = {
-  info:    { color:'#4338CA', bg:'#EEF2FF' },
-  success: { color:'#059669', bg:'#ECFDF5' },
-  warning: { color:'#D97706', bg:'#FFFBEB' },
-  error:   { color:'#DC2626', bg:'#FEF2F2' },
+  info:    { color:'var(--chip-primary-fg)', bg:'var(--chip-primary-bg)' },
+  success: { color:'var(--chip-green-fg)', bg:'var(--chip-green-bg)' },
+  warning: { color:'var(--chip-amber-fg)', bg:'var(--chip-amber-bg)' },
+  error:   { color:'var(--chip-red-fg)', bg:'var(--chip-red-bg)' },
 }
 
 export default function NotificationBell({ apiBase = '/notifications' }) {
@@ -70,9 +70,9 @@ export default function NotificationBell({ apiBase = '/notifications' }) {
         onClick={() => setOpen(o => !o)}
         style={{
           position:'relative',width:36,height:36,borderRadius:10,
-          border:'1.5px solid #E5E7EB',background:'#fff',
+          border:'1.5px solid var(--border)',background:'var(--surface)',
           display:'flex',alignItems:'center',justifyContent:'center',
-          cursor:'pointer',color:'#374151',fontSize:16,flexShrink:0,
+          cursor:'pointer',color:'var(--text2)',fontSize:16,flexShrink:0,
         }}
         title="Notifications"
       >
@@ -83,7 +83,7 @@ export default function NotificationBell({ apiBase = '/notifications' }) {
         {unread > 0 && (
           <span style={{
             position:'absolute',top:-4,right:-4,minWidth:18,height:18,
-            borderRadius:9,background:'#DC2626',color:'#fff',
+            borderRadius:9,background:'var(--error)',color:'var(--surface)',
             fontSize:10,fontWeight:700,display:'flex',alignItems:'center',
             justifyContent:'center',padding:'0 4px',lineHeight:1,
             boxShadow:'0 2px 6px rgba(220,38,38,.35)',
@@ -96,20 +96,20 @@ export default function NotificationBell({ apiBase = '/notifications' }) {
       {open && (
         <div style={{
           position:'absolute',top:'calc(100% + 8px)',right:0,width:380,
-          background:'#fff',borderRadius:14,border:'1px solid #EAECF0',
+          background:'var(--surface)',borderRadius:14,border:'1px solid var(--border)',
           boxShadow:'0 12px 48px rgba(0,0,0,.12)',zIndex:999,
           maxHeight:480,display:'flex',flexDirection:'column',
           animation:'nav-fade-down .18s ease both',
         }}>
           <div style={{
             display:'flex',alignItems:'center',justifyContent:'space-between',
-            padding:'14px 18px 10px',borderBottom:'1px solid #F3F4F6',flexShrink:0,
+            padding:'14px 18px 10px',borderBottom:'1px solid var(--border-light)',flexShrink:0,
           }}>
-            <span style={{fontSize:13,fontWeight:700,color:'#0D0D1A'}}>Notifications</span>
+            <span style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>Notifications</span>
             {unread > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                style={{fontSize:11,fontWeight:600,color:'#4338CA',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans'}}
+                style={{fontSize:11,fontWeight:600,color:'var(--primary)',background:'none',border:'none',cursor:'pointer',fontFamily:'DM Sans'}}
               >
                 Mark all read
               </button>
@@ -118,7 +118,7 @@ export default function NotificationBell({ apiBase = '/notifications' }) {
 
           <div style={{overflow:'auto',flex:1}}>
             {notifs.length === 0 ? (
-              <div style={{padding:'32px 18px',textAlign:'center',color:'#9CA3AF',fontSize:13}}>
+              <div style={{padding:'32px 18px',textAlign:'center',color:'var(--text3)',fontSize:13}}>
                 No notifications yet
               </div>
             ) : (
@@ -130,10 +130,10 @@ export default function NotificationBell({ apiBase = '/notifications' }) {
                     onClick={() => handleClick(n)}
                     style={{
                       display:'flex',gap:12,width:'100%',padding:'13px 18px',textAlign:'left',
-                      background:'transparent',border:'none',borderBottom:'1px solid #F3F4F6',
+                      background:'transparent',border:'none',borderBottom:'1px solid var(--border-light)',
                       cursor:'pointer',fontFamily:'DM Sans',transition:'background .1s',
                     }}
-                    onMouseEnter={e => e.currentTarget.style.background='#F9FAFB'}
+                    onMouseEnter={e => e.currentTarget.style.background='var(--surface2)'}
                     onMouseLeave={e => e.currentTarget.style.background='transparent'}
                   >
                     <div style={{
@@ -145,15 +145,15 @@ export default function NotificationBell({ apiBase = '/notifications' }) {
                     </div>
                     <div style={{flex:1,minWidth:0}}>
                       <div style={{display:'flex',alignItems:'center',gap:6}}>
-                        <span style={{fontSize:12.5,fontWeight:700,color:'#0D0D1A',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
+                        <span style={{fontSize:12.5,fontWeight:700,color:'var(--text)',whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis'}}>
                           {n.title}
                         </span>
                         {!n.read_at && (
-                          <span style={{width:6,height:6,borderRadius:'50%',background:'#4338CA',flexShrink:0}} />
+                          <span style={{width:6,height:6,borderRadius:'50%',background:'var(--primary)',flexShrink:0}} />
                         )}
                       </div>
-                      <div style={{fontSize:12,color:'#6B7280',marginTop:1,lineHeight:1.4}}>{n.message}</div>
-                      <div style={{fontSize:10.5,color:'#9CA3AF',marginTop:4}}>{timeAgo(n.created_at)}</div>
+                      <div style={{fontSize:12,color:'var(--text2)',marginTop:1,lineHeight:1.4}}>{n.message}</div>
+                      <div style={{fontSize:10.5,color:'var(--text3)',marginTop:4}}>{timeAgo(n.created_at)}</div>
                     </div>
                   </button>
                 )

@@ -21,13 +21,13 @@ export default function RedemptionLogsPage() {
 
   const statusColor = (s) => {
     switch (s) {
-      case 'pending': return '#f59e0b'
-      case 'code_revealed': return '#3b82f6'
-      case 'code_entered': return '#8b5cf6'
-      case 'player_confirmed': return '#22c55e'
-      case 'completed': return '#059669'
-      case 'rejected': return '#ef4444'
-      default: return '#6b7280'
+      case 'pending': return 'var(--warning)'
+      case 'code_revealed': return 'var(--primary)'
+      case 'code_entered': return 'var(--primary)'
+      case 'player_confirmed': return 'var(--success)'
+      case 'completed': return 'var(--success)'
+      case 'rejected': return 'var(--error)'
+      default: return 'var(--text3)'
     }
   }
 
@@ -95,7 +95,7 @@ export default function RedemptionLogsPage() {
           <label style={{ display:'block', fontSize:10, fontWeight:700, color:'var(--text3)', textTransform:'uppercase', marginBottom:4 }}>End Date</label>
           <input type="date" value={filters.end_date} onChange={set('end_date')} style={{ padding:'6px 12px', borderRadius:8, border:'1.5px solid var(--border)', fontSize:12, fontFamily:'inherit' }} />
         </div>
-        <button onClick={load} style={{ padding:'7px 16px', borderRadius:8, border:'none', background:'#4F46E5', color:'#fff', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
+        <button onClick={load} style={{ padding:'7px 16px', borderRadius:8, border:'none', background:'var(--primary)', color:'#fff', fontSize:12, fontWeight:600, cursor:'pointer', fontFamily:'inherit' }}>
           Apply Filters
         </button>
       </div>
@@ -137,8 +137,8 @@ export default function RedemptionLogsPage() {
                   </td>
                   <td style={{ padding:'10px 12px', color:'var(--text2)' }}>{r.table_number || '-'}</td>
                   <td style={{ padding:'10px 12px', fontSize:11 }}>
-                    {r.accepted_by_name && <div style={{ color:'#059669' }}>✓ {r.accepted_by_name}</div>}
-                    {r.rejected_by_name && <div style={{ color:'#DC2626' }}>✕ {r.rejected_by_name}{r.reject_reason ? `: ${r.reject_reason}` : ''}</div>}
+                    {r.accepted_by_name && <div style={{ color:'var(--success)' }}>✓ {r.accepted_by_name}</div>}
+                    {r.rejected_by_name && <div style={{ color:'var(--error)' }}>✕ {r.rejected_by_name}{r.reject_reason ? `: ${r.reject_reason}` : ''}</div>}
                     {!r.accepted_by_name && !r.rejected_by_name && <span style={{ color:'var(--text3)' }}>-</span>}
                   </td>
                   <td style={{ padding:'10px 12px', color:'var(--text2)', fontSize:11 }}>

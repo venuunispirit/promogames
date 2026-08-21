@@ -5,9 +5,9 @@ import api from '../api'
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
 const AVATAR_PALETTE = [
-  { bg: 'var(--primary-bg)', fg: '#4338CA' }, { bg: '#F0FDF4', fg: '#15803D' },
-  { bg: '#FFF7ED', fg: '#C2410C' }, { bg: '#FDF4FF', fg: '#9333EA' },
-  { bg: '#ECFDF5', fg: '#0F766E' }, { bg: '#FEF2F2', fg: '#DC2626' },
+  { bg: 'var(--chip-primary-bg)', fg: 'var(--chip-primary-fg)' }, { bg: 'var(--chip-green-bg)', fg: 'var(--chip-green-fg)' },
+  { bg: 'var(--chip-orange-bg)', fg: 'var(--chip-orange-fg)' }, { bg: 'var(--chip-rose-bg)', fg: 'var(--chip-rose-fg)' },
+  { bg: 'var(--chip-cyan-bg)', fg: 'var(--chip-cyan-fg)' }, { bg: 'var(--chip-red-bg)', fg: 'var(--chip-red-fg)' },
 ]
 const avatarColor = (name = '') => AVATAR_PALETTE[name.charCodeAt(0) % AVATAR_PALETTE.length]
 const initials = (name = '') => name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -33,8 +33,8 @@ const CSS = `
 .cp-input:focus{border-color:var(--primary);background:var(--surface)}
 .cp-label{display:block;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
 .cp-field{margin-bottom:16px}
-.cp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--text);color:var(--bg);font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
-.cp-primary-btn:hover{background:var(--text2)}
+.cp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
+.cp-primary-btn:hover{background:var(--primary-hover)}
 .cp-primary-btn:active{transform:scale(.98)}
 .cp-primary-btn:disabled{opacity:.55;cursor:not-allowed}
 .cp-ghost-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s}
@@ -72,7 +72,7 @@ function Toast({ msg, type, onClose }) {
       fontSize:13.5,fontFamily:"'DM Sans',sans-serif",fontWeight:500,
       display:'flex',alignItems:'center',gap:10,
       boxShadow:'0 8px 32px rgba(0,0,0,.24)',
-      borderLeft:`3px solid ${ok ? '#22C55E' : '#EF4444'}`,
+      borderLeft:`3px solid ${ok ? 'var(--success)' : 'var(--error)'}`,
       animation:'cpToastIn .28s cubic-bezier(.34,1.56,.64,1)',maxWidth:380,
     }}>
       {ok ? '✓' : '✕'} {msg}
@@ -121,7 +121,7 @@ function ClientCard({ client, onClick, onEdit, onDelete, delay }) {
         {client.phone && <div style={{display:'flex',alignItems:'center',gap:7,color:'var(--text2)',fontSize:12.5}}><span style={{color:'var(--text3)'}}><Ico.phone/></span>{client.phone}</div>}
       </div>
       <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',paddingTop:14,borderTop:'1px solid var(--border-light)'}}>
-        <span style={{display:'inline-flex',alignItems:'center',gap:5,background:'var(--primary-bg)',color:'#4338CA',fontSize:11.5,fontWeight:600,padding:'4px 10px',borderRadius:100}}>
+        <span style={{display:'inline-flex',alignItems:'center',gap:5,background:'var(--primary-bg)',color:'var(--primary)',fontSize:11.5,fontWeight:600,padding:'4px 10px',borderRadius:100}}>
           <Ico.game/> {client.game_count||0} {client.game_count===1?'game':'games'}
         </span>
         <span style={{fontSize:12,color:'var(--text3)',display:'flex',alignItems:'center',gap:4}}>View <Ico.arrow/></span>
@@ -146,7 +146,7 @@ function DetailPanel({ client, onClose, onEdit }) {
   const [showEditClient, setShowEditClient] = useState(false)
 
   const navigateBuilder = (game) => {
-    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',tower:'tower',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',snakeandladder:'snakeandladder',ludo:'ludo',Carrom:'Carrom',tictactoemultiplayer:'tictactoemultiplayer'}
+    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',tower:'tower',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',snakeandladder:'snakeandladder',ludo:'ludo',Carrom:'Carrom',carrom:'Carrom',tictactoemultiplayer:'tictactoemultiplayer'}
     const slug = builders[game.category]
     navigate(`/dashboard/games/${game.id}${slug ? '/' + slug + '-builder' : '/builder'}`)
   }
@@ -287,13 +287,13 @@ function DetailPanel({ client, onClose, onEdit }) {
                 <div style={{fontSize:12,color:'var(--text)',wordBreak:'break-word'}}>{row.val}</div>
               </div>
             ))}
-            <div style={{marginTop:14,padding:'10px',background:'#F5F3FF',borderRadius:8,textAlign:'center'}}>
-              <div style={{fontSize:20,fontWeight:700,color:'#4F46E5'}}>{games.length}</div>
-              <div style={{fontSize:9,fontWeight:700,color:'#7C3AED',textTransform:'uppercase'}}>Games</div>
+            <div style={{marginTop:14,padding:'10px',background:'var(--chip-primary-bg)',borderRadius:8,textAlign:'center'}}>
+              <div style={{fontSize:20,fontWeight:700,color:'var(--chip-primary-fg)'}}>{games.length}</div>
+              <div style={{fontSize:9,fontWeight:700,color:'var(--chip-primary-fg)',textTransform:'uppercase'}}>Games</div>
             </div>
-            <div style={{marginTop:8,padding:'10px',background:'#ECFDF5',borderRadius:8,textAlign:'center'}}>
-              <div style={{fontSize:20,fontWeight:700,color:'#059669'}}>{branches.length}</div>
-              <div style={{fontSize:9,fontWeight:700,color:'#10B981',textTransform:'uppercase'}}>Branches</div>
+            <div style={{marginTop:8,padding:'10px',background:'var(--chip-green-bg)',borderRadius:8,textAlign:'center'}}>
+              <div style={{fontSize:20,fontWeight:700,color:'var(--chip-green-fg)'}}>{branches.length}</div>
+              <div style={{fontSize:9,fontWeight:700,color:'var(--chip-green-fg)',textTransform:'uppercase'}}>Branches</div>
             </div>
             <button className="cp-ghost-btn" onClick={() => onEdit(client)} style={{width:'100%',justifyContent:'center',marginTop:12,padding:'8px 0',fontSize:12}}>
               <Ico.edit/> Edit Client
@@ -314,12 +314,12 @@ function DetailPanel({ client, onClose, onEdit }) {
               ) : (
                 branches.map(b => (
                   <div key={b.id} onClick={() => setSelectedBranch(selectedBranch?.id === b.id ? null : b)}
-                    style={{padding:'10px 12px',borderRadius:8,marginBottom:4,cursor:'pointer',border:selectedBranch?.id===b.id?'2px solid #4F46E5':'1.5px solid var(--border-light)',background:selectedBranch?.id===b.id?'var(--primary-bg)':'var(--surface)',transition:'all .15s'}}>
+                    style={{padding:'10px 12px',borderRadius:8,marginBottom:4,cursor:'pointer',border:selectedBranch?.id===b.id?'2px solid var(--primary)':'1.5px solid var(--border-light)',background:selectedBranch?.id===b.id?'var(--primary-bg)':'var(--surface)',transition:'all .15s'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                       <div style={{fontWeight:700,fontSize:12,color:'var(--text)'}}>{b.business_name}</div>
                       <div style={{display:'flex',alignItems:'center',gap:6}}>
-                        <span style={{fontSize:9,fontWeight:700,padding:'1px 7px',borderRadius:100,background:'var(--primary-bg)',color:'#4F46E5'}}>{branchGameCounts[b.id]||0}</span>
-                        <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:b.is_active?'#ECFDF5':'var(--border-light)',color:b.is_active?'#059669':'var(--text3)',cursor:'pointer'}}
+                        <span style={{fontSize:9,fontWeight:700,padding:'1px 7px',borderRadius:100,background:'var(--primary-bg)',color:'var(--primary)'}}>{branchGameCounts[b.id]||0}</span>
+                        <span style={{fontSize:9,fontWeight:700,padding:'2px 6px',borderRadius:4,background:b.is_active?'var(--chip-green-bg)':'var(--border-light)',color:b.is_active?'var(--chip-green-fg)':'var(--text3)',cursor:'pointer'}}
                           onClick={e => { e.stopPropagation(); handleToggleBranch(b.id, b.is_active) }}>
                           {b.is_active ? 'On' : 'Off'}
                         </span>
@@ -361,11 +361,11 @@ function DetailPanel({ client, onClose, onEdit }) {
                 branchGames.map(g => (
                   <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1px solid var(--border-light)',background:'var(--surface2)',cursor:'pointer',transition:'all .12s'}}
                     onClick={() => navigateBuilder(g)}
-                    onMouseEnter={e => {e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='var(--primary-bg)'}}
+                    onMouseEnter={e => {e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.background='var(--primary-bg)'}}
                     onMouseLeave={e => {e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.background='var(--surface2)'}}>
                     <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                       <div style={{fontWeight:700,fontSize:11,color:'var(--text)'}}>{g.name}</div>
-                      <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'var(--border-light)',color:g.is_active?'#059669':'var(--text3)'}}>
+                      <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'var(--chip-green-bg)':'var(--border-light)',color:g.is_active?'var(--chip-green-fg)':'var(--text3)'}}>
                         {g.is_active ? 'Live' : 'Draft'}
                       </span>
                     </div>
@@ -384,13 +384,13 @@ function DetailPanel({ client, onClose, onEdit }) {
             </div>
             <div style={{flex:1,overflow:'auto',padding:8}}>
               {templateGames.map(g => (
-                <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1.5px solid #E0E7FF',background:'var(--surface2)',cursor:'pointer',transition:'all .12s'}}
+                <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1.5px solid var(--border)',background:'var(--surface2)',cursor:'pointer',transition:'all .12s'}}
                   onClick={() => navigateBuilder(g)}
-                  onMouseEnter={e => {e.currentTarget.style.borderColor='#818CF8';e.currentTarget.style.background='var(--primary-bg)'}}
-                  onMouseLeave={e => {e.currentTarget.style.borderColor='#E0E7FF';e.currentTarget.style.background='var(--surface2)'}}>
+                  onMouseEnter={e => {e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.background='var(--primary-bg)'}}
+                  onMouseLeave={e => {e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--surface2)'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                     <div style={{fontWeight:700,fontSize:11,color:'var(--text)',display:'flex',alignItems:'center',gap:4}}>{g.name}</div>
-                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'var(--border-light)',color:g.is_active?'#059669':'var(--text3)'}}>
+                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'var(--chip-green-bg)':'var(--border-light)',color:g.is_active?'var(--chip-green-fg)':'var(--text3)'}}>
                       {g.is_active ? 'Live' : 'Draft'}
                     </span>
                   </div>
@@ -413,11 +413,11 @@ function DetailPanel({ client, onClose, onEdit }) {
               {games.map(g => (
                 <div key={g.id} style={{padding:'8px 10px',borderRadius:8,marginBottom:4,border:'1.5px solid var(--border)',background:'var(--surface)',cursor:'pointer',transition:'all .12s'}}
                   onClick={() => navigateBuilder(g)}
-                  onMouseEnter={e => {e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='#F5F3FF'}}
+                  onMouseEnter={e => {e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.background='var(--primary-bg)'}}
                   onMouseLeave={e => {e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.background='var(--surface)'}}>
                   <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                     <div style={{fontWeight:700,fontSize:11,color:'var(--text)',display:'flex',alignItems:'center',gap:4}}>{g.name}</div>
-                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'#ECFDF5':'var(--border-light)',color:g.is_active?'#059669':'var(--text3)'}}>
+                    <span style={{fontSize:9,fontWeight:700,padding:'1px 5px',borderRadius:4,background:g.is_active?'var(--chip-green-bg)':'var(--border-light)',color:g.is_active?'var(--chip-green-fg)':'var(--text3)'}}>
                       {g.is_active ? 'Live' : 'Draft'}
                     </span>
                   </div>
@@ -665,8 +665,8 @@ export default function ClientsPage() {
           </div>
         ) : clients.length === 0 ? (
           <div style={{textAlign:'center',padding:'80px 0'}}>
-            <div style={{width:72,height:72,borderRadius:18,background:'#F5F3FF',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
-              <svg width="30" height="30" fill="none" stroke="#6366F1" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+            <div style={{width:72,height:72,borderRadius:18,background:'var(--chip-primary-bg)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
+              <svg width="30" height="30" fill="none" stroke="var(--primary)" strokeWidth="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
             </div>
             <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:'var(--text)',marginBottom:8}}>No clients yet</h3>
             <p style={{color:'var(--text3)',fontSize:14,marginBottom:24}}>Add your first client to get started.</p>

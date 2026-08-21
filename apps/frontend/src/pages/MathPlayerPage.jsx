@@ -385,7 +385,7 @@ const IconClock = ({ size = 15 }) => (
 function Mascot({ className = "", mood = "happy" }) {
   return (
     <img
-      src="/mascotques.png"
+      src="/mascotques.webp"
       alt="Mascot"
       className={`mc-mascot-img ${className}`}
     />

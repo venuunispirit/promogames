@@ -1,49 +1,54 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
 import useTTS from '../hooks/useTTS'
 import renderMedia, { isVideoUrl } from '../components/renderMedia'
 import { inAnim } from '../components/animations'
 import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
-import CrosswordPlayerPage from './CrosswordPlayerPage'
-import SpinPlayerPage      from './SpinPlayerPage'
-import MemoryPlayerPage    from './MemoryPlayerPage'
-import JigsawPlayerPage    from './JigsawPlayerPage'
-import WordSearchPlayerPage from './WordSearchPlayerPage'
-import PouringPlayerPage from './PouringPlayerPage'
-import TyperPlayerPage from './TyperPlayerPage'
-import MathPlayerPage from './MathPlayerPage'
-import MazePlayerPage from './MazePlayerPage'
-import Game2048PlayerPage from './Game2048PlayerPage'
-import SnakePlayerPage from './SnakePlayerPage'
-import CatchPlayerPage from './CatchPlayerPage'
-import ReactionPlayerPage from './ReactionPlayerPage'
-import SimonPlayerPage from './SimonPlayerPage'
-import FlappyPlayerPage from './FlappyPlayerPage'
-import BouncePlayerPage from './BouncePlayerPage'
-import BejeweledPlayerPage from './BejeweledPlayerPage'
-import SpacePlayerPage from './SpacePlayerPage'
-import Connect4PlayerPage from './Connect4PlayerPage'
-import BowlingPlayerPage from './BowlingPlayerPage'
-import SudokuPlayerPage from './SudokuPlayerPage'
-import MinesweeperPlayerPage from './MinesweeperPlayerPage'
-import WordScramblePlayerPage from './WordScramblePlayerPage'
-import RpsPlayerPage from './RpsPlayerPage'
-import ArrowEscapePlayerPage from './ArrowEscapePlayerPage'
-import TetrisPlayerPage from './TetrisPlayerPage'
-import StackPlayerPage from './StackPlayerPage'
-import WhackAMolePlayerPage from './WhackAMolePlayerPage'
-import HanoiPlayerPage from './HanoiPlayerPage'
-import BreakoutPlayerPage from './BreakoutPlayerPage'
-import BubbleShooterPlayerPage from './BubbleShooterPlayerPage'
-import CarLaunchPlayerPage from './CarLaunchPlayerPage'
-import SoundifyPlayerPage from './soundifyplayerpage'
-import StressBusterPlayerPage from './frustrationplayerpage'
-import TicTacToePlayerPage from './tictactoeplayer'
-import SnakeAndLadderPlayerPage from './SnakeAndLadderPlayerPage'
-import LudoPlayerPage from './LudoPlayerPage'
-import CarromPlayerPage from './CarromPlayerPage'
-import TicTacToeMultiplayerPlayerPage from './TicTacToeMultiplayerPlayerPage'
-import ChessPlayerPage from './ChessPlayerPage'
+
+// ── Lazy-load game player pages ──────────────────────────────────────────────
+// Each game is only downloaded when the user actually plays it, instead of all
+// 40+ games being bundled into the initial PlayerPage chunk.
+const CrosswordPlayerPage = lazy(() => import('./CrosswordPlayerPage'))
+const SpinPlayerPage = lazy(() => import('./SpinPlayerPage'))
+const MemoryPlayerPage = lazy(() => import('./MemoryPlayerPage'))
+const JigsawPlayerPage = lazy(() => import('./JigsawPlayerPage'))
+const WordSearchPlayerPage = lazy(() => import('./WordSearchPlayerPage'))
+const PouringPlayerPage = lazy(() => import('./PouringPlayerPage'))
+const TyperPlayerPage = lazy(() => import('./TyperPlayerPage'))
+const MathPlayerPage = lazy(() => import('./MathPlayerPage'))
+const MazePlayerPage = lazy(() => import('./MazePlayerPage'))
+const Game2048PlayerPage = lazy(() => import('./Game2048PlayerPage'))
+const SnakePlayerPage = lazy(() => import('./SnakePlayerPage'))
+const CatchPlayerPage = lazy(() => import('./CatchPlayerPage'))
+const ReactionPlayerPage = lazy(() => import('./ReactionPlayerPage'))
+const SimonPlayerPage = lazy(() => import('./SimonPlayerPage'))
+const FlappyPlayerPage = lazy(() => import('./FlappyPlayerPage'))
+const BouncePlayerPage = lazy(() => import('./BouncePlayerPage'))
+const BejeweledPlayerPage = lazy(() => import('./BejeweledPlayerPage'))
+const SpacePlayerPage = lazy(() => import('./SpacePlayerPage'))
+const Connect4PlayerPage = lazy(() => import('./Connect4PlayerPage'))
+const BowlingPlayerPage = lazy(() => import('./BowlingPlayerPage'))
+const SudokuPlayerPage = lazy(() => import('./SudokuPlayerPage'))
+const MinesweeperPlayerPage = lazy(() => import('./MinesweeperPlayerPage'))
+const WordScramblePlayerPage = lazy(() => import('./WordScramblePlayerPage'))
+const RpsPlayerPage = lazy(() => import('./RpsPlayerPage'))
+const ArrowEscapePlayerPage = lazy(() => import('./ArrowEscapePlayerPage'))
+const TetrisPlayerPage = lazy(() => import('./TetrisPlayerPage'))
+const StackPlayerPage = lazy(() => import('./StackPlayerPage'))
+const WhackAMolePlayerPage = lazy(() => import('./WhackAMolePlayerPage'))
+const HanoiPlayerPage = lazy(() => import('./HanoiPlayerPage'))
+const BreakoutPlayerPage = lazy(() => import('./BreakoutPlayerPage'))
+const BubbleShooterPlayerPage = lazy(() => import('./BubbleShooterPlayerPage'))
+const CarLaunchPlayerPage = lazy(() => import('./CarLaunchPlayerPage'))
+const SoundifyPlayerPage = lazy(() => import('./soundifyplayerpage'))
+const StressBusterPlayerPage = lazy(() => import('./frustrationplayerpage'))
+const TicTacToePlayerPage = lazy(() => import('./tictactoeplayer'))
+const SnakeAndLadderPlayerPage = lazy(() => import('./SnakeAndLadderPlayerPage'))
+const LudoPlayerPage = lazy(() => import('./LudoPlayerPage'))
+const CarromPlayerPage = lazy(() => import('./CarromPlayerPage'))
+const TicTacToeMultiplayerPlayerPage = lazy(() => import('./TicTacToeMultiplayerPlayerPage'))
+const ChessPlayerPage = lazy(() => import('./ChessPlayerPage'))
+
 import screwPlayerHtml from './ScrewPlayerPage.html?raw'
 import towerPlayerHtml from './TowerPlayerPage.html?raw'
 
@@ -835,7 +840,7 @@ export default function PlayerPage() {
         setPhase('snakeandladder')
       } else if (game.category === 'ludo') {
         setPhase('ludo')
-      } else if (game.category === 'Carrom') {
+      } else if (['Carrom', 'carrom'].includes(game.category)) {
         setPhase('Carrom')
       } else if (game.category === 'tictactoemultiplayer') {
         setPhase('tictactoemultiplayer')
@@ -2115,116 +2120,79 @@ const handleModalClose = () => {
     )
   }
 
+  // ── Game phases (each lazy-loaded only when needed) ──────────────────────────
+  // Wrapped in a single <Suspense> so React shows a loader while the game chunk
+  // downloads, instead of crashing on a missing lazy component.
+  const gameFallback = <PageLoader primaryColor={primaryColor} />
+
   if (phase === 'chess') {
-    return <ChessPlayerPage />
+    return <Suspense fallback={gameFallback}><ChessPlayerPage /></Suspense>
   }
 
   if (phase === 'spin') {
     return (
-      <SpinPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        sessionId={sessionId}
-        onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
-        onComplete={(data) => {
-          if (data?.session) {
-            setScore(data.session.score || 0)
-          }
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <SpinPlayerPage
+          gameData={game}
+          sessionToken={sessionToken}
+          sessionId={sessionId}
+          onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
+          onComplete={(data) => {
+            if (data?.session) setScore(data.session.score || 0)
+            setRedirectUrl(data?.redirect_url || null)
+            setPhase('thankyou')
+          }}
+        />
+      </Suspense>
     )
   }
 
   if (phase === 'crossword') {
     return (
-      <CrosswordPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        sessionId={null}
-        onComplete={(data) => {
-          if (data?.session) {
-            setScore(data.session.score || 0)
-            setTotalScoreable(data.session.total_scoreable || 0)
-          }
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <CrosswordPlayerPage
+          gameData={game}
+          sessionToken={sessionToken}
+          sessionId={null}
+          onComplete={(data) => {
+            if (data?.session) {
+              setScore(data.session.score || 0)
+              setTotalScoreable(data.session.total_scoreable || 0)
+            }
+            setRedirectUrl(data?.redirect_url || null)
+            setPhase('thankyou')
+          }}
+        />
+      </Suspense>
     )
   }
 
   if (phase === 'memory') {
-    return (
-      <MemoryPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+    return <Suspense fallback={gameFallback}><MemoryPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'jigsaw') {
-    return (
-      <JigsawPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+    return <Suspense fallback={gameFallback}><JigsawPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'wordsearch') {
-    return (
-      <WordSearchPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+    return <Suspense fallback={gameFallback}><WordSearchPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'pouring') {
-    return (
-      <PouringPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+    return <Suspense fallback={gameFallback}><PouringPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'typer') {
-    return (
-      <TyperPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+    return <Suspense fallback={gameFallback}><TyperPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'math') {
-    return (
-      <MathPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+    return <Suspense fallback={gameFallback}><MathPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'maze') {
-    return (
-      <MazePlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => {
-          // Thank-you page disabled for maze game
-        }}
-      />
-    )
+    return <Suspense fallback={gameFallback}><MazePlayerPage gameData={game} sessionToken={sessionToken} onComplete={() => {}} /></Suspense>
   }
 
   if (phase === 'screw') {
@@ -2248,316 +2216,237 @@ const handleModalClose = () => {
   }
 
   if (phase === '2048') {
-    return (
-      <Game2048PlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+    return <Suspense fallback={gameFallback}><Game2048PlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'snake') {
-    return (
-      <SnakePlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+    return <Suspense fallback={gameFallback}><SnakePlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'snakeandladder') {
-    return (
-      <SnakeAndLadderPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+    return <Suspense fallback={gameFallback}><SnakeAndLadderPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'ludo') {
-    return <LudoPlayerPage />
+    return <Suspense fallback={gameFallback}><LudoPlayerPage /></Suspense>
   }
 
-  if (phase === 'Carrom') {
-    return (
-      <CarromPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={handleGameComplete}
-      />
-    )
+  if (['Carrom', 'carrom'].includes(phase)) {
+    return <Suspense fallback={gameFallback}><CarromPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'bejeweled') {
     return (
-      <CatchPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <CatchPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'reaction') {
     return (
-      <ReactionPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <ReactionPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'simon') {
     return (
-      <SimonPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <SimonPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'flappy') {
     return (
-      <FlappyPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <FlappyPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'bounce') {
-    return (
-      <BouncePlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => {
-          // Thank-you page disabled for bounce game — game handles its own completion UI
-        }}
-      />
-    )
+    return <Suspense fallback={gameFallback}><BouncePlayerPage gameData={game} sessionToken={sessionToken} onComplete={() => {}} /></Suspense>
   }
 
   if (phase === 'space') {
     return (
-      <SpacePlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => {
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <SpacePlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'connect4') {
     return (
-      <Connect4PlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <Connect4PlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'bowling') {
     return (
-      <BowlingPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <BowlingPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'sudoku') {
     return (
-      <SudokuPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <SudokuPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'minesweeper') {
     return (
-      <MinesweeperPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <MinesweeperPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'wordscramble') {
     return (
-      <WordScramblePlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <WordScramblePlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'rps') {
     return (
-      <RpsPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <RpsPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'arrowescape') {
     return (
-      <ArrowEscapePlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <ArrowEscapePlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'tetris') {
     return (
-      <TetrisPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <TetrisPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'stack') {
     return (
-      <StackPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <StackPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'whackamole') {
     return (
-      <WhackAMolePlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <WhackAMolePlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'hanoi') {
     return (
-      <HanoiPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <HanoiPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'breakout') {
     return (
-      <BreakoutPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <BreakoutPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'bubbleshooter') {
     return (
-      <BubbleShooterPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <BubbleShooterPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'carlaunch') {
     return (
-      <CarLaunchPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }}
-      />
+      <Suspense fallback={gameFallback}>
+        <CarLaunchPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+      </Suspense>
     )
   }
 
   if (phase === 'soundify') {
     return (
-      <SoundifyPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        sessionId={sessionId}
-        onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
-        onComplete={(data) => {
-          if (data?.session) { setScore(data.session.score || 0) }
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <SoundifyPlayerPage
+          gameData={game}
+          sessionToken={sessionToken}
+          sessionId={sessionId}
+          onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
+          onComplete={(data) => {
+            if (data?.session) setScore(data.session.score || 0)
+            setRedirectUrl(data?.redirect_url || null)
+            setPhase('thankyou')
+          }}
+        />
+      </Suspense>
     )
   }
 
   if (phase === 'stressbuster') {
     return (
-      <StressBusterPlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        sessionId={sessionId}
-        onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
-        onComplete={(data) => {
-          if (data?.session) { setScore(data.session.score || 0) }
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <StressBusterPlayerPage
+          gameData={game}
+          sessionToken={sessionToken}
+          sessionId={sessionId}
+          onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
+          onComplete={(data) => {
+            if (data?.session) setScore(data.session.score || 0)
+            setRedirectUrl(data?.redirect_url || null)
+            setPhase('thankyou')
+          }}
+        />
+      </Suspense>
     )
   }
 
   if (phase === 'tictactoe') {
     return (
-      <TicTacToePlayerPage
-        gameData={game}
-        sessionToken={sessionToken}
-        sessionId={sessionId}
-        onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
-        onComplete={(data) => {
-          if (data?.session) { setScore(data.session.score || 0) }
-          setRedirectUrl(data?.redirect_url || null)
-          setPhase('thankyou')
-        }}
-      />
+      <Suspense fallback={gameFallback}>
+        <TicTacToePlayerPage
+          gameData={game}
+          sessionToken={sessionToken}
+          sessionId={sessionId}
+          onSessionStart={(token, id) => { setSessionToken(token); setSessionId(id) }}
+          onComplete={(data) => {
+            if (data?.session) setScore(data.session.score || 0)
+            setRedirectUrl(data?.redirect_url || null)
+            setPhase('thankyou')
+          }}
+        />
+      </Suspense>
     )
   }
 
   if (phase === 'tictactoemultiplayer') {
-    return <TicTacToeMultiplayerPlayerPage />
+    return <Suspense fallback={gameFallback}><TicTacToeMultiplayerPlayerPage /></Suspense>
   }
 
   return null

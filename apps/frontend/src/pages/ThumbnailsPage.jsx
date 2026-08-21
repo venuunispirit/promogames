@@ -16,7 +16,7 @@ const CSS = `
 .tn-search{position:relative}
 .tn-search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--text3);pointer-events:none}
 .tn-search input{width:260px;padding:9px 12px 9px 34px;border-radius:10px;border:1.5px solid var(--border);font-size:13px;font-family:inherit;color:var(--text);background:var(--surface2);outline:none;transition:border-color .14s}
-.tn-search input:focus{border-color:#818CF8;background:var(--surface)}
+.tn-search input:focus{border-color:var(--primary);background:var(--surface)}
 .tn-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text2);font-size:12.5px;font-weight:600;font-family:inherit;cursor:pointer;transition:all .13s;white-space:nowrap}
 .tn-btn:hover{background:var(--surface2);color:var(--text)}
 .tn-btn:disabled{opacity:.5;cursor:not-allowed}
@@ -31,11 +31,11 @@ const CSS = `
 .tn-name{font-size:13.5px;font-weight:700;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .tn-cat{font-size:11px;font-weight:600;color:var(--text3);text-transform:capitalize;margin-top:3px}
 .tn-actions{display:flex;gap:8px;margin-top:12px}
-.tn-upload{flex:1;padding:8px;border-radius:9px;border:none;background:var(--text);color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .13s}
+.tn-upload{flex:1;padding:8px;border-radius:9px;border:none;background:var(--primary);color:#fff;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;transition:opacity .13s}
 .tn-upload:hover{opacity:.88}
 .tn-upload:disabled{opacity:.5;cursor:not-allowed}
-.tn-del{padding:8px 10px;border-radius:9px;border:1.5px solid #FEE2E2;background:#FFF5F5;color:#DC2626;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .13s}
-.tn-del:hover{background:#FEE2E2}
+.tn-del{padding:8px 10px;border-radius:9px;border:1.5px solid var(--error-border);background:var(--error-bg);color:var(--error);font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .13s}
+.tn-del:hover{background:var(--error-border)}
 .tn-del:disabled{opacity:.5;cursor:not-allowed}
 .tn-empty{text-align:center;padding:60px 20px;color:var(--text3);font-size:14px}
 .tn-spin{width:15px;height:15px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:tnSpin .7s linear infinite}

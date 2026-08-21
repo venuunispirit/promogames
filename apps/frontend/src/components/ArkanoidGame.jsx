@@ -128,6 +128,7 @@ export default function ArkanoidGame() {
       trail: [],
       sparkTimer: 0,
       started: false,
+      running: false,
       time: 0,
     };
     stateRef.current = s;
@@ -165,6 +166,7 @@ export default function ArkanoidGame() {
           s.started = true;
           setStarted(true);
           if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+          startLoop();
         }
         resetBall();
         makeSound(audioCtx, 880, 'sine', 0.15, 0.12);
@@ -426,13 +428,33 @@ export default function ArkanoidGame() {
         ctx.globalAlpha = 1;
       }
 
+      if (s.running) rafRef.current = requestAnimationFrame(loop);
+    };
+
+    const startLoop = () => {
+      if (s.running) return;
+      s.running = true;
       rafRef.current = requestAnimationFrame(loop);
     };
 
-    rafRef.current = requestAnimationFrame(loop);
+    /* Pause the game loop while it's off-screen to keep the main thread free. */
+    const io = new IntersectionObserver(([entry]) => {
+      if (entry.isIntersecting) {
+        if (s.started && !s.running) startLoop();
+      } else if (s.running) {
+        s.running = false;
+        if (rafRef.current) { cancelAnimationFrame(rafRef.current); rafRef.current = null; }
+      }
+    });
+    io.observe(wrap);
+
+    // Draw one static frame now — the rAF loop only starts once the player interacts.
+    loop();
+
     return () => {
-      cancelAnimationFrame(rafRef.current);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
       ro.disconnect();
+      io.disconnect();
       canvas.removeEventListener('mousemove', onMouse);
       canvas.removeEventListener('touchmove', onTouchMove);
       canvas.removeEventListener('touchstart', onTouchStart);

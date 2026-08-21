@@ -4,10 +4,10 @@ import api from '../api'
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
 const AVATAR_PALETTE = [
-  { bg:'var(--primary-bg)', fg:'#4338CA' }, { bg:'#F0FDF4', fg:'#15803D' },
-  { bg:'#FFF7ED', fg:'#C2410C' }, { bg:'#FDF4FF', fg:'#9333EA' },
-  { bg:'#ECFDF5', fg:'#0F766E' }, { bg:'#FEF2F2', fg:'#DC2626' },
-  { bg:'#F5F3FF', fg:'#7C3AED' }, { bg:'#FFFAF0', fg:'#B45309' },
+  { bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)' }, { bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)' },
+  { bg:'var(--chip-orange-bg)', fg:'var(--chip-orange-fg)' }, { bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)' },
+  { bg:'var(--chip-cyan-bg)', fg:'var(--chip-cyan-fg)' }, { bg:'var(--chip-red-bg)', fg:'var(--chip-red-fg)' },
+  { bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)' }, { bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)' },
 ]
 const avatarColor = (name = '') => AVATAR_PALETTE[(name.charCodeAt(0) || 0) % AVATAR_PALETTE.length]
 const initials = (name = '') => name.trim().split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -29,15 +29,15 @@ const CSS = `
 @keyframes crmToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @keyframes crmSpin{to{transform:rotate(360deg)}}
 .crm-card{background:var(--surface);border-radius:16px;border:1.5px solid var(--border);padding:22px 22px 18px;transition:border-color .18s,box-shadow .18s,transform .18s;animation:crmFadeUp .3s ease both}
-.crm-card:hover{border-color:#A5B4FC;box-shadow:0 6px 28px rgba(99,102,241,.1);transform:translateY(-2px)}
+.crm-card:hover{border-color:var(--primary);box-shadow:0 6px 28px var(--primary-bg);transform:translateY(-2px)}
 .crm-icon-btn{width:30px;height:30px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justifyContent:center;cursor:pointer;color:var(--text);transition:background .13s}
 .crm-icon-btn:hover{background:var(--border-light)}
 .crm-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s}
-.crm-input:focus{border-color:#818CF8;background:var(--surface)}
+.crm-input:focus{border-color:var(--primary);background:var(--surface)}
 .crm-label{display:block;font-size:10.5px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
 .crm-field{margin-bottom:16px}
-.crm-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--text);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:background .14s}
-.crm-primary-btn:hover{background:#27272A}
+.crm-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:background .14s}
+.crm-primary-btn:hover{background:var(--primary-hover)}
 .crm-primary-btn:disabled{opacity:.55;cursor:not-allowed}
 .crm-ghost-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:10px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s}
 .crm-ghost-btn:hover{background:var(--border-light)}
@@ -77,7 +77,7 @@ function Toast({ msg, type, onClose }) {
       fontSize:13.5,fontFamily:"'DM Sans',sans-serif",fontWeight:500,
       display:'flex',alignItems:'center',gap:10,
       boxShadow:'0 8px 32px rgba(0,0,0,.24)',
-      borderLeft:`3px solid ${ok?'#22C55E':'#EF4444'}`,
+      borderLeft:`3px solid ${ok?'var(--success)':'var(--error)'}`,
       animation:'crmToastIn .28s cubic-bezier(.34,1.56,.64,1)',maxWidth:380,
     }}>
       {ok ? '✓' : '✕'} {msg}
@@ -249,7 +249,7 @@ export default function CRMPage() {
                     </div>
                     <div style={{display:'flex',gap:4,flexShrink:0}}>
                       <button className="crm-icon-btn" onClick={() => handleEdit(member)} title="Edit"><Ico.edit/></button>
-                      <button className="crm-icon-btn" onClick={() => handleDelete(member.id)} title="Delete" style={{color:'#DC2626'}}><Ico.trash/></button>
+                      <button className="crm-icon-btn" onClick={() => handleDelete(member.id)} title="Delete" style={{color:'var(--error)'}}><Ico.trash/></button>
                     </div>
                   </div>
 
@@ -262,9 +262,9 @@ export default function CRMPage() {
                         return (
                           <button key={p.key} onClick={() => handleTogglePerm(member.id, p.key)} style={{
                             padding:'3px 8px',borderRadius:6,fontSize:10,fontWeight:600,cursor:'pointer',
-                            border:`1px solid ${active ? '#C7D2FE' : 'var(--border)'}`,
+                            border:`1px solid ${active ? 'var(--primary)' : 'var(--border)'}`,
                             background:active ? 'var(--primary-bg)' : 'var(--surface2)',
-                            color:active ? '#4338CA' : 'var(--text3)',
+                            color:active ? 'var(--primary)' : 'var(--text3)',
                             fontFamily:'inherit',transition:'all .12s',
                           }}>
                             {active ? '✓ ' : ''}{p.label}
@@ -313,7 +313,7 @@ export default function CRMPage() {
                       <span style={{fontSize:13,fontWeight:500,color:'var(--text)'}}>{p.label}</span>
                       <button type="button" onClick={() => togglePerm(p.key)} style={{
                         width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',position:'relative',
-                        background:formFields.permissions.includes(p.key)?'#059669':'var(--border-light)',transition:'background .15s',flexShrink:0,
+                        background:formFields.permissions.includes(p.key)?'var(--success)':'var(--border-light)',transition:'background .15s',flexShrink:0,
                       }}>
                         <span style={{position:'absolute',top:3,left:formFields.permissions.includes(p.key)?21:3,width:18,height:18,borderRadius:9,background:'var(--surface)',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}} />
                       </button>

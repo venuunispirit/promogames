@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AvatarDisplay } from './AvatarData';
+import { AvatarDisplay } from '../components/AvatarData';
 import { Home, Gamepad2, Gift, LogOut, Sparkles, User, Trophy } from 'lucide-react';
 
 const PUBLIC_LINKS = [

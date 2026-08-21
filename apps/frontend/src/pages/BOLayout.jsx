@@ -111,18 +111,28 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 }
 `
 
+let notifCtx = null
 function playNotifSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
-    const osc = ctx.createOscillator()
-    const gain = ctx.createGain()
-    osc.type = 'sine'
-    osc.frequency.setValueAtTime(880, ctx.currentTime)
-    osc.frequency.setValueAtTime(1108, ctx.currentTime + 0.1)
-    gain.gain.setValueAtTime(0.08, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
-    osc.connect(gain).connect(ctx.destination)
-    osc.start(); osc.stop(ctx.currentTime + 0.3)
+    const Ctx = window.AudioContext || window.webkitAudioContext
+    if (!Ctx) return
+    if (!notifCtx || notifCtx.state === 'closed') notifCtx = new Ctx()
+    if (notifCtx.state === 'suspended') notifCtx.resume()
+    const ctx = notifCtx
+    const t = ctx.currentTime
+    const playTone = (freq, start, dur) => {
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(freq, start)
+      gain.gain.setValueAtTime(0.001, start)
+      gain.gain.exponentialRampToValueAtTime(0.4, start + 0.02)
+      gain.gain.exponentialRampToValueAtTime(0.001, start + dur)
+      osc.connect(gain).connect(ctx.destination)
+      osc.start(start); osc.stop(start + dur + 0.05)
+    }
+    playTone(880, t, 0.18)
+    playTone(1174.66, t + 0.12, 0.25)
   } catch {}
 }
 
@@ -168,6 +178,7 @@ export default function BOLayout() {
   const showForcePopup = useCallback((n) => {
     if (seenIdsRef.current.has(n.id)) return
     seenIdsRef.current.add(n.id)
+    if (soundOn) playNotifSound()
     setForcePopup(n)
     setForceCountdown(5)
     setCodeInput('')
@@ -183,25 +194,16 @@ export default function BOLayout() {
         forceTimerRef.current = setTimeout(() => closeForcePopup(), 500)
       }
     }, 1000)
-  }, [closeForcePopup])
-
-  const handleAcceptDirect = async () => {
-    if (!forcePopup) return
-    setProcessing(true)
-    try {
-      await api.post('/business/accept-redemption', { redemption_id: forcePopup.id })
-      showToast('Redemption accepted!')
-      closeForcePopup()
-    } catch { showToast('Failed to accept', 'error') }
-    finally { setProcessing(false) }
-  }
+  }, [closeForcePopup, soundOn])
 
   const handleAcceptWithCode = async () => {
-    if (!forcePopup || !codeInput) return
+    if (!forcePopup) return
     setCodeError('')
     setProcessing(true)
     try {
-      await api.post('/business/accept-with-code', { redemption_id: forcePopup.id, code: codeInput })
+      const payload = { redemption_id: forcePopup.id }
+      if (codeInput) payload.code = codeInput
+      await api.post('/business/accept-with-code', payload)
       showToast('Redemption accepted!')
       closeForcePopup()
     } catch (err) {
@@ -231,7 +233,6 @@ export default function BOLayout() {
       if (pending.length > lastCountRef.current && lastCountRef.current >= 0) {
         const newOnes = pending.filter(n => !seenIdsRef.current.has(n.id))
         if (newOnes.length > 0) {
-          if (soundOn) playNotifSound()
           showForcePopup(newOnes[0])
         }
       }
@@ -342,7 +343,7 @@ export default function BOLayout() {
               {/* Code verification input */}
               {acceptMode === 'code' && (
                 <div style={{ marginBottom:16 }}>
-                  <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#64748b', marginBottom:6 }}>Enter 6-digit code from player</label>
+                  <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#64748b', marginBottom:6 }}>6-digit code (optional)</label>
                   <input
                     type="text"
                     inputMode="numeric"
@@ -358,15 +359,16 @@ export default function BOLayout() {
                       background: codeError ? '#fef2f2' : '#f9fafb',
                       animation: codeError ? 'boShake .4s ease' : 'none',
                     }}
-                    onKeyDown={e => { if (e.key === 'Enter' && codeInput.length === 6) handleAcceptWithCode() }}
+                    onKeyDown={e => { if (e.key === 'Enter') handleAcceptWithCode() }}
                   />
                   {codeError && <div style={{ fontSize:12, color:'#ef4444', fontWeight:600, marginTop:6 }}>{codeError}</div>}
+                  {!codeError && <div style={{ fontSize:11, color:'#94a3b8', fontWeight:500, marginTop:6 }}>Leave blank to accept without code verification.</div>}
                 </div>
               )}
 
               {/* Buttons */}
               {!acceptMode ? (
-                /* Initial state: show both options */
+                /* Initial state: accept with code or reject */
                 <div style={{ display:'flex', gap:10 }}>
                   <button
                     onClick={() => setAcceptMode('code')}
@@ -374,14 +376,7 @@ export default function BOLayout() {
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#9210f6'; e.currentTarget.style.color = '#9210f6' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#374151' }}
                   >
-                    Accept with Code
-                  </button>
-                  <button
-                    onClick={handleAcceptDirect}
-                    disabled={processing}
-                    style={{ flex:1, padding:13, borderRadius:12, border:'none', background:'linear-gradient(135deg,#10b981,#059669)', color:'#fff', fontWeight:700, fontSize:13, cursor: processing ? 'not-allowed' : 'pointer', fontFamily:'inherit', opacity: processing ? 0.6 : 1, boxShadow:'0 4px 16px rgba(16,185,129,0.3)', transition:'all 0.2s' }}
-                  >
-                    {processing ? 'Processing...' : 'Accept'}
+                    Accept
                   </button>
                   <button
                     onClick={handleReject}
@@ -392,7 +387,7 @@ export default function BOLayout() {
                   </button>
                 </div>
               ) : (
-                /* Code verification mode */
+                /* Accept mode (code optional) */
                 <div style={{ display:'flex', gap:10 }}>
                   <button
                     onClick={() => { setAcceptMode(null); setCodeInput(''); setCodeError('') }}
@@ -402,10 +397,10 @@ export default function BOLayout() {
                   </button>
                   <button
                     onClick={handleAcceptWithCode}
-                    disabled={processing || codeInput.length < 6}
-                    style={{ flex:1, padding:13, borderRadius:12, border:'none', background: codeInput.length >= 6 ? 'linear-gradient(135deg,#10b981,#059669)' : '#d1d5db', color:'#fff', fontWeight:700, fontSize:13, cursor: processing || codeInput.length < 6 ? 'not-allowed' : 'pointer', fontFamily:'inherit', boxShadow: codeInput.length >= 6 ? '0 4px 16px rgba(16,185,129,0.3)' : 'none', transition:'all 0.2s' }}
+                    disabled={processing}
+                    style={{ flex:1, padding:13, borderRadius:12, border:'none', background:'linear-gradient(135deg,#10b981,#059669)', color:'#fff', fontWeight:700, fontSize:13, cursor: processing ? 'not-allowed' : 'pointer', fontFamily:'inherit', boxShadow:'0 4px 16px rgba(16,185,129,0.3)', transition:'all 0.2s', opacity: processing ? 0.6 : 1 }}
                   >
-                    {processing ? 'Verifying...' : 'Verify & Accept'}
+                    {processing ? 'Accepting...' : 'Accept'}
                   </button>
                   <button
                     onClick={handleReject}
@@ -455,7 +450,7 @@ export default function BOLayout() {
         <div style={{ padding:'12px', marginTop:'auto' }}>
           <div style={{ position:'relative' }}>
             <div style={{ position:'absolute', inset:'20%', background:'rgba(146,16,246,0.35)', borderRadius:'50%', filter:'blur(30px)', zIndex:0 }} />
-            <img src="/mascot.png" alt="PromoGames" style={{ width:'100%', borderRadius:16, display:'block', position:'relative', zIndex:1 }} />
+            <img src="/mascot.webp" alt="PromoGames" style={{ width:'100%', borderRadius:16, display:'block', position:'relative', zIndex:1 }} />
           </div>
         </div>
 

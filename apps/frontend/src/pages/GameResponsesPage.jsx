@@ -14,15 +14,15 @@ const CSS = `
 @keyframes gpSpin{to{transform:rotate(360deg)}}
 @keyframes gpPulse{0%,100%{opacity:1}50%{opacity:.5}}
 .gp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s,background .15s}
-.gp-input:focus{border-color:#818CF8;background:var(--surface)}
-.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--text);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
-.gp-primary-btn:hover{background:#27272A}
+.gp-input:focus{border-color:var(--primary);background:var(--surface)}
+.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
+.gp-primary-btn:hover{background:var(--primary-hover)}
 .gp-primary-btn:active{transform:scale(.98)}
 .gp-primary-btn:disabled{opacity:.55;cursor:not-allowed}
 .gp-ghost-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;border-radius:9px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:12.5px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s;white-space:nowrap}
 .gp-ghost-btn:hover{background:var(--border-light);border-color:var(--border-light)}
 .gp-stat-card{background:var(--surface);border-radius:14px;border:1.5px solid var(--border);padding:18px 20px;transition:border-color .18s,box-shadow .18s,transform .18s;animation:gpFadeUp .3s ease both}
-.gp-stat-card:hover{border-color:#C7D2FE;box-shadow:0 4px 20px rgba(99,102,241,.08);transform:translateY(-1px)}
+.gp-stat-card:hover{border-color:var(--primary);box-shadow:0 4px 20px var(--primary-bg);transform:translateY(-1px)}
 `
 
 const Ico = {
@@ -50,7 +50,7 @@ function Toast({ msg, type, onClose }) {
       fontFamily:"'DM Sans',sans-serif",fontWeight:500,
       display:'flex',alignItems:'center',gap:10,
       boxShadow:'0 8px 32px rgba(0,0,0,.24)',
-      borderLeft:`3px solid ${ok?'#22C55E':'#EF4444'}`,
+      borderLeft:`3px solid ${ok?'var(--success)':'var(--error)'}`,
       animation:'gpToastIn .28s cubic-bezier(.34,1.56,.64,1)',maxWidth:420,
     }}>
       {ok?'✓':'✕'} {msg}
@@ -154,7 +154,7 @@ export default function GameResponsesPage() {
 
   const SortIcon = ({ field }) => {
     if (sortField !== field) return <span style={{color:'var(--text3)',marginLeft:4}}><Ico.arrowSort/></span>
-    return <span style={{color:'#4F46E5',marginLeft:4}}>{sortDir === 'asc' ? <Ico.arrowUp/> : <Ico.arrowDown/>}</span>
+    return <span style={{color:'var(--primary)',marginLeft:4}}>{sortDir === 'asc' ? <Ico.arrowUp/> : <Ico.arrowDown/>}</span>
   }
 
   const downloadExcel = () => {
@@ -258,7 +258,7 @@ export default function GameResponsesPage() {
               <div style={{fontSize:16,fontWeight:700,color:'var(--text)',fontFamily:"'Fraunces',serif",lineHeight:1.2}}>
                 {game?.name}
               </div>
-              <div style={{fontSize:10,fontWeight:700,color:'#6366F1',textTransform:'uppercase',letterSpacing:'.08em',marginTop:2}}>
+              <div style={{fontSize:10,fontWeight:700,color:'var(--primary)',textTransform:'uppercase',letterSpacing:'.08em',marginTop:2}}>
                 Responses
               </div>
             </div>
@@ -267,9 +267,9 @@ export default function GameResponsesPage() {
           {/* Col 2: Stats cards — single row */}
           <div style={{display:'flex',gap:10}}>
             {[
-              { label:'Total', value: sessions.length, color:'#6366F1' },
-              { label:'Completed', value: completedCount, color:'#22C55E' },
-              { label:'Avg Score', value: avgScore, color:'#F59E0B' },
+              { label:'Total', value: sessions.length, color:'var(--primary)' },
+              { label:'Completed', value: completedCount, color:'var(--success)' },
+              { label:'Avg Score', value: avgScore, color:'var(--warning)' },
             ].map(s => (
               <div key={s.label} style={{
                 flex:1,background:'var(--surface)',borderRadius:10,border:'1.5px solid var(--border)',
@@ -296,7 +296,7 @@ export default function GameResponsesPage() {
             {search && (
               <span style={{
                 position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',
-                fontSize:10.5,fontWeight:600,color:'#4F46E5',whiteSpace:'nowrap',pointerEvents:'none'
+                fontSize:10.5,fontWeight:600,color:'var(--primary)',whiteSpace:'nowrap',pointerEvents:'none'
               }}>
                 {filtered.length} result{filtered.length !== 1 ? 's' : ''}
               </span>
@@ -375,8 +375,8 @@ export default function GameResponsesPage() {
                           whiteSpace:'nowrap',
                           transition:'color .15s'
                         }}
-                        onMouseEnter={e => e.currentTarget.style.color = '#4F46E5'}
-                        onMouseLeave={e => e.currentTarget.style.color = sortField === k ? '#4F46E5' : 'var(--text2)'}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                        onMouseLeave={e => e.currentTarget.style.color = sortField === k ? 'var(--primary)' : 'var(--text2)'}
                       >
                         <div style={{display:'inline-flex',alignItems:'center'}}>
                           {k}
@@ -399,8 +399,8 @@ export default function GameResponsesPage() {
                         whiteSpace:'nowrap',
                         transition:'color .15s'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.color = '#4F46E5'}
-                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'score' ? '#4F46E5' : 'var(--text2)'}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'score' ? 'var(--primary)' : 'var(--text2)'}
                     >
                       <div style={{display:'inline-flex',alignItems:'center'}}>
                         Score
@@ -440,8 +440,8 @@ export default function GameResponsesPage() {
                         whiteSpace:'nowrap',
                         transition:'color .15s'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.color = '#4F46E5'}
-                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'completed_at' ? '#4F46E5' : 'var(--text2)'}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'completed_at' ? 'var(--primary)' : 'var(--text2)'}
                     >
                       <div style={{display:'inline-flex',alignItems:'center'}}>
                         Completed
@@ -464,8 +464,8 @@ export default function GameResponsesPage() {
                         whiteSpace:'nowrap',
                         transition:'color .15s'
                       }}
-                      onMouseEnter={e => e.currentTarget.style.color = '#4F46E5'}
-                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'source_type' ? '#4F46E5' : 'var(--text2)'}
+                      onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                      onMouseLeave={e => e.currentTarget.style.color = sortField === 'source_type' ? 'var(--primary)' : 'var(--text2)'}
                     >
                       <div style={{display:'inline-flex',alignItems:'center'}}>
                         Source
@@ -531,7 +531,7 @@ export default function GameResponsesPage() {
                           padding:'12px 16px',
                           fontSize:15,
                           fontWeight:700,
-                          color:'#4F46E5',
+                          color:'var(--primary)',
                           textAlign:'center'
                         }}>
                           {r.session.score || 0}
@@ -558,7 +558,7 @@ export default function GameResponsesPage() {
                                     width:14,
                                     height:14,
                                     borderRadius:'50%',
-                                    background: correct ? '#22C55E' : '#EF4444',
+                                    background: correct ? 'var(--success)' : 'var(--error)',
                                     flexShrink:0
                                   }} title={correct ? 'Correct' : 'Wrong'} />
                                 )}
@@ -594,8 +594,8 @@ export default function GameResponsesPage() {
                         {/* SOURCE COLUMN CELL */}
                         <td style={{padding:'12px 16px',textAlign:'center'}}>
                           {r.session.source_type === 'direct'
-                            ? <span style={{background:'var(--primary-bg)',color:'#4338CA',padding:'2px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>🌐 Website</span>
-                            : <span style={{background:'#F0FDF4',color:'#15803D',padding:'2px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>🔗 Link</span>}
+                            ? <span style={{background:'var(--chip-primary-bg)',color:'var(--chip-primary-fg)',padding:'2px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>🌐 Website</span>
+                            : <span style={{background:'var(--chip-green-bg)',color:'var(--chip-green-fg)',padding:'2px 10px',borderRadius:100,fontSize:11,fontWeight:700}}>🔗 Link</span>}
                         </td>
                         <td style={{padding:'12px 16px',textAlign:'center'}}>
                           {r.session.email_sent ? (

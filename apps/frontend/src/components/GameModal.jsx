@@ -55,6 +55,8 @@ function injectMascotCursor(doc) {
   const style = doc.createElement('style')
   style.textContent = `
     #gm-mascot-cursor{position:fixed;top:0;left:0;width:34px;height:38px;pointer-events:none;z-index:2147483647;opacity:0;transition:opacity .2s ease;will-change:transform}
+    @media (max-width:640px){#gm-mascot-cursor{display:none!important}}
+    @media (pointer:coarse){#gm-mascot-cursor{display:none!important}}
     #gm-mascot-cursor svg{width:100%;height:100%;display:block;pointer-events:none;filter:drop-shadow(0 4px 10px rgba(92,4,153,0.35))}
     #gm-mascot-cursor .pupil{transform-origin:center}
     #gm-mascot-cursor.visible{opacity:1}

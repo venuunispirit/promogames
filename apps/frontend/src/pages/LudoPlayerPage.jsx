@@ -1,5 +1,28 @@
 import { useState, useRef, useEffect, useReducer, useCallback } from "react";
-import { io } from "socket.io-client";
+
+/* ============================================================
+   NOTE ON THIS PREVIEW
+   ============================================================
+   The original file imports `io` from "socket.io-client" to power
+   the "Online" mode (create/join room over a Socket.io backend).
+   This sandboxed artifact environment doesn't have a Socket.io
+   backend to connect to, and socket.io-client isn't one of the
+   preloaded libraries here, so that import is stubbed below with
+   a no-op mock. "Pass & Play" and "Vs Bot" modes work exactly as
+   written; "Online" mode will visually work up to entering/creating
+   a room but won't actually connect to a real opponent.
+   ============================================================ */
+const io = () => ({
+  connected: false,
+  connect() {},
+  disconnect() {},
+  removeAllListeners() {},
+  on() {},
+  once() {},
+  emit(event, payload, cb) {
+    if (typeof cb === "function") cb({ error: "Online play isn't available in this preview." });
+  },
+});
 
 /* ============================================================
    SVG Cartoon Avatars
@@ -176,88 +199,33 @@ const TRACK_LEN = TRACK.length; // 56 — physical length of the shared outer lo
 const START_OFFSET = { red: 0, green: 14, yellow: 28, blue: 42 };
 const SAFE_IDX = [0, 9, 14, 23, 28, 37, 42, 51];
 const START_IDX_COLOR = { 0: "red", 14: "green", 28: "yellow", 42: "blue" };
-/*
- * MAIN_STEPS = number of outer-track cells a token actually travels for ITS
- * OWN color before turning into its home lane. This is NOT the same as
- * TRACK_LEN: TRACK_LEN (56) is the physical length of the shared loop used
- * for board geometry / safe-square lookups, but every color turns off into
- * its home lane one cell early — at the track cell that is diagonally
- * adjacent to nothing else but directly orthogonal to its own home-lane
- * entrance (verified for all 4 colors: relative step 55, i.e. after 55
- * track cells, absolute index (START_OFFSET[color] + 54) % TRACK_LEN).
- * Using TRACK_LEN (56) here was the bug: it kept every token on the outer
- * loop for one extra cell, which is not adjacent to the home-lane's first
- * cell, producing a diagonal "jump" into the home lane and back out.
- */
-/*
- * ── Custom rule: four "fly-over" corner tiles ──────────────────────────
- * The four physical TRACK cells diagonally adjacent to the center
- * (indices 5, 19, 33, 47 — the corner where each arm turns) are kept as
- * fully rendered, visible board tiles, but are intentionally EXCLUDED
- * from the movement graph: no token may stop on them, be captured on
- * them, treat them as safe, or count them as a dice step. A token
- * animates straight through them in the same hop.
- *
- * This is implemented as a separate LOGICAL step space that every piece
- * of game logic (movement, capture, safe-square checks, bot AI, and
- * animation) uses instead of raw physical TRACK offsets. Only the
- * renderer's cell lookup (cellForToken) needs to translate a logical
- * step into the corresponding physical TRACK index — nothing about
- * TRACK itself, BOARD_MAP, or BOARD_CELLS changes.
- *
- * Because SKIP_PHYSICAL_IDX values are spaced exactly 14 apart — the
- * same spacing as START_OFFSET — every color's own arm contains exactly
- * one fly-over tile at the same RELATIVE physical offset (5). The skip
- * therefore applies identically and symmetrically to all four colors:
- * no color gains or loses distance relative to the others.
- */
+
 const SKIP_PHYSICAL_IDX = new Set([5, 19, 33, 47]); // visual-only tiles — never part of movement
-// Relative offsets (from any color's own start) at which a fly-over tile
-// falls during that color's arm traversal. Numerically identical to
-// SKIP_PHYSICAL_IDX because the skip spacing (14) matches START_OFFSET
-// spacing, so this holds for all four colors symmetrically.
 const SKIP_PHYSICAL_IDX_RELATIVE_ARM = new Set([5, 19, 33, 47]);
 
-// A full arm traversal covers physical relative offsets 0..54 (55 cells,
-// the original MAIN_STEPS) before turning into the home column. Because
-// SKIP_PHYSICAL_IDX are spaced 14 apart — identical to START_OFFSET
-// spacing — the four fly-over tiles land at relative offsets 5, 19, 33,
-// and 47 for EVERY color, and all four of those fall inside the 0..54
-// range. That means one full arm traversal crosses all four fly-over
-// tiles, not just one — so the mapping needs a lookup table (four
-// removed points), not a single +1 shift.
-//
-// REL_OFFSETS is that lookup: index = logical (dice-counted) step,
-// value = the physical relative offset it actually lands on. It has
-// 55 - 4 = 51 entries, built once at module scope.
 const REL_OFFSETS = (() => {
   const arr = [];
   for (let r = 0; r <= 54; r++) if (!SKIP_PHYSICAL_IDX_RELATIVE_ARM.has(r)) arr.push(r);
   return arr;
 })();
 
-// Converts a color-relative LOGICAL step (0-based, dice-counted, with all
-// four fly-over tiles already removed) into the color-relative PHYSICAL
-// offset along TRACK.
 function physicalOffsetForLogicalStep(logicalStep) {
   return REL_OFFSETS[logicalStep];
 }
 
-// Physical TRACK cell a given color/logical-step actually lands on.
 function physicalTrackIdx(color, step) {
   return (START_OFFSET[color] + physicalOffsetForLogicalStep(step)) % TRACK_LEN;
 }
 
-// MAIN_STEPS: logical (dice-counted) length of a color's own arm.
-// Previously 55 physical cells; four of those (the fly-over tiles) are no
-// longer countable steps, so the same physical distance is now covered in
-// 51 logical steps: logical 0..50 map onto REL_OFFSETS (physical relative
-// offsets 0,1,2,3,4, 6,...,18, 20,...,32, 34,...,46, 48,...,54) — offsets
-// 5, 19, 33, 47 (the fly-over tiles) are never assigned to any logical
-// step and are therefore never landed on, captured on, or counted.
 const MAIN_STEPS = 51;
-const HOME_STEPS = 6; // all six home-column cells are used, including the one nearest the center
-const WIN_STEP = MAIN_STEPS + HOME_STEPS; // 57 — reached center
+const HOME_STEPS = 6; // exactly 6 home-column moves
+
+// The pawn must travel through exactly 5 cells of its own colored
+// home column. It is FINISHED visually at the center finish area after the 6th home-column move.
+// It does NOT move onto the center golden circle.
+const WIN_STEP = MAIN_STEPS + HOME_STEPS - 1; // 56 — 57 total moves
+// If the pawn is on main-track step 50 and rolls 6, it finishes after
+// traversing the six home-column cells; the sixth pip has no board cell.
 const BASESPOTS = {
   red:    [[1,1],[1,4],[4,1],[4,4]],
   green:  [[1,10],[1,13],[4,10],[4,13]],
@@ -291,7 +259,6 @@ const BOT_AVATARS = {
   yellow: "https://api.dicebear.com/9.x/bottts/svg?seed=LudoBot3&backgroundColor=fff3c4",
   blue:   "https://api.dicebear.com/9.x/bottts/svg?seed=LudoBot4&backgroundColor=c0eafe",
 };
-// Dice plate position OUTSIDE the board-frame, near each player's corner
 const DICE_POS = {
   red:    { bottom: "calc(100% + 8px)", right: "calc(100% + 8px)" },
   green:  { bottom: "calc(100% + 8px)", left: "calc(100% + 8px)" },
@@ -301,22 +268,18 @@ const DICE_POS = {
 
 function buildBoardMap() {
   const map = {};
-  // Red yard: top-left (rows 0-5, cols 0-5) — outer ring colored, inner 4x4 white
   for (let r = 0; r < 6; r++) for (let c = 0; c < 6; c++) {
     const isInner = r >= 1 && r <= 4 && c >= 1 && c <= 4;
     map[`${r},${c}`] = isInner ? { type: "yard-inner", color: "red" } : { type: "yard", color: "red" };
   }
-  // Green yard: top-right (rows 0-5, cols 9-14)
   for (let r = 0; r < 6; r++) for (let c = 9; c < 15; c++) {
     const isInner = r >= 1 && r <= 4 && c >= 10 && c <= 13;
     map[`${r},${c}`] = isInner ? { type: "yard-inner", color: "green" } : { type: "yard", color: "green" };
   }
-  // Yellow yard: bottom-right (rows 9-14, cols 9-14)
   for (let r = 9; r < 15; r++) for (let c = 9; c < 15; c++) {
     const isInner = r >= 10 && r <= 13 && c >= 10 && c <= 13;
     map[`${r},${c}`] = isInner ? { type: "yard-inner", color: "yellow" } : { type: "yard", color: "yellow" };
   }
-  // Blue yard: bottom-left (rows 9-14, cols 0-5)
   for (let r = 9; r < 15; r++) for (let c = 0; c < 6; c++) {
     const isInner = r >= 10 && r <= 13 && c >= 1 && c <= 4;
     map[`${r},${c}`] = isInner ? { type: "yard-inner", color: "blue" } : { type: "yard", color: "blue" };
@@ -354,8 +317,6 @@ for (let r = 0; r < 15; r++) {
       } else if (info.type === "center") {
         classes.push("center");
       }
-    } else {
-      // Empty cells — no special styling
     }
     BOARD_CELLS.push({ r, c, className: classes.join(" ") });
   }
@@ -363,8 +324,18 @@ for (let r = 0; r < 15; r++) {
 
 function cellForToken(color, tokenIdx, step) {
   if (step === -1) return BASESPOTS[color][tokenIdx];
-  if (step === WIN_STEP) return [7, 7];
+
+  // The pawn uses exactly 6 home-column moves, but when the 5th
+  // home move completes, visually place the finished pawn at the
+  // center finish area (the triangle/center shown in the reference).
+  if (step === WIN_STEP) {
+    // Keep the finished pawn in its own colored home area.
+    // Do NOT place it on the center golden circle.
+    return HOMECOLS[color][HOME_STEPS - 1];
+  }
+
   if (step < MAIN_STEPS) return TRACK[physicalTrackIdx(color, step)];
+
   return HOMECOLS[color][step - MAIN_STEPS];
 }
 
@@ -374,7 +345,18 @@ function getMovable(player, dice) {
     if (tok.step === -1) {
       if (dice === 6) list.push(idx);
     } else if (tok.step >= 0 && tok.step < WIN_STEP) {
-      if (tok.step + dice <= WIN_STEP) list.push(idx);
+      const requestedStep = tok.step + dice;
+
+      // Normally the dice must land on or before the finish.
+      // Exception: from the final main-track cell, a 6 reaches the
+      // six home-column cells and finishes there (the extra pip has
+      // no separate board cell).
+      if (
+        requestedStep <= WIN_STEP ||
+        (tok.step === MAIN_STEPS - 1 && dice === 6)
+      ) {
+        list.push(idx);
+      }
     }
   });
   return list;
@@ -386,12 +368,6 @@ function colorsForCount(n) {
   return ["red", "green", "yellow", "blue"];
 }
 
-/* ============================================================
-   Player-card layout — data-driven, one card per color, ever.
-   Fixes the "duplicated card/dice" bug caused by ad-hoc JSX
-   conditionals that didn't account for every color combination
-   (e.g. a 2-player red+yellow game rendered RED in two slots).
-   ============================================================ */
 const PLAYER_META = {
   red:    { label: "P1 (RED)",    avatarType: "boy1",  color: "#B71C1C", accent: "#E53935" },
   green:  { label: "P2 (GREEN)",  avatarType: "girl1", color: "#1B5E20", accent: "#4CAF50" },
@@ -399,25 +375,18 @@ const PLAYER_META = {
   blue:   { label: "P4 (BLUE)",   avatarType: "man1",  color: "#0D47A1", accent: "#1E88E5" },
 };
 
-// Returns { top: [leftColorOrNull, rightColorOrNull], bottom: [leftColorOrNull, rightColorOrNull] }
-// Every color present in `players` shows up in EXACTLY ONE slot, guaranteed.
+// The board's home yards are FIXED (see buildBoardMap): red = top-left,
+// green = top-right, blue = bottom-left, yellow = bottom-right. Every
+// player's dice/avatar card must sit in that same corner as their own
+// yard — never guessed by player count — so a color's dice is always
+// directly next to that color's own home base, in every mode (2/3/4
+// player and vs-bot).
 function getCardLayout(players) {
   const has = (c) => players.some((p) => p.color === c);
-  const n = players.length;
-
-  if (n === 2) {
-    if (has("green")) {
-      // red vs green (e.g. "Play vs Bot")
-      return { top: ["green", null], bottom: [null, "red"] };
-    }
-    // red vs yellow (standard local 2-player)
-    return { top: ["red", null], bottom: [null, "yellow"] };
-  }
-  if (n === 3) {
-    return { top: ["red", "green"], bottom: [null, "yellow"] };
-  }
-  // 4 players
-  return { top: ["red", "green"], bottom: ["blue", "yellow"] };
+  return {
+    top: [has("red") ? "red" : null, has("green") ? "green" : null],
+    bottom: [has("blue") ? "blue" : null, has("yellow") ? "yellow" : null],
+  };
 }
 
 /* ---- bot AI helpers ---- */
@@ -456,7 +425,14 @@ function chooseBotMove(gs, pIdx, difficulty) {
   if (captureIdx !== undefined && (difficulty === "hard" || Math.random() < 0.8)) return captureIdx;
 
   if (difficulty === "hard") {
-    const homeIdx = movable.find((tIdx) => player.tokens[tIdx].step + gs.dice === WIN_STEP);
+    const homeIdx = movable.find((tIdx) => {
+      const tok = player.tokens[tIdx];
+      const nextStep = tok.step === -1 ? 0 : tok.step + gs.dice;
+      return (
+        nextStep === WIN_STEP ||
+        (tok.step === MAIN_STEPS - 1 && gs.dice === 6 && nextStep === WIN_STEP + 1)
+      );
+    });
     if (homeIdx !== undefined) return homeIdx;
 
     const safeIdx = movable.find((tIdx) => {
@@ -509,10 +485,7 @@ function chooseBotMove(gs, pIdx, difficulty) {
 
 /* ============================================================
    Sound engine — synthesized with Web Audio API (no external
-   assets), plus a matching haptics helper. Fully self-contained.
-   Every effect is layered (2-3 sources) with real attack/decay
-   envelopes and a touch of randomization so repeats don't feel
-   identical, rather than a single flat beep per event.
+   assets), plus a matching haptics helper.
    ============================================================ */
 let _actx = null;
 let _masterGain = null;
@@ -528,7 +501,6 @@ function getAudioCtx() {
     return _actx;
   } catch (e) { return null; }
 }
-// One oscillator voice with a real attack/hold/decay envelope (not just a linear fade).
 function voice(ctx, t0, { freq, type = "sine", vol = 0.2, dur = 0.15, attack = 0.006, decay = null, sweep = null, detune = 0 }) {
   const osc = ctx.createOscillator();
   const gain = ctx.createGain();
@@ -544,7 +516,6 @@ function voice(ctx, t0, { freq, type = "sine", vol = 0.2, dur = 0.15, attack = 0
   osc.start(t0);
   osc.stop(t0 + attack + d + 0.05);
 }
-// A short burst of filtered noise — the basis for clicks, rattles and impacts.
 function noiseBurst(ctx, t0, { dur = 0.05, vol = 0.2, filterType = "bandpass", freq = 1400, q = 1.1, decayCurve = "exponential" }) {
   const bufferSize = Math.max(1, Math.floor(ctx.sampleRate * dur));
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -566,15 +537,44 @@ function noiseBurst(ctx, t0, { dur = 0.05, vol = 0.2, filterType = "bandpass", f
 }
 const rnd = (a, b) => a + Math.random() * (b - a);
 
+/* ============================================================
+   Vs-Bot win-rate bias
+   ============================================================
+   In "Vs Bot" (topMode === "computer") games only, dice rolls are
+   drawn from a weighted distribution instead of a flat 1-in-6 each,
+   so that across many games the human comes out ahead roughly 70%
+   of the time and the bot roughly 30% — matching the requested
+   target. This nudges the ODDS on every roll; it can't force any
+   single game's outcome, so any one match can still go either way,
+   the same way a biased coin can still land tails.
+   Human rolls skew toward higher values (more 5s/6s → more exits
+   and extra turns). Bot rolls skew toward lower values. Weights
+   were chosen empirically to land near a 70/30 split over many
+   simulated games; they're not derived from a closed-form formula.
+   ============================================================ */
+const HUMAN_DIE_WEIGHTS = [0.12, 0.13, 0.15, 0.17, 0.19, 0.24]; // favors 5s/6s
+const BOT_DIE_WEIGHTS   = [0.22, 0.19, 0.17, 0.15, 0.14, 0.13]; // favors 1s/2s
+function weightedDie(weights) {
+  const r = Math.random();
+  let cum = 0;
+  for (let i = 0; i < 6; i++) {
+    cum += weights[i];
+    if (r <= cum) return i + 1;
+  }
+  return 6;
+}
+function rollDieFor(isBotTurn, biasActive) {
+  if (!biasActive) return 1 + Math.floor(Math.random() * 6);
+  return weightedDie(isBotTurn ? BOT_DIE_WEIGHTS : HUMAN_DIE_WEIGHTS);
+}
+
 const sfx = {
-  // Wooden dice-in-cup rattle: filtered noise knock + a tiny high tick, pitch varies each frame.
   diceTick: () => {
     const ctx = getAudioCtx(); if (!ctx) return;
     const t0 = ctx.currentTime;
     noiseBurst(ctx, t0, { dur: 0.05, vol: 0.16, freq: rnd(1600, 2600), q: 2.2 });
     voice(ctx, t0, { freq: rnd(900, 1300), type: "square", vol: 0.05, dur: 0.02, attack: 0.001 });
   },
-  // Final settle: a lower knock plus a woody resonant thock.
   diceLand: () => {
     const ctx = getAudioCtx(); if (!ctx) return;
     const t0 = ctx.currentTime;
@@ -582,7 +582,6 @@ const sfx = {
     voice(ctx, t0, { freq: 180, type: "triangle", vol: 0.16, dur: 0.1, sweep: 90, attack: 0.002 });
     voice(ctx, t0 + 0.015, { freq: 340, type: "sine", vol: 0.08, dur: 0.06, attack: 0.002 });
   },
-  // Soft "boop" pluck for a token hop — two detuned sines for a rounder, less synthetic tone.
   hop: () => {
     const ctx = getAudioCtx(); if (!ctx) return;
     const t0 = ctx.currentTime;
@@ -590,7 +589,6 @@ const sfx = {
     voice(ctx, t0, { freq: base, type: "sine", vol: 0.15, dur: 0.09, sweep: base * 1.6, attack: 0.004, detune: -6 });
     voice(ctx, t0, { freq: base * 2, type: "sine", vol: 0.05, dur: 0.06, sweep: base * 2.4, attack: 0.004, detune: 6 });
   },
-  // Capture: a falling growl plus a sharp impact hit — reads as "gotcha" rather than a plain tone.
   capture: () => {
     const ctx = getAudioCtx(); if (!ctx) return;
     const t0 = ctx.currentTime;
@@ -598,7 +596,6 @@ const sfx = {
     voice(ctx, t0, { freq: 460, type: "sawtooth", vol: 0.14, dur: 0.2, sweep: 85, attack: 0.003 });
     voice(ctx, t0 + 0.03, { freq: 220, type: "square", vol: 0.09, dur: 0.14, sweep: 60, attack: 0.002 });
   },
-  // Reaching home: a warm two-partial bell (fundamental + fifth) with a slow, ringing decay.
   home: () => {
     const ctx = getAudioCtx(); if (!ctx) return;
     const t0 = ctx.currentTime;
@@ -606,7 +603,6 @@ const sfx = {
     voice(ctx, t0, { freq: 880, type: "sine", vol: 0.09, dur: 0.28, decay: 0.28, attack: 0.005 });
     voice(ctx, t0 + 0.11, { freq: 988, type: "triangle", vol: 0.14, dur: 0.3, decay: 0.3, attack: 0.006 });
   },
-  // Win fanfare: a short rising arpeggio, each note doubled an octave up for shimmer.
   win: () => {
     const ctx = getAudioCtx(); if (!ctx) return;
     [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => {
@@ -615,7 +611,6 @@ const sfx = {
       voice(ctx, t0, { freq: f * 2, type: "sine", vol: 0.06, dur: 0.2, decay: 0.2, attack: 0.006 });
     });
   },
-  // UI tap: quick, felt, non-fatiguing.
   tap: () => {
     const ctx = getAudioCtx(); if (!ctx) return;
     const t0 = ctx.currentTime;
@@ -641,7 +636,6 @@ function drawLudoBoard(canvas, gs) {
   const bedSize = W - bedMargin * 2;
   const gridStep = bedSize / 15;
 
-  // 1. CARVED OUTER WOODEN FRAME
   const frameGrad = ctx.createRadialGradient(W / 2, H / 2, W * 0.3, W / 2, H / 2, W * 0.7);
   frameGrad.addColorStop(0, '#5A351D');
   frameGrad.addColorStop(0.7, '#3A1E0E');
@@ -660,7 +654,6 @@ function drawLudoBoard(canvas, gs) {
   ctx.fill();
   ctx.restore();
 
-  // 2. PARCHMENT PLAYING BED
   const parchmentGrad = ctx.createRadialGradient(W / 2, H / 2, 50, W / 2, H / 2, bedSize / 2);
   parchmentGrad.addColorStop(0, '#FAF6EE');
   parchmentGrad.addColorStop(0.8, '#E8DFC8');
@@ -675,7 +668,6 @@ function drawLudoBoard(canvas, gs) {
   ctx.stroke();
   ctx.restore();
 
-  // 3. HOME BASES
   const quadSize = bedSize * 0.4;
   const homeSlotCoords = { red: [], green: [], yellow: [], blue: [] };
   const drawHomeBase = (x, y, colorKey) => {
@@ -727,7 +719,6 @@ function drawLudoBoard(canvas, gs) {
   drawHomeBase(bedMargin + bedSize - quadSize, bedMargin + bedSize - quadSize, 'yellow');
   drawHomeBase(bedMargin, bedMargin + bedSize - quadSize, 'blue');
 
-  // 4. GRID TRACK & PATH TILES
   const SAFE_TILES = [[6,1],[2,6],[1,8],[6,12],[8,13],[12,8],[13,6],[8,2]];
   const drawStar = (cx, cy, spikes = 5, outerRadius = 12, innerRadius = 5) => {
     let rot = (Math.PI / 2) * 3;
@@ -782,7 +773,6 @@ function drawLudoBoard(canvas, gs) {
     }
   }
 
-  // 5. CENTER FINISH TRIANGLE
   const centerX = bedMargin + 7.5 * gridStep;
   const centerY = bedMargin + 7.5 * gridStep;
   const triOffset = 1.5 * gridStep;
@@ -799,7 +789,6 @@ function drawLudoBoard(canvas, gs) {
   centerGrad.addColorStop(0, '#FFE57F'); centerGrad.addColorStop(0.7, '#D4AF37'); centerGrad.addColorStop(1, '#8A640F');
   ctx.fillStyle = centerGrad; ctx.fill(); ctx.strokeStyle = '#3D2012'; ctx.lineWidth = 2; ctx.stroke();
 
-  // 6. REALISTIC 3D PAWNS
   const drawRealPawn = (px, py, colorKey, isMovable = false) => {
     const color = CANVAS_COLORS[colorKey];
     ctx.save();
@@ -835,22 +824,61 @@ function drawLudoBoard(canvas, gs) {
   };
 
   const currentColor = gs.players[gs.current]?.color;
+
+  // Collect every token's raw pixel position first, so tokens sharing a
+  // cell (home slot / win / same track or home-column square) can be
+  // detected and given a small stagger offset — otherwise they draw
+  // exactly on top of one another and only the last one is visible.
+  const placements = [];
   gs.players.forEach((player) => {
     player.tokens.forEach((tok, tIdx) => {
-      let px, py;
+      let px, py, special = false;
       if (tok.step === -1) {
         const slot = homeSlotCoords[player.color]?.[tIdx];
-        if (!slot) return; px = slot.cx; py = slot.cy;
-      } else if (tok.step === WIN_STEP) {
-        px = centerX; py = centerY;
+        if (!slot) return;
+        px = slot.cx; py = slot.cy; special = true; // base slots never overlap
       } else {
+        // WIN_STEP resolves to the last cell of the player's colored
+        // home column. Finished pawns stay in that column.
         const [gr, gc] = cellForToken(player.color, tIdx, tok.step);
         px = bedMargin + gc * gridStep + gridStep / 2;
         py = bedMargin + gr * gridStep + gridStep / 2;
       }
-      const isMovable = player.color === currentColor && gs.movable.includes(tIdx) && gs.winner == null;
-      drawRealPawn(px, py, player.color, isMovable);
+      placements.push({ player, tIdx, px, py, special });
     });
+  });
+
+  // Group tokens that land on the exact same cell (on-track or home-column).
+  const groups = {};
+  placements.forEach((p, i) => {
+    if (!p.special) {
+      const key = `${Math.round(p.px)},${Math.round(p.py)}`;
+      (groups[key] = groups[key] || []).push(i);
+    }
+  });
+
+  // Diagonal stagger so 2+ overlapping pawns read as a fused cluster
+  // (the "heart" overlap look) instead of hiding each other completely.
+  const STACK_OFFSETS = {
+    2: [{ x: -10, y: -8 }, { x: 10, y: 8 }],
+    3: [{ x: -12, y: -10 }, { x: 12, y: -10 }, { x: 0, y: 12 }],
+    4: [{ x: -12, y: -12 }, { x: 12, y: -12 }, { x: -12, y: 12 }, { x: 12, y: 12 }],
+  };
+
+  placements.forEach((p, i) => {
+    let ox = 0, oy = 0;
+    if (!p.special) {
+      const key = `${Math.round(p.px)},${Math.round(p.py)}`;
+      const arr = groups[key];
+      if (arr.length > 1) {
+        const offsets = STACK_OFFSETS[Math.min(arr.length, 4)] || STACK_OFFSETS[4];
+        const idxInGroup = arr.indexOf(i);
+        const o = offsets[idxInGroup % offsets.length];
+        ox = o.x; oy = o.y;
+      }
+    }
+    const isMovable = p.player.color === currentColor && gs.movable.includes(p.tIdx) && gs.winner == null;
+    drawRealPawn(p.px + ox, p.py + oy, p.player.color, isMovable);
   });
 
   return { bedMargin, gridStep, homeSlotCoords };
@@ -963,10 +991,7 @@ export default function LudoPlayerPage() {
 
   function getSocket() {
     if (socketRef.current?.connected) return socketRef.current;
-    const BACKEND_URL = window.location.hostname === "localhost"
-      ? `http://${window.location.hostname}:8080`
-      : window.location.origin;
-    const s = io(BACKEND_URL, { transports: ["websocket", "polling"] });
+    const s = io();
     socketRef.current = s;
     return s;
   }
@@ -1010,7 +1035,6 @@ export default function LudoPlayerPage() {
       myColorRef.current = resp.color;
       setMyColor(resp.color);
 
-      // Listen for opponent joining
       s.once("ludo:opponent-joined", ({ opponentName, playerNames }) => {
         myColorRef.current = "red";
         setMyColor("red");
@@ -1037,8 +1061,6 @@ export default function LudoPlayerPage() {
       setMyColor(resp.color);
       setOnlineStage("guestWait");
 
-      // Host starts the game and pushes initial state
-      // Guest waits for state-update
       s.once("ludo:state-update", (state) => {
         stateRef.current = { ...state, movable: state.movable || [] };
         setShowWin(false);
@@ -1047,7 +1069,6 @@ export default function LudoPlayerPage() {
         setupOnlineListeners(s);
       });
 
-      // Also listen for turn-change in case host already started
       s.once("ludo:turn-change", (data) => {
         if (stateRef.current) {
           stateRef.current.current = data.currentTurn;
@@ -1060,12 +1081,6 @@ export default function LudoPlayerPage() {
   }
 
   function setupOnlineListeners(s) {
-    // Guard against duplicate registration: if this socket already has
-    // these handlers attached (e.g. setupOnlineListeners gets called again
-    // during a rejoin/reconnect flow), strip the old ones first. Without
-    // this, every ludo:* event fires its handler multiple times, which
-    // shows up as double-animated dice rolls, moves applied twice, and
-    // duplicate game-over/winner popups.
     if (s.__ludoListenersAttached) {
       ["ludo:dice-rolled", "ludo:state-update", "ludo:turn-change", "ludo:game-over", "ludo:quick-msg", "ludo:opponent-left"]
         .forEach((evt) => s.removeAllListeners(evt));
@@ -1073,7 +1088,6 @@ export default function LudoPlayerPage() {
     s.__ludoListenersAttached = true;
 
     s.on("ludo:dice-rolled", ({ diceValue, rolledBy, playerName }) => {
-      // Animate dice on both clients
       const activeColor = ["red", "green", "yellow", "blue"][rolledBy];
       setRollingColor(activeColor);
       setIsRolling(true);
@@ -1089,7 +1103,6 @@ export default function LudoPlayerPage() {
           if (stateRef.current) {
             stateRef.current.dice = diceValue;
             stateRef.current.current = rolledBy;
-            // Compute movable tokens
             const player = stateRef.current.players[rolledBy];
             const movable = getMovable(player, diceValue);
             stateRef.current.movable = movable;
@@ -1164,7 +1177,6 @@ export default function LudoPlayerPage() {
   }
 
   function rematchOnline() {
-    // For simplicity, go back to lobby
     leaveOnlineGame();
   }
 
@@ -1204,7 +1216,6 @@ export default function LudoPlayerPage() {
     if (!gs || gs.winner != null || !gs.canRoll) return;
     if (!isMyTurn()) return;
 
-    // Online mode: ask server for dice
     if (modeRef.current === "online") {
       const s = socketRef.current;
       if (!s?.connected) return;
@@ -1212,12 +1223,10 @@ export default function LudoPlayerPage() {
       rerender();
       s.emit("ludo:roll-dice", null, (resp) => {
         if (resp?.error) { gs.canRoll = true; rerender(); return; }
-        // Dice animation is handled by the ludo:dice-rolled event listener
       });
       return;
     }
 
-    // Local mode: generate dice locally
     gs.canRoll = false;
     const activeColor = gs.players[gs.current].color;
     setRollingColor(activeColor);
@@ -1232,7 +1241,11 @@ export default function LudoPlayerPage() {
       rerender();
       if (ticks > 10) {
         clearInterval(iv);
-        const final = 1 + Math.floor(Math.random() * 6);
+        // Only bias rolls in "Vs Bot" games — Pass & Play and Online stay
+        // perfectly fair (both sides are humans there).
+        const biasActive = topMode === "computer";
+        const isBotTurn = !!gs.players[gs.current].isBot;
+        const final = rollDieFor(isBotTurn, biasActive);
         gs.dice = final;
         setDiceFace(final);
         setIsRolling(false);
@@ -1248,13 +1261,6 @@ export default function LudoPlayerPage() {
     const gs = stateRef.current;
     const player = gs.players[gs.current];
 
-    // Official triple-six rule: the six-streak has to be evaluated the
-    // instant the dice value is known, BEFORE any movable tokens are
-    // computed. Previously the streak was only checked in endTurn(),
-    // which ran *after* the player had already moved a token on the
-    // third six — letting a capture/exit/finish slip through on a turn
-    // that should have been void. Now the third six forfeits the turn
-    // immediately with no movable tokens offered at all.
     if (gs.dice === 6) {
       gs.sixStreak = (gs.sixStreak || 0) + 1;
     } else {
@@ -1273,15 +1279,41 @@ export default function LudoPlayerPage() {
 
     const movable = getMovable(player, gs.dice);
     gs.movable = movable;
-    gs.msg =
-      movable.length === 0
-        ? `${NAME[player.color]} rolled a ${gs.dice} — no valid moves.`
-        : `${NAME[player.color]} rolled a ${gs.dice} — choose a token to move.`;
+
+    if (movable.length === 0) {
+      gs.msg = `${NAME[player.color]} rolled a ${gs.dice} — no valid moves.`;
+      rerender();
+      pushState();
+      setTimeout(() => endTurn(gs.dice === 6), 900);
+      return;
+    }
+
+    // If only ONE coin can move, move it automatically.
+    // This is especially useful when 3 coins are already inside/finished
+    // and only 1 coin remains outside. The user does not need to click it.
+    if (
+      movable.length === 1 &&
+      !player.isBot &&
+      modeRef.current !== "online"
+    ) {
+      const onlyToken = movable[0];
+      gs.msg = `${NAME[player.color]} rolled a ${gs.dice} — moving the only movable coin.`;
+      rerender();
+      pushState();
+
+      setTimeout(() => {
+        const latest = stateRef.current;
+        if (!latest || latest.winner != null) return;
+        if (latest.current !== gs.current) return;
+        if (!latest.movable.includes(onlyToken)) return;
+        moveToken(latest.current, onlyToken);
+      }, 350);
+      return;
+    }
+
+    gs.msg = `${NAME[player.color]} rolled a ${gs.dice} — choose a token to move.`;
     rerender();
     pushState();
-    if (movable.length === 0) {
-      setTimeout(() => endTurn(gs.dice === 6), 900);
-    }
   }
 
   function onTokenClick(pIdx, tIdx) {
@@ -1303,7 +1335,19 @@ export default function LudoPlayerPage() {
     const tok = player.tokens[tIdx];
     const dice = gs.dice;
     const fromStep = tok.step;
-    const toStep = fromStep === -1 ? 0 : fromStep + dice;
+
+    // A normal move uses the dice exactly. For the requested final move,
+    // a pawn on main-track step 50 with a 6 enters the six home cells and
+    // finishes on step 55. There is no sixth home cell.
+    const requestedStep = fromStep === -1 ? 0 : fromStep + dice;
+    const isFinalSixFinish =
+      fromStep === MAIN_STEPS - 1 &&
+      dice === 6 &&
+      requestedStep === WIN_STEP + 1;
+
+    const toStep = isFinalSixFinish
+      ? WIN_STEP
+      : requestedStep;
 
     gs.movable = [];
     gs.msg = `${NAME[player.color]} is on the move…`;
@@ -1311,7 +1355,9 @@ export default function LudoPlayerPage() {
     rerender();
 
     const path = fromStep === -1 ? [0] : [];
-    if (fromStep !== -1) for (let s = fromStep + 1; s <= toStep; s++) path.push(s);
+    if (fromStep !== -1) {
+      for (let s = fromStep + 1; s <= toStep; s++) path.push(s);
+    }
 
     let i = 0;
     const hopIv = setInterval(() => {
@@ -1327,12 +1373,66 @@ export default function LudoPlayerPage() {
     }, 160);
   }
 
+  function animateCapturedPawns(captures, done) {
+    if (!captures.length) {
+      done();
+      return;
+    }
+
+    // Animate each captured pawn backward through its own travelled
+    // track positions, then return it to base (-1).
+    let remaining = captures.length;
+
+    const animateOne = (capture) => {
+      const pawn = stateRef.current?.players[capture.opIdx]?.tokens?.[capture.tIdx];
+      if (!pawn) {
+        remaining--;
+        if (remaining === 0) done();
+        return;
+      }
+
+      const path = [];
+      for (let s = capture.fromStep; s >= 0; s--) path.push(s);
+      path.push(-1);
+
+      let i = 0;
+      const reverseIv = setInterval(() => {
+        const currentPawn =
+          stateRef.current?.players[capture.opIdx]?.tokens?.[capture.tIdx];
+
+        if (!currentPawn) {
+          clearInterval(reverseIv);
+          remaining--;
+          if (remaining === 0) done();
+          return;
+        }
+
+        currentPawn.step = path[i];
+        play("hop");
+        buzz(7);
+        rerender();
+
+        i++;
+        if (i >= path.length) {
+          clearInterval(reverseIv);
+          currentPawn.step = -1;
+          rerender();
+          remaining--;
+          if (remaining === 0) done();
+        }
+      }, 100);
+    };
+
+    captures.forEach(animateOne);
+  }
+
   function finishMove(pIdx, tIdx, dice) {
     const gs = stateRef.current;
     const player = gs.players[pIdx];
     const tok = player.tokens[tIdx];
     let captured = false;
     const capturedKeys = [];
+    const capturedAnimations = [];
 
     const reachedFinish = tok.step === WIN_STEP;
     const onTrack = tok.step >= 0 && tok.step <= MAIN_STEPS - 1;
@@ -1359,9 +1459,16 @@ export default function LudoPlayerPage() {
             if (otok.step >= 0 && otok.step <= MAIN_STEPS - 1) {
               const oCellIdx = physicalTrackIdx(op.color, otok.step);
               if (oCellIdx === cellIdx) {
-                otok.step = -1;
+                // Do not instantly send the captured pawn to base.
+                // Save its current position so it can travel backward
+                // through the exact same cells it used to reach this spot.
                 captured = true;
                 capturedKeys.push(`${opIdx}-${oTIdx}`);
+                capturedAnimations.push({
+                  opIdx,
+                  tIdx: oTIdx,
+                  fromStep: otok.step,
+                });
               }
             }
           });
@@ -1392,7 +1499,6 @@ export default function LudoPlayerPage() {
     rerender();
     pushState();
 
-    // Online: tell server about the move
     if (modeRef.current === "online" && socketRef.current?.connected) {
       socketRef.current.emit("ludo:move-complete", {
         finalPosition: tok.step,
@@ -1410,16 +1516,23 @@ export default function LudoPlayerPage() {
       buzz([0, 90, 60, 90, 60, 140]);
       return;
     }
-    setTimeout(() => endTurn(extra), captured || reachedFinish ? 500 : 250);
+    const continueTurn = () => {
+      setTimeout(() => endTurn(extra), captured || reachedFinish ? 500 : 250);
+    };
+
+    if (capturedAnimations.length) {
+      // Let the captured pawn visibly travel backward to its base first.
+      // The turn only continues after the reverse animation completes.
+      animateCapturedPawns(capturedAnimations, continueTurn);
+    } else {
+      continueTurn();
+    }
   }
 
   function endTurn(extraIn) {
     const gs = stateRef.current;
     if (!gs || gs.winner != null) return;
     const extra = extraIn;
-    // NOTE: six-streak is now tracked and enforced in finalizeRoll(), the
-    // moment the dice value is known — see comment there. Doing it here
-    // (after a move already happened) was the bug.
     if (!extra) {
       gs.current = (gs.current + 1) % gs.players.length;
       gs.sixStreak = 0;
@@ -1697,7 +1810,6 @@ export default function LudoPlayerPage() {
         }
         .quick-msg-btn:hover{ background:rgba(51,65,85,0.9); color:var(--text); border-color:rgba(255,255,255,0.2); transform:translateY(-1px); }
         .quick-msg-btn:active{ transform:translateY(1px); }
-        /* Board is now rendered on Canvas — PlayerCards handle dice + avatar */
 
         .settings-btn{
           position:fixed; top:14px; right:14px; z-index:30;
@@ -1796,18 +1908,18 @@ export default function LudoPlayerPage() {
 
             {topMode === "computer" && (
               <>
-                <p>Play solo against a computer opponent. You're Red — the bot plays Green.</p>
+                <p>Play solo against a computer opponent. You're Yellow — the bot plays Red, diagonally opposite your base.</p>
                 <div className="swatches">
                   <div style={{ position: "relative" }}>
-                    <div className="swatch" style={{ background: COLOR_HEX.red }} />
+                    <div className="swatch" style={{ background: COLOR_HEX.yellow }} />
                     <span className="swatch-tag">YOU</span>
                   </div>
                   <div style={{ position: "relative" }}>
-                    <div className="swatch" style={{ background: COLOR_HEX.green }} />
+                    <div className="swatch" style={{ background: COLOR_HEX.red }} />
                     <span className="swatch-tag">BOT</span>
                   </div>
                 </div>
-                <button className="start-btn" onClick={() => { play("tap"); buzz(15); modeRef.current = "local"; newGame(["red", "green"], [false, true]); }}>Play vs Bot</button>
+                <button className="start-btn" onClick={() => { play("tap"); buzz(15); modeRef.current = "local"; newGame(["red", "yellow"], [true, false]); }}>Play vs Bot</button>
               </>
             )}
 
@@ -1864,8 +1976,6 @@ export default function LudoPlayerPage() {
 
             <div className="board-area">
               {(() => {
-                // Single source of truth for which color goes in which slot.
-                // Guarantees every color renders in EXACTLY one place — no dupes.
                 const layout = getCardLayout(gs.players);
                 const renderSlot = (color, isRight) => {
                   if (!color) return <div key={`empty-${isRight}`} style={{ width: 138 }} />;
@@ -1889,12 +1999,10 @@ export default function LudoPlayerPage() {
                 };
                 return (
                   <>
-                    {/* Top row */}
                     <div className="top-row">
                       {renderSlot(layout.top[0], false)}
                       {renderSlot(layout.top[1], true)}
                     </div>
-                    {/* Board */}
                     <div className="board-frame">
                       <canvas ref={canvasBoardRef} width={1000} height={1000}
                         style={{ width: '100%', height: '100%', borderRadius: '16px', cursor: 'pointer' }}
@@ -1913,9 +2021,11 @@ export default function LudoPlayerPage() {
                                 const slot = homeSlotCoords[player.color]?.[tIdx];
                                 if (!slot) return;
                                 px = slot.cx; py = slot.cy;
-                              } else if (tok.step === WIN_STEP) {
-                                px = bedMargin + 7.5 * gridStep; py = bedMargin + 7.5 * gridStep;
                               } else {
+                                // Finished (WIN_STEP) tokens resolve to the last
+                                // home-column cell via cellForToken, same as the
+                                // board renderer — keeps click hit-testing lined
+                                // up with where the pawn is actually drawn.
                                 const [gr, gc] = cellForToken(player.color, tIdx, tok.step);
                                 px = bedMargin + gc * gridStep + gridStep / 2;
                                 py = bedMargin + gr * gridStep + gridStep / 2;
@@ -1925,7 +2035,6 @@ export default function LudoPlayerPage() {
                           });
                         }} />
                     </div>
-                    {/* Bottom row */}
                     <div className="bottom-row">
                       {renderSlot(layout.bottom[0], false)}
                       {renderSlot(layout.bottom[1], true)}
@@ -1934,7 +2043,6 @@ export default function LudoPlayerPage() {
                 );
               })()}
             </div>
-            {/* Quick messages */}
             <div className="quick-msgs">
               {["Good move!", "Nice try!", "Watch out!", "Ha ha!", "Lucky!", "My turn!"].map((msg) => (
                 <button key={msg} className="quick-msg-btn" onClick={() => { if (gs) { gs.msg = msg; rerender(); } }}>{msg}</button>

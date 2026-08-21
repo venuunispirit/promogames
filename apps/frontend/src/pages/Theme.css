@@ -41,7 +41,27 @@
   --error: #ef4444;
   --error-bg: #fee2e2;
   --error-border: #fca5a5;
-  
+
+  /* Chip / badge pastels */
+  --chip-primary-bg: rgba(168, 85, 247, 0.12);
+  --chip-primary-fg: #7c3aed;
+  --chip-green-bg: #dcfce7;
+  --chip-green-fg: #15803d;
+  --chip-amber-bg: #fef3c7;
+  --chip-amber-fg: #b45309;
+  --chip-orange-bg: #fff7ed;
+  --chip-orange-fg: #c2410c;
+  --chip-rose-bg: #fdf2f8;
+  --chip-rose-fg: #be185d;
+  --chip-blue-bg: #dbeafe;
+  --chip-blue-fg: #1e40af;
+  --chip-cyan-bg: #ecfeff;
+  --chip-cyan-fg: #0e7490;
+  --chip-red-bg: #fee2e2;
+  --chip-red-fg: #991b1b;
+  --chip-neutral-bg: #f3f6f9;
+  --chip-neutral-fg: #4b5563;
+
   --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
   --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
   --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
@@ -75,40 +95,60 @@
 
 /* Dark Theme */
 [data-theme='dark'] {
-  --bg: #0a0a0a;
-  --bg-secondary: #111111;
-  --surface: #1a1a1a;
-  --surface2: #242424;
-  --border: #2a2a2a;
-  --border-light: #333333;
+  --bg: #0f0d18;
+  --bg-secondary: #16131f;
+  --surface: #1d1a28;
+  --surface2: #262233;
+  --border: #312c44;
+  --border-light: #3f3953;
   
-  --text: #f5f5f5;
-  --text2: #a1a1aa;
-  --text3: #71717a;
+  --text: #f2f1f8;
+  --text2: #aaa6bd;
+  --text3: #736f8a;
   
   --primary: #a855f7;
   --primary-hover: #c084fc;
-  --primary-light: #2e1065;
-  --primary-bg: rgba(168, 85, 247, 0.15);
+  --primary-light: #34105f;
+  --primary-bg: rgba(168, 85, 247, 0.16);
   
   --accent: #ec4899;
-  --accent-light: #4a044e;
+  --accent-light: #5b0f66;
   
-  --success: #22c55e;
-  --success-bg: #14532d;
-  --success-border: #166534;
+  --success: #4ade80;
+  --success-bg: #132e20;
+  --success-border: #1f5c39;
   
-  --warning: #f59e0b;
-  --warning-bg: #451a03;
-  --warning-border: #78350f;
+  --warning: #fbbf24;
+  --warning-bg: #36260f;
+  --warning-border: #7c5207;
   
-  --error: #ef4444;
-  --error-bg: #450a0a;
-  --error-border: #7f1d1d;
+  --error: #f87171;
+  --error-bg: #3f1515;
+  --error-border: #8a2424;
+
+  /* Chip / badge pastels (dark-tinted) */
+  --chip-primary-bg: rgba(168, 85, 247, 0.2);
+  --chip-primary-fg: #c9a6fa;
+  --chip-green-bg: #132e20;
+  --chip-green-fg: #4ade80;
+  --chip-amber-bg: #36260f;
+  --chip-amber-fg: #fbbf24;
+  --chip-orange-bg: #3a2412;
+  --chip-orange-fg: #f3a662;
+  --chip-rose-bg: #3b1a2e;
+  --chip-rose-fg: #f28fb4;
+  --chip-blue-bg: #182642;
+  --chip-blue-fg: #92b3f7;
+  --chip-cyan-bg: #0f2b33;
+  --chip-cyan-fg: #63d3ea;
+  --chip-red-bg: #3e1c1c;
+  --chip-red-fg: #f49090;
+  --chip-neutral-bg: #2a2533;
+  --chip-neutral-fg: #b6b1c8;
   
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.4);
-  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.4);
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.55);
   --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.6);
 
   /* Builder-local token aliases (so builders can map to global theme) */

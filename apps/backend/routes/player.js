@@ -42,7 +42,7 @@ router.get('/game-data/:gameId', async (req, res) => {
       sudoku: 'sudoku_settings', minesweeper: 'minesweeper_settings', wordscramble: 'wordscramble_settings',
       rps: 'rps_settings',
       snakeandladder: 'snake_ladder_settings', ludo: 'ludo_settings',
-      Carrom: 'Carrom_settings', tictactoemultiplayer: 'tictactoe_multi_settings',
+      Carrom: 'Carrom_settings', carrom: 'Carrom_settings', tictactoemultiplayer: 'tictactoe_multi_settings',
     };
 
     let settings = {};
@@ -701,7 +701,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     }
 
     // ── Carrom branch ──────────────────────────────────────────────────────────
-    if (game.category === 'Carrom') {
+    if (['Carrom', 'carrom'].includes(game.category)) {
       const [gameSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [game.id]);
       const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
@@ -974,7 +974,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     }
 
     // ── Carrom branch ─────────────────────────────────────────────────────────
-    if (game.category === 'Carrom') {
+    if (['Carrom', 'carrom'].includes(game.category)) {
       const [gameSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [game.id]);
       const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
@@ -1736,7 +1736,7 @@ router.get('/:gameName', async (req, res) => {
     }
 
     // ── Carrom branch ─────────────────────────────────────────────────────────
-    if (game.category === 'Carrom') {
+    if (['Carrom', 'carrom'].includes(game.category)) {
       const [gameSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [game.id]);
       const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);

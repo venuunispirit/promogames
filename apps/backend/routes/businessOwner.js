@@ -345,7 +345,7 @@ router.get('/notifications', boAuth, async (req, res) => {
        LEFT JOIN business_owner_games bog ON br.game_id = bog.game_id AND bog.business_owner_id = br.business_owner_id
        LEFT JOIN player_sessions ps ON br.session_id = ps.id
        WHERE br.business_owner_id IN (?) ${extraClause}
-       ORDER BY br.created_at DESC LIMIT 100`,
+       ORDER BY br.created_at DESC`,
       [...ids, ...extraParams]
     );
     // Data privacy: hide email, hide code, hide phone when table_number is present

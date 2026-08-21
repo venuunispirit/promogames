@@ -227,7 +227,11 @@ export default function BORedemptions() {
   const [rejectModal, setRejectModal] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
 
-  useEffect(() => { fetchRedemptions() }, [])
+  useEffect(() => {
+    fetchRedemptions()
+    const interval = setInterval(fetchRedemptions, 5000)
+    return () => clearInterval(interval)
+  }, [])
 
   const fetchRedemptions = () => {
     api.get('/business/notifications').then(r => {

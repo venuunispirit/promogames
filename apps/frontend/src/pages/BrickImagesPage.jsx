@@ -12,18 +12,18 @@ const CSS = `
 @keyframes biToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .bi-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s}
 .bi-input:focus{border-color:#8B5CF6;background:var(--surface)}
-.bi-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--text);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:background .14s,transform .1s}
-.bi-primary-btn:hover{background:#27272A}
+.bi-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background:var(--primary);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;transition:background .14s,transform .1s}
+.bi-primary-btn:hover{background:var(--primary-hover)}
 .bi-primary-btn:active{transform:scale(.98)}
 .bi-ghost-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1.5px solid var(--border);background:var(--surface);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s;white-space:nowrap}
 .bi-ghost-btn:hover{background:var(--border-light);border-color:var(--border-light)}
 .bi-icon-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--text);transition:background .13s;flex-shrink:0}
 .bi-icon-btn:hover{background:#F0F0F0}
-.bi-icon-btn.del{border-color:#FEE2E2;background:#FFF5F5;color:#DC2626}
-.bi-icon-btn.del:hover{background:#FEE2E2}
+.bi-icon-btn.del{border-color:var(--error-border);background:var(--error-bg);color:var(--error)}
+.bi-icon-btn.del:hover{background:var(--error-border)}
 .bi-toggle{width:34px;height:20px;border-radius:100px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;padding:0}
 .bi-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--surface);transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.bi-toggle.on{background:#4F46E5}
+.bi-toggle.on{background:var(--primary)}
 .bi-toggle.on::after{transform:translateX(14px)}
 .bi-toggle.off{background:var(--border-light)}
 `
@@ -32,7 +32,7 @@ function Toast({ msg, type, onClose }) {
   useEffect(() => { const t = setTimeout(onClose, 3200); return () => clearTimeout(t) }, [])
   const ok = type === 'success'
   return (
-    <div style={{ position:'fixed',bottom:28,right:28,zIndex:9999,background:ok?'#052E16':'#450A0A',color:'#fff',padding:'13px 20px 13px 16px',borderRadius:12,fontSize:13.5,fontFamily:"'DM Sans',sans-serif",fontWeight:500,display:'flex',alignItems:'center',gap:10,boxShadow:'0 8px 32px rgba(0,0,0,.24)',borderLeft:`3px solid ${ok?'#22C55E':'#EF4444'}`,animation:'biToastIn .28s cubic-bezier(.34,1.56,.64,1)',maxWidth:420 }}>
+    <div style={{ position:'fixed',bottom:28,right:28,zIndex:9999,background:ok?'var(--success-bg)':'var(--error-bg)',color:'var(--text)',padding:'13px 20px 13px 16px',borderRadius:12,fontSize:13.5,fontFamily:"'DM Sans',sans-serif",fontWeight:500,display:'flex',alignItems:'center',gap:10,boxShadow:'0 8px 32px rgba(0,0,0,.24)',borderLeft:`3px solid ${ok?'var(--success)':'var(--error)'}`,animation:'biToastIn .28s cubic-bezier(.34,1.56,.64,1)',maxWidth:420 }}>
       {ok?'✓':'✕'} {msg}
     </div>
   )
@@ -92,7 +92,7 @@ function ImageModal({ image, onClose, onSave, isNew }) {
           {preview ? (
             <div style={{ position:'relative',display:'inline-block' }}>
               <img src={preview} alt="" style={{ height:80,width:80,objectFit:'cover',borderRadius:10,border:'1.5px solid var(--border)' }} />
-              <button onClick={() => { setPreview(''); setFile(null) }} style={{ position:'absolute',top:-6,right:-6,width:22,height:22,borderRadius:'50%',background:'#DC2626',color:'#fff',border:'2px solid var(--surface)',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>✕</button>
+              <button onClick={() => { setPreview(''); setFile(null) }} style={{ position:'absolute',top:-6,right:-6,width:22,height:22,borderRadius:'50%',background:'var(--error)',color:'var(--surface)',border:'2px solid var(--surface)',cursor:'pointer',fontSize:10,display:'flex',alignItems:'center',justifyContent:'center' }}>✕</button>
             </div>
           ) : (
             <button className="bi-ghost-btn" onClick={() => fileRef.current.click()}>📁 Choose Image</button>
@@ -211,8 +211,8 @@ export default function BrickImagesPage() {
         {/* Stats */}
         <div style={{ display:'flex',gap:12,marginBottom:24 }}>
           {[
-            { label:'Total', value:images.length, color:'#6366F1' },
-            { label:'Active', value:images.filter(i=>i.is_active).length, color:'#22C55E' },
+            { label:'Total', value:images.length, color:'var(--primary)' },
+            { label:'Active', value:images.filter(i=>i.is_active).length, color:'var(--success)' },
             { label:'Inactive', value:images.filter(i=>!i.is_active).length, color:'var(--text3)' },
           ].map(s => (
             <div key={s.label} style={{ background:'var(--surface)',borderRadius:12,border:'1.5px solid var(--border)',padding:'12px 20px',minWidth:120 }}>
@@ -226,7 +226,7 @@ export default function BrickImagesPage() {
         {images.some(i => i._selected) && (
           <div style={{ background:'#FEF3C7',borderRadius:10,padding:'10px 16px',marginBottom:16,display:'flex',alignItems:'center',justifyContent:'space-between' }}>
             <span style={{ fontSize:13,fontWeight:600,color:'#92400E' }}>{images.filter(i=>i._selected).length} selected</span>
-            <button className="bi-ghost-btn" style={{ borderColor:'#FCA5A5',color:'#DC2626' }} onClick={handleBulkDelete}>🗑 Delete Selected</button>
+            <button className="bi-ghost-btn" style={{ borderColor:'var(--error)',color:'var(--error)' }} onClick={handleBulkDelete}>🗑 Delete Selected</button>
           </div>
         )}
 

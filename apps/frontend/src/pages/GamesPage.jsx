@@ -15,57 +15,57 @@ import { useTheme } from './ThemeContext'
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
 const CATEGORY_META = {
-  quiz:      { label:'Quiz',          bg:'var(--primary-bg)', fg:'#4338CA', dot:'#818CF8', icon:'🧠', desc:'Test knowledge with questions' },
-  survey:    { label:'Survey',        bg:'#F0FDF4', fg:'#15803D', dot:'#4ADE80', icon:'📋', desc:'Collect feedback & opinions' },
-  poll:      { label:'Poll',          bg:'#FFF7ED', fg:'#C2410C', dot:'#FB923C', icon:'📊', desc:'Quick audience polls' },
-  registration:{ label:'Registration',bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'📝', desc:'Collect user registrations' },
-  crossword: { label:'Crossword',     bg:'#FDF2F8', fg:'#BE185D', dot:'#EC4899', icon:'🔤', desc:'Word grid puzzle' },
-  spin:      { label:'Spin Wheel',    bg:'#FFFBEB', fg:'#B45309', dot:'#F59E0B', icon:'🎡', desc:'Spin to win prizes' },
-  memory:    { label:'Memory Match',  bg:'#F5F3FF', fg:'#6D28D9', dot:'#A78BFA', icon:'🃏', desc:'Match pairs of cards' },
-  jigsaw:    { label:'Jigsaw Puzzle', bg:'#FFF1F2', fg:'#BE123C', dot:'#FB7185', icon:'🧩', desc:'Drag-drop image puzzle' },
-  wordsearch:{ label:'Word Search',   bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'🔍', desc:'Find hidden words in grid' },
-  pouring:   { label:'Pouring Water', bg:'#DBEAFE', fg:'#1E40AF', dot:'#3B82F6', icon:'💧', desc:'Pour exact amount challenge' },
-  typer:     { label:'Speed Typer',   bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'⌨️', desc:'Type falling words fast' },
-  screw:     { label:'Screw & Reveal',bg:'#FEF3C7', fg:'#92400E', dot:'#D97706', icon:'🔩', desc:'Unscrew blocks to reveal' },
-  math:      { label:'Math Game',     bg:'#F0FDF4', fg:'#15803D', dot:'#22C55E', icon:'🔢', desc:'Solve math questions' },
-  maze:      { label:'Maze Game',     bg:'var(--primary-bg)', fg:'#4338CA', dot:'#6366F1', icon:'🌀', desc:'Navigate the maze' },
-  '2048':    { label:'2048',           bg:'#FFF7ED', fg:'#C2410C', dot:'#FB923C', icon:'🔢', desc:'Merge tiles to reach 2048' },
-  snake:     { label:'Snake',          bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'🐍', desc:'Classic snake game' },
-  catch:     { label:'Catch',          bg:'#F5F3FF', fg:'#7C3AED', dot:'#A78BFA', icon:'🧺', desc:'Catch falling objects' },
-  reaction:  { label:'Reaction',       bg:'#FDF2F8', fg:'#BE185D', dot:'#EC4899', icon:'⚡', desc:'Test reaction speed' },
-  simon:     { label:'Simon Says',     bg:'var(--primary-bg)', fg:'#4338CA', dot:'#818CF8', icon:'🎯', desc:'Repeat the color sequence' },
-  flappy:    { label:'Flappy Bird',    bg:'#FFFBEB', fg:'#B45309', dot:'#F59E0B', icon:'🐦', desc:'Fly through the pipes' },
-  bounce:    { label:'Bounce Ball',    bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'🏀', desc:'Bounce ball through levels' },
-  space:     { label:'Space Fighter',  bg:'var(--text)', fg:'#38BDF8', dot:'#0EA5E9', icon:'🚀', desc:'Shoot enemies in space' },
-  connect4:  { label:'Connect 4',      bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'🔴', desc:'Connect 4 in a row to win' },
-  bejeweled: { label:'Bejeweled',      bg:'#FDF2F8', fg:'#BE185D', dot:'#EC4899', icon:'💎', desc:'Match gems in a grid' },
-  tetris:    { label:'Tetris',         bg:'var(--text)', fg:'#00f0f0', dot:'#00f0f0', icon:'🧱', desc:'Classic block-stacking puzzle' },
-  stack:     { label:'Stack',          bg:'var(--text)', fg:'#6366f1', dot:'#818CF8', icon:'📦', desc:'Stack blocks as high as you can' },
-  tower:     { label:'Tower',          bg:'#FEF2F2', fg:'#B45309', dot:'#F59E0B', icon:'🗼', desc:'Build the tower block by block' },
-  bowling:   { label:'Bowling',        bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'🎳', desc:'Roll strikes and spares' },
-  sudoku:    { label:'Sudoku',         bg:'#EFF6FF', fg:'#1E40AF', dot:'#3B82F6', icon:'🔢', desc:'Fill the grid with numbers' },
-  minesweeper:{ label:'Minesweeper',   bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'💣', desc:'Find all safe cells' },
-  wordscramble:{ label:'Word Scramble', bg:'#F5F3FF', fg:'#6D28D9', dot:'#8B5CF6', icon:'🔤', desc:'Unscramble the letters' },
-  rps:       { label:'Rock Paper Scissors', bg:'#FEE2E2', fg:'#991B1B', dot:'#EF4444', icon:'✊', desc:'Beat the AI in RPS' },
-  whackamole:{ label:'Whack a Mole',       bg:'#FEF3C7', fg:'#B45309', dot:'#F59E0B', icon:'🔨', desc:'Whack moles in the grid' },
-  hanoi:     { label:'Hanoi Tower',        bg:'#F5F3FF', fg:'#6D28D9', dot:'#A78BFA', icon:'🗼', desc:'Move disks between pegs' },
-  breakout:  { label:'Breakout',           bg:'var(--text)', fg:'#f43f5e', dot:'#f43f5e', icon:'🧱', desc:'Break bricks with a ball' },
-  bubbleshooter:{ label:'Bubble Shooter',  bg:'#ECFEFF', fg:'#0E7490', dot:'#06B6D4', icon:'🫧', desc:'Pop matching bubbles' },
-  carlaunch:   { label:'Car Launch',       bg:'var(--text)', fg:'#ef4444', dot:'#ef4444', icon:'🏎️', desc:'3D car configurator + drag race' },
-  arrowescape:{ label:'Arrow Escape',    bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'➡️', desc:'Guide arrows through mazes' },
-  stressbuster:{ label:'Stress Buster',  bg:'#FEF2F2', fg:'#991B1B', dot:'#F87171', icon:'😤', desc:'Click-based stress relief game' },
-  soundify:    { label:'Soundify',       bg:'#F5F3FF', fg:'#6D28D9', dot:'#A78BFA', icon:'🔊', desc:'Sound-based interactive quiz' },
-  tictactoe:   { label:'Tic Tac Toe',    bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'❌', desc:'Classic noughts and crosses' },
-  chess:      { label:'Chess',          bg:'#F7F7F7', fg:'#4B5563', dot:'#6B7280', icon:'♟️', desc:'Two-player online chess' },
-  blockblaster:{ label:'Block Blaster',  bg:'#F5F3FF', fg:'#6D28D9', dot:'#8B5CF6', icon:'💥', desc:'Explosive block-clearing puzzle' },
-  candyblast: { label:'Candy Blast',     bg:'#FDF2F8', fg:'#BE185D', dot:'#EC4899', icon:'🍬', desc:'Match and blast candy combos' },
-  Carrom:      { label:'Carrom',          bg:'#FEF3C7', fg:'#92400E', dot:'#F59E0B', icon:'🎯', desc:'Classic carrom board game' },
-  classicmaze:{ label:'Classic Maze',    bg:'#F0FDF4', fg:'#166534', dot:'#22C55E', icon:'🏰', desc:'Navigate through the maze' },
-  ludo:       { label:'Ludo',            bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'🎲', desc:'Classic Ludo board game' },
-  snakeandladder:{ label:'Snake & Ladder', bg:'#ECFEFF', fg:'#0E7490', dot:'#06B6D4', icon:'🪜', desc:'Roll dice, climb the ladder' },
-  tictactoemultiplayer:{ label:'Tic Tac Toe (Multi)', bg:'#EFF6FF', fg:'#1D4ED8', dot:'#3B82F6', icon:'🎮', desc:'Multiplayer noughts and crosses' },
+  quiz:      { label:'Quiz',          bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#818CF8', icon:'🧠', desc:'Test knowledge with questions' },
+  survey:    { label:'Survey',        bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#4ADE80', icon:'📋', desc:'Collect feedback & opinions' },
+  poll:      { label:'Poll',          bg:'var(--chip-orange-bg)', fg:'var(--chip-orange-fg)', dot:'#FB923C', icon:'📊', desc:'Quick audience polls' },
+  registration:{ label:'Registration',bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'📝', desc:'Collect user registrations' },
+  crossword: { label:'Crossword',     bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)', dot:'#EC4899', icon:'🔤', desc:'Word grid puzzle' },
+  spin:      { label:'Spin Wheel',    bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#F59E0B', icon:'🎡', desc:'Spin to win prizes' },
+  memory:    { label:'Memory Match',  bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#A78BFA', icon:'🃏', desc:'Match pairs of cards' },
+  jigsaw:    { label:'Jigsaw Puzzle', bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)', dot:'#FB7185', icon:'🧩', desc:'Drag-drop image puzzle' },
+  wordsearch:{ label:'Word Search',   bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#F59E0B', icon:'🔍', desc:'Find hidden words in grid' },
+  pouring:   { label:'Pouring Water', bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#3B82F6', icon:'💧', desc:'Pour exact amount challenge' },
+  typer:     { label:'Speed Typer',   bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'⌨️', desc:'Type falling words fast' },
+  screw:     { label:'Screw & Reveal',bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#D97706', icon:'🔩', desc:'Unscrew blocks to reveal' },
+  math:      { label:'Math Game',     bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'🔢', desc:'Solve math questions' },
+  maze:      { label:'Maze Game',     bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#6366F1', icon:'🌀', desc:'Navigate the maze' },
+  '2048':    { label:'2048',           bg:'var(--chip-orange-bg)', fg:'var(--chip-orange-fg)', dot:'#FB923C', icon:'🔢', desc:'Merge tiles to reach 2048' },
+  snake:     { label:'Snake',          bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'🐍', desc:'Classic snake game' },
+  catch:     { label:'Catch',          bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#A78BFA', icon:'🧺', desc:'Catch falling objects' },
+  reaction:  { label:'Reaction',       bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)', dot:'#EC4899', icon:'⚡', desc:'Test reaction speed' },
+  simon:     { label:'Simon Says',     bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#818CF8', icon:'🎯', desc:'Repeat the color sequence' },
+  flappy:    { label:'Flappy Bird',    bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#F59E0B', icon:'🐦', desc:'Fly through the pipes' },
+  bounce:    { label:'Bounce Ball',    bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'🏀', desc:'Bounce ball through levels' },
+  space:     { label:'Space Fighter',  bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#0EA5E9', icon:'🚀', desc:'Shoot enemies in space' },
+  connect4:  { label:'Connect 4',      bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#3B82F6', icon:'🔴', desc:'Connect 4 in a row to win' },
+  bejeweled: { label:'Bejeweled',      bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)', dot:'#EC4899', icon:'💎', desc:'Match gems in a grid' },
+  tetris:    { label:'Tetris',         bg:'var(--chip-cyan-bg)', fg:'var(--chip-cyan-fg)', dot:'#00f0f0', icon:'🧱', desc:'Classic block-stacking puzzle' },
+  stack:     { label:'Stack',          bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#818CF8', icon:'📦', desc:'Stack blocks as high as you can' },
+  tower:     { label:'Tower',          bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#F59E0B', icon:'🗼', desc:'Build the tower block by block' },
+  bowling:   { label:'Bowling',        bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#F59E0B', icon:'🎳', desc:'Roll strikes and spares' },
+  sudoku:    { label:'Sudoku',         bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#3B82F6', icon:'🔢', desc:'Fill the grid with numbers' },
+  minesweeper:{ label:'Minesweeper',   bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'💣', desc:'Find all safe cells' },
+  wordscramble:{ label:'Word Scramble', bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#8B5CF6', icon:'🔤', desc:'Unscramble the letters' },
+  rps:       { label:'Rock Paper Scissors', bg:'var(--chip-red-bg)', fg:'var(--chip-red-fg)', dot:'#EF4444', icon:'✊', desc:'Beat the AI in RPS' },
+  whackamole:{ label:'Whack a Mole',       bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#F59E0B', icon:'🔨', desc:'Whack moles in the grid' },
+  hanoi:     { label:'Hanoi Tower',        bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#A78BFA', icon:'🗼', desc:'Move disks between pegs' },
+  breakout:  { label:'Breakout',           bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)', dot:'#f43f5e', icon:'🧱', desc:'Break bricks with a ball' },
+  bubbleshooter:{ label:'Bubble Shooter',  bg:'var(--chip-cyan-bg)', fg:'var(--chip-cyan-fg)', dot:'#06B6D4', icon:'🫧', desc:'Pop matching bubbles' },
+  carlaunch:   { label:'Car Launch',       bg:'var(--chip-red-bg)', fg:'var(--chip-red-fg)', dot:'#ef4444', icon:'🏎️', desc:'3D car configurator + drag race' },
+  arrowescape:{ label:'Arrow Escape',    bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#F59E0B', icon:'➡️', desc:'Guide arrows through mazes' },
+  stressbuster:{ label:'Stress Buster',  bg:'var(--chip-red-bg)', fg:'var(--chip-red-fg)', dot:'#F87171', icon:'😤', desc:'Click-based stress relief game' },
+  soundify:    { label:'Soundify',       bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#A78BFA', icon:'🔊', desc:'Sound-based interactive quiz' },
+  tictactoe:   { label:'Tic Tac Toe',    bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#3B82F6', icon:'❌', desc:'Classic noughts and crosses' },
+  chess:      { label:'Chess',          bg:'var(--chip-neutral-bg)', fg:'var(--chip-neutral-fg)', dot:'#6B7280', icon:'♟️', desc:'Two-player online chess' },
+  blockblaster:{ label:'Block Blaster',  bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#8B5CF6', icon:'💥', desc:'Explosive block-clearing puzzle' },
+  candyblast: { label:'Candy Blast',     bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)', dot:'#EC4899', icon:'🍬', desc:'Match and blast candy combos' },
+  Carrom:      { label:'Carrom',          bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#F59E0B', icon:'🎯', desc:'Classic carrom board game' },
+  classicmaze:{ label:'Classic Maze',    bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'🏰', desc:'Navigate through the maze' },
+  ludo:       { label:'Ludo',            bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#3B82F6', icon:'🎲', desc:'Classic Ludo board game' },
+  snakeandladder:{ label:'Snake & Ladder', bg:'var(--chip-cyan-bg)', fg:'var(--chip-cyan-fg)', dot:'#06B6D4', icon:'🪜', desc:'Roll dice, climb the ladder' },
+  tictactoemultiplayer:{ label:'Tic Tac Toe (Multi)', bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#3B82F6', icon:'🎮', desc:'Multiplayer noughts and crosses' },
 }
-const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'#F3F6F9', fg:'var(--text)', dot:'var(--text3)' }
+const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'var(--chip-neutral-bg)', fg:'var(--chip-neutral-fg)', dot:'var(--text3)' }
 
 const CATEGORY_ICON = {
   quiz:'HelpCircle', survey:'ClipboardList', poll:'BarChart3', registration:'FileText',
@@ -103,28 +103,28 @@ const CSS = `
 
 /* Inputs & selects */
 .gp-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid  var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color: var(--text);background: var(--surface2);outline:none;transition:border-color .15s,background .15s}
-.gp-input:focus{border-color: #818CF8;background: var(--surface)}
+.gp-input:focus{border-color: var(--primary);background: var(--surface)}
 .gp-select{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid  var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color: var(--text);background: var(--surface2);outline:none;appearance:none;cursor:pointer;transition:border-color .15s}
-.gp-select:focus{border-color: #818CF8}
+.gp-select:focus{border-color: var(--primary)}
 .gp-label{display:block;font-size:10.5px;font-weight:700;color: var(--text3);text-transform:uppercase;letter-spacing:.09em;margin-bottom:6px}
 .gp-field{margin-bottom:16px}
 
 /* Buttons */
-.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background: var(--text);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
-.gp-primary-btn:hover{background: #27272A}
+.gp-primary-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:none;background: var(--primary);color:#fff;font-size:13.5px;font-family:'DM Sans',sans-serif;font-weight:600;cursor:pointer;letter-spacing:.01em;transition:background .14s,transform .1s}
+.gp-primary-btn:hover{background: var(--primary-hover)}
 .gp-primary-btn:active{transform:scale(.98)}
 .gp-primary-btn:disabled{opacity:.55;cursor:not-allowed}
 .gp-ghost-btn{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:1.5px solid  var(--border);background: var(--surface);color: var(--text);font-size:12px;font-family:'DM Sans',sans-serif;font-weight:500;cursor:pointer;transition:background .13s,border-color .13s;white-space:nowrap}
 .gp-ghost-btn:hover{background: var(--border-light);border-color: var(--border-light)}
 .gp-icon-btn{width:30px;height:30px;border-radius:7px;border:1.5px solid  var(--border);background: var(--surface2);display:flex;align-items:center;justify-content:center;cursor:pointer;color: var(--text);transition:background .13s;flex-shrink:0}
-.gp-icon-btn:hover{background: #F0F0F0}
-.gp-icon-btn.del{border-color: #FEE2E2;background: #FFF5F5;color: #DC2626}
-.gp-icon-btn.del:hover{background: #FEE2E2}
+.gp-icon-btn:hover{background: var(--border-light)}
+.gp-icon-btn.del{border-color: var(--error-border);background: var(--error-bg);color: var(--error)}
+.gp-icon-btn.del:hover{background: var(--error-border)}
 
 /* Toggle */
 .gp-toggle{width:34px;height:20px;border-radius:100px;border:none;cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;padding:0}
 .gp-toggle::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background: var(--surface);transition:transform .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.gp-toggle.on{background: #4F46E5}
+.gp-toggle.on{background: var(--primary)}
 .gp-toggle.on::after{transform:translateX(14px)}
 .gp-toggle.off{background: var(--border-light)}
 
@@ -135,7 +135,7 @@ const CSS = `
 .gp-table thead th{padding:11px 14px;text-align:center;font-size:11px;font-weight:700;color: var(--text2);text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;user-select:none}
 .gp-table tbody tr{border-bottom:1px solid  var(--border-light);transition:background .13s;animation:gpRowIn .25s ease both}
 .gp-table tbody tr:last-child{border-bottom:none}
-.gp-table tbody tr:hover{background: #FAFBFF}
+.gp-table tbody tr:hover{background: var(--surface2)}
 .gp-table tbody tr.inactive-row{opacity:.7}
 .gp-table tbody td{padding:13px 14px;font-size:13px;color: var(--text);vertical-align:middle;text-align:center}
 
@@ -214,6 +214,7 @@ function FieldToggle({ gameId, field, value, label, onUpdated, onError }) {
 }
 
 function QRCodeModal({ game, onClose, onError }) {
+  const { isDark } = useTheme()
   const [qrDataUrl, setQrDataUrl] = useState('')
   const [qrError, setQrError] = useState('')
   const host = typeof window !== 'undefined' ? window.location.origin : ''
@@ -283,7 +284,7 @@ function QRCodeModal({ game, onClose, onError }) {
       <div style={{ position: 'relative', background: 'var(--surface)', borderRadius: 24, width: '100%', maxWidth: 400, padding: '34px 28px 28px', boxShadow: '0 24px 64px rgba(0,0,0,.22)', animation: 'gpModalIn .22s cubic-bezier(.22,1,.36,1)', fontFamily: "'DM Sans',sans-serif", textAlign: 'center' }} onClick={e => e.stopPropagation()}>
         <button className="gp-icon-btn" onClick={handleClose} style={{ position: 'absolute', top: 14, right: 14 }}><Ico.close /></button>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 22 }}>
-          <img src="/favicon3.png" alt="" style={{ width: 30, height: 30, borderRadius: 8, objectFit: 'cover' }} onError={e => { e.target.style.display = 'none' }} />
+          <img src={isDark ? '/favicon2.png' : '/favicon3.png'} alt="" style={{ width: 30, height: 30, borderRadius: 8, objectFit: 'cover' }} onError={e => { e.target.style.display = 'none' }} />
           <span style={{ fontSize: 15, fontWeight: 700, color: 'var(--text)', letterSpacing: '-0.01em' }}>{game.company_name || ''}</span>
         </div>
         {qrError ? (
@@ -464,7 +465,7 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/blockblaster-builder`)
     } else if (game.category === 'candyblast') {
       navigate(`/dashboard/games/${game.id}/candyblast-builder`)
-    } else if (game.category === 'Carrom') {
+    } else if (['Carrom', 'carrom'].includes(game.category)) {
       navigate(`/dashboard/games/${game.id}/Carrom-builder`)
     } else if (game.category === 'classicmaze') {
       navigate(`/dashboard/games/${game.id}/classicmaze-builder`)
@@ -584,7 +585,7 @@ const handleSubmit = async e => {
                       <span style={{fontSize:12,fontWeight:700,color:selected?'#6D28D9':'var(--text)',lineHeight:1.2}}>
                         {v.label}
                       </span>
-                      <span style={{fontSize:9.5,color:selected?'#7C3AED':'var(--text3)',lineHeight:1.3,textAlign:'center'}}>
+                      <span style={{fontSize:9.5,color:selected?'var(--primary)':'var(--text3)',lineHeight:1.3,textAlign:'center'}}>
                         {v.desc}
                       </span>
                     </button>
@@ -668,7 +669,7 @@ const handleSubmit = async e => {
               }}>
                 <span style={{fontSize:24,lineHeight:1}}>{(CATEGORY_META[form.category]||{}).icon || '🎮'}</span>
                 <div style={{flex:1,minWidth:0}}>
-                  <div style={{fontSize:11,fontWeight:700,color:'#7C3AED',textTransform:'uppercase',letterSpacing:'.05em'}}>Selected type</div>
+                  <div style={{fontSize:11,fontWeight:700,color:'var(--primary)',textTransform:'uppercase',letterSpacing:'.05em'}}>Selected type</div>
                   <div style={{fontSize:13,fontWeight:700,color:'var(--text)'}}>{(CATEGORY_META[form.category]||{}).label || 'Quiz'}</div>
                 </div>
               </div>
@@ -711,9 +712,9 @@ const handleSubmit = async e => {
 
 // Column definitions — order here = order in table
 const STATUS_META = {
-  development: { label:'Development', color:'#D97706', bg:'#FFFBEB' },
-  testing:     { label:'Testing',     color:'#DC2626', bg:'#FEF2F2' },
-  live:        { label:'Live',        color:'#059669', bg:'#F0FDF4' },
+  development: { label:'Development', color:'var(--chip-amber-fg)', bg:'var(--chip-amber-bg)' },
+  testing:     { label:'Testing',     color:'var(--chip-red-fg)', bg:'var(--chip-red-bg)' },
+  live:        { label:'Live',        color:'var(--chip-green-fg)', bg:'var(--chip-green-bg)' },
 }
 
 const COLUMNS = [
@@ -736,9 +737,9 @@ function SortTh({ col, sortKey, sortDir, onSort }) {
     <th className={col.center ? 'center' : ''}>
       {col.sortable ? (
         <button className="gp-th-btn" onClick={() => onSort(col.key)}
-          style={active ? {color:' #4338CA'} : {}}>
+          style={active ? {color:' var(--primary)'} : {}}>
           {col.label}
-          <span style={{color: active ? ' #4338CA' : ' var(--border-light)', marginLeft:2}}>
+          <span style={{color: active ? ' var(--primary)' : ' var(--border-light)', marginLeft:2}}>
             {active && sortDir === 'asc' ? <Ico.caretUp/> : <Ico.caretDn/>}
           </span>
         </button>
@@ -766,10 +767,10 @@ function GameDetailModal({ game, onClose, onBuilder, onResponses, onQr, onCopyLi
             </h2>
             <div style={{display:'flex',gap:8,alignItems:'center',flexWrap:'wrap'}}>
               <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:cat.bg,color:cat.fg}}>{cat.label}</span>
-              <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:game.is_active?'#ECFDF5':'var(--border-light)',color:game.is_active?'#059669':'var(--text3)'}}>{game.status||'Draft'}</span>
+              <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:game.is_active?'var(--chip-green-bg)':'var(--border-light)',color:game.is_active?'var(--chip-green-fg)':'var(--text3)'}}>{game.status||'Draft'}</span>
               {game.parent_game_id
-                ? <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'#F5F3FF',color:'#7C3AED'}}>📍 Location{game.branch_name?` · ${game.branch_name}`:''}</span>
-                : <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'var(--primary-bg)',color:'#4338CA'}}>📦 Master</span>}
+                ? <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'var(--chip-primary-bg)',color:'var(--chip-primary-fg)'}}>📍 Location{game.branch_name?` · ${game.branch_name}`:''}</span>
+                : <span style={{fontSize:11,fontWeight:600,padding:'2px 8px',borderRadius:6,background:'var(--chip-primary-bg)',color:'var(--chip-primary-fg)'}}>📦 Master</span>}
             </div>
           </div>
           <button onClick={onClose} style={{border:'none',background:'none',cursor:'pointer',color:'var(--text3)',padding:4}}>
@@ -778,18 +779,18 @@ function GameDetailModal({ game, onClose, onBuilder, onResponses, onQr, onCopyLi
         </div>
 
         <div style={{display:'flex',gap:12,marginBottom:16}}>
-          <div style={{flex:1,background:'#F5F3FF',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
-            <div style={{fontSize:18,fontWeight:700,color:'#4F46E5'}}>{game.question_count||0}</div>
-            <div style={{fontSize:9,fontWeight:700,color:'#7C3AED',textTransform:'uppercase'}}>Questions</div>
+          <div style={{flex:1,background:'var(--chip-primary-bg)',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
+            <div style={{fontSize:18,fontWeight:700,color:'var(--chip-primary-fg)'}}>{game.question_count||0}</div>
+            <div style={{fontSize:9,fontWeight:700,color:'var(--chip-primary-fg)',textTransform:'uppercase'}}>Questions</div>
           </div>
-          <div style={{flex:1,background:'#ECFDF5',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
-            <div style={{fontSize:18,fontWeight:700,color:'#059669'}}>{game.play_count||0}</div>
-            <div style={{fontSize:9,fontWeight:700,color:'#10B981',textTransform:'uppercase'}}>Plays</div>
+          <div style={{flex:1,background:'var(--chip-green-bg)',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
+            <div style={{fontSize:18,fontWeight:700,color:'var(--chip-green-fg)'}}>{game.play_count||0}</div>
+            <div style={{fontSize:9,fontWeight:700,color:'var(--chip-green-fg)',textTransform:'uppercase'}}>Plays</div>
           </div>
           {game.branch_pincode && (
-            <div style={{flex:1,background:'#FFF7ED',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
-              <div style={{fontSize:16,fontWeight:700,color:'#B45309'}}>{game.branch_pincode}</div>
-              <div style={{fontSize:9,fontWeight:700,color:'#B45309',textTransform:'uppercase'}}>Pincode</div>
+            <div style={{flex:1,background:'var(--chip-amber-bg)',borderRadius:8,padding:'10px 12px',textAlign:'center'}}>
+              <div style={{fontSize:16,fontWeight:700,color:'var(--chip-amber-fg)'}}>{game.branch_pincode}</div>
+              <div style={{fontSize:9,fontWeight:700,color:'var(--chip-amber-fg)',textTransform:'uppercase'}}>Pincode</div>
             </div>
           )}
         </div>
@@ -813,14 +814,14 @@ function GameDetailModal({ game, onClose, onBuilder, onResponses, onQr, onCopyLi
           ].map(t => (
             <div key={t.field} style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border-light)'}}>
               <span style={{fontSize:13,color:'var(--text)'}}>{t.label}</span>
-              <button disabled={t.disabled} onClick={()=>onToggle(game,t.field)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:t.disabled?'not-allowed':'pointer',background:game[t.field]?'#059669':'var(--border-light)',position:'relative',transition:'background .15s',opacity:t.disabled?0.4:1}}>
+              <button disabled={t.disabled} onClick={()=>onToggle(game,t.field)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:t.disabled?'not-allowed':'pointer',background:game[t.field]?'var(--success)':'var(--border-light)',position:'relative',transition:'background .15s',opacity:t.disabled?0.4:1}}>
                 <span style={{position:'absolute',top:3,left:game[t.field]?21:3,width:18,height:18,borderRadius:9,background:'var(--surface)',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
               </button>
             </div>
           ))}
           <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',padding:'10px 0',borderBottom:'1px solid var(--border-light)'}}>
             <span style={{fontSize:13,color:'var(--text)'}}>Game Type</span>
-            <button onClick={()=>onGameTypeToggle(game)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',background:game.game_type==='branded'?'#059669':'var(--border-light)',position:'relative',transition:'background .15s'}}>
+            <button onClick={()=>onGameTypeToggle(game)} style={{width:42,height:24,borderRadius:12,border:'none',cursor:'pointer',background:game.game_type==='branded'?'var(--success)':'var(--border-light)',position:'relative',transition:'background .15s'}}>
               <span style={{position:'absolute',top:3,left:game.game_type==='branded'?21:3,width:18,height:18,borderRadius:9,background:'var(--surface)',transition:'left .15s',boxShadow:'0 1px 3px rgba(0,0,0,.2)'}}/>
             </button>
           </div>
@@ -832,7 +833,7 @@ function GameDetailModal({ game, onClose, onBuilder, onResponses, onQr, onCopyLi
 
         <div style={{display:'flex',gap:8}}>
           <button onClick={()=>{onDuplicate(game.id);onClose()}} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px',borderRadius:8,border:'1px solid var(--border)',background:'var(--surface)',cursor:'pointer',fontSize:12,fontWeight:600,color:'var(--text)',fontFamily:'inherit'}}><Copy size={14} strokeWidth={2.2}/> Duplicate</button>
-          <button onClick={()=>{if(confirm('Delete this game?')){onDelete(game.id);onClose()}}} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px',borderRadius:8,border:'1px solid #FECACA',background:'#FEF2F2',cursor:'pointer',fontSize:12,fontWeight:600,color:'#DC2626',fontFamily:'inherit'}}><Trash2 size={14} strokeWidth={2.2}/> Delete</button>
+          <button onClick={()=>{if(confirm('Delete this game?')){onDelete(game.id);onClose()}}} style={{flex:1,display:'flex',alignItems:'center',justifyContent:'center',gap:6,padding:'8px',borderRadius:8,border:'1px solid var(--error-border)',background:'var(--error-bg)',cursor:'pointer',fontSize:12,fontWeight:600,color:'var(--error)',fontFamily:'inherit'}}><Trash2 size={14} strokeWidth={2.2}/> Delete</button>
         </div>
       </div>
     </div>
@@ -857,9 +858,9 @@ function GraphNode({ x, y, w, h, game, kind, onClick, canvasRef, nodeKey, onDrag
   const title = isClient ? game.name
     : (isLoc ? (game.branch_name || game.location_name || game.name) : game.name)
   const STATUS_META = {
-    development: { label:'Development', bg:'#F1F5F9', fg:'#64748B' },
-    testing:     { label:'Testing',     bg:'#FEF3C7', fg:'#D97706' },
-    live:        { label:'Live',        bg:'#DCFCE7', fg:'#16A34A' },
+    development: { label:'Development', bg:'var(--chip-neutral-bg)', fg:'var(--chip-neutral-fg)' },
+    testing:     { label:'Testing',     bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)' },
+    live:        { label:'Live',        bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)' },
   }
   const st = STATUS_META[game.status] || STATUS_META.development
 
@@ -1140,7 +1141,7 @@ function ClientGraph({ client, games, onSelect }) {
         <div style={{fontWeight:700,fontSize:15,color:'var(--text)'}}>{client.company_name}</div>
         <div style={{fontSize:11,color:'var(--text3)'}}>{masters.length} master · {games.filter(g=>g.parent_game_id&&g.client_id===client.id).length} location · drag a node to move it and its subtree</div>
         <button onClick={resetLayout}
-          style={{marginLeft:'auto',fontSize:11,fontWeight:600,color:'#6366F1',background:'var(--primary-bg)',border:'1px solid #E0E7FF',borderRadius:8,padding:'6px 12px',cursor:'pointer'}}>
+          style={{marginLeft:'auto',fontSize:11,fontWeight:600,color:'var(--primary)',background:'var(--primary-bg)',border:'1px solid var(--border)',borderRadius:8,padding:'6px 12px',cursor:'pointer'}}>
           ↺ Auto Layout
         </button>
       </div>
@@ -1358,15 +1359,15 @@ export default function GamesPage() {
               </div>
               {/* View toggle */}
               <div style={{display:'flex',background:'var(--border-light)',borderRadius:8,padding:3,gap:2}}>
-                <button onClick={() => setViewMode('list')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='list'?'var(--surface)':'transparent',cursor:'pointer',boxShadow:viewMode==='list'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='list'?'#4F46E5':'var(--text2)',fontFamily:'inherit'}}>
+                <button onClick={() => setViewMode('list')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='list'?'var(--surface)':'transparent',cursor:'pointer',boxShadow:viewMode==='list'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='list'?'var(--primary)':'var(--text2)',fontFamily:'inherit'}}>
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></svg>
                     List
                   </button>
-                  <button onClick={() => setViewMode('tree')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='tree'?'var(--surface)':'transparent',cursor:'pointer',boxShadow:viewMode==='tree'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='tree'?'#4F46E5':'var(--text2)',fontFamily:'inherit'}}>
+                  <button onClick={() => setViewMode('tree')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='tree'?'var(--surface)':'transparent',cursor:'pointer',boxShadow:viewMode==='tree'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='tree'?'var(--primary)':'var(--text2)',fontFamily:'inherit'}}>
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                     Grid
                   </button>
-                  <button onClick={() => setViewMode('graph')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='graph'?'var(--surface)':'transparent',cursor:'pointer',boxShadow:viewMode==='graph'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='graph'?'#4F46E5':'var(--text2)',fontFamily:'inherit'}}>
+                  <button onClick={() => setViewMode('graph')} style={{padding:'6px 10px',borderRadius:6,border:'none',background:viewMode==='graph'?'var(--surface)':'transparent',cursor:'pointer',boxShadow:viewMode==='graph'?'0 1px 3px rgba(0,0,0,0.1)':'none',transition:'all .15s',display:'flex',alignItems:'center',gap:4,fontSize:11,fontWeight:600,color:viewMode==='graph'?'var(--primary)':'var(--text2)',fontFamily:'inherit'}}>
                     <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><circle cx="5" cy="6" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="12" cy="18" r="2.5"/><path d="M5 8.5v3a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-3M12 13.5V15.5"/></svg>
                     Graph
                   </button>
@@ -1398,8 +1399,8 @@ export default function GamesPage() {
           </div>
         ) : games.length === 0 ? (
           <div style={{textAlign:'center',padding:'80px 0'}}>
-            <div style={{width:72,height:72,borderRadius:18,background:' #F5F3FF',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
-              <svg width="30" height="30" fill="none" stroke=" #6366F1" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg>
+            <div style={{width:72,height:72,borderRadius:18,background:' var(--chip-primary-bg)',display:'flex',alignItems:'center',justifyContent:'center',margin:'0 auto 20px'}}>
+              <svg width="30" height="30" fill="none" stroke=" var(--primary)" strokeWidth="1.5" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="4"/><path d="M6 12h4M8 10v4M15 12h.01M18 12h.01"/></svg>
             </div>
             <h3 style={{fontFamily:"'Fraunces',serif",fontWeight:600,fontSize:20,color:' var(--text)',marginBottom:8}}>No games yet</h3>
             <p style={{color:' var(--text3)',fontSize:14,marginBottom:24}}>Create your first game to get started.</p>
@@ -1523,7 +1524,7 @@ export default function GamesPage() {
                               fontFamily:'DM Sans', color:'var(--text2)', transition:'all .13s',
                             }}
                             onClick={e => handleStatusToggle(game, e)}
-                            onMouseOver={e=>{e.currentTarget.style.borderColor='#818CF8';e.currentTarget.style.color='#4F46E5'}}
+                            onMouseOver={e=>{e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.color='var(--primary)'}}
                             onMouseOut={e=>{e.currentTarget.style.borderColor='var(--border)';e.currentTarget.style.color='var(--text2)'}}
                           >
                             Cycle →
@@ -1591,7 +1592,7 @@ export default function GamesPage() {
                                 else if (game.category === 'chess') navigate(`/dashboard/games/${game.id}/chess-builder`)
                                 else if (game.category === 'snakeandladder') navigate(`/dashboard/games/${game.id}/snakeandladder-builder`)
                                 else if (game.category === 'ludo') navigate(`/dashboard/games/${game.id}/ludo-builder`)
-                                else if (game.category === 'Carrom') navigate(`/dashboard/games/${game.id}/Carrom-builder`)
+                                else if (['Carrom', 'carrom'].includes(game.category)) navigate(`/dashboard/games/${game.id}/Carrom-builder`)
                                 else if (game.category === 'tictactoemultiplayer') navigate(`/dashboard/games/${game.id}/tictactoemultiplayer-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">
@@ -1635,13 +1636,13 @@ export default function GamesPage() {
           {/* Stats */}
           <div style={{display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:16,marginTop:20}}>
             {[
-              { label:'Active Games', value: stats.active, color:' #4F46E5' },
-              { label:'On Play Page', value: stats.onPlayPage, color:' #059669' },
-              { label:'On Hero', value: stats.onHero, color:' #D97706' },
+              { label:'Active Games', value: stats.active, color:' var(--primary)' },
+              { label:'On Play Page', value: stats.onPlayPage, color:' var(--success)' },
+              { label:'On Hero', value: stats.onHero, color:' var(--warning)' },
               { label:'Total Plays', value: stats.plays.toLocaleString(), color:' var(--text)' },
-              { label:'Branded', value: stats.branded, color:' #15803D' },
-              { label:'PromoGames', value: stats.promogames, color:' #B45309' },
-              { label:'Live', value: games.filter(g=>g.status==='live').length, color:' #059669' },
+              { label:'Branded', value: stats.branded, color:' var(--success)' },
+              { label:'PromoGames', value: stats.promogames, color:' var(--warning)' },
+              { label:'Live', value: games.filter(g=>g.status==='live').length, color:' var(--success)' },
             ].map(s => (
               <div key={s.label} style={{background:' var(--surface)',borderRadius:12,border:'1.5px solid  var(--border)',padding:'16px 20px'}}>
                 <div style={{fontSize:11,fontWeight:700,color:' var(--text3)',textTransform:'uppercase',letterSpacing:'.08em',marginBottom:4}}>{s.label}</div>
@@ -1682,7 +1683,7 @@ export default function GamesPage() {
                     <button onClick={() => navigate(`/dashboard/games/${templates[0]?.id}/responses`)} style={{flex:1,padding:'6px 0',borderRadius:6,border:'1px solid var(--border)',background:'var(--surface)',fontSize:10,fontWeight:600,cursor:'pointer',color:'var(--text)',fontFamily:'inherit'}}>
                       📊 Responses
                     </button>
-                    <button onClick={() => setSelectedClient(selectedClient?.id===client.id?null:client)} style={{flex:1,padding:'6px 0',borderRadius:6,border:`1px solid ${selectedClient?.id===client.id?'#4F46E5':'var(--border)'}`,background:selectedClient?.id===client.id?'var(--primary-bg)':'var(--surface)',fontSize:10,fontWeight:600,cursor:'pointer',color:selectedClient?.id===client.id?'#4F46E5':'var(--text)',fontFamily:'inherit'}}>
+                    <button onClick={() => setSelectedClient(selectedClient?.id===client.id?null:client)} style={{flex:1,padding:'6px 0',borderRadius:6,border:`1px solid ${selectedClient?.id===client.id?'var(--primary)':'var(--border)'}`,background:selectedClient?.id===client.id?'var(--primary-bg)':'var(--surface)',fontSize:10,fontWeight:600,cursor:'pointer',color:selectedClient?.id===client.id?'var(--primary)':'var(--text)',fontFamily:'inherit'}}>
                       {selectedClient?.id===client.id?'▾ Expanded':'▸ Expand'}
                     </button>
                   </div>
@@ -1696,25 +1697,25 @@ export default function GamesPage() {
                         <div key={g.id}>
                           <div onClick={() => childLocs.length > 0 ? setExpandedParents(p => ({...p,[g.id]:!p[g.id]})) : setSelectedGame(g)}
                             style={{padding:'7px 8px',borderRadius:6,marginBottom:3,cursor:'pointer',border:'1px solid var(--border-light)',background:'var(--surface2)',transition:'all .12s'}}
-                            onMouseEnter={e=>{e.currentTarget.style.borderColor='#A5B4FC';e.currentTarget.style.background='var(--primary-bg)'}}
+                            onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.background='var(--primary-bg)'}}
                             onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.background='var(--surface2)'}}>
                             <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                               <div style={{fontWeight:700,fontSize:11,color:'var(--text)',display:'flex',alignItems:'center',gap:4}}>
                                 {childLocs.length > 0 && <span style={{fontSize:8,color:'var(--text3)',transition:'transform .2s',transform:isExpanded?'rotate(90deg)':'rotate(0deg)',display:'inline-block'}}>▶</span>}
                                 {g.name}
                               </div>
-                              <span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:3,background:g.is_active?'#ECFDF5':'var(--border-light)',color:g.is_active?'#059669':'var(--text3)'}}>{g.status||'Draft'}</span>
+                              <span style={{fontSize:8,fontWeight:700,padding:'1px 5px',borderRadius:3,background:g.is_active?'var(--chip-green-bg)':'var(--border-light)',color:g.is_active?'var(--chip-green-fg)':'var(--text3)'}}>{g.status||'Draft'}</span>
                             </div>
                             <div style={{fontSize:9,color:'var(--text2)',marginTop:1}}>{g.category} · {g.question_count||0}q · {g.play_count||0}p</div>
                           </div>
                           {isExpanded && childLocs.map(loc => (
                             <div key={loc.id} onClick={() => setSelectedGame(loc)}
                               style={{marginLeft:12,marginBottom:3,padding:'5px 8px',borderRadius:5,border:'1px solid var(--border-light)',background:'var(--surface2)',cursor:'pointer',transition:'all .12s'}}
-                              onMouseEnter={e=>{e.currentTarget.style.borderColor='#C7D2FE';e.currentTarget.style.background='var(--primary-bg)'}}
+                              onMouseEnter={e=>{e.currentTarget.style.borderColor='var(--primary)';e.currentTarget.style.background='var(--primary-bg)'}}
                               onMouseLeave={e=>{e.currentTarget.style.borderColor='var(--border-light)';e.currentTarget.style.background='var(--surface2)'}}>
                               <div style={{display:'flex',justifyContent:'space-between',alignItems:'center'}}>
                                 <div style={{fontSize:10,fontWeight:600,color:'var(--text)'}}>↳ {loc.location_name||loc.name}</div>
-                                <span style={{fontSize:7,fontWeight:700,padding:'1px 4px',borderRadius:3,background:loc.is_active?'#ECFDF5':'var(--border-light)',color:loc.is_active?'#059669':'var(--text3)'}}>{loc.status||'Draft'}</span>
+                                <span style={{fontSize:7,fontWeight:700,padding:'1px 4px',borderRadius:3,background:loc.is_active?'var(--chip-green-bg)':'var(--border-light)',color:loc.is_active?'var(--chip-green-fg)':'var(--text3)'}}>{loc.status||'Draft'}</span>
                               </div>
                               <div style={{fontSize:8,color:'var(--text3)',marginTop:1}}>{loc.question_count||0}q · {loc.play_count||0}p</div>
                             </div>

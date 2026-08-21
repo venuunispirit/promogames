@@ -4,7 +4,7 @@ import { statusColor, statusLabel, canAct } from './boUtils'
 import {
   Search, AlertTriangle, CheckCircle, Clock, X,
   Users, Gamepad2, Trophy, RefreshCw, Filter, Eye,
-  ArrowUpRight, ArrowDownRight, ClipboardList
+  ArrowUpRight, ArrowDownRight, ClipboardList, FileSpreadsheet
 } from 'lucide-react'
 
 const DASH_CSS = `
@@ -175,6 +175,7 @@ export default function BODashboard() {
   const [search, setSearch] = useState('')
   const [gameFilter, setGameFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [dateFilter, setDateFilter] = useState('all')
   const timerRef = useRef(null)
 
   const fetchNotifications = useCallback(async () => {
@@ -192,36 +193,50 @@ export default function BODashboard() {
     return () => clearInterval(interval)
   }, [])
 
-  // Derived data
-  const stats = (() => {
-    const now = new Date()
-    const pad = n => String(n).padStart(2, '0')
-    const localDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
-    const todayStr = localDate(now)
-    const yesterday = new Date(now); yesterday.setDate(yesterday.getDate() - 1)
-    const yestStr = localDate(yesterday)
-    const createdDate = n => {
-      if (!n.created_at) return ''
-      const d = new Date(n.created_at)
-      return localDate(d)
-    }
-    return {
-      total: notifications.length,
-      pending: notifications.filter(n => ['pending','code_revealed','code_entered'].includes(n.status)).length,
-      completed: notifications.filter(n => ['completed','player_confirmed'].includes(n.status)).length,
-      participants: new Set(notifications.map(n => n.player_name)).size,
-      todayTotal: notifications.filter(n => createdDate(n) === todayStr).length,
-      yestTotal: notifications.filter(n => createdDate(n) === yestStr).length,
-      yestPending: notifications.filter(n => ['pending','code_revealed','code_entered'].includes(n.status) && createdDate(n) === yestStr).length,
-      yestCompleted: notifications.filter(n => ['completed','player_confirmed'].includes(n.status) && createdDate(n) === yestStr).length,
-      yestParticipants: new Set(notifications.filter(n => createdDate(n) === yestStr).map(n => n.player_name)).size,
-    }
-  })()
+  // ── Date helpers ────────────────────────────────────────────────────────
+  const pad = n => String(n).padStart(2, '0')
+  const localDate = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`
+  const createdDate = n => {
+    if (!n.created_at) return ''
+    return localDate(new Date(n.created_at))
+  }
+  const now = new Date()
+  const todayStr = localDate(now)
+  const yesterday = new Date(now); yesterday.setDate(now.getDate() - 1)
+  const yestStr = localDate(yesterday)
+  const weekStart = new Date(now); weekStart.setDate(now.getDate() - 6)
+  const weekStartStr = localDate(weekStart)
+  const monthStartStr = localDate(new Date(now.getFullYear(), now.getMonth(), 1))
+
+  const isPending = n => ['pending','code_revealed','code_entered'].includes(n.status)
+  const isCompleted = n => ['completed','player_confirmed'].includes(n.status)
+  const pendingOf = list => list.filter(isPending).length
+  const completedOf = list => list.filter(isCompleted).length
+  const participantsOf = list => new Set(list.map(n => n.session_id ?? n.player_name)).size
+  const between = (list, startStr, endStr) => list.filter(n => { const d = createdDate(n); return d >= startStr && d <= endStr })
+
+  // Records within the selected date range
+  const dateFiltered = dateFilter === 'all' ? notifications
+    : dateFilter === 'today' ? between(notifications, todayStr, todayStr)
+    : dateFilter === 'yesterday' ? between(notifications, yestStr, yestStr)
+    : dateFilter === 'week' ? between(notifications, weekStartStr, todayStr)
+    : between(notifications, monthStartStr, todayStr)
+
+  // Today's records — used for the "X from today" card footers
+  const todayList = between(notifications, todayStr, todayStr)
+
+  // Overall (all-time) stats — the big numbers on the cards
+  const stats = {
+    total: notifications.length,
+    pending: pendingOf(notifications),
+    completed: completedOf(notifications),
+    participants: participantsOf(notifications),
+  }
 
   const gameNames = [...new Set(notifications.map(n => n.game_name).filter(Boolean))]
 
   const filtered = (() => {
-    let list = [...notifications]
+    let list = [...dateFiltered]
     const q = search.toLowerCase().trim()
     if (q) list = list.filter(n => n.player_name?.toLowerCase().includes(q) || n.player_email?.toLowerCase().includes(q))
     if (gameFilter !== 'all') list = list.filter(n => n.game_name === gameFilter)
@@ -248,16 +263,47 @@ export default function BODashboard() {
   const completionRate = stats.total > 0 ? Math.round((stats.completed / stats.total) * 100) : 0
 
   const statsData = [
-    { label:'Total Plays', value:stats.total, trend:stats.todayTotal, trendLabel:'from yesterday', up:stats.todayTotal >= (stats.yestTotal || 0), color:'#7c3aed', bg:'linear-gradient(135deg,#f5f3ff,#ede9fe)', icon:Gamepad2 },
-    { label:'Pending Action', value:stats.pending, trend:Math.abs(stats.pending - (stats.yestPending || 0)), trendLabel:'from yesterday', up: stats.pending <= (stats.yestPending || 0), color:'#f59e0b', bg:'linear-gradient(135deg,#fffbeb,#fef3c7)', icon:Clock },
-    { label:'Completed', value:stats.completed, trend:stats.yestCompleted || 0, trendLabel:'from yesterday', up:true, color:'#10b981', bg:'linear-gradient(135deg,#ecfdf5,#d1fae5)', icon:CheckCircle },
-    { label:'Total Participants', value:stats.participants, trend:stats.yestParticipants || 0, trendLabel:'from yesterday', up:true, color:'#7c3aed', bg:'linear-gradient(135deg,#f5f3ff,#ede9fe)', icon:Users },
+    { label:'Total Plays', value:stats.total, trend:todayList.length, trendLabel:'from today', up:true, color:'#7c3aed', bg:'linear-gradient(135deg,#f5f3ff,#ede9fe)', icon:Gamepad2 },
+    { label:'Pending Action', value:stats.pending, trend:pendingOf(todayList), trendLabel:'from today', up:true, color:'#f59e0b', bg:'linear-gradient(135deg,#fffbeb,#fef3c7)', icon:Clock },
+    { label:'Completed', value:stats.completed, trend:completedOf(todayList), trendLabel:'from today', up:true, color:'#10b981', bg:'linear-gradient(135deg,#ecfdf5,#d1fae5)', icon:CheckCircle },
+    { label:'Total Participants', value:stats.participants, trend:participantsOf(todayList), trendLabel:'from today', up:true, color:'#7c3aed', bg:'linear-gradient(135deg,#f5f3ff,#ede9fe)', icon:Users },
   ]
 
   const formatDate = (d) => {
     if (!d) return ''
     const dt = new Date(d)
     return dt.toLocaleTimeString('en-US', { hour:'2-digit', minute:'2-digit', hour12: true })
+  }
+
+  const downloadExcel = () => {
+    const rows = dateFiltered
+    if (!rows.length) return
+    const formKeys = []
+    rows.forEach(n => Object.keys(n.player_data || {}).forEach(k => { if (!formKeys.includes(k)) formKeys.push(k) }))
+    const csvCell = (v) => `"${(v ?? '').toString().replace(/"/g, '""')}"`
+    const headers = [
+      'Player Name', 'Player Phone', 'Game', 'Status', 'Location Name', 'Table #',
+      'Has Code', 'Played At',
+      ...formKeys
+    ]
+    const lines = [headers.map(csvCell).join(',')]
+    rows.forEach(n => {
+      const cells = [
+        n.player_name, n.player_phone, n.game_name, statusLabel(n.status), n.location_name,
+        n.table_number, n.has_code ? 'Yes' : 'No',
+        n.created_at ? new Date(n.created_at).toLocaleString() : '',
+        ...formKeys.map(k => n.player_data?.[k] ?? '')
+      ]
+      lines.push(cells.map(csvCell).join(','))
+    })
+    const BOM = '\uFEFF'
+    const blob = new Blob([BOM + lines.join('\n')], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `BO_Plays_${new Date().toISOString().split('T')[0]}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const getInitials = (name) => {
@@ -327,6 +373,13 @@ export default function BODashboard() {
         <Search size={18} style={{ color:'#94a3b8', marginLeft:8, flexShrink:0 }} />
         <input className="dash-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by participant name or email..." />
         <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+          <select className="dash-filter-btn" value={dateFilter} onChange={e => setDateFilter(e.target.value)}>
+            <option value="all">All Dates</option>
+            <option value="today">Today</option>
+            <option value="yesterday">Yesterday</option>
+            <option value="week">Last 7 Days</option>
+            <option value="month">This Month</option>
+          </select>
           <select className="dash-filter-btn" value={gameFilter} onChange={e => setGameFilter(e.target.value)}>
             <option value="all">All Games</option>
             {gameNames.map(g => <option key={g} value={g}>{g}</option>)}
@@ -338,6 +391,9 @@ export default function BODashboard() {
             <option value="code_revealed">Ready</option>
             <option value="rejected">Failed</option>
           </select>
+          <button className="dash-filter-btn" onClick={downloadExcel} disabled={!dateFiltered.length} style={{ color:'#059669', opacity: dateFiltered.length ? 1 : 0.5, cursor: dateFiltered.length ? 'pointer' : 'not-allowed' }}>
+            <FileSpreadsheet size={15} /> Download Excel
+          </button>
           <button className="dash-icon-btn" onClick={fetchNotifications}><RefreshCw size={16} /></button>
           <button className="dash-icon-btn"><Filter size={16} /></button>
         </div>
@@ -348,8 +404,8 @@ export default function BODashboard() {
         {/* Left: Recent Plays */}
         <div className="dash-table-card">
           <div className="dash-table-header">
-            <span className="dash-table-title">Recent Plays</span>
-            <span style={{ fontSize:12, color:'#94a3b8', fontWeight:500 }}>{filtered.length} records</span>
+            <span className="dash-table-title">Plays</span>
+            <span style={{ fontSize:12, color:'#94a3b8', fontWeight:500 }}>{filtered.length} of {dateFiltered.length} records</span>
           </div>
           <div className="dash-table-head">
             <span>Participant</span>
@@ -357,12 +413,13 @@ export default function BODashboard() {
             <span>Status</span>
             <span>Time</span>
           </div>
+          <div style={{ maxHeight:520, overflowY:'auto' }}>
           {filtered.length === 0 ? (
             <div style={{ textAlign:'center', padding:'48px 20px', color:'#94a3b8', fontSize:14 }}>
               <ClipboardList size={28} style={{ marginBottom:8, opacity:0.3, color:'#c4b5fd' }} />
               <div>No plays yet.</div>
             </div>
-          ) : filtered.slice(0, 8).map((n, i) => {
+          ) : filtered.map((n, i) => {
             const sb = statusBadge(n.status)
             return (
               <div key={n.id} className="dash-table-row" style={{ animationDelay:`${i*0.03}s` }}>
@@ -383,6 +440,7 @@ export default function BODashboard() {
               </div>
             )
           })}
+          </div>
         </div>
 
         {/* Right: Activity Feed */}

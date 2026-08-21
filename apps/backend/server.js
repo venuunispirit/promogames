@@ -1,5 +1,6 @@
 const express = require("express");
 const cors = require("cors");
+const compression = require("compression");
 const path = require("path");
 const fs = require("fs");
 require("dotenv").config();
@@ -54,6 +55,9 @@ function rateLimit({ windowMs = 60000, max = 100 } = {}) {
   };
 }
 const loginLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 10 }); // 10/15min per IP
+
+// gzip/brotli compression for all responses — cuts transfer size for JS/CSS/JSON
+app.use(compression());
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -211,6 +215,10 @@ app.get("/api/check-code", (req, res) => {
 });
 
 app.get("/", (req, res) => {
+  // Serve the SPA landing page when the frontend is built; plain text otherwise.
+  if (fs.existsSync(INDEX_HTML_PATH)) {
+    return res.sendFile(INDEX_HTML_PATH);
+  }
   res.send("Backend Running");
 });
 
@@ -246,9 +254,19 @@ const OG_TEMPLATE = `<!DOCTYPE html>
   </body>
 </html>`;
 
-// Serve static frontend assets in production
+// Serve static frontend assets in production.
+// Hashed build assets are immutable → long cache; index.html stays fresh so
+// new deployments are picked up immediately (PageSpeed: efficient cache policy).
 if (fs.existsSync(FRONTEND_DIST)) {
-  app.use(express.static(FRONTEND_DIST));
+  app.use(express.static(FRONTEND_DIST, {
+    maxAge: '1y',
+    immutable: true,
+    setHeaders: (res, filePath) => {
+      if (filePath.endsWith('index.html')) {
+        res.setHeader('Cache-Control', 'no-cache');
+      }
+    },
+  }));
 }
 
 // Serve frontend HTML with OG tags for social media crawlers

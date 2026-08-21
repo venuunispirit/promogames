@@ -40,35 +40,12 @@ const CSS = `
   color:var(--text);
   position:relative;
 
-  background:
-    radial-gradient(
-      circle at 15% 20%,
-      rgba(124,111,247,0.18),
-      transparent 35%
-    ),
-    radial-gradient(
-      circle at 85% 85%,
-      rgba(124,111,247,0.22),
-      transparent 40%
-    ),
-    radial-gradient(
-      circle at 50% 100%,
-      rgba(124,111,247,0.28),
-      transparent 45%
-    ),
-    linear-gradient(
-      180deg,
-      var(--bg) 0%,
-      var(--bg-secondary) 100%
-    );
+  background: #ffffff;
 }
 
 .dh-card {
   width:100%;
-  background:transparent !important;
-
-  backdrop-filter:blur(400px) !important;
-  -webkit-backdrop-filter:blur(40px);
+  background:#ffffff !important;
 
   border:1px solid var(--border);
 
@@ -93,17 +70,17 @@ const CSS = `
 }
     .dh-card-pad {
   padding:20px 22px;
-  background:transparent !important;
+  background:#ffffff !important;
 }.dh-card table {
-  background:transparent !important;
+  background:#ffffff !important;
 }
 
 .dh-card thead tr {
-  background:transparent !important;
+  background:#f8f9fa !important;
 }
 
 .dh-tr:hover {
-  background:rgba(124,111,247,0.06) !important;
+  background:#f5f3ff !important;
 }
 
 .dh-kpi-val {
@@ -126,14 +103,14 @@ const CSS = `
 .dh-badge-live {
   display:inline-flex; align-items:center; gap:5px;
   padding:3px 9px; border-radius:100px; font-size:11px; font-weight:700;
-  background:rgba(16,185,129,0.1); color:#059669;
-  border:1px solid rgba(16,185,129,0.25);
+  background:var(--success-bg); color:var(--success);
+  border:1px solid var(--success-border);
 }
 .dh-badge-off {
   display:inline-flex; align-items:center; gap:5px;
   padding:3px 9px; border-radius:100px; font-size:11px; font-weight:700;
-  background:rgba(239,68,68,0.08); color:#dc2626;
-  border:1px solid rgba(239,68,68,0.2);
+  background:var(--error-bg); color:var(--error);
+  border:1px solid var(--error-border);
 }
 .dh-pulse { width:5px;height:5px;border-radius:50%;background:currentColor;display:inline-block;animation:dhPulse 2s ease infinite; }
 

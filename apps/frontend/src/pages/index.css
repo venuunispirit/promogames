@@ -28,7 +28,10 @@ code {
   will-change: transform;
 }
 @media (max-width: 640px) {
-  .mascot-cursor { display: none; }
+  .mascot-cursor { display: none !important; }
+}
+@media (pointer: coarse) {
+  .mascot-cursor { display: none !important; }
 }
 .mascot-cursor svg {
   width: 100%;

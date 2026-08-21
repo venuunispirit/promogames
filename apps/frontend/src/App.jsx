@@ -4,91 +4,98 @@ import { ThemeProvider } from "./pages/ThemeContext"
 import { AccessibilityProvider } from './utils/accessibility'
 import './pages/Theme.css'
 import './index.css'
-import LoginPage         from './pages/LoginPage'
-import DashboardLayout   from './components/DashboardLayout'
-import DashboardHome     from './pages/DashboardHome'
-import ClientsPage       from './pages/ClientsPage'
-import GamesPage         from './pages/GamesPage'
-import GameBuilderPage   from './pages/GameBuilderPage'
-import TemplateBuilderPage from './pages/TemplateBuilderPage'
-import TemplatesPage from './pages/TemplatesPage'
-import SpaceBuilderPage from './pages/SpaceBuilderPage'
-import Connect4BuilderPage from './pages/Connect4BuilderPage'
-import ArrowEscapeBuilderPage from './pages/ArrowEscapeBuilderPage'
-import BrickImagesPage from './pages/BrickImagesPage'
-import BowlingBuilderPage from './pages/BowlingBuilderPage'
-import SudokuBuilderPage from './pages/SudokuBuilderPage'
-import MinesweeperBuilderPage from './pages/MinesweeperBuilderPage'
-import WordScrambleBuilderPage from './pages/WordScrambleBuilderPage'
-import RpsBuilderPage from './pages/RpsBuilderPage'
-import BounceBuilderPage from './pages/BounceBuilderPage'
-import PlayerPage        from './pages/PlayerPage'
-import LandingPage       from './pages/LandingPage'
-import GameResponsesPage from './pages/GameResponsesPage'
-import ArcadePage        from './pages/ArcadePage'
-import CrosswordBuilderPage from './pages/CrosswordBuilderPage'
-import SpinBuilderTab     from './pages/SpinBuilderTab'
-import MemoryBuilderPage  from './pages/MemoryBuilderPage'
-import JigsawBuilderPage  from './pages/JigsawBuilderPage'
-import WordSearchBuilderPage from './pages/WordSearchBuilderPage'
-import WordSearchPlayerPage from './pages/WordSearchPlayerPage'
-import PouringBuilderPage from './pages/PouringBuilderPage'
-import TyperBuilderPage from './pages/TyperBuilderPage'
-import MathBuilderPage from './pages/MathBuilderPage'
-import MazeBuilderPage from './pages/MazeBuilderPage'
-import ScrewBuilderPage from './pages/ScrewBuilderPage'
-import TowerBuilderPage from './pages/TowerBuilderPage'
-import Game2048BuilderPage from './pages/Game2048BuilderPage'
-import SnakeBuilderPage from './pages/SnakeBuilderPage'
-import CatchBuilderPage from './pages/CatchBuilderPage'
-import ReactionBuilderPage from './pages/ReactionBuilderPage'
-import SimonBuilderPage from './pages/SimonBuilderPage'
-import FlappyBuilderPage from './pages/FlappyBuilderPage'
-import BejeweledBuilderPage from './pages/BejeweledBuilderPage'
-import BejeweledPlayerPage from './pages/BejeweledPlayerPage'
-import TetrisBuilderPage from './pages/TetrisBuilderPage'
-import StackBuilderPage from './pages/StackBuilderPage'
-import WhackAMoleBuilderPage from './pages/WhackAMoleBuilderPage'
-import HanoiBuilderPage from './pages/HanoiBuilderPage'
-import BreakoutBuilderPage from './pages/BreakoutBuilderPage'
-import BubbleShooterBuilderPage from './pages/BubbleShooterBuilderPage'
-import CarLaunchBuilderPage from './pages/CarLaunchBuilderPage'
-import StressBusterBuilderPage from './pages/frustrationbuildertab'
-import SoundifyBuilderPage from './pages/soundifybuilderpage'
-import TicTacToeBuilderPage from './pages/tictactoebuilder'
-import ChessBuilderPage from './pages/ChessBuilderPage'
-import ChessPlayerPage from './pages/ChessPlayerPage'
-import BlockBlasterBuilderPage from './pages/BlockBlasterBuilderPage'
-import CandyBlastBuilderPage from './pages/CandyBlastBuilderPage'
-import CarromBuilderPage from './pages/CarromBuilderPage'
-import ClassicMazeBuilderPage from './pages/ClassicMazeBuilderPage'
-import LudoBuilderPage from './pages/LudoBuilderPage'
-import SnakeAndLadderBuilderPage from './pages/SnakeAndLadderBuilderPage'
-import TicTacToeMultiplayerBuilderPage from './pages/TicTacToeMultiplayerBuilderPage'
-import PlayerLayout      from './pages/PlayerLayout'
-import PlayerDashboardPage from './pages/PlayerDashboardPage'
-import PlayerGamesPage   from './pages/PlayerGamesPage'
-import PlayerRewardsPage from './pages/PlayerRewardsPage'
-import PlayerProfilePage from './pages/PlayerProfilePage'
-import PlayersPage       from './pages/PlayersPage'
-import LeaderboardPage   from './pages/LeaderboardPage'
-import Business          from './pages/Business'
-import CompanyProfilePage from './pages/CompanyProfilePage'
-import CRMPage           from './pages/CRMPage'
+import { lazy, Suspense } from 'react'
 
-import StatusPage         from './pages/StatusPage'
-import BOLogsPage         from './pages/BOLogsPage'
-import RedemptionLogsPage from './pages/RedemptionLogsPage'
-import BOLayout          from './pages/BOLayout'
-import BODashboard       from './pages/BODashboard'
-import BOGames           from './pages/BOGames'
-import BORedemptions     from './pages/BORedemptions'
-import BrandOwnerMyPage  from './pages/BrandOwnerMyPage'
-import GameCategoryPage  from './pages/GameCategoryPage'
-import ThumbnailsPage   from './pages/ThumbnailsPage'
-import TermsPage from './pages/TermsPage'
-import PrivacyPage from './pages/PrivacyPage'
-import CookieBanner from './components/CookieBanner'
+// ── Route-level code splitting ───────────────────────────────────────────────
+// Each page is loaded only when its route is visited. This keeps the initial
+// bundle small (the old build shipped ~6.5 MB of JS on first load, including
+// every game engine — three.js, gsap, leaflet, etc.).
+const LoginPage                = lazy(() => import('./pages/LoginPage.jsx'))
+const DashboardLayout          = lazy(() => import('./components/DashboardLayout.jsx'))
+const DashboardHome            = lazy(() => import('./pages/DashboardHome.jsx'))
+const ClientsPage              = lazy(() => import('./pages/ClientsPage.jsx'))
+const GamesPage                = lazy(() => import('./pages/GamesPage.jsx'))
+const GameBuilderPage          = lazy(() => import('./pages/GameBuilderPage.jsx'))
+const TemplateBuilderPage      = lazy(() => import('./pages/TemplateBuilderPage.jsx'))
+const TemplatesPage            = lazy(() => import('./pages/TemplatesPage.jsx'))
+const SpaceBuilderPage         = lazy(() => import('./pages/SpaceBuilderPage.jsx'))
+const Connect4BuilderPage      = lazy(() => import('./pages/Connect4BuilderPage.jsx'))
+const ArrowEscapeBuilderPage   = lazy(() => import('./pages/ArrowEscapeBuilderPage.jsx'))
+const BrickImagesPage          = lazy(() => import('./pages/BrickImagesPage.jsx'))
+const BowlingBuilderPage       = lazy(() => import('./pages/BowlingBuilderPage.jsx'))
+const SudokuBuilderPage        = lazy(() => import('./pages/SudokuBuilderPage.jsx'))
+const MinesweeperBuilderPage   = lazy(() => import('./pages/MinesweeperBuilderPage.jsx'))
+const WordScrambleBuilderPage  = lazy(() => import('./pages/WordScrambleBuilderPage.jsx'))
+const RpsBuilderPage           = lazy(() => import('./pages/RpsBuilderPage.jsx'))
+const BounceBuilderPage        = lazy(() => import('./pages/BounceBuilderPage.jsx'))
+const PlayerPage               = lazy(() => import('./pages/PlayerPage.jsx'))
+// Landing page is the entry route — load it eagerly so the hero (the LCP
+// element) paints without waiting for a lazily-loaded chunk.
+import LandingPage from './pages/LandingPage.jsx'
+const GameResponsesPage        = lazy(() => import('./pages/GameResponsesPage.jsx'))
+const ArcadePage               = lazy(() => import('./pages/ArcadePage.jsx'))
+const CrosswordBuilderPage     = lazy(() => import('./pages/CrosswordBuilderPage.jsx'))
+const SpinBuilderTab           = lazy(() => import('./pages/SpinBuilderTab.jsx'))
+const MemoryBuilderPage        = lazy(() => import('./pages/MemoryBuilderPage.jsx'))
+const JigsawBuilderPage        = lazy(() => import('./pages/JigsawBuilderPage.jsx'))
+const WordSearchBuilderPage    = lazy(() => import('./pages/WordSearchBuilderPage.jsx'))
+const WordSearchPlayerPage     = lazy(() => import('./pages/WordSearchPlayerPage.jsx'))
+const PouringBuilderPage       = lazy(() => import('./pages/PouringBuilderPage.jsx'))
+const TyperBuilderPage         = lazy(() => import('./pages/TyperBuilderPage.jsx'))
+const MathBuilderPage          = lazy(() => import('./pages/MathBuilderPage.jsx'))
+const MazeBuilderPage          = lazy(() => import('./pages/MazeBuilderPage.jsx'))
+const ScrewBuilderPage         = lazy(() => import('./pages/ScrewBuilderPage.jsx'))
+const TowerBuilderPage         = lazy(() => import('./pages/TowerBuilderPage.jsx'))
+const Game2048BuilderPage      = lazy(() => import('./pages/Game2048BuilderPage.jsx'))
+const SnakeBuilderPage         = lazy(() => import('./pages/SnakeBuilderPage.jsx'))
+const CatchBuilderPage         = lazy(() => import('./pages/CatchBuilderPage.jsx'))
+const ReactionBuilderPage      = lazy(() => import('./pages/ReactionBuilderPage.jsx'))
+const SimonBuilderPage         = lazy(() => import('./pages/SimonBuilderPage.jsx'))
+const FlappyBuilderPage        = lazy(() => import('./pages/FlappyBuilderPage.jsx'))
+const BejeweledBuilderPage     = lazy(() => import('./pages/BejeweledBuilderPage.jsx'))
+const BejeweledPlayerPage      = lazy(() => import('./pages/BejeweledPlayerPage.jsx'))
+const TetrisBuilderPage        = lazy(() => import('./pages/TetrisBuilderPage.jsx'))
+const StackBuilderPage         = lazy(() => import('./pages/StackBuilderPage.jsx'))
+const WhackAMoleBuilderPage    = lazy(() => import('./pages/WhackAMoleBuilderPage.jsx'))
+const HanoiBuilderPage         = lazy(() => import('./pages/HanoiBuilderPage.jsx'))
+const BreakoutBuilderPage      = lazy(() => import('./pages/BreakoutBuilderPage.jsx'))
+const BubbleShooterBuilderPage = lazy(() => import('./pages/BubbleShooterBuilderPage.jsx'))
+const CarLaunchBuilderPage     = lazy(() => import('./pages/CarLaunchBuilderPage.jsx'))
+const StressBusterBuilderPage  = lazy(() => import('./pages/frustrationbuildertab.jsx'))
+const SoundifyBuilderPage      = lazy(() => import('./pages/soundifybuilderpage.jsx'))
+const TicTacToeBuilderPage     = lazy(() => import('./pages/tictactoebuilder.jsx'))
+const ChessBuilderPage         = lazy(() => import('./pages/ChessBuilderPage.jsx'))
+const ChessPlayerPage          = lazy(() => import('./pages/ChessPlayerPage.jsx'))
+const BlockBlasterBuilderPage  = lazy(() => import('./pages/BlockBlasterBuilderPage.jsx'))
+const CandyBlastBuilderPage    = lazy(() => import('./pages/CandyBlastBuilderPage.jsx'))
+const CarromBuilderPage        = lazy(() => import('./pages/CarromBuilderPage.jsx'))
+const ClassicMazeBuilderPage   = lazy(() => import('./pages/ClassicMazeBuilderPage.jsx'))
+const LudoBuilderPage          = lazy(() => import('./pages/LudoBuilderPage.jsx'))
+const SnakeAndLadderBuilderPage = lazy(() => import('./pages/SnakeAndLadderBuilderPage.jsx'))
+const TicTacToeMultiplayerBuilderPage = lazy(() => import('./pages/TicTacToeMultiplayerBuilderPage.jsx'))
+const PlayerLayout             = lazy(() => import('./pages/PlayerLayout.jsx'))
+const PlayerDashboardPage      = lazy(() => import('./pages/PlayerDashboardPage.jsx'))
+const PlayerGamesPage          = lazy(() => import('./pages/PlayerGamesPage.jsx'))
+const PlayerRewardsPage        = lazy(() => import('./pages/PlayerRewardsPage.jsx'))
+const PlayerProfilePage        = lazy(() => import('./pages/PlayerProfilePage.jsx'))
+const PlayersPage              = lazy(() => import('./pages/PlayersPage.jsx'))
+const LeaderboardPage          = lazy(() => import('./pages/LeaderboardPage.jsx'))
+const Business                 = lazy(() => import('./pages/Business.jsx'))
+const CompanyProfilePage       = lazy(() => import('./pages/CompanyProfilePage.jsx'))
+const CRMPage                  = lazy(() => import('./pages/CRMPage.jsx'))
+const StatusPage               = lazy(() => import('./pages/StatusPage.jsx'))
+const BOLogsPage               = lazy(() => import('./pages/BOLogsPage.jsx'))
+const RedemptionLogsPage       = lazy(() => import('./pages/RedemptionLogsPage.jsx'))
+const BOLayout                 = lazy(() => import('./pages/BOLayout.jsx'))
+const BODashboard              = lazy(() => import('./pages/BODashboard.jsx'))
+const BOGames                  = lazy(() => import('./pages/BOGames.jsx'))
+const BORedemptions            = lazy(() => import('./pages/BORedemptions.jsx'))
+const BrandOwnerMyPage         = lazy(() => import('./pages/BrandOwnerMyPage.jsx'))
+const GameCategoryPage         = lazy(() => import('./pages/GameCategoryPage.jsx'))
+const ThumbnailsPage           = lazy(() => import('./pages/ThumbnailsPage.jsx'))
+const TermsPage                = lazy(() => import('./pages/TermsPage.jsx'))
+const PrivacyPage              = lazy(() => import('./pages/PrivacyPage.jsx'))
+const CookieBanner             = lazy(() => import('./components/CookieBanner.jsx'))
 
 // ── Admin protected route ─────────────────────────────────────────────────────
 function ProtectedRoute({ children }) {
@@ -117,8 +124,21 @@ function PlayerPageWrapper() {
   return <PlayerPage key={gameName} />
 }
 
+// Shown briefly while a lazily-loaded route's chunk downloads
+function RouteFallback() {
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      height: '100vh', background: 'var(--bg)', transition: 'var(--transition)',
+    }}>
+      <div className="loader-spin" />
+    </div>
+  )
+}
+
 function AppRoutes() {
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Routes>
       {/* Public */}
       <Route path="/"           element={<LandingPage />} />
@@ -221,6 +241,7 @@ function AppRoutes() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
+    </Suspense>
   )
 }
 

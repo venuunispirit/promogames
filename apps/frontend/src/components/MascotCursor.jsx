@@ -21,13 +21,20 @@ const MascotCursor = () => {
 
       const HOVER_SEL = 'a, button, .btn';
 
+      // The rAF loop only runs while the mouse is actually moving, so an idle
+      // page doesn't repaint the cursor at 60fps for no reason.
+      let raf = null;
+      let lastMove = 0;
+
       const onMouseMove = (e) => {
         const prevX = mx, prevY = my;
         mx = e.clientX; my = e.clientY;
+        lastMove = performance.now();
         if (!started) {
           started = true;
           document.body.classList.add('custom-cursor-on');
         }
+        if (!raf) raf = requestAnimationFrame(loop);
         const dx = mx - prevX, dy = my - prevY;
         const dist = Math.hypot(dx, dy);
         if (!reduce && dist > 1.5) {
@@ -71,7 +78,6 @@ const MascotCursor = () => {
       document.addEventListener('mouseup', onMouseUp);
       window.addEventListener('blur', onBlur);
 
-      let raf;
       function loop() {
         pupilX += (targetPX - pupilX) * 0.15;
         pupilY += (targetPY - pupilY) * 0.15;
@@ -79,9 +85,9 @@ const MascotCursor = () => {
         mascot.style.transform = `translate(${mx - 6}px,${my - 4}px) rotate(8deg) scale(${scale})`;
         pupils.forEach(p => { p.style.transform = `translate(${pupilX}px,${pupilY}px)`; });
         targetPX *= 0.985; targetPY *= 0.985;
+        if (performance.now() - lastMove > 400) { raf = null; return; } // idle → stop
         raf = requestAnimationFrame(loop);
       }
-      raf = requestAnimationFrame(loop);
 
       return () => {
         cancelAnimationFrame(raf);
@@ -97,6 +103,11 @@ const MascotCursor = () => {
       };
     }
   }, []);
+
+  // Don't render anything on mobile / touch devices
+  if (typeof window !== 'undefined' && (window.innerWidth <= 640 || !window.matchMedia('(pointer: fine)').matches)) {
+    return null;
+  }
 
   return (
     <div className="mascot-cursor" id="mascotCursor">

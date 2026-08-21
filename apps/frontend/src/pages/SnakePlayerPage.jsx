@@ -19,6 +19,8 @@ const CSS = `
 .snk .pt{position:absolute;border-radius:50%;pointer-events:none;animation:pf linear infinite}
 @keyframes pf{0%{transform:translateY(100vh) scale(0);opacity:0}10%{opacity:1}90%{opacity:1}100%{transform:translateY(-10vh) scale(1);opacity:0}}
 @keyframes fp{0%,100%{transform:scale(1);opacity:.7}50%{transform:scale(1.4);opacity:.3}}
+@keyframes foodBlink{0%,100%{opacity:1}50%{opacity:.35}}
+.snk .food-tile{}
 
 :fullscreen .snk,
 :-webkit-full-screen .snk,
@@ -48,7 +50,8 @@ html:-ms-fullscreen{overflow:hidden}
   .hud-bc{bottom:max(4px,env(safe-area-inset-bottom))}
 }
 
-.gp2{background:rgba(10,5,25,.7);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:8px 12px;box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.gp2{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;border:1px solid rgba(139,92,246,.2);border-radius:12px;padding:8px 12px;box-shadow:none}
+.gp2.diff-wrap{background:transparent;backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:none;border-color:rgba(139,92,246,.15)}
 @media(max-width:600px){.gp2{padding:5px 8px;border-radius:10px}}
 
 .hud .lb{font-family:'Orbitron',sans-serif;font-size:7px;font-weight:600;letter-spacing:2px;text-transform:uppercase;color:rgba(251,191,36,.7);margin-bottom:2px}
@@ -57,8 +60,8 @@ html:-ms-fullscreen{overflow:hidden}
 .hud .vl.sm{font-size:clamp(11px,2vw,16px);color:#a78bfa;text-shadow:0 0 10px rgba(167,139,250,.3)}
 .score-row{display:flex;gap:12px;align-items:center}
 
-.rbtn{padding:8px 16px;background:linear-gradient(135deg,#7c3aed,#6d28d9);border:1.5px solid rgba(139,92,246,.5);border-radius:50px;color:#fff;font-family:'Orbitron',sans-serif;font-size:clamp(8px,1.1vw,11px);font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;box-shadow:0 4px 16px rgba(124,58,237,.3);text-transform:uppercase}
-.rbtn:hover{transform:translateY(-1px);box-shadow:0 6px 24px rgba(124,58,237,.5)}
+.rbtn{padding:8px 16px;background:transparent;border:1.5px solid rgba(139,92,246,.5);border-radius:50px;color:#fff;font-family:'Orbitron',sans-serif;font-size:clamp(8px,1.1vw,11px);font-weight:700;letter-spacing:2px;cursor:pointer;transition:all .2s;box-shadow:none;text-transform:uppercase}
+.rbtn:hover{transform:translateY(-1px);background:rgba(124,58,237,.15)}
 .rbtn:active{transform:scale(.97)}
 
 .diff{display:flex;gap:3px}
@@ -200,8 +203,7 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
     const init = [{ x: Math.floor(boardW / 2), y: Math.floor(boardH / 2) }]
     snakeRef.current = init; setSnake(init); prevSnakeRef.current = init.map(s => ({ ...s })); lastTickTimeRef.current = performance.now()
     dirRef.current = { x: 1, y: 0 }; scoreRef.current = 0; setScore(0); setFoodCollected(0); setTimeLeft(timeLimit); spawnFood(init)
-    requestFullscreen()
-  }, [boardW, boardH, spawnFood, timeLimit, requestFullscreen])
+  }, [boardW, boardH, spawnFood, timeLimit])
 
   const handleRestart = useCallback(() => { if (timerRef.current) clearInterval(timerRef.current); completedRef.current = false; handleStart() }, [handleStart])
 
@@ -357,7 +359,7 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
             <div className="bw" style={{ width: displayW + 6, height: displayH + 6 }}>
               <div className="b" style={{ width: displayW, height: displayH, padding: 2, position: 'relative', overflow: 'hidden' }}>
                 <div style={{ position: 'absolute', inset: 0, borderRadius: 14, overflow: 'hidden', backgroundImage: `linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px)`, backgroundSize: `${cellW + 1}px ${cellH + 1}px`, backgroundPosition: '2px 2px' }} />
-                <div style={{ position: 'absolute', left: food.x * (cellW + 1) + 2, top: food.y * (cellH + 1) + 2, width: segW, height: segH, borderRadius: 7, background: `radial-gradient(circle at 35% 35%,${foodColor},${foodColor}cc)`, boxShadow: `0 0 ${segW * .3}px ${foodColor},0 0 ${segW * .6}px ${foodColor}88`, zIndex: 50 }}>
+                <div className="food-tile" style={{ position: 'absolute', left: food.x * (cellW + 1) + 2, top: food.y * (cellH + 1) + 2, width: segW, height: segH, borderRadius: 7, background: foodColor, boxShadow: `0 0 ${segW * .3}px ${foodColor},0 0 ${segW * .6}px ${foodColor}88`, zIndex: 50 }}>
                   <div style={{ position: 'absolute', inset: -segW * .15, borderRadius: '50%', background: `radial-gradient(circle,${foodColor}55,transparent 70%)`, animation: 'fp 1.5s ease-in-out infinite' }} />
                 </div>
                 {[...smoothSegs].reverse().map((seg, ri) => {
@@ -379,7 +381,7 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
           </div>
 
           <div className="hud hud-tl" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', gap: 8 }}>
-            <button className="rbtn home-btn" onClick={handleBackToMenu} aria-label="Back to main menu" style={{ background: 'linear-gradient(135deg,#334155,#1e293b)', borderColor: 'rgba(148,163,184,.4)' }}>⌂ HOME</button>
+            <button className="rbtn home-btn" onClick={handleBackToMenu} aria-label="Back to main menu" style={{ background: 'transparent', borderColor: 'rgba(148,163,184,.4)' }}>⌂ HOME</button>
             <div className="gp2">
               <div className="score-row">
                 <div><div className="lb">SCORE</div><div className="vl big" style={{ color: '#22c55e' }}>{score}</div></div>
@@ -391,7 +393,7 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
 
           <div className="hud hud-tr">
             {showTimer && timeLimit > 0 && <div className="gp2" style={{ fontFamily: 'Orbitron', fontSize: 'clamp(11px,2vw,16px)', fontWeight: 700, color: '#fbbf24' }}>{ft(timeLeft)}</div>}
-            <div className="gp2">
+            <div className="gp2 diff-wrap">
               <div className="diff">
                 <button className={`e ${difficulty === 'easy' ? 'on' : ''}`} onClick={() => setDifficulty('easy')}>EASY</button>
                 <button className={`m ${difficulty === 'medium' ? 'on' : ''}`} onClick={() => setDifficulty('medium')}>MED</button>
@@ -430,3 +432,4 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
 export default function Demo() {
   return <SnakePlayerPage />
 }
+1

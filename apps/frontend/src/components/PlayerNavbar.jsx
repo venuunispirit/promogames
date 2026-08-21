@@ -378,11 +378,11 @@ export default function PlayerNavbar() {
                 {/* Small mascot below the pulling trigger */}
                 <div className={`pn-wire-mascot${mascotGlitch === 'visible' ? '' : mascotGlitch === 'hidden' ? ' hidden' : ' ' + mascotGlitch}`}>
                   <div className={`pn-mascot-bubble${bubbleShow ? ' show' : ''}`}>{bubbleText}</div>
-                  <img src="/mascotques.png" alt="Mascot" />
+                  <img src="/mascotques.webp" alt="Mascot" />
                   {mascotGlitch === 'glitch-in' && (
                     <>
-                      <img src="/mascotques.png" alt="" className="pn-mascot-r" />
-                      <img src="/mascotques.png" alt="" className="pn-mascot-b" />
+                      <img src="/mascotques.webp" alt="" className="pn-mascot-r" />
+                      <img src="/mascotques.webp" alt="" className="pn-mascot-b" />
                       <div className="pn-mascot-scanlines" />
                     </>
                   )}

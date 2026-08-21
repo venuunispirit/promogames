@@ -1076,7 +1076,7 @@ async function initDB() {
       grid_size INT DEFAULT 8,
       logo_url VARCHAR(500) DEFAULT '',
       logo_name VARCHAR(255) DEFAULT '',
-      levels_json TEXT DEFAULT '[]',
+      levels_json TEXT,
       candy_types INT DEFAULT 6,
       match_score INT DEFAULT 10,
       combo_multiplier INT DEFAULT 40,
@@ -2661,8 +2661,8 @@ await safeQuery(connection, `
       }
       if (clientId) {
         await connection.query(
-          `INSERT INTO games (name, company_name, category, game_type, slug, client_id, is_active, show_in_play_page, status)
-           VALUES ('Tower Building', 'promo', 'tower', 'promogames', 'tower', ?, 1, 1, 'live')`,
+          `INSERT INTO games (name, category, game_type, slug, client_id, is_active, show_in_play_page, status)
+           VALUES ('Tower Building', 'tower', 'promogames', 'tower', ?, 1, 1, 'live')`,
           [clientId]
         );
         console.log('✅ Tower game seeded');

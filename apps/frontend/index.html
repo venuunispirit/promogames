@@ -46,14 +46,14 @@
     <link rel="dns-prefetch" href="https://connect.facebook.net" />
     <link rel="dns-prefetch" href="https://js.stripe.com" />
 
-    <!-- Fonts: load asynchronously so the stylesheet doesn't block first paint (display=swap avoids invisible text) -->
+    <!-- Fonts: loaded render-blocking on purpose (~2 KB css2 file) so the
+         woff2 files start downloading at HTML parse — kills late font-swap
+         layout shifts and the headline render delay. display=swap keeps text visible. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <!-- LCP image discovery before JS parses -->
     <link rel="preload" as="image" href="/hero-mascot.webp" fetchpriority="high" />
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" />
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'; this.onload=null" />
-    <noscript><link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" /></noscript>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet" />
 
     <!-- Critical CSS for above-the-fold loading -->
     <style>

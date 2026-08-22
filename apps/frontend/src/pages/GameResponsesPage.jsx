@@ -69,17 +69,21 @@ export default function GameResponsesPage() {
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState('completed_at')
   const [sortDir, setSortDir] = useState('desc')
+  const [sources, setSources] = useState([])
+  const [showSources, setShowSources] = useState(false)
 
   const showToast = (msg, type = 'success') => setToast({ msg, type })
 
   useEffect(() => {
     Promise.all([
       api.get(`/games/${id}`),
-      api.get(`/games/${id}/responses`)
-    ]).then(([gameRes, respRes]) => {
+      api.get(`/games/${id}/responses`),
+      api.get(`/games/${id}/traffic-sources`).catch(() => null)
+    ]).then(([gameRes, respRes, srcRes]) => {
       setGame(gameRes.data.game)
       setQuestions(gameRes.data.game.questions || [])
       setSessions(respRes.data.sessions || [])
+      if (srcRes?.data?.success) setSources(srcRes.data.sources || [])
     }).catch(err => {
       showToast(err.response?.data?.message || 'Failed to load', 'error')
     }).finally(() => setLoading(false))
@@ -308,6 +312,53 @@ export default function GameResponsesPage() {
             <Ico.download/> Download Excel
           </button>
         </div>
+
+        {/* Traffic Sources — UTM attribution (whatsapp / qr / direct / referrer links) */}
+        {sources.length > 0 && (
+          <div style={{background:'var(--surface)',borderRadius:12,border:'1.5px solid var(--border)',marginBottom:22,overflow:'hidden'}}>
+            <button
+              onClick={() => setShowSources(v => !v)}
+              style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 18px',background:'none',border:'none',cursor:'pointer'}}
+            >
+              <span style={{fontSize:11,fontWeight:700,color:'var(--text2)',textTransform:'uppercase',letterSpacing:'.08em'}}>
+                📊 Traffic sources — where players came from
+              </span>
+              <span style={{fontSize:16,color:'var(--text3)'}}>{showSources ? '▾' : '▸'}</span>
+            </button>
+            {showSources && (
+              <table style={{width:'100%',borderCollapse:'collapse'}}>
+                <thead>
+                  <tr style={{borderTop:'1.5px solid var(--border)',background:'var(--surface2)'}}>
+                    {['Source (utm_source)','Channel (utm_medium)','Plays','Completed','Completion %'].map(h => (
+                      <th key={h} style={{padding:'8px 18px',textAlign:'left',fontSize:9.5,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em'}}>{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {sources.map((s, i) => {
+                    const pct = s.plays > 0 ? Math.round(((s.completions || 0) / s.plays) * 100) : 0
+                    return (
+                      <tr key={i} style={{borderTop:'1px solid var(--border)'}}>
+                        <td style={{padding:'8px 18px',fontSize:12.5,fontWeight:600,color:'var(--text)'}}>{s.source}</td>
+                        <td style={{padding:'8px 18px'}}>
+                          <span style={{
+                            fontSize:10,fontWeight:700,padding:'2px 9px',borderRadius:100,
+                            background: s.medium === 'whatsapp' ? '#E8F8EE' : s.medium === 'qr' ? '#FFF4E5' : 'var(--surface2)',
+                            color: s.medium === 'whatsapp' ? '#1B7F42' : s.medium === 'qr' ? '#B45309' : 'var(--text2)',
+                            textTransform:'capitalize'
+                          }}>{s.medium}</span>
+                        </td>
+                        <td style={{padding:'8px 18px',fontSize:12.5,color:'var(--text)'}}>{Number(s.plays).toLocaleString()}</td>
+                        <td style={{padding:'8px 18px',fontSize:12.5,color:'var(--text)'}}>{Number(s.completions || 0).toLocaleString()}</td>
+                        <td style={{padding:'8px 18px',fontSize:12.5,fontWeight:700,color:pct >= 50 ? 'var(--success)' : 'var(--warning)'}}>{pct}%</td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            )}
+          </div>
+        )}
 
         {/* Table */}
         {sorted.length === 0 && !search ? (

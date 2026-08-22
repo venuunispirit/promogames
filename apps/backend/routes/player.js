@@ -1652,7 +1652,7 @@ router.get('/hero-games', async (req, res) => {
       SELECT g.id, g.name, g.slug, g.category,
              c.slug as client_slug,
              qs.game_logo_url, qs.bg_image_url,
-             (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
+             (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id) as play_count
       FROM games g
       JOIN clients c ON g.client_id = c.id
       LEFT JOIN quiz_settings qs ON qs.game_id = g.id
@@ -1674,7 +1674,7 @@ router.get('/play-page-games', async (req, res) => {
       SELECT g.id, g.name, g.slug, g.category, g.game_type, g.high_score,
              c.slug as client_slug, c.company_name,
              g.thumbnail_url, qs.game_logo_url, qs.bg_image_url,
-             (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
+             (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id) as play_count
       FROM games g
       JOIN clients c ON g.client_id = c.id
       LEFT JOIN quiz_settings qs ON qs.game_id = g.id
@@ -1687,7 +1687,7 @@ router.get('/play-page-games', async (req, res) => {
       SELECT g.id, g.name, g.slug, g.category, g.game_type, g.high_score,
              c.slug as client_slug, c.company_name,
              g.thumbnail_url, qs.game_logo_url, qs.bg_image_url,
-             (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
+             (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id) as play_count
       FROM games g
       JOIN clients c ON g.client_id = c.id
       LEFT JOIN quiz_settings qs ON qs.game_id = g.id
@@ -1696,6 +1696,8 @@ router.get('/play-page-games', async (req, res) => {
     `);
 
     const allGames = [...branded, ...promoGames];
+    // Play counts change constantly but slowly — let repeat visits skip the network
+    res.set('Cache-Control', 'public, max-age=30');
     res.json({ success: true, games: allGames, featured: branded, promogames: promoGames });
   } catch (err) {
     sendError(res, err);
@@ -1736,7 +1738,7 @@ const [games] = await db.query(`
 router.get('/game/:id/play-count', async (req, res) => {
   try {
     const [rows] = await db.query(
-      'SELECT (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = ? AND ps.completed = 1) AS play_count',
+      'SELECT (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = ?) AS play_count',
       [req.params.id]
     );
     res.json({ play_count: rows[0]?.play_count || 0 });

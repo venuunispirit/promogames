@@ -4,6 +4,7 @@ import GameModal from '../components/GameModal'
 import PlayerNavbar from '../components/PlayerNavbar'
 import MascotBubble from '../components/MascotBubble'
 import MascotCursor from '../components/MascotCursor'
+import GuestGuide from '../components/GuestGuide'
 
 const ChevronRight = () => (
   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -12,8 +13,6 @@ const ChevronRight = () => (
 )
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap');
-
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
   --bg:#07040f;
@@ -64,15 +63,6 @@ img{display:block;max-width:100%}
 .arc-grid-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;flex-wrap:wrap;gap:12px}
 .arc-grid-label{font-family:var(--fh);font-size:clamp(20px,2.4vw,30px);font-weight:400;letter-spacing:2px;color:#fff;display:flex;align-items:center;gap:12px}
 .arc-grid-count{font-family:var(--fm);font-size:11px;color:var(--muted);letter-spacing:1px}
-.arc-toolbar{display:flex;align-items:center;gap:12px}
-.arc-filters{display:flex;gap:6px}
-.arc-filter-btn{padding:7px 16px;border-radius:100px;font-family:var(--fb);font-size:12px;font-weight:700;letter-spacing:.3px;text-transform:capitalize;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.10);color:rgba(255,255,255,0.7);cursor:pointer;transition:all .2s}
-.arc-filter-btn:hover{color:#fff;border-color:rgba(146,16,246,0.5)}
-.arc-filter-btn.active{background:linear-gradient(90deg,var(--purple2),var(--purple));border-color:transparent;color:#fff;box-shadow:0 4px 16px rgba(146,16,246,0.3)}
-.arc-view-toggle{display:flex;gap:4px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:3px}
-.arc-view-btn{width:36px;height:32px;border-radius:8px;background:none;border:none;color:var(--muted);cursor:pointer;display:grid;place-items:center;transition:all .2s}
-.arc-view-btn.active{background:rgba(146,16,246,0.25);color:#fff}
-.arc-view-btn:hover{color:#fff}
 
 /* ── Play grid — CrazyGames-style mixed tiles ─────────────────── */
 /* Fluid container: scales with the viewport up to a readable cap, so the
@@ -97,6 +87,7 @@ img{display:block;max-width:100%}
 .pg-tile:hover .pg-tile-play{opacity:1}
 .pg-tile-play-btn{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,0.97);display:grid;place-items:center;box-shadow:0 6px 24px rgba(0,0,0,0.55);transform:scale(0.5) translateY(8px);transition:transform .28s cubic-bezier(.34,1.56,.64,1)}
 .pg-tile:hover .pg-tile-play-btn{transform:scale(1) translateY(0)}
+.pg-tile:focus-visible,.arc-featured-card:focus-visible{outline:2.5px solid #c084fc;outline-offset:3px}
 
 /* hero placements — 12-column layout:
    1 big square · vertical 2-stack · 1 wide tile · 3 small · 4 medium */
@@ -172,10 +163,6 @@ img{display:block;max-width:100%}
   .arc-featured-scroll{margin:0;padding-left:0;padding-right:0;gap:12px}
   .arc-grid-section{padding:0 0 5px}
   .arc-grid-head{flex-direction:column;align-items:flex-start}
-  .arc-toolbar{width:100%;justify-content:space-between}
-  .arc-chips{gap:6px}
-  .arc-chip{padding:6px 14px;font-size:11px}
-  .arc-filter-btn{padding:6px 12px;font-size:11px}
 }
 
 @media(max-width:400px){
@@ -187,12 +174,20 @@ img{display:block;max-width:100%}
 
 const HERO_SIZES = ['pg-h0','pg-h1','pg-h2','pg-h3','pg-h4','pg-h5','pg-h6','pg-h7','pg-h8','pg-h9','pg-h10']
 
-function PlayTile({ game, sizeClass, delay, onPlay }) {
+function PlayTile({ game, sizeClass, delay, onPlay, eager }) {
   const thumb = game.thumbnail_url || game.game_logo_url || game.bg_image_url
+  const activate = () => onPlay(game)
   return (
-    <div className={`pg-tile ${sizeClass}`} style={{ animationDelay: `${delay}ms` }} onClick={() => onPlay(game)}>
+    <div
+      className={`pg-tile ${sizeClass}`}
+      style={{ animationDelay: `${delay}ms` }}
+      role="button" tabIndex={0} aria-label={`Play ${game.name}`}
+      onClick={activate}
+      onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate() } }}
+    >
       {thumb ? (
-        <img className="pg-tile-bg" src={thumb} alt={game.name} loading="lazy" />
+        <img className="pg-tile-bg" src={thumb} alt={game.name} decoding="async"
+          loading={eager ? 'eager' : 'lazy'} {...(eager ? { fetchPriority: 'high' } : {})} />
       ) : (
         <>
           <div className="pg-tile-fallback">🎮</div>
@@ -229,12 +224,16 @@ function PlayTile({ game, sizeClass, delay, onPlay }) {
 }
 
 
+// Module-level cache — arcade revisits within a session render instantly
+// from the last payload while a background refresh updates the numbers.
+let gamesCache = null
+
 export default function ArcadePage() {
   const location = useLocation()
-  const [games, setGames] = useState([])
-  const [featured, setFeatured] = useState([])
-  const [promogames, setPromogames] = useState([])
-  const [loading, setLoading] = useState(true)
+  const [featured, setFeatured] = useState(() => gamesCache?.featured || [])
+  const [promogames, setPromogames] = useState(() => gamesCache?.promogames || [])
+  const [loading, setLoading] = useState(!gamesCache)
+  const [error, setError] = useState(false)
   const [activeGame, setActiveGame] = useState(null)
   const [showWelcome, setShowWelcome] = useState(location.state?.welcomeBonus === true)
   const featuredRef = useRef(null)
@@ -245,24 +244,38 @@ export default function ArcadePage() {
     }
   }, [])
 
-  useEffect(() => {
-    fetch('/api/play/play-page-games')
-      .then(r => r.json())
-      .then(d => {
-        if (d.success) {
-          setGames(d.games || [])
-          setFeatured(d.featured || [])
-          setPromogames(d.promogames || [])
-        }
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false))
+  const loadGames = useCallback(async (signal) => {
+    setError(false)
+    try {
+      const r = await fetch('/api/play/play-page-games', { signal })
+      const d = await r.json()
+      if (!d.success) throw new Error('bad payload')
+      gamesCache = { featured: d.featured || [], promogames: d.promogames || [] }
+      setFeatured(gamesCache.featured)
+      setPromogames(gamesCache.promogames)
+    } catch (err) {
+      if (err?.name !== 'AbortError' && !gamesCache) setError(true)
+    } finally {
+      setLoading(false)
+    }
   }, [])
 
   useEffect(() => {
-    const onScroll = () => {
+    const ac = new AbortController()
+    loadGames(ac.signal)
+    return () => ac.abort()
+  }, [loadGames])
+
+  useEffect(() => {
+    // rAF-batched so layout is read at most once per frame
+    let ticking = false
+    const update = () => {
+      ticking = false
       const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100
       document.documentElement.style.setProperty('--scroll-pct', `${pct}%`)
+    }
+    const onScroll = () => {
+      if (!ticking) { ticking = true; requestAnimationFrame(update) }
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
@@ -273,26 +286,18 @@ export default function ArcadePage() {
   useEffect(() => {
     const onMsg = (e) => {
       if (e.data?.type !== 'pg:auth') return
-      fetch('/api/play/play-page-games').then(r => r.json()).then(d => {
-        if (d.success) {
-          setGames(d.games || [])
-          setFeatured(d.featured || [])
-          setPromogames(d.promogames || [])
-        }
-      }).catch(() => {})
+      loadGames()
       if (e.data.registered) setShowWelcome(true)
     }
     window.addEventListener('message', onMsg)
     return () => window.removeEventListener('message', onMsg)
-  }, [])
+  }, [loadGames])
 
   const handlePlay = useCallback((game) => setActiveGame(game), [])
   const handleSwitch = useCallback((game) => setActiveGame(game), [])
   const handleClose = useCallback(() => setActiveGame(null), [])
 
   const allGames = [...featured, ...promogames]
-
-  const filteredGames = allGames
 
   return (
     <>
@@ -302,6 +307,12 @@ export default function ArcadePage() {
       <div className="arc-scroll-bar" />
 
       <PlayerNavbar />
+
+      <GuestGuide
+        ready={!loading && promogames.length > 0 && !activeGame}
+        sampleGame={promogames[0] || featured[0]}
+        onPlay={handlePlay}
+      />
 
       <div className="arc-content">
         {loading ? (
@@ -322,7 +333,12 @@ export default function ArcadePage() {
                     {featured.map((game, i) => {
                       const hasThumb = game.thumbnail_url || game.game_logo_url || game.bg_image_url
                       return (
-                        <div className="arc-featured-card" key={game.id} onClick={() => handlePlay(game)}>
+                        <div
+                          className="arc-featured-card" key={game.id}
+                          role="button" tabIndex={0} aria-label={`Play ${game.name}`}
+                          onClick={() => handlePlay(game)}
+                          onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handlePlay(game) } }}
+                        >
                           <div className="arc-featured-thumb">
                             {hasThumb
                               ? <img src={hasThumb} alt={game.name} loading="lazy" />
@@ -350,21 +366,31 @@ export default function ArcadePage() {
                 <div className="arc-grid-head">
                   <div className="arc-grid-label">
                     All Games
-                    <span className="arc-grid-count">{filteredGames.length} games</span>
+                    <span className="arc-grid-count">{allGames.length} games</span>
                   </div>
                 </div>
 
-                {filteredGames.length === 0 ? (
+                {allGames.length === 0 ? (
                   <div className="arc-empty">
-                    <div className="arc-empty-ico">🔍</div>
-                    <div className="arc-empty-txt">No games found — try a different filter</div>
+                    <div className="arc-empty-ico">🎮</div>
+                    <div className="arc-empty-txt">
+                      {error ? 'Couldn\'t load games.' : 'No games are live right now — check back soon!'}
+                      {error && (
+                        <><br /><button onClick={() => loadGames()} style={{
+                          marginTop: 14, padding: '10px 22px', border: 'none', borderRadius: 10,
+                          background: 'linear-gradient(135deg, #9210f6, #610497)', color: '#fff',
+                          fontFamily: "'DM Sans', sans-serif", fontSize: 13.5, fontWeight: 700,
+                          cursor: 'pointer',
+                        }}>Retry</button></>
+                      )}
+                    </div>
                   </div>
                 ) : (
                   <div className="pg-grid">
-                    {filteredGames.slice(0, 11).map((game, i) => (
-                      <PlayTile key={game.id} game={game} sizeClass={HERO_SIZES[i]} delay={Math.min(i * 45, 360)} onPlay={handlePlay} />
+                    {allGames.slice(0, 11).map((game, i) => (
+                      <PlayTile key={game.id} game={game} sizeClass={HERO_SIZES[i]} delay={Math.min(i * 45, 360)} onPlay={handlePlay} eager={i < 4} />
                     ))}
-                    {filteredGames.slice(11).map((game, i) => (
+                    {allGames.slice(11).map((game, i) => (
                       <PlayTile key={game.id} game={game} sizeClass="pg-rest" delay={Math.min(i * 25, 280)} onPlay={handlePlay} />
                     ))}
                   </div>
@@ -378,7 +404,7 @@ export default function ArcadePage() {
       {activeGame && (
         <GameModal
           game={activeGame}
-          allGames={filteredGames}
+          allGames={allGames}
           onClose={handleClose}
           onSwitch={handleSwitch}
           isLoggedIn={!!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))}

@@ -5,6 +5,7 @@ import { inAnim } from '../components/animations'
 import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import PlayerAuthModal from '../components/PlayerAuthModal'
+import ShareMenu from '../components/ShareMenu'
 
 // ── Lazy-load game player pages ──────────────────────────────────────────────
 // Each game is only downloaded when the user actually plays it, instead of all
@@ -926,6 +927,14 @@ export default function PlayerPage() {
     // Tell the parent page (arcade) that auth state changed
     try { window.parent?.postMessage({ type: 'pg:auth', registered: !!isNew }, '*') } catch {}
   }, [sessionToken])
+
+  // Auto-pop the centered login card for guests when they finish a game
+  useEffect(() => {
+    if (phase !== 'thankyou') return
+    if (!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))) {
+      setShowSaveAuth(true)
+    }
+  }, [phase])
 
   const doAdvance = useCallback((isLast, token) => {
     tts.cancel()
@@ -1968,42 +1977,23 @@ const handleModalClose = () => {
       <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box' }}>
         <Confetti />
 
-        {/* Post-game save-progress prompt (guests only) */}
-        {!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken')) && (
+        {/* Share — every finished game can be shared with UTM attribution */}
+        <div style={{ position: 'fixed', right: 16, bottom: 16, zIndex: 70 }}>
+          <ShareMenu game={game} light label={`Share ${game?.name || 'this game'}`} />
+        </div>
+
+        {/* Post-claim confirmation chip */}
+        {saveClaim?.pc_awarded && (
           <div style={{
-            position: 'fixed', left: '50%', bottom: 16, transform: 'translateX(-50%)',
-            zIndex: 60, width: 'min(92vw, 400px)',
-            background: 'linear-gradient(160deg, #0d0820, #12082a)',
-            border: '1px solid rgba(146,16,246,0.4)', borderRadius: 18,
-            padding: saveClaim?.pc_awarded ? '14px 16px' : '13px 16px',
-            boxShadow: '0 16px 48px rgba(0,0,0,0.45), 0 0 24px rgba(146,16,246,0.18)',
-            color: '#fff', fontFamily: "'DM Sans', sans-serif",
-            animation: 'tySlideUp 0.4s cubic-bezier(.2,1.2,.4,1) both',
+            position: 'fixed', left: '50%', bottom: 18, transform: 'translateX(-50%)',
+            zIndex: 65, padding: '10px 18px', borderRadius: 12,
+            background: '#0d2818', border: '1px solid #2ea56a',
+            color: '#7ee787', fontFamily: "'DM Sans', sans-serif", fontSize: 13.5, fontWeight: 600,
+            boxShadow: '0 10px 32px rgba(0,0,0,0.4)', whiteSpace: 'nowrap',
+            animation: 'tySlideUp 0.35s cubic-bezier(.2,1.2,.4,1) both',
           }}>
-            {saveClaim?.pc_awarded ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
-                <span style={{ fontSize: 24 }}>🎉</span>
-                <span style={{ fontSize: 14, fontWeight: 600 }}>
-                  +{game?.game_type === 'branded' ? 50 : 10} Promo Coins added!
-                  {saveClaim.score_info?.is_new_best && <span style={{ color: '#f5c842' }}> · New personal best!</span>}
-                </span>
-              </div>
-            ) : (
-              <>
-                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 3 }}>Save your progress</div>
-                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.65)', marginBottom: 11, lineHeight: 1.45 }}>
-                  Log in to keep your coins and best scores.
-                </div>
-                <button onClick={() => setShowSaveAuth(true)} style={{
-                  width: '100%', padding: '11px 16px', border: 'none', borderRadius: 12,
-                  background: 'linear-gradient(135deg, #9210f6, #610497)', color: '#fff',
-                  fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
-                  boxShadow: '0 4px 18px rgba(146,16,246,0.35)',
-                }}>
-                  Log in / Sign up — it's free
-                </button>
-              </>
-            )}
+            🎉 +{game?.game_type === 'branded' ? 50 : 10} Promo Coins added!
+            {saveClaim.score_info?.is_new_best && <span style={{ color: '#f5c842' }}> · New personal best!</span>}
           </div>
         )}
         {showSaveAuth && (

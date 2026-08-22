@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import ShareMenu from './ShareMenu'
 
 const STYLES = `
   .gm-overlay{position:fixed;inset:0;z-index:8000;background:rgba(5,2,12,0.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:0;animation:gmFadeIn .2s ease both}
@@ -193,6 +194,7 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
                 {scoreInfo.player_best != null && scoreInfo.player_best >= scoreInfo.high_score ? ' · You!' : ''}
               </span>
             )}
+            <ShareMenu game={game} label={`Share ${game.name}`} />
             <button className="gm-close" onClick={onClose} title="Close (Esc)">✕</button>
           </div>
           <div className="gm-iframe-wrap">

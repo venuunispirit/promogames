@@ -801,6 +801,25 @@ router.get('/:id/stats', requireAdmin, async (req, res) => {
   } catch (err) { console.error(err); sendError(res, err); }
 });
 
+// GET UTM attribution breakdown for a game — how BOs see where players came
+// from (whatsapp share vs qr poster vs direct vs a referrer's @username link)
+router.get('/:id/traffic-sources', requireAdmin, async (req, res) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT COALESCE(NULLIF(utm_source, ''), 'direct') AS source,
+             COALESCE(NULLIF(utm_medium, ''), 'organic') AS medium,
+             COUNT(*) AS plays,
+             SUM(completed = 1) AS completions
+      FROM player_sessions
+      WHERE game_id = ?
+      GROUP BY 1, 2
+      ORDER BY plays DESC
+      LIMIT 25
+    `, [req.params.id]);
+    res.json({ success: true, sources: rows });
+  } catch (err) { console.error(err); sendError(res, err); }
+});
+
 
 // GET all completed sessions with answers for a game (for responses page)
 router.get('/:id/responses', requireAdmin, async (req, res) => {

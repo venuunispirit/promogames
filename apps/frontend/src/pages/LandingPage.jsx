@@ -9,10 +9,19 @@ import MascotCursor from "../components/MascotCursor";
 import "./LandingPage.css";
 
 /* gsap is only used for the hero-card fan-in / shuffle and the glitch text
-   entrance. It's imported lazily so the ~116 KB gsap chunk is not part of the
-   initial critical-path bundle (it was the 3rd largest script on first load). */
+   entrance. It's imported lazily AND gated behind the window `load` event so
+   the ~116 KB gsap chunk never enters the initial critical request chain —
+   Lighthouse traced it as a child of the entry bundle, delaying LCP. */
 let gsapPromise;
-const getGsap = () => (gsapPromise ||= import('gsap').then(m => m.default));
+const getGsap = () => (gsapPromise ||= new Promise((resolve) => {
+  const fetchIt = () => import('gsap').then(m => resolve(m.default));
+  const kick = () => {
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(fetchIt, { timeout: 1500 });
+    else setTimeout(fetchIt, 200);
+  };
+  if (document.readyState === 'complete') kick();
+  else window.addEventListener('load', kick, { once: true });
+}));
 
 /* ─── INLINE SVG ICONS ────────────────────────────── */
 const ICONS = {
@@ -211,6 +220,13 @@ function HeroGames() {
   const [center, setCenter] = useState(0);
   const [hoveredIdx, setHoveredIdx] = useState(null);
   const containerRef = useRef(null);
+
+  /* Safety net: if gsap hasn't arrived within 2.5s (very slow networks),
+     reveal the hero fan statically instead of leaving it invisible. */
+  useEffect(() => {
+    const t = setTimeout(() => containerRef.current?.classList.add('fan-fallback'), 2500);
+    return () => clearTimeout(t);
+  }, []);
   const isAnimating = useRef(false);
   const hasEntered = useRef(false);
   const directionRef = useRef(null);
@@ -581,7 +597,7 @@ function RankedGames() {
     <>
       <div className={`rg-sticky-mascot${mascotVisible ? ' visible' : ''}`}>
         <div className={`rg-mascot-bubble${bubbleShow ? ' show' : ''}`}>{MASCOT_MSGS[msgIdx]}</div>
-        <img src="/mascot-b.webp" alt="Mascot" />
+        <img src="/mascot-b.webp" alt="Mascot" width="240" height="240" />
       </div>
       {loading || games.length === 0 ? null : (
     <section className="rg-section" ref={sectionRef}>
@@ -1294,7 +1310,7 @@ export default function PromoGamesHome() {
         <div className="footer-main">
           <div>
             <p className="footer-tagline">Play Everyday. Win Everyday.</p>
-            <img src="/favicon2.png" alt="Promogames" style={{ height: 48, width: 'auto', marginBottom: 12, borderRadius: 8 }} />
+            <img src="/favicon2.png" alt="Promogames" width="320" height="120" style={{ height: 48, width: 'auto', marginBottom: 12, borderRadius: 8 }} />
             <p className="footer-desc">
               Quick games, real rewards, and a leaderboard that keeps you coming back. Your reward journey starts here.
             </p>

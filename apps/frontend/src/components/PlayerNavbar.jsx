@@ -312,8 +312,8 @@ export default function PlayerNavbar() {
       <div className="pn-wrap">
         <nav className="pn-nav">
           <a href="/" className="pn-logo">
-            <img src="/favicon2.png" alt="Promogames" className="pn-logo-desktop" />
-            <img src="/favicon.png" alt="Promogames" className="pn-logo-mobile" />
+            <img src="/favicon2.png" alt="Promogames" className="pn-logo-desktop" width="320" height="120" />
+            <img src="/favicon.png" alt="Promogames" className="pn-logo-mobile" width="128" height="128" />
           </a>
 
           <ul className="pn-links">
@@ -378,11 +378,11 @@ export default function PlayerNavbar() {
                 {/* Small mascot below the pulling trigger */}
                 <div className={`pn-wire-mascot${mascotGlitch === 'visible' ? '' : mascotGlitch === 'hidden' ? ' hidden' : ' ' + mascotGlitch}`}>
                   <div className={`pn-mascot-bubble${bubbleShow ? ' show' : ''}`}>{bubbleText}</div>
-                  <img src="/mascotques.webp" alt="Mascot" />
+                  <img src="/mascotques.webp" alt="Mascot" width="256" height="256" />
                   {mascotGlitch === 'glitch-in' && (
                     <>
-                      <img src="/mascotques.webp" alt="" className="pn-mascot-r" />
-                      <img src="/mascotques.webp" alt="" className="pn-mascot-b" />
+                      <img src="/mascotques.webp" alt="" className="pn-mascot-r" width="256" height="256" />
+                      <img src="/mascotques.webp" alt="" className="pn-mascot-b" width="256" height="256" />
                       <div className="pn-mascot-scanlines" />
                     </>
                   )}
@@ -392,7 +392,12 @@ export default function PlayerNavbar() {
             </div>
           )}
 
-          <button className={`pn-ham${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(!menuOpen)}>
+          <button
+            className={`pn-ham${menuOpen ? ' open' : ''}`}
+            onClick={() => setMenuOpen(!menuOpen)}
+            aria-label={menuOpen ? 'Close menu' : 'Open menu'}
+            aria-expanded={menuOpen}
+          >
             <span /><span /><span />
           </button>
         </nav>

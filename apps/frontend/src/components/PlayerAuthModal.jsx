@@ -11,9 +11,12 @@ import api from '../api'
 const CSS = `
 .pam-overlay{position:fixed;inset:0;z-index:9500;background:rgba(5,2,12,0.88);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:16px;animation:pamFade .18s ease both}
 @keyframes pamFade{from{opacity:0}to{opacity:1}}
-.pam-modal{width:100%;max-width:380px;background:linear-gradient(160deg,#0d0820,#12082a);border:1px solid rgba(146,16,246,0.35);border-radius:20px;padding:28px 24px 22px;box-shadow:0 24px 80px rgba(0,0,0,0.55),0 0 40px rgba(146,16,246,0.12);animation:pamUp .26s cubic-bezier(.22,1,.36,1) both;font-family:'DM Sans',sans-serif;color:#fff}
+.pam-modal{width:100%;max-width:380px;background:#14102a;border:1px solid rgba(146,16,246,0.35);border-radius:24px;padding:30px 26px 22px;box-shadow:0 24px 80px rgba(0,0,0,0.55),0 0 40px rgba(146,16,246,0.12);animation:pamUp .26s cubic-bezier(.22,1,.36,1) both;font-family:'DM Sans',sans-serif;color:#fff;text-align:center}
 @keyframes pamUp{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
-.pam-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:4px}
+.pam-head{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px}
+.pam-mascot{width:58px;height:58px;border-radius:50%;background:radial-gradient(circle at 50% 35%,rgba(146,16,246,0.45),rgba(20,8,40,0.2));border:1px solid rgba(146,16,246,0.4);padding:5px}
+.pam-brand{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;color:rgba(255,255,255,0.55)}
+.pam-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;margin-bottom:4px}
 .pam-sub{font-size:13px;line-height:1.55;color:rgba(255,255,255,0.65);margin-bottom:18px}
 .pam-input{width:100%;padding:13px 14px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#fff;font-size:15px;outline:none;margin-bottom:10px;transition:border-color .2s}
 .pam-input:focus{border-color:#9210f6}
@@ -143,6 +146,12 @@ export default function PlayerAuthModal({ onClose, onSuccess }) {
       <div className="pam-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
         <div className="pam-modal" role="dialog" aria-modal="true" aria-label="Login to save your progress" style={{ position: 'relative' }}>
           <button className="pam-close" onClick={onClose} aria-label="Close">✕</button>
+          {step !== 'done' && (
+            <div className="pam-head">
+              <img className="pam-mascot" src="/mascotques.webp" alt="" width="58" height="58" />
+              <span className="pam-brand">PROMOGAMES</span>
+            </div>
+          )}
           {step === 'done' ? (
             <div className="pam-ok">
               <div className="pam-ok-ico">🎉</div>

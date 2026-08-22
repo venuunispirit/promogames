@@ -143,8 +143,7 @@ img{display:block;max-width:100%}
 .hero-fan-card{
   width:250px;height:320px;
   opacity:0; /* revealed by the gsap entry animation (lazy-loaded) */
-  border-radius:16px;padding:14px;
-  display:flex;flex-direction:column;
+  border-radius:16px;padding:14px;  display:flex;flex-direction:column;
   background:rgba(10,5,20,0.95);
   border:1px solid rgba(255,255,255,0.08);
   text-decoration:none;color:#fff;
@@ -153,6 +152,8 @@ img{display:block;max-width:100%}
   border-color:rgba(146,16,246,0.5);
   box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 32px rgba(146,16,246,0.12);
 }
+/* Static reveal if gsap is slow to arrive (see GuestGuide-style fallback) */
+.hero-fan-layout.fan-fallback .hero-fan-card{opacity:1}
 .hero-fan-card.hgf-preview{
   border-color:rgba(146,16,246,0.7);
   box-shadow:0 16px 48px rgba(0,0,0,0.4),0 0 40px rgba(146,16,246,0.2);

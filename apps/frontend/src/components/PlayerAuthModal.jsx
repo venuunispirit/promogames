@@ -2,10 +2,10 @@ import { useState, useEffect, useRef } from 'react'
 import api from '../api'
 
 /*
- * PlayerAuthModal — compact player-only OTP login/registration overlay.
- * Used by PlayerPage's post-game "save your progress" prompt (inside the
- * game iframe) so guests can attribute their result without leaving the page.
- * Stores the same localStorage keys as LoginPage (playerToken / playerUser).
+ * PlayerAuthModal — compact player-only OTP login/signup overlay.
+ * Instant signup: verifying the OTP creates the account right away
+ * (incomplete profile), logs them in, and an optional skippable
+ * name+username mini-form follows. Profile can be completed later.
  */
 
 const CSS = `
@@ -18,29 +18,33 @@ const CSS = `
 .pam-brand{font-family:'Bebas Neue',sans-serif;font-size:15px;letter-spacing:3px;color:rgba(255,255,255,0.55)}
 .pam-title{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:2px;margin-bottom:4px}
 .pam-sub{font-size:13px;line-height:1.55;color:rgba(255,255,255,0.65);margin-bottom:18px}
-.pam-input{width:100%;padding:13px 14px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#fff;font-size:15px;outline:none;margin-bottom:10px;transition:border-color .2s}
+.pam-input{width:100%;padding:13px 14px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#fff;font-size:15px;outline:none;margin-bottom:10px;transition:border-color .2s;text-align:left}
 .pam-input:focus{border-color:#9210f6}
 .pam-input::placeholder{color:rgba(255,255,255,0.35)}
 .pam-btn{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#9210f6,#610497);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(146,16,246,0.35);transition:transform .15s,box-shadow .2s}
 .pam-btn:hover{transform:translateY(-1px);box-shadow:0 6px 26px rgba(146,16,246,0.5)}
 .pam-btn:disabled{opacity:.55;cursor:default;transform:none}
+.pam-ghost{width:100%;padding:11px;margin-top:8px;border:none;border-radius:12px;background:transparent;color:rgba(255,255,255,0.55);font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;cursor:pointer;text-decoration:underline;text-underline-offset:3px}
+.pam-ghost:hover{color:#fff}
 .pam-link{background:none;border:none;color:#c084fc;font-size:12.5px;cursor:pointer;padding:8px 0 0;text-decoration:underline;text-underline-offset:3px}
 .pam-row{display:flex;gap:10px}
 .pam-err{font-size:12.5px;color:#ff8a8a;margin:-2px 0 10px;line-height:1.4}
 .pam-ok{text-align:center;padding:10px 0 4px}
 .pam-ok-ico{font-size:44px;margin-bottom:10px}
+.pam-coins{display:inline-block;padding:7px 16px;border-radius:100px;background:rgba(245,200,66,0.12);border:1px solid rgba(245,200,66,0.4);color:#f5c842;font-size:13px;font-weight:700;margin-bottom:14px}
 .pam-close{position:absolute;top:14px;right:16px;background:none;border:none;color:rgba(255,255,255,0.55);font-size:17px;cursor:pointer;padding:6px}
 .pam-hint{font-size:11px;color:rgba(255,255,255,0.42);text-align:center;margin-top:10px}
-.pam-uname-msg{font-size:11px;margin:-6px 0 10px 2px;color:rgba(255,255,255,0.5)}
+.pam-uname-msg{font-size:11px;margin:-6px 0 10px 2px;color:rgba(255,255,255,0.5);text-align:left}
 .pam-uname-msg.taken{color:#ff8a8a}
 .pam-uname-msg.available{color:#7ee787}
 `
 
-export default function PlayerAuthModal({ onClose, onSuccess }) {
-  const [step, setStep] = useState('email') // email | otp | register | done
+export default function PlayerAuthModal({ onClose, onSuccess, onFinished }) {
+  // steps: email → otp → profile (skippable) | done
+  const [step, setStep] = useState('email')
   const [email, setEmail] = useState('')
   const [otp, setOtp] = useState('')
-  const [tempToken, setTempToken] = useState(null)
+  const [created, setCreated] = useState(false)
   const [form, setForm] = useState({ name: '', username: '' })
   const [unameStatus, setUnameStatus] = useState('') // checking | available | taken
   const [error, setError] = useState('')
@@ -50,10 +54,10 @@ export default function PlayerAuthModal({ onClose, onSuccess }) {
 
   useEffect(() => { emailRef.current?.focus() }, [])
   useEffect(() => {
-    const onKey = e => { if (e.key === 'Escape') onClose() }
+    const onKey = e => { if (e.key === 'Escape') handleClose() }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [onClose])
+  })
   useEffect(() => {
     if (resendCD <= 0) return
     const t = setInterval(() => setResendCD(s => (s <= 1 ? (clearInterval(t), 0) : s - 1)), 1000)
@@ -62,8 +66,14 @@ export default function PlayerAuthModal({ onClose, onSuccess }) {
 
   const startCountdown = () => setResendCD(30)
 
+  const store = (token, player) => {
+    localStorage.setItem('playerToken', token)
+    localStorage.setItem('playerUser', JSON.stringify(player))
+  }
+
   // Live username availability (debounced)
   useEffect(() => {
+    if (step !== 'profile') return
     const val = form.username.trim().toLowerCase()
     if (val.length < 3 || !/^[a-z0-9_]+$/.test(val)) { setUnameStatus(''); return }
     setUnameStatus('checking')
@@ -74,11 +84,10 @@ export default function PlayerAuthModal({ onClose, onSuccess }) {
       } catch { setUnameStatus('') }
     }, 450)
     return () => clearTimeout(t)
-  }, [form.username])
+  }, [form.username, step])
 
-  const store = (token, player) => {
-    localStorage.setItem('playerToken', token)
-    localStorage.setItem('playerUser', JSON.stringify(player))
+  function handleClose() {
+    onClose?.()
   }
 
   const handleEmail = async () => {
@@ -103,36 +112,52 @@ export default function PlayerAuthModal({ onClose, onSuccess }) {
       const { data } = await api.post('/pauth/verify-otp', { email, otp })
       if (data.type === 'player') {
         store(data.token, { ...data.player })
-        setStep('done')
-        setTimeout(() => onSuccess?.({ ...data.player }, { isNew: false }), 650)
+        setCreated(!!data.created)
+        setForm({ name: data.player.name || '', username: '' })
+        // Fire attribution immediately — progress is saved even if they walk away.
+        onSuccess?.({ ...data.player }, { isNew: !!data.created })
+        setStep('profile') // optional, skippable
       } else {
-        setTempToken(data.tempToken)
-        setStep('register')
+        setError('Unexpected response. Try again.')
       }
     } catch (err) { setError(err.response?.data?.message || 'Invalid or expired code.'); setOtp('') }
     finally { setLoading(false) }
   }
 
-  const handleRegister = async () => {
-    if (!form.name.trim()) return setError('Name is required')
+  const saveProfile = async () => {
     const uname = form.username.trim().toLowerCase()
-    if (uname.length < 3) return setError('Username must be at least 3 characters')
-    if (!/^[a-z0-9_]+$/.test(uname)) return setError('Only lowercase letters, numbers, _')
+    const nm = form.name.trim()
+    if (!nm && !uname) return finish()
+    if (uname && (uname.length < 3 || !/^[a-z0-9_]+$/.test(uname))) return setError('Username: 3+ chars, lowercase letters/numbers/_')
     if (unameStatus === 'taken') return setError('Username is already taken')
     if (unameStatus === 'checking') return setError('Checking username…')
     setError(''); setLoading(true)
     try {
-      const { data } = await api.post('/pauth/register', {
-        tempToken,
-        name: form.name.trim(),
-        username: uname,
-        avatar_id: 'av-1',
-      })
-      store(data.token, { ...data.player })
-      setStep('done')
-      setTimeout(() => onSuccess?.({ ...data.player }, { isNew: true }), 650)
-    } catch (err) { setError(err.response?.data?.message || 'Registration failed.') }
-    finally { setLoading(false) }
+      const body = {}
+      if (nm) body.name = nm
+      if (uname) body.username = uname
+      const { data } = await api.patch('/pauth/me', body)
+      if (data.success) {
+        // refresh cached profile copy
+        try {
+          const raw = JSON.parse(localStorage.getItem('playerUser') || '{}')
+          localStorage.setItem('playerUser', JSON.stringify({ ...raw, ...data.player }))
+        } catch {}
+      }
+      finish(true)
+    } catch (err) {
+      setError(err.response?.data?.message || 'Could not save. Try again.')
+    } finally { setLoading(false) }
+  }
+
+  const finish = (saved = false) => {
+    setStep('done')
+    setTimeout(() => {
+      // Parent decides what "done" means: close the game modal and return to
+      // the arcade for fresh signups, or just dismiss here.
+      onFinished?.()
+      onClose?.()
+    }, saved ? 900 : 650)
   }
 
   const resend = async () => {
@@ -143,9 +168,9 @@ export default function PlayerAuthModal({ onClose, onSuccess }) {
   return (
     <>
       <style>{CSS}</style>
-      <div className="pam-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="pam-overlay" onClick={e => { if (e.target === e.currentTarget && step !== 'done') handleClose() }}>
         <div className="pam-modal" role="dialog" aria-modal="true" aria-label="Login to save your progress" style={{ position: 'relative' }}>
-          <button className="pam-close" onClick={onClose} aria-label="Close">✕</button>
+          <button className="pam-close" onClick={handleClose} aria-label="Close">✕</button>
           {step !== 'done' && (
             <div className="pam-head">
               <img className="pam-mascot" src="/mascotques.webp" alt="" width="58" height="58" />
@@ -155,13 +180,14 @@ export default function PlayerAuthModal({ onClose, onSuccess }) {
           {step === 'done' ? (
             <div className="pam-ok">
               <div className="pam-ok-ico">🎉</div>
-              <div className="pam-title">You're in!</div>
-              <div className="pam-sub">Saving your progress…</div>
+              <div className="pam-title">{created ? 'Account Created!' : "You're In!"}</div>
+              {created && <div><span className="pam-coins">+100 Welcome Coins</span></div>}
+              <div className="pam-sub">Your progress is being saved…</div>
             </div>
-          ) : step === 'register' ? (
+          ) : step === 'profile' ? (
             <>
-              <div className="pam-title">Create Account</div>
-              <div className="pam-sub">Pick a name and username — your coins and best scores will be saved to it.</div>
+              <div className="pam-title">Set Up Your Profile</div>
+              <div className="pam-sub">Optional — pick a name &amp; username so friends can find you.</div>
               <input className="pam-input" placeholder="Your name" value={form.name} maxLength={60}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
               <input className="pam-input" placeholder="Username (e.g. game_master)" value={form.username} maxLength={20}
@@ -170,9 +196,10 @@ export default function PlayerAuthModal({ onClose, onSuccess }) {
                 {unameStatus === 'checking' ? 'Checking…' : unameStatus === 'available' ? '✓ Available!' : unameStatus === 'taken' ? '✗ Already taken' : ''}
               </div>
               {error && <div className="pam-err">{error}</div>}
-              <button className="pam-btn" onClick={handleRegister} disabled={loading}>
-                {loading ? 'Creating…' : 'Create Account'}
+              <button className="pam-btn" onClick={saveProfile} disabled={loading}>
+                {loading ? 'Saving…' : 'Save & Continue'}
               </button>
+              <button className="pam-ghost" onClick={() => finish()}>Skip for now</button>
             </>
           ) : step === 'otp' ? (
             <>

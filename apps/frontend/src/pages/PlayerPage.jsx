@@ -915,8 +915,11 @@ export default function PlayerPage() {
     setPhase('thankyou')
   }, [game, playerProfile])
 
+  const isNewSignupRef = useRef(false)
+
   const handleSaveAuthSuccess = useCallback(async (_player, { isNew }) => {
-    setShowSaveAuth(false)
+    isNewSignupRef.current = !!isNew
+    // Claim immediately so progress + game PC are locked in even if they wander off
     const tok = localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken')
     if (tok && sessionToken) {
       try {
@@ -924,9 +927,17 @@ export default function PlayerPage() {
         setSaveClaim({ pc_awarded: !!res.data.pc_awarded, score_info: res.data.score_info || null })
       } catch {}
     }
-    // Tell the parent page (arcade) that auth state changed
-    try { window.parent?.postMessage({ type: 'pg:auth', registered: !!isNew }, '*') } catch {}
   }, [sessionToken])
+
+  // Fired when the auth popup fully closes after signup/login:
+  // fresh signups go back to the arcade; direct visitors navigate there.
+  const handleAuthFinished = useCallback(() => {
+    const registered = isNewSignupRef.current
+    try { window.parent?.postMessage({ type: 'pg:auth', registered }, '*') } catch {}
+    if (window.self === window.top && registered) {
+      window.location.href = '/arcade'
+    }
+  }, [])
 
   // Auto-pop the centered login card for guests when they finish a game
   useEffect(() => {
@@ -2009,7 +2020,7 @@ const handleModalClose = () => {
           </div>
         )}
         {showSaveAuth && (
-          <PlayerAuthModal onClose={() => setShowSaveAuth(false)} onSuccess={handleSaveAuthSuccess} />
+          <PlayerAuthModal onClose={() => setShowSaveAuth(false)} onSuccess={handleSaveAuthSuccess} onFinished={handleAuthFinished} />
         )}
 
         {showSubmitModal && (

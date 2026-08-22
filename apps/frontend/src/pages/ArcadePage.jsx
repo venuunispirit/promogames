@@ -281,11 +281,12 @@ export default function ArcadePage() {
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  // Game iframe tells us when a guest logs in/registers → refresh counts,
-  // and celebrate the welcome bonus for fresh registrations.
+  // Game iframe tells us when a guest logs in/registers → close the game,
+  // refresh counts, and celebrate the welcome bonus for fresh registrations.
   useEffect(() => {
     const onMsg = (e) => {
       if (e.data?.type !== 'pg:auth') return
+      setActiveGame(null) // back to the arcade after "You're in!"
       loadGames()
       if (e.data.registered) setShowWelcome(true)
     }

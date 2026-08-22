@@ -109,6 +109,31 @@ export default function PlayerLayout() {
         <div style={{ position: 'fixed', inset: 0, opacity: 0.1, pointerEvents: 'none', zIndex: -1, background: 'linear-gradient(rgba(255,255,255,0.05) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.05) 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
         <PlayerNavbar />
+
+        {/* Profile-completion nudge for instant-signup accounts */}
+        {player?.profile_complete === 0 && !player?.nudge_dismissed && (
+          <div style={{
+            maxWidth: 1100, margin: '0 auto 8px', padding: '12px 18px',
+            display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap',
+            background: 'linear-gradient(90deg, rgba(146,16,246,0.16), rgba(97,4,151,0.10))',
+            border: '1px solid rgba(146,16,246,0.35)', borderRadius: 14,
+            fontFamily: "'DM Sans', sans-serif",
+          }}>
+            <span style={{ fontSize: 18 }}>🪪</span>
+            <span style={{ flex: 1, minWidth: 200, fontSize: 13.5, color: 'rgba(255,255,255,0.85)' }}>
+              Finish setting up your profile — pick a username so friends can find you and you can earn referral coins.
+            </span>
+            <button
+              onClick={() => navigate('/player/profile')}
+              style={{ padding: '8px 18px', borderRadius: 100, border: 'none', cursor: 'pointer',
+                background: 'linear-gradient(135deg,#9210f6,#610497)', color: '#fff',
+                fontSize: 12.5, fontWeight: 700 }}
+            >Complete profile</button>
+            <button onClick={() => setPlayer(p => ({ ...p, nudge_dismissed: true }))} aria-label="Dismiss"
+              style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.45)', fontSize: 15, cursor: 'pointer', padding: 4 }}>✕</button>
+          </div>
+        )}
+
         <Outlet />
 
         {activeGame && (

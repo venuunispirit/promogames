@@ -2707,6 +2707,10 @@ await safeQuery(connection, `
     )
   `, 'player_best_scores table');
 
+  // promo_players.profile_complete — 0 for instant-OTP signups until they set
+  // name + username (dashboards use it to nudge profile completion)
+  await addColumn(connection, 'promo_players', 'profile_complete', 'TINYINT(1) DEFAULT 0');
+
   // Composite index powering every play-count subquery (arcade / hero / play-count)
   try {
     const [idxRows] = await connection.query(

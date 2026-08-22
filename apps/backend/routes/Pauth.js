@@ -243,14 +243,53 @@ router.post('/verify-otp', async (req, res) => {
       // internal_team table may not exist yet — skip silently
     }
 
-    // New user — return a short-lived temp token for registration step
-    const tempToken = jwt.sign(
-      { email, role: 'pending' },
-      env.JWT_SECRET,
-      { expiresIn: '30m' }
-    );
-    return res.json({ success: true, type: 'new', tempToken });
-
+    // ── Instant signup: create the player right here with an incomplete profile ──
+    // No forced name/username form — they're logged in immediately, +100 PC
+    // welcome bonus lands now, and profile details can be filled in later.
+    const fallbackName = (email.split('@')[0].replace(/[^a-zA-Z0-9_ ]/g, '').trim() || 'Player').slice(0, 60);
+    try {
+      const [ins] = await db.query(
+        `INSERT INTO promo_players (name, email, pc_balance, avatar_id, profile_complete)
+         VALUES (?, ?, 100, 'av-1', 0)`,
+        [fallbackName, email]
+      );
+      const playerId = ins.insertId;
+      await db.query(
+        `INSERT INTO pc_transactions (player_id, type, points, note)
+         VALUES (?, 'earn', 100, 'Welcome bonus')`,
+        [playerId]
+      );
+      const token = jwt.sign(
+        { id: playerId, email, name: fallbackName, role: 'player' },
+        env.JWT_SECRET,
+        { expiresIn: '30d' }
+      );
+      return res.json({
+        success: true,
+        type: 'player',
+        created: true,
+        token,
+        player: { id: playerId, name: fallbackName, email, pc_balance: 100, avatar_id: 'av-1' },
+      });
+    } catch (err) {
+      // Race: another request created the account between OTP verify and here
+      if (err.code === 'ER_DUP_ENTRY') {
+        const [dupe] = await db.query('SELECT * FROM promo_players WHERE email = ?', [email]);
+        if (dupe.length > 0) {
+          const player = dupe[0];
+          const token = jwt.sign(
+            { id: player.id, email: player.email, name: player.name, role: 'player' },
+            env.JWT_SECRET,
+            { expiresIn: '30d' }
+          );
+          return res.json({
+            success: true, type: 'player', token,
+            player: { id: player.id, name: player.name, email: player.email, pc_balance: player.pc_balance, avatar_id: player.avatar_id },
+          });
+        }
+      }
+      throw err;
+    }
   } catch (err) {
     sendError(res, err);
   }
@@ -353,6 +392,36 @@ router.post('/register', async (req, res) => {
   }
 });
 
+// PUT /api/pauth/update-username
+// Sets/changes username; flips profile_complete once chosen.
+router.put('/update-username', playerAuth, async (req, res) => {
+  try {
+    const username = String(req.body.username || '').trim().toLowerCase();
+    if (!username || username.length < 3 || !/^[a-z0-9_]+$/.test(username)) {
+      return res.status(400).json({ success: false, message: 'Username must be 3+ chars: lowercase letters, numbers, _' });
+    }
+    const [[dup]] = await db.query('SELECT id FROM promo_players WHERE username = ? AND id != ?', [username, req.player.id]);
+    if (dup) return res.status(409).json({ success: false, message: 'Username already taken' });
+
+    // Cooldown: one change per 30 days once an initial username exists
+    const [[me]] = await db.query('SELECT username, username_changed_at FROM promo_players WHERE id = ?', [req.player.id]);
+    if (me?.username && me?.username_changed_at) {
+      const days = (Date.now() - new Date(me.username_changed_at).getTime()) / 86400000;
+      if (days < 30) {
+        return res.status(429).json({ success: false, message: `You can change your username again in ${Math.ceil(30 - days)} day(s)` });
+      }
+    }
+
+    await db.query(
+      'UPDATE promo_players SET username = ?, username_changed_at = NOW(), profile_complete = 1 WHERE id = ?',
+      [username, req.player.id]
+    );
+    res.json({ success: true, message: 'Username updated', username });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/pauth/me
 // Returns current player profile + pc_balance
@@ -360,7 +429,7 @@ router.post('/register', async (req, res) => {
 router.get('/me', playerAuth, async (req, res) => {
   try {
     const [rows] = await db.query(
-      `SELECT id, name, username, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, created_at,
+      `SELECT id, name, username, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, profile_complete, created_at,
               TIMESTAMPDIFF(YEAR, dob, CURDATE()) as age
        FROM promo_players WHERE id = ?`,
       [req.player.id]
@@ -380,6 +449,13 @@ router.patch('/me', playerAuth, async (req, res) => {
   try {
     const fields = [];
     const values = [];
+    if (req.body.name !== undefined) {
+      const nm = String(req.body.name).trim().slice(0, 60);
+      if (nm) {
+        fields.push('name = ?');
+        values.push(nm);
+      }
+    }
     if (req.body.avatar_id !== undefined) {
       fields.push('avatar_id = ?');
       values.push(req.body.avatar_id);
@@ -392,14 +468,23 @@ router.patch('/me', playerAuth, async (req, res) => {
         if (!dup) {
           fields.push('username = ?');
           values.push(username);
+        } else {
+          return res.status(409).json({ success: false, message: 'Username already taken' });
         }
+      } else if (username.length > 0) {
+        return res.status(400).json({ success: false, message: 'Invalid username format' });
       }
     }
     if (fields.length === 0) return res.status(400).json({ success: false, message: 'No fields to update' });
     values.push(req.player.id);
     await db.query(`UPDATE promo_players SET ${fields.join(', ')} WHERE id = ?`, values);
+    // Profile counts as complete once both name and username are set
+    await db.query(
+      'UPDATE promo_players SET profile_complete = 1 WHERE id = ? AND name IS NOT NULL AND username IS NOT NULL',
+      [req.player.id]
+    );
     const [rows] = await db.query(
-      `SELECT id, name, username, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, created_at,
+      `SELECT id, name, username, dob, email, whatsapp, city, pincode, pc_balance, avatar_id, profile_complete, created_at,
               TIMESTAMPDIFF(YEAR, dob, CURDATE()) as age
        FROM promo_players WHERE id = ?`,
       [req.player.id]

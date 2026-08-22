@@ -936,6 +936,18 @@ export default function PlayerPage() {
     }
   }, [phase])
 
+  // Safety net #2: fire on ANY successful session/complete through axios —
+  // covers games whose own result screens bypass the thankyou phase
+  useEffect(() => {
+    const onDone = () => {
+      if (!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))) {
+        setShowSaveAuth(true)
+      }
+    }
+    window.addEventListener('pg:session-complete', onDone)
+    return () => window.removeEventListener('pg:session-complete', onDone)
+  }, [])
+
   const doAdvance = useCallback((isLast, token) => {
     tts.cancel()
     if (isLast) { completeSession(token) }

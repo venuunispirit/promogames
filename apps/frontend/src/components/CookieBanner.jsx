@@ -24,7 +24,8 @@ export default function CookieBanner() {
   const [visible, setVisible] = useState(false)
 
   useEffect(() => {
-    // Always show on fresh visit — clear old consent to demo
+    // Never show inside the GameModal iframe — the parent page owns cookie consent
+    if (window.self !== window.top) return
     const consent = localStorage.getItem('pg_cookie_consent')
     if (!consent) setVisible(true)
   }, [])

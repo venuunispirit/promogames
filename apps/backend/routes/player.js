@@ -1476,7 +1476,8 @@ router.post('/session/complete', async (req, res) => {
         console.error('❌ Email error:', emailErr.message);
         console.error('   SMTP:', process.env.SMTP_HOST, process.env.SMTP_PORT, process.env.SMTP_USER);
       }
-    } else if (emailEnabled && !playerEmail) {
+    } else if (emailEnabled && !playerEmail && games[0]?.game_type !== 'promogames') {
+      // Promogames skip the form by design — guests legitimately have no email
       console.warn('⚠️  Email enabled but no email found in player data:', JSON.stringify(playerData));
     }
 

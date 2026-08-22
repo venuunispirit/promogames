@@ -1278,10 +1278,24 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'speech_pitch', 'FLOAT DEFAULT 1');
 
   /* GAMES */
-  await safeQuery(connection,
-      `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer') DEFAULT 'quiz'`,
-    'games.category ENUM includes all game types'
-  );
+  // Widen the category ENUM to every known game type PLUS whatever values
+  // already exist in the table. A single legacy row with an unlisted value
+  // used to abort the whole ALTER ("Data truncated for column 'category'").
+  try {
+    const KNOWN_CATEGORIES = ['quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer','candyblast','blockblaster','classicmaze'];
+    let existing = [];
+    try {
+      const [rows] = await connection.query("SELECT DISTINCT category FROM games WHERE category IS NOT NULL");
+      existing = rows.map(r => r.category).filter(Boolean);
+    } catch { /* table may not exist yet on first boot */ }
+    const merged = [...new Set([...KNOWN_CATEGORIES, ...existing])];
+    await connection.query(
+      `ALTER TABLE games MODIFY COLUMN category ENUM(${merged.map(v => `'${String(v).replace(/'/g, "''")}'`).join(',')}) DEFAULT 'quiz'`
+    );
+    console.log(`✅ games.category ENUM covers ${merged.length} types`);
+  } catch (err) {
+    console.error('❌ games.category ENUM widening failed:', err.message);
+  }
   await addColumn(connection, 'games', 'client_id', 'INT');
   await addColumn(connection, 'games', 'slug', 'VARCHAR(255)');
   await addColumn(connection, 'games', 'description', 'TEXT');

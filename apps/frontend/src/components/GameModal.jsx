@@ -71,10 +71,26 @@ function injectMascotCursor(doc) {
 
   let mx = 0, my = 0
   let pupilX = 0, pupilY = 0, targetPX = 0, targetPY = 0
+  let lastMove = performance.now()
+  let raf = null
   const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+
+  function loop() {
+    pupilX += (targetPX - pupilX) * 0.15
+    pupilY += (targetPY - pupilY) * 0.15
+    el.style.transform = `translate(${mx - 6}px,${my - 4}px) rotate(8deg)`
+    el.querySelectorAll('.pupil').forEach(p => { p.style.transform = `translate(${pupilX}px,${pupilY}px)` })
+    targetPX *= 0.985; targetPY *= 0.985
+    // Idle-stop: don't burn 60fps inside the game iframe while the mouse rests
+    if (performance.now() - lastMove > 400) { raf = null; return }
+    raf = requestAnimationFrame(loop)
+  }
+
   const onMove = (e) => {
     const prevX = mx, prevY = my
     mx = e.clientX; my = e.clientY
+    lastMove = performance.now()
+    if (!raf) raf = requestAnimationFrame(loop)
     el.classList.add('visible')
     doc.body.classList.add('gm-cursor-on')
     const dx = mx - prevX, dy = my - prevY
@@ -87,23 +103,12 @@ function injectMascotCursor(doc) {
   const onLeave = () => { el.classList.remove('visible'); doc.body.classList.remove('gm-cursor-on') }
   const onEnter = () => { el.classList.add('visible'); doc.body.classList.add('gm-cursor-on') }
 
-  let raf
-  const loop = () => {
-    pupilX += (targetPX - pupilX) * 0.15
-    pupilY += (targetPY - pupilY) * 0.15
-    el.style.transform = `translate(${mx - 6}px,${my - 4}px) rotate(8deg)`
-    el.querySelectorAll('.pupil').forEach(p => { p.style.transform = `translate(${pupilX}px,${pupilY}px)` })
-    targetPX *= 0.985; targetPY *= 0.985
-    raf = requestAnimationFrame(loop)
-  }
-  raf = requestAnimationFrame(loop)
-
   doc.addEventListener('mousemove', onMove, { passive: true })
   doc.addEventListener('mouseleave', onLeave)
   doc.addEventListener('mouseenter', onEnter)
 
   el._gmCleanup = () => {
-    cancelAnimationFrame(raf)
+    if (raf) cancelAnimationFrame(raf)
     doc.removeEventListener('mousemove', onMove)
     doc.removeEventListener('mouseleave', onLeave)
     doc.removeEventListener('mouseenter', onEnter)
@@ -147,6 +152,7 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
   }, [onClose])
   useEffect(() => {
     const poll = setInterval(async () => {
+      if (document.hidden) return // no wasted DB hits while the tab is in background
       try {
         const r = await fetch(`/api/play/game/${game.id}/play-count`)
         const d = await r.json()
@@ -154,6 +160,18 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
       } catch {}
     }, 10000)
     return () => clearInterval(poll)
+  }, [game.id])
+
+  // High score / personal best chip
+  const [scoreInfo, setScoreInfo] = useState(null)
+  useEffect(() => {
+    let alive = true
+    setScoreInfo(null)
+    fetch(`/api/play/game/${game.id}/score-info`)
+      .then(r => r.json())
+      .then(d => { if (alive && d.success) setScoreInfo(d) })
+      .catch(() => {})
+    return () => { alive = false }
   }, [game.id])
 
   return (
@@ -168,6 +186,13 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
               <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               {playCount.toLocaleString()} plays
             </span>
+            {scoreInfo?.high_score > 0 && (
+              <span className="gm-bar-plays" style={{ color: '#f5c842' }} title={`High score: ${scoreInfo.high_score.toLocaleString()}`}>
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="#f5c842"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 6.9L12 17.3 5.7 20.8l1.7-6.9-5.4-4.7 7.1-.6z"/></svg>
+                {scoreInfo.high_score.toLocaleString()}
+                {scoreInfo.player_best != null && scoreInfo.player_best >= scoreInfo.high_score ? ' · You!' : ''}
+              </span>
+            )}
             <button className="gm-close" onClick={onClose} title="Close (Esc)">✕</button>
           </div>
           <div className="gm-iframe-wrap">

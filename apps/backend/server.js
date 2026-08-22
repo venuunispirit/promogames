@@ -33,9 +33,13 @@ app.use((req, res, next) => {
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "no-referrer");
+  // Ignored over plain HTTP, picked up automatically once HTTPS terminates here
+  res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
+  res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
   res.setHeader(
     "Content-Security-Policy",
-    "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; connect-src 'self'"
+    "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'"
   );
   next();
 });
@@ -62,7 +66,29 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ── Optimized WebP serve-through for uploaded images ─────────────────────────
+// config/upload.js generates a compressed .webp sibling for every png/jpg
+// upload. When one exists, serve it transparently for the original URL —
+// zero DB/frontend changes, big transfer savings.
+const UPLOADS_DIR = path.join(__dirname, "uploads");
+app.use("/uploads", (req, res, next) => {
+  if (req.method === "GET" && /\.(png|jpe?g)$/i.test(req.path)) {
+    try {
+      const rel = decodeURIComponent(req.path).replace(/\.(png|jpe?g)$/i, ".webp");
+      const webpPath = path.join(UPLOADS_DIR, rel);
+      if (fs.existsSync(webpPath)) {
+        res.setHeader("Content-Type", "image/webp");
+        return res.sendFile(webpPath);
+      }
+    } catch { /* fall through to static */ }
+  }
+  next();
+});
+
 app.use("/uploads", express.static(path.join(__dirname, "uploads"), {
+  // Uploaded filenames are UUIDs → content is immutable → long cache is safe
+  maxAge: "30d",
+  immutable: true,
   // Prevent browsers from executing uploaded files; force download/sniff-safe
   setHeaders: (res) => {
     res.setHeader("X-Content-Type-Options", "nosniff");

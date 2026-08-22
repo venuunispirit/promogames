@@ -8,7 +8,7 @@ const soundsDir = path.join(__dirname, '../uploads/sounds');
 if (!fs.existsSync(imagesDir)) fs.mkdirSync(imagesDir, { recursive: true });
 if (!fs.existsSync(soundsDir)) fs.mkdirSync(soundsDir, { recursive: true });
 
-const storage = multer.diskStorage({
+const diskStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     if (file.mimetype.startsWith('image/')) cb(null, imagesDir);
     else if (file.mimetype.startsWith('video/')) cb(null, imagesDir);
@@ -22,6 +22,43 @@ const storage = multer.diskStorage({
     cb(null, `${uuidv4()}${safeExt}`);
   },
 });
+
+// ── Upload-time image optimization ───────────────────────────────────────────
+// Every png/jpg upload gets a compressed WebP sibling (≤1200px, q80, EXIF
+// stripped). server.js serves the sibling transparently for the original URL.
+// The original stays on disk as a fallback.
+async function optimizeImage(absPath) {
+  try {
+    const sharp = require('sharp');
+    const webpPath = absPath.replace(/\.(png|jpe?g)$/i, '.webp');
+    if (webpPath === absPath) return;
+    await sharp(absPath)
+      .rotate()
+      .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
+      .webp({ quality: 80 })
+      .toFile(webpPath);
+  } catch (err) {
+    console.error('⚠️  Image optimization failed:', err.message);
+  }
+}
+
+// Wrap diskStorage so optimization kicks in right after each saved png/jpg
+const storage = {
+  _handleFile(req, file, cb) {
+    diskStorage._handleFile(req, file, (err, info) => {
+      if (err) return cb(err);
+      try {
+        if (/^image\/(png|jpe?g)$/.test(file.mimetype) && info.path) {
+          optimizeImage(info.path);
+        }
+      } catch {}
+      cb(null, info);
+    });
+  },
+  _removeFile(req, file, cb) {
+    diskStorage._removeFile(req, file, cb);
+  },
+};
 
 // MIME + extension must agree and both be on the allowlist. octet-stream is
 // explicitly rejected so mislabeled executables can't be stored as "video".

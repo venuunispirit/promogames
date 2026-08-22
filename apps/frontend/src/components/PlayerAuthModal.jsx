@@ -1,0 +1,204 @@
+import { useState, useEffect, useRef } from 'react'
+import api from '../api'
+
+/*
+ * PlayerAuthModal — compact player-only OTP login/registration overlay.
+ * Used by PlayerPage's post-game "save your progress" prompt (inside the
+ * game iframe) so guests can attribute their result without leaving the page.
+ * Stores the same localStorage keys as LoginPage (playerToken / playerUser).
+ */
+
+const CSS = `
+.pam-overlay{position:fixed;inset:0;z-index:9500;background:rgba(5,2,12,0.88);backdrop-filter:blur(10px);display:flex;align-items:center;justify-content:center;padding:16px;animation:pamFade .18s ease both}
+@keyframes pamFade{from{opacity:0}to{opacity:1}}
+.pam-modal{width:100%;max-width:380px;background:linear-gradient(160deg,#0d0820,#12082a);border:1px solid rgba(146,16,246,0.35);border-radius:20px;padding:28px 24px 22px;box-shadow:0 24px 80px rgba(0,0,0,0.55),0 0 40px rgba(146,16,246,0.12);animation:pamUp .26s cubic-bezier(.22,1,.36,1) both;font-family:'DM Sans',sans-serif;color:#fff}
+@keyframes pamUp{from{opacity:0;transform:translateY(18px) scale(.97)}to{opacity:1;transform:none}}
+.pam-title{font-family:'Bebas Neue',sans-serif;font-size:26px;letter-spacing:2px;margin-bottom:4px}
+.pam-sub{font-size:13px;line-height:1.55;color:rgba(255,255,255,0.65);margin-bottom:18px}
+.pam-input{width:100%;padding:13px 14px;border-radius:12px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#fff;font-size:15px;outline:none;margin-bottom:10px;transition:border-color .2s}
+.pam-input:focus{border-color:#9210f6}
+.pam-input::placeholder{color:rgba(255,255,255,0.35)}
+.pam-btn{width:100%;padding:13px;border:none;border-radius:12px;background:linear-gradient(135deg,#9210f6,#610497);color:#fff;font-family:'DM Sans',sans-serif;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 20px rgba(146,16,246,0.35);transition:transform .15s,box-shadow .2s}
+.pam-btn:hover{transform:translateY(-1px);box-shadow:0 6px 26px rgba(146,16,246,0.5)}
+.pam-btn:disabled{opacity:.55;cursor:default;transform:none}
+.pam-link{background:none;border:none;color:#c084fc;font-size:12.5px;cursor:pointer;padding:8px 0 0;text-decoration:underline;text-underline-offset:3px}
+.pam-row{display:flex;gap:10px}
+.pam-err{font-size:12.5px;color:#ff8a8a;margin:-2px 0 10px;line-height:1.4}
+.pam-ok{text-align:center;padding:10px 0 4px}
+.pam-ok-ico{font-size:44px;margin-bottom:10px}
+.pam-close{position:absolute;top:14px;right:16px;background:none;border:none;color:rgba(255,255,255,0.55);font-size:17px;cursor:pointer;padding:6px}
+.pam-hint{font-size:11px;color:rgba(255,255,255,0.42);text-align:center;margin-top:10px}
+.pam-uname-msg{font-size:11px;margin:-6px 0 10px 2px;color:rgba(255,255,255,0.5)}
+.pam-uname-msg.taken{color:#ff8a8a}
+.pam-uname-msg.available{color:#7ee787}
+`
+
+export default function PlayerAuthModal({ onClose, onSuccess }) {
+  const [step, setStep] = useState('email') // email | otp | register | done
+  const [email, setEmail] = useState('')
+  const [otp, setOtp] = useState('')
+  const [tempToken, setTempToken] = useState(null)
+  const [form, setForm] = useState({ name: '', username: '' })
+  const [unameStatus, setUnameStatus] = useState('') // checking | available | taken
+  const [error, setError] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [resendCD, setResendCD] = useState(0)
+  const emailRef = useRef(null)
+
+  useEffect(() => { emailRef.current?.focus() }, [])
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose() }
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
+  }, [onClose])
+  useEffect(() => {
+    if (resendCD <= 0) return
+    const t = setInterval(() => setResendCD(s => (s <= 1 ? (clearInterval(t), 0) : s - 1)), 1000)
+    return () => clearInterval(t)
+  }, [resendCD])
+
+  const startCountdown = () => setResendCD(30)
+
+  // Live username availability (debounced)
+  useEffect(() => {
+    const val = form.username.trim().toLowerCase()
+    if (val.length < 3 || !/^[a-z0-9_]+$/.test(val)) { setUnameStatus(''); return }
+    setUnameStatus('checking')
+    const t = setTimeout(async () => {
+      try {
+        const { data } = await api.post('/pauth/check-username', { username: val })
+        setUnameStatus(data.available ? 'available' : 'taken')
+      } catch { setUnameStatus('') }
+    }, 450)
+    return () => clearTimeout(t)
+  }, [form.username])
+
+  const store = (token, player) => {
+    localStorage.setItem('playerToken', token)
+    localStorage.setItem('playerUser', JSON.stringify(player))
+  }
+
+  const handleEmail = async () => {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError('Enter a valid email address')
+    setError(''); setLoading(true)
+    try {
+      const { data } = await api.post('/pauth/check-email', { email })
+      if (data.type === 'admin' || data.type === 'business_owner' || data.type === 'internal_team') {
+        setError('This email is a staff account — use the full login page.')
+      } else {
+        await api.post('/pauth/send-otp', { email })
+        setStep('otp'); startCountdown()
+      }
+    } catch (err) { setError(err.response?.data?.message || 'Something went wrong.') }
+    finally { setLoading(false) }
+  }
+
+  const handleOtp = async () => {
+    if (otp.length < 4) return setError('Enter the 4-digit code')
+    setError(''); setLoading(true)
+    try {
+      const { data } = await api.post('/pauth/verify-otp', { email, otp })
+      if (data.type === 'player') {
+        store(data.token, { ...data.player })
+        setStep('done')
+        setTimeout(() => onSuccess?.({ ...data.player }, { isNew: false }), 650)
+      } else {
+        setTempToken(data.tempToken)
+        setStep('register')
+      }
+    } catch (err) { setError(err.response?.data?.message || 'Invalid or expired code.'); setOtp('') }
+    finally { setLoading(false) }
+  }
+
+  const handleRegister = async () => {
+    if (!form.name.trim()) return setError('Name is required')
+    const uname = form.username.trim().toLowerCase()
+    if (uname.length < 3) return setError('Username must be at least 3 characters')
+    if (!/^[a-z0-9_]+$/.test(uname)) return setError('Only lowercase letters, numbers, _')
+    if (unameStatus === 'taken') return setError('Username is already taken')
+    if (unameStatus === 'checking') return setError('Checking username…')
+    setError(''); setLoading(true)
+    try {
+      const { data } = await api.post('/pauth/register', {
+        tempToken,
+        name: form.name.trim(),
+        username: uname,
+        avatar_id: 'av-1',
+      })
+      store(data.token, { ...data.player })
+      setStep('done')
+      setTimeout(() => onSuccess?.({ ...data.player }, { isNew: true }), 650)
+    } catch (err) { setError(err.response?.data?.message || 'Registration failed.') }
+    finally { setLoading(false) }
+  }
+
+  const resend = async () => {
+    if (resendCD > 0) return
+    try { await api.post('/pauth/send-otp', { email }); startCountdown() } catch { setError('Failed to resend.') }
+  }
+
+  return (
+    <>
+      <style>{CSS}</style>
+      <div className="pam-overlay" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+        <div className="pam-modal" role="dialog" aria-modal="true" aria-label="Login to save your progress" style={{ position: 'relative' }}>
+          <button className="pam-close" onClick={onClose} aria-label="Close">✕</button>
+          {step === 'done' ? (
+            <div className="pam-ok">
+              <div className="pam-ok-ico">🎉</div>
+              <div className="pam-title">You're in!</div>
+              <div className="pam-sub">Saving your progress…</div>
+            </div>
+          ) : step === 'register' ? (
+            <>
+              <div className="pam-title">Create Account</div>
+              <div className="pam-sub">Pick a name and username — your coins and best scores will be saved to it.</div>
+              <input className="pam-input" placeholder="Your name" value={form.name} maxLength={60}
+                onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+              <input className="pam-input" placeholder="Username (e.g. game_master)" value={form.username} maxLength={20}
+                onChange={e => setForm(f => ({ ...f, username: e.target.value }))} />
+              <div className={`pam-uname-msg ${unameStatus}`}>
+                {unameStatus === 'checking' ? 'Checking…' : unameStatus === 'available' ? '✓ Available!' : unameStatus === 'taken' ? '✗ Already taken' : ''}
+              </div>
+              {error && <div className="pam-err">{error}</div>}
+              <button className="pam-btn" onClick={handleRegister} disabled={loading}>
+                {loading ? 'Creating…' : 'Create Account'}
+              </button>
+            </>
+          ) : step === 'otp' ? (
+            <>
+              <div className="pam-title">Check Your Email</div>
+              <div className="pam-sub">We sent a 4-digit code to <strong>{email}</strong></div>
+              <input className="pam-input" placeholder="••••" inputMode="numeric" maxLength={4} value={otp} ref={emailRef}
+                style={{ textAlign: 'center', fontSize: 22, letterSpacing: 10 }}
+                onChange={e => setOtp(e.target.value.replace(/\D/g, ''))}
+                onKeyDown={e => e.key === 'Enter' && handleOtp()} />
+              {error && <div className="pam-err">{error}</div>}
+              <button className="pam-btn" onClick={handleOtp} disabled={loading}>
+                {loading ? 'Verifying…' : 'Verify Code'}
+              </button>
+              <div style={{ textAlign: 'center' }}>
+                <button className="pam-link" onClick={resend} disabled={resendCD > 0}>
+                  {resendCD > 0 ? `Resend code in ${resendCD}s` : 'Resend code'}
+                </button>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="pam-title">Save Your Progress</div>
+              <div className="pam-sub">Log in or create a free account to keep your coins, scores and rewards.</div>
+              <input className="pam-input" placeholder="you@email.com" inputMode="email" value={email} ref={emailRef}
+                onChange={e => setEmail(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleEmail()} />
+              {error && <div className="pam-err">{error}</div>}
+              <button className="pam-btn" onClick={handleEmail} disabled={loading}>
+                {loading ? 'Sending…' : 'Continue with Email'}
+              </button>
+              <div className="pam-hint">No password needed — we'll email you a code</div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}

@@ -2672,6 +2672,40 @@ await safeQuery(connection, `
     console.error('❌ Tower game seed failed:', err.message);
   }
 
+  /* ================= PLAYER ENGAGEMENT: high scores & best scores ================= */
+
+  // games.high_score — all-time high score per game
+  await addColumn(connection, 'games', 'high_score', 'INT DEFAULT 0');
+
+  // player_best_scores — per-player best score per game (upserted with GREATEST).
+  // No FKs on purpose: promo_players is created by config/initPromo.js which may
+  // run separately; integrity is enforced at the API layer.
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS player_best_scores (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      promo_player_id INT NOT NULL,
+      game_id INT NOT NULL,
+      best_score INT DEFAULT 0,
+      plays INT DEFAULT 1,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_player_game (promo_player_id, game_id),
+      KEY idx_game_score (game_id, best_score)
+    )
+  `, 'player_best_scores table');
+
+  // Composite index powering every play-count subquery (arcade / hero / play-count)
+  try {
+    const [idxRows] = await connection.query(
+      "SHOW INDEX FROM player_sessions WHERE Key_name = 'idx_ps_game_completed'"
+    );
+    if (idxRows.length === 0) {
+      await connection.query('CREATE INDEX idx_ps_game_completed ON player_sessions (game_id, completed)');
+      console.log('✅ Added player_sessions(game_id, completed) index');
+    }
+  } catch (err) {
+    console.error('❌ player_sessions index:', err.message);
+  }
+
   await connection.end();
   console.log('✅ Migration completed successfully!');
 }

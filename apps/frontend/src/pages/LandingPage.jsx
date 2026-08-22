@@ -743,7 +743,7 @@ function RewardsCarousel() {
         <button className="rwc-btn" onClick={() => goTo(current - 1)}>‹</button>
         <div className="rwc-dots">
           {REWARD_CARDS_DATA.map((_, i) => (
-            <button key={i} className={`rwc-dot${i === current ? ' active' : ''}`} onClick={() => goTo(i)} />
+            <button key={i} type="button" aria-label={`Go to slide ${i + 1}`} className={`rwc-dot${i === current ? ' active' : ''}`} onClick={() => goTo(i)} />
           ))}
         </div>
         <button className="rwc-btn" onClick={() => goTo(current + 1)}>›</button>
@@ -824,7 +824,7 @@ function ReelsCarousel() {
       </div>
       <div className="reel-nav">
         {REELS.map((_, i) => (
-          <button key={i} className={`reel-dot${i === current ? ' active' : ''}`} onClick={() => setCurrent(i)} />
+          <button key={i} type="button" aria-label={`Go to slide ${i + 1}`} className={`reel-dot${i === current ? ' active' : ''}`} onClick={() => setCurrent(i)} />
         ))}
       </div>
     </div>
@@ -913,7 +913,7 @@ function TestimonialsCarousel({ onIndexChange }) {
       </div>
       <div className="tc-dots">
         {TESTIMONIALS.map((_, i) => (
-          <button key={i} className={`tc-dot${i === current ? ' active' : ''}`} onClick={() => goTo(i)} />
+          <button key={i} type="button" aria-label={`Go to testimonial ${i + 1}`} className={`tc-dot${i === current ? ' active' : ''}`} onClick={() => goTo(i)} />
         ))}
       </div>
     </div>
@@ -948,9 +948,15 @@ export default function PromoGamesHome() {
   const testimonialIdxRef = useRef(0);
 
   useEffect(() => {
-    const onScroll = () => {
+    // rAF-batched so we never read layout more than once per frame
+    let ticking = false
+    const update = () => {
+      ticking = false
       const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight);
       document.documentElement.style.setProperty('--scroll-pct', `${pct * 100}%`);
+    };
+    const onScroll = () => {
+      if (!ticking) { ticking = true; requestAnimationFrame(update) }
     };
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
@@ -962,9 +968,40 @@ export default function PromoGamesHome() {
     const texts = document.querySelectorAll('.glitch-line');
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-    /* Defer the gsap entrance until the main thread is idle so it never
-       competes with first paint / LCP, and skip it entirely for users who
-       prefer reduced motion (CSS already shows the headline at final state). */
+    // Hover scramble is attached in BOTH modes (it previously never ran for
+    // non-reduced-motion users because of an early return).
+    const attachHover = () => {
+      texts.forEach((el) => {
+        const hoverText = el.getAttribute('data-hover');
+        if (!hoverText) return
+        const overlay = el.querySelector('.overlay');
+        let hoverInterval = null;
+
+        el.addEventListener('mouseenter', () => {
+          let iteration = 0;
+          if (hoverInterval) clearInterval(hoverInterval);
+          hoverInterval = setInterval(() => {
+            const scrambled = hoverText.split('').map((letter, index) => {
+              if (index < iteration) return hoverText[index];
+              return letters[Math.floor(Math.random() * 26)];
+            }).join('');
+            overlay.textContent = scrambled;
+            if (iteration >= hoverText.length) clearInterval(hoverInterval);
+            iteration += 1 / 3;
+          }, 30);
+        });
+
+        el.addEventListener('mouseleave', () => {
+          if (hoverInterval) { clearInterval(hoverInterval); hoverInterval = null; }
+          overlay.textContent = hoverText;
+        });
+      });
+    };
+
+    /* The gsap entrance is purely decorative — start it only after the page's
+       `load` event AND idle time, so the ~116 KB gsap chunk stays out of the
+       initial critical path and never delays the LCP candidate. Skipped
+       entirely for users who prefer reduced motion. */
     if (!reduceMotion) {
       let cancelled = false;
       const run = () => {
@@ -986,38 +1023,21 @@ export default function PromoGamesHome() {
           });
         });
       };
-      if (typeof requestIdleCallback === 'function') {
-        const id = requestIdleCallback(run, { timeout: 1000 });
-        return () => { cancelled = true; cancelIdleCallback(id); };
-      }
-      const t = setTimeout(run, 400);
-      return () => { cancelled = true; clearTimeout(t); };
+      const kick = () => {
+        if (cancelled) return;
+        if (typeof requestIdleCallback === 'function') {
+          requestIdleCallback(run, { timeout: 2000 });
+        } else {
+          setTimeout(run, 400);
+        }
+      };
+      attachHover();
+      if (document.readyState === 'complete') kick();
+      else { window.addEventListener('load', kick, { once: true }); }
+      return () => { cancelled = true; window.removeEventListener('load', kick); };
     }
 
-    texts.forEach((el) => {
-      const hoverText = el.getAttribute('data-hover');
-      const overlay = el.querySelector('.overlay');
-      let hoverInterval = null;
-
-      el.addEventListener('mouseenter', () => {
-        let iteration = 0;
-        if (hoverInterval) clearInterval(hoverInterval);
-        hoverInterval = setInterval(() => {
-          const scrambled = hoverText.split('').map((letter, index) => {
-            if (index < iteration) return hoverText[index];
-            return letters[Math.floor(Math.random() * 26)];
-          }).join('');
-          overlay.textContent = scrambled;
-          if (iteration >= hoverText.length) clearInterval(hoverInterval);
-          iteration += 1 / 3;
-        }, 30);
-      });
-
-      el.addEventListener('mouseleave', () => {
-        if (hoverInterval) { clearInterval(hoverInterval); hoverInterval = null; }
-        overlay.textContent = hoverText;
-      });
-    });
+    attachHover();
   }, []);
 
   return (
@@ -1060,14 +1080,16 @@ export default function PromoGamesHome() {
             </div>
           </div>
           <div className="hero-mascot-wrap">
-            <img src="/hero-mascot.webp" alt="Mascot" className="hero-mascot-img" fetchPriority="high" decoding="async" />
+            <img src="/hero-mascot.webp" alt="Mascot" width="640" height="640" className="hero-mascot-img" fetchPriority="high" decoding="async" />
           </div>
         </div>
       </section>
       <div className="hero-mascot-mobile">
-        {/* Duplicate of the hero image shown on small screens — lazy so mobile
-            doesn't download the 130 KB mascot twice up front. */}
-        <img src="/hero-mascot.webp" alt="Mascot" loading="lazy" decoding="async" />
+        {/* Mobile hero duplicate — same URL as the desktop copy so the browser
+            fetches it once; must be eager because it IS the mobile LCP. */}
+        <img src="/hero-mascot.webp" alt="Mascot" width="640" height="640" fetchPriority="high" decoding="async"
+          srcSet="/hero-mascot-384.webp 384w, /hero-mascot.webp 640w"
+          sizes="(max-width: 640px) 55vw, 0px" />
       </div>
       <MarqueeStrip />
       <RankedGames />
@@ -1278,13 +1300,13 @@ export default function PromoGamesHome() {
             </p>
             <div className="socials">
               {[
-                { icon: "linkedin", href: "https://www.linkedin.com" },
-                { icon: "instagram", href: "https://www.facebook.com/profile.php?id=61579982040453" },
-                { icon: "twitter", href: "#" },
-                { icon: "youtube", href: "#" },
-                { icon: "instagram", href: "#" }
+                { icon: "linkedin", href: "https://www.linkedin.com", label: "PromoGames on LinkedIn" },
+                { icon: "instagram", href: "https://www.facebook.com/profile.php?id=61579982040453", label: "PromoGames on Facebook" },
+                { icon: "twitter", href: "#", label: "PromoGames on X (Twitter)" },
+                { icon: "youtube", href: "#", label: "PromoGames on YouTube" },
+                { icon: "instagram", href: "#", label: "PromoGames on Instagram" }
               ].map((s, i) => (
-                <a key={i} href={s.href} target="_blank" rel="noopener noreferrer" className="soc"><SvgIcon name={s.icon} size={18} /></a>
+                <a key={i} href={s.href} target="_blank" rel="noopener noreferrer" className="soc" aria-label={s.label}><SvgIcon name={s.icon} size={18} /></a>
               ))}
             </div>
           </div>

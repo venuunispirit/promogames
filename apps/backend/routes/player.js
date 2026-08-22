@@ -4,6 +4,64 @@ const db = require('../config/db');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const { sendError } = require('../lib/apiError');
+const jwt = require('jsonwebtoken');
+
+// ── Player engagement helpers ────────────────────────────────────────────────
+// Resolve the promo player from an optional Authorization: Bearer <playerToken>.
+// Returns null for guests / invalid tokens — never throws.
+function getPromoPlayerId(req) {
+  try {
+    const h = req.headers.authorization || '';
+    if (!h.startsWith('Bearer ')) return null;
+    const payload = jwt.verify(h.slice(7), process.env.JWT_SECRET);
+    return payload.id || null;
+  } catch {
+    return null;
+  }
+}
+
+// Upsert per-player best score (GREATEST) + all-time high score.
+async function recordBestScore(playerId, gameId, finalScore) {
+  const [prev] = await db.query(
+    'SELECT best_score FROM player_best_scores WHERE promo_player_id = ? AND game_id = ?',
+    [playerId, gameId]
+  );
+  const prevBest = prev.length ? prev[0].best_score : 0;
+  if (prev.length === 0) {
+    await db.query(
+      'INSERT INTO player_best_scores (promo_player_id, game_id, best_score) VALUES (?, ?, ?)',
+      [playerId, gameId, finalScore]
+    );
+  } else {
+    await db.query(
+      'UPDATE player_best_scores SET best_score = GREATEST(best_score, ?), plays = plays + 1 WHERE promo_player_id = ? AND game_id = ?',
+      [finalScore, playerId, gameId]
+    );
+  }
+  await db.query('UPDATE games SET high_score = GREATEST(COALESCE(high_score, 0), ?) WHERE id = ?', [finalScore, gameId]);
+  const [hs] = await db.query('SELECT high_score FROM games WHERE id = ?', [gameId]);
+  return {
+    player_best: Math.max(prevBest, finalScore),
+    high_score: hs[0]?.high_score || finalScore,
+    is_new_best: finalScore > prevBest,
+  };
+}
+
+// Award Promo Coins for a completed session once (guarded by pc_awarded).
+// Returns true when coins were awarded now.
+async function awardPCOnce(session) {
+  if (!session.promo_player_id || session.pc_awarded) return false;
+  const [g] = await db.query('SELECT name, game_type FROM games WHERE id = ?', [session.game_id]);
+  if (g.length === 0) return false;
+  const pcAmount = g[0].game_type === 'branded' ? 50 : 10;
+  await db.query('UPDATE promo_players SET pc_balance = pc_balance + ? WHERE id = ?', [pcAmount, session.promo_player_id]);
+  await db.query(
+    'INSERT INTO pc_transactions (player_id, type, points, game_id, note) VALUES (?, ?, ?, ?, ?)',
+    [session.promo_player_id, 'earn', pcAmount, session.game_id, `Completed: ${g[0].name}`]
+  );
+  await db.query('UPDATE player_sessions SET pc_awarded = 1 WHERE id = ?', [session.id]);
+  return true;
+}
 
 // GET /api/play/game-data/:gameId — full game payload for the Flutter app
 // MUST be before /:gameName/:companyName catch-all
@@ -1238,6 +1296,66 @@ router.post('/session/crossword-answer', async (req, res) => {
   }
 });
 
+// ── Claim an anonymous session for a logged-in promo player ──────────────────
+// Called right after a guest logs in/registers from the post-game prompt.
+// Attaches promo_player_id to an unclaimed session and, if the game already
+// completed, runs the once-only PC award + best-score recording immediately.
+router.post('/session/:token/claim', async (req, res) => {
+  try {
+    const playerId = getPromoPlayerId(req);
+    if (!playerId) return res.status(401).json({ success: false, message: 'Login required' });
+
+    const [sessions] = await db.query('SELECT * FROM player_sessions WHERE session_token = ?', [req.params.token]);
+    if (sessions.length === 0) return res.status(404).json({ success: false, message: 'Session not found' });
+    let session = sessions[0];
+    const wasAlreadyClaimed = !!session.promo_player_id;
+
+    // Idempotent: another device/tab may have claimed it first
+    if (!wasAlreadyClaimed) {
+      await db.query('UPDATE player_sessions SET promo_player_id = ? WHERE id = ?', [playerId, session.id]);
+      session = { ...session, promo_player_id: playerId };
+    } else if (session.promo_player_id !== playerId) {
+      return res.status(409).json({ success: false, message: 'Session belongs to another player' });
+    }
+
+    let pc_awarded_now = false;
+    let score_info = null;
+    if (session.completed) {
+      pc_awarded_now = await awardPCOnce(session);
+      const finalScore = parseInt(session.score, 10) || 0;
+      if (finalScore > 0) {
+        try { score_info = await recordBestScore(playerId, session.game_id, finalScore); }
+        catch (err) { console.error('Claim best-score error:', err.message); }
+      }
+    }
+
+    res.json({ success: true, claimed: true, already_claimed: wasAlreadyClaimed, pc_awarded: pc_awarded_now, score_info });
+  } catch (err) {
+    console.error('Claim session error:', err);
+    sendError(res, err);
+  }
+});
+
+// ── Per-game high score info (all-time + caller's personal best) ─────────────
+router.get('/game/:id/score-info', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT high_score FROM games WHERE id = ?', [req.params.id]);
+    if (rows.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+    const playerId = getPromoPlayerId(req);
+    let player_best = null;
+    if (playerId) {
+      const [best] = await db.query(
+        'SELECT best_score FROM player_best_scores WHERE promo_player_id = ? AND game_id = ?',
+        [playerId, req.params.id]
+      );
+      player_best = best.length ? best[0].best_score : null;
+    }
+    res.json({ success: true, high_score: rows[0].high_score || 0, player_best });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
 router.post('/session/complete', async (req, res) => {
   const { session_token, score, player_data } = req.body;
   try {
@@ -1377,6 +1495,17 @@ router.post('/session/complete', async (req, res) => {
       await db.query('UPDATE player_sessions SET pc_awarded = 1 WHERE id = ?', [session.id]);
     }
 
+    // ── High scores: per-player best + all-time high (score reported games) ──
+    let scoreInfo = null;
+    const finalScore = parseInt(score !== undefined ? score : session.score, 10) || 0;
+    if (session.promo_player_id && finalScore > 0) {
+      try {
+        scoreInfo = await recordBestScore(session.promo_player_id, session.game_id, finalScore);
+      } catch (err) {
+        console.error('Best score update error:', err.message);
+      }
+    }
+
     // ── Referral bonus: award 5 PC to referrer if this session was referred ──
     if (session.referred_by) {
       const [alreadyBonus] = await db.query(
@@ -1507,6 +1636,7 @@ router.post('/session/complete', async (req, res) => {
       success: true,
       session: updatedSession[0],
       email_sent: emailSent,
+      score_info: scoreInfo,
       redirect_url: game?.redirect_url || null,
     });
   } catch (err) {
@@ -1541,7 +1671,7 @@ router.get('/play-page-games', async (req, res) => {
   try {
     // Branded games → Featured row
     const [branded] = await db.query(`
-      SELECT g.id, g.name, g.slug, g.category, g.game_type,
+      SELECT g.id, g.name, g.slug, g.category, g.game_type, g.high_score,
              c.slug as client_slug, c.company_name,
              g.thumbnail_url, qs.game_logo_url, qs.bg_image_url,
              (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count
@@ -1554,7 +1684,7 @@ router.get('/play-page-games', async (req, res) => {
 
     // PromoGames → PromoGames row
     const [promoGames] = await db.query(`
-      SELECT g.id, g.name, g.slug, g.category, g.game_type,
+      SELECT g.id, g.name, g.slug, g.category, g.game_type, g.high_score,
              c.slug as client_slug, c.company_name,
              g.thumbnail_url, qs.game_logo_url, qs.bg_image_url,
              (SELECT COUNT(*) FROM player_sessions ps WHERE ps.game_id = g.id AND ps.completed = 1) as play_count

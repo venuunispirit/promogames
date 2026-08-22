@@ -4,6 +4,7 @@ import renderMedia, { isVideoUrl } from '../components/renderMedia'
 import { inAnim } from '../components/animations'
 import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
+import PlayerAuthModal from '../components/PlayerAuthModal'
 
 // ── Lazy-load game player pages ──────────────────────────────────────────────
 // Each game is only downloaded when the user actually plays it, instead of all
@@ -492,6 +493,10 @@ export default function PlayerPage() {
   // Submit modal
   const [showSubmitModal, setShowSubmitModal] = useState(false)
 
+  // Post-game "save your progress" prompt for guests
+  const [showSaveAuth, setShowSaveAuth] = useState(false)
+  const [saveClaim, setSaveClaim] = useState(null) // { pc_awarded, score_info }
+
   const activeSoundsRef = useRef([])
   const completingRef = useRef(false)
   const overlayTimerRef = useRef(null)
@@ -892,28 +897,10 @@ export default function PlayerPage() {
           }
         }
       }
-      // PromoGames: logged-in players see thankyou; guests skip to arcade
-      if (game?.game_type === 'promogames') {
-        if (playerProfile) {
-          setPhase('thankyou')
-        } else {
-          window.top.location.href = '/arcade'
-          setCompleting(false)
-          completingRef.current = false
-          return
-        }
-      } else {
-        setPhase('thankyou')
-      }
+      // All players see the thank-you screen — guests get the save-progress prompt
+      setPhase('thankyou')
     } catch {
-      if (game?.game_type === 'promogames') {
-        window.top.location.href = '/arcade'
-        setCompleting(false)
-        completingRef.current = false
-        return
-      } else {
-        setPhase('thankyou')
-      }
+      setPhase('thankyou')
     }
     setCompleting(false)
   }, [game, playerProfile, stopAllSounds])
@@ -924,12 +911,21 @@ export default function PlayerPage() {
       setTotalScoreable(data.session.total_scoreable || 0)
     }
     setRedirectUrl(data?.redirect_url || null)
-    if (game?.game_type === 'promogames' && !playerProfile) {
-      window.top.location.href = '/arcade'
-      return
-    }
     setPhase('thankyou')
   }, [game, playerProfile])
+
+  const handleSaveAuthSuccess = useCallback(async (_player, { isNew }) => {
+    setShowSaveAuth(false)
+    const tok = localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken')
+    if (tok && sessionToken) {
+      try {
+        const res = await api.post(`/play/session/${sessionToken}/claim`, {})
+        setSaveClaim({ pc_awarded: !!res.data.pc_awarded, score_info: res.data.score_info || null })
+      } catch {}
+    }
+    // Tell the parent page (arcade) that auth state changed
+    try { window.parent?.postMessage({ type: 'pg:auth', registered: !!isNew }, '*') } catch {}
+  }, [sessionToken])
 
   const doAdvance = useCallback((isLast, token) => {
     tts.cancel()
@@ -1971,6 +1967,48 @@ const handleModalClose = () => {
     return (
       <div style={{ minHeight: '100dvh', ...bgStyle, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center', position: 'relative', fontFamily: ff, padding: '20px 16px', boxSizing: 'border-box' }}>
         <Confetti />
+
+        {/* Post-game save-progress prompt (guests only) */}
+        {!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken')) && (
+          <div style={{
+            position: 'fixed', left: '50%', bottom: 16, transform: 'translateX(-50%)',
+            zIndex: 60, width: 'min(92vw, 400px)',
+            background: 'linear-gradient(160deg, #0d0820, #12082a)',
+            border: '1px solid rgba(146,16,246,0.4)', borderRadius: 18,
+            padding: saveClaim?.pc_awarded ? '14px 16px' : '13px 16px',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.45), 0 0 24px rgba(146,16,246,0.18)',
+            color: '#fff', fontFamily: "'DM Sans', sans-serif",
+            animation: 'tySlideUp 0.4s cubic-bezier(.2,1.2,.4,1) both',
+          }}>
+            {saveClaim?.pc_awarded ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, justifyContent: 'center' }}>
+                <span style={{ fontSize: 24 }}>🎉</span>
+                <span style={{ fontSize: 14, fontWeight: 600 }}>
+                  +{game?.game_type === 'branded' ? 50 : 10} Promo Coins added!
+                  {saveClaim.score_info?.is_new_best && <span style={{ color: '#f5c842' }}> · New personal best!</span>}
+                </span>
+              </div>
+            ) : (
+              <>
+                <div style={{ fontSize: 15, fontWeight: 700, marginBottom: 3 }}>Save your progress</div>
+                <div style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.65)', marginBottom: 11, lineHeight: 1.45 }}>
+                  Log in to keep your coins and best scores.
+                </div>
+                <button onClick={() => setShowSaveAuth(true)} style={{
+                  width: '100%', padding: '11px 16px', border: 'none', borderRadius: 12,
+                  background: 'linear-gradient(135deg, #9210f6, #610497)', color: '#fff',
+                  fontSize: 14.5, fontWeight: 700, cursor: 'pointer',
+                  boxShadow: '0 4px 18px rgba(146,16,246,0.35)',
+                }}>
+                  Log in / Sign up — it's free
+                </button>
+              </>
+            )}
+          </div>
+        )}
+        {showSaveAuth && (
+          <PlayerAuthModal onClose={() => setShowSaveAuth(false)} onSuccess={handleSaveAuthSuccess} />
+        )}
 
         {showSubmitModal && (
           <SubmitModal primaryColor={primaryColor} ff={ff} confirmGifUrl={confirmGifUrl} onConfirm={handleModalConfirm} onClose={handleModalClose} gameCategory={game.category} continueButtonText={s.continue_button_text} continueButtonTextColor={s.continue_button_text_color} continueButtonBgColor={s.continue_button_bg_color} />

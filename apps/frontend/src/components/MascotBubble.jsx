@@ -69,7 +69,7 @@ export default function MascotBubble() {
       <style>{CSS}</style>
       <div className={`mb-wrap${visible ? ' visible' : ''}`}>
         <div className={`mb-bubble${bubbleShow ? ' show' : ''}`}>{MASCOT_MSGS[msgIdx]}</div>
-        <img src="/mascot.png.png" alt="Mascot" />
+        <img src="/mascot-b.webp" alt="Mascot" width="240" height="240" loading="lazy" />
       </div>
     </>
   )

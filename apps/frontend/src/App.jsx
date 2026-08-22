@@ -249,11 +249,11 @@ export default function App() {
   return (
     <AccessibilityProvider>
       <ThemeProvider>
-        <a href="#main-content" className="skip-link"></a>
-        <div id="main-content" tabIndex={-1}>
+        <a href="#main-content" className="skip-link">Skip to main content</a>
+        <main id="main-content" tabIndex={-1}>
           <AppRoutes />
           <CookieBanner />
-        </div>
+        </main>
       </ThemeProvider>
     </AccessibilityProvider>
   )

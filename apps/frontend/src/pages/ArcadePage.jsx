@@ -207,6 +207,18 @@ function PlayTile({ game, sizeClass, delay, onPlay }) {
           </div>
         </>
       )}
+      {thumb && (game.play_count > 0 || game.high_score > 0) && (
+        <div className="pg-tile-info">
+          <div className="pg-tile-meta">
+            <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+            <span>{(game.play_count || 0).toLocaleString()}</span>
+            {game.high_score > 0 && (
+              <><svg width="10" height="10" viewBox="0 0 24 24" fill="#f5c842"><path d="M12 2l2.9 6.6 7.1.6-5.4 4.7 1.7 6.9L12 17.3 5.7 20.8l1.7-6.9-5.4-4.7 7.1-.6z"/></svg>
+              <span style={{ color:'#f5c842' }}>{game.high_score.toLocaleString()}</span></>
+            )}
+          </div>
+        </div>
+      )}
       <div className="pg-tile-play">
         <div className="pg-tile-play-btn">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="#9210f6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
@@ -254,6 +266,24 @@ export default function ArcadePage() {
     }
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  // Game iframe tells us when a guest logs in/registers → refresh counts,
+  // and celebrate the welcome bonus for fresh registrations.
+  useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type !== 'pg:auth') return
+      fetch('/api/play/play-page-games').then(r => r.json()).then(d => {
+        if (d.success) {
+          setGames(d.games || [])
+          setFeatured(d.featured || [])
+          setPromogames(d.promogames || [])
+        }
+      }).catch(() => {})
+      if (e.data.registered) setShowWelcome(true)
+    }
+    window.addEventListener('message', onMsg)
+    return () => window.removeEventListener('message', onMsg)
   }, [])
 
   const handlePlay = useCallback((game) => setActiveGame(game), [])

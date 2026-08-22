@@ -76,5 +76,8 @@ const fileFilter = (req, file, cb) => {
   else cb(new Error(`File type not allowed: ${file.mimetype || 'unknown'}`), false);
 };
 
-const upload = multer({ storage, fileFilter, limits: { fileSize: 25 * 1024 * 1024 } });
+// Upload size ceiling — videos are the big ones. Override via MAX_UPLOAD_MB.
+const MAX_UPLOAD_BYTES = (parseInt(process.env.MAX_UPLOAD_MB, 10) || 100) * 1024 * 1024;
+
+const upload = multer({ storage, fileFilter, limits: { fileSize: MAX_UPLOAD_BYTES } });
 module.exports = upload;

@@ -30,7 +30,7 @@ app.use(cors(corsOptions));
 // Security headers (defense-in-depth; a reverse proxy should also set these)
 app.use((req, res, next) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
-  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("X-Frame-Options", "SAMEORIGIN"); // DENY would break our own GameModal iframe
   res.setHeader("X-XSS-Protection", "1; mode=block");
   res.setHeader("Referrer-Policy", "no-referrer");
   // Ignored over plain HTTP, picked up automatically once HTTPS terminates here

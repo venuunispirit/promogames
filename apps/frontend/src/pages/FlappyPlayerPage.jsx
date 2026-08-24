@@ -253,6 +253,7 @@ export default function FlappyPlayerPage() {
       }
     };
     window.addEventListener("keydown", onKeyDown);
+    window.focus();
 
     const loop = () => {
       update();

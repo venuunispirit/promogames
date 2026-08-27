@@ -1,3 +1,9 @@
+/* ⛠️  LEGACY ROUTE — OUT OF SERVICE (migrated)
+ * Superseded by module: games/pouring/route.js
+ * This file is NO LONGER imported by apps/backend/server.js.
+ * Kept temporarily for reference/rollback during migration testing.
+ * TODO: DELETE this file once migrated-module testing is confirmed.
+ * ---------------------------------------------------------------- */
 const express = require('express');
 const router = express.Router();
 const db = require('../config/db');

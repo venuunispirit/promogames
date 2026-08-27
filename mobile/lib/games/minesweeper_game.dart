@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/game_config.dart';
-import 'game_contract.dart';
+import 'package:promogames_engine/engine.dart';
+import 'package:promogames_engine/engine.dart';
 
 Widget buildMinesweeperGame(GameConfig config, GameFinished onFinished) {
   return _MinesweeperGame(config: config, onFinished: onFinished);

@@ -263,13 +263,75 @@ router.get('/bo-logs', auth, async (req, res) => {
   }
 });
 
+// GET /internal-team/bo-logs/game/:gameId — list business owners with stats for a specific game
+router.get('/bo-logs/game/:gameId', auth, async (req, res) => {
+  try {
+    const gameId = req.params.gameId;
+    const [game] = await db.query('SELECT id, name FROM games WHERE id = ?', [gameId]);
+    if (!game.length) return res.status(404).json({ success: false, message: 'Game not found' });
+
+    const [bos] = await db.query(
+      `SELECT bo.id, bo.business_name, bo.email, bo.phone, bo.created_at,
+              bo.parent_id, bo.client_id, c.company_name as client_name
+       FROM business_owners bo
+       LEFT JOIN clients c ON bo.client_id = c.id
+       WHERE bo.id IN (SELECT business_owner_id FROM business_owner_games WHERE game_id = ?)
+          OR bo.id = (SELECT business_owner_id FROM games WHERE id = ?)
+       ORDER BY c.company_name ASC, bo.parent_id IS NULL DESC, bo.business_name ASC`,
+      [gameId, gameId]
+    );
+
+    const result = [];
+    for (const bo of bos) {
+      let plays = 0, redemptions = 0, withCode = 0, withoutCode = 0;
+      const [stats] = await db.query(
+        `SELECT
+           COUNT(DISTINCT ps.id) as plays,
+           COUNT(DISTINCT br.id) as redemptions,
+           SUM(CASE WHEN br.id IS NOT NULL AND br.code IS NOT NULL AND br.code <> '' THEN 1 ELSE 0 END) as with_code,
+           SUM(CASE WHEN br.id IS NOT NULL AND (br.code IS NULL OR br.code = '') THEN 1 ELSE 0 END) as without_code
+         FROM player_sessions ps
+         LEFT JOIN business_redemptions br ON br.session_id = ps.id AND br.business_owner_id = ?
+         WHERE ps.game_id = ?`,
+        [bo.id, gameId]
+      );
+      plays = stats[0]?.plays || 0;
+      redemptions = stats[0]?.redemptions || 0;
+      withCode = stats[0]?.with_code || 0;
+      withoutCode = stats[0]?.without_code || 0;
+
+      result.push({
+        id: bo.id,
+        business_name: bo.business_name,
+        email: bo.email,
+        phone: bo.phone,
+        created_at: bo.created_at,
+        parent_id: bo.parent_id,
+        client_id: bo.client_id,
+        client_name: bo.client_name || null,
+        kind: bo.parent_id ? 'location' : 'brand',
+        total_games: 1,
+        total_plays: plays,
+        total_redemptions: redemptions,
+        with_code: withCode,
+        without_code: withoutCode
+      });
+    }
+    res.json({ success: true, game: { id: game[0].id, name: game[0].name }, business_owners: result });
+  } catch (err) {
+    console.error(err);
+    sendError(res, err);
+  }
+});
+
 // GET /internal-team/bo-logs/:boId/entries — detailed play + redemption log for one BO
 // Includes players who played but never redeemed ("Played, not redeemed")
+// Supports optional game_id query parameter to filter by specific game
 router.get('/bo-logs/:boId/entries', auth, async (req, res) => {
   try {
     const boId = req.params.boId;
-    const { start_date, end_date } = req.query;
-    const gameIds = await getBusinessOwnerGameIds(boId);
+    const { start_date, end_date, game_id } = req.query;
+    const gameIds = game_id ? [game_id] : await getBusinessOwnerGameIds(boId);
     if (!gameIds.length) return res.json({ success: true, entries: [] });
 
     let dateFilter = '';

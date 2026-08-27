@@ -59,8 +59,12 @@ class _LoginPageState extends State<LoginPage> {
     whatsappCtrl.dispose();
     cityCtrl.dispose();
     pincodeCtrl.dispose();
-    for (final c in otpCtrls) c.dispose();
-    for (final n in otpNodes) n.dispose();
+    for (final c in otpCtrls) {
+      c.dispose();
+    }
+    for (final n in otpNodes) {
+      n.dispose();
+    }
     super.dispose();
   }
 
@@ -143,7 +147,9 @@ class _LoginPageState extends State<LoginPage> {
         setState(() => step = _kRegister);
       }
     } catch (_) {
-      for (final c in otpCtrls) c.clear();
+      for (final c in otpCtrls) {
+        c.clear();
+      }
       otpNodes.first.requestFocus();
     }
   }
@@ -151,7 +157,9 @@ class _LoginPageState extends State<LoginPage> {
   Future<void> _handleResend() async {
     if (resendCd > 0) return;
     _clearError();
-    for (final c in otpCtrls) c.clear();
+    for (final c in otpCtrls) {
+      c.clear();
+    }
     try {
       await context.read<AuthService>().sendOtp(emailCtrl.text.trim());
       _startCountdown();
@@ -579,7 +587,9 @@ class _LoginPageState extends State<LoginPage> {
           alignment: Alignment.centerLeft,
           child: TextButton.icon(
             onPressed: () {
-              for (final c in otpCtrls) c.clear();
+              for (final c in otpCtrls) {
+                c.clear();
+              }
               _clearError();
               setState(() => step = _kEmail);
             },

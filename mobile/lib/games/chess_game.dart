@@ -1,7 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
-import '../models/game_config.dart';
-import 'game_contract.dart';
+import 'package:promogames_engine/engine.dart';
+import 'package:promogames_engine/engine.dart';
 
 /// Builds the chess game widget.
 Widget buildChessGame(GameConfig config, GameFinished onFinished) {
@@ -66,6 +66,7 @@ class _Castling {
   bool k, q, K, Q;
   _Castling({this.k = true, this.q = true, this.K = true, this.Q = true});
 
+  @override
   String toString() {
     String s = '';
     if (K) s += 'K'; if (Q) s += 'Q'; if (k) s += 'k'; if (q) s += 'q';
@@ -92,7 +93,9 @@ class ChessEngine {
       for (final ch in rows[r].split('')) {
         final code = ch.codeUnitAt(0);
         if (code >= 49 && code <= 56) {
-          for (int i = 0; i < int.parse(ch); i++) board[r][c++] = null;
+          for (int i = 0; i < int.parse(ch); i++) {
+            board[r][c++] = null;
+          }
         } else {
           final isUpper = code >= 65 && code <= 90;
           board[r][c++] = _Piece(ch.toUpperCase(), isUpper);
@@ -179,8 +182,9 @@ class ChessEngine {
   List<int>? findKing(bool white) {
     final k = white ? 'K' : 'k';
     for (int r = 0; r < 8; r++)
-      for (int c = 0; c < 8; c++)
+      for (int c = 0; c < 8; c++) {
         if (board[r][c]?.type == 'K' && board[r][c]!.isWhite == white) return [r, c];
+      }
     return null;
   }
 
@@ -212,7 +216,9 @@ class ChessEngine {
         // Forward
         if (pieceAt(r+dir, c) == null) {
           if (r+dir == promoRow) {
-            for (final promo in ['Q','R','B','N']) moves.add(_Move(r, c, r+dir, c, promotion: promo));
+            for (final promo in ['Q','R','B','N']) {
+              moves.add(_Move(r, c, r+dir, c, promotion: promo));
+            }
           } else {
             moves.add(_Move(r, c, r+dir, c));
             if (r == startRow && pieceAt(r+2*dir, c) == null) {
@@ -227,7 +233,9 @@ class ChessEngine {
           final target = pieceAt(tr, tc);
           if (target != null && target.isWhite != isW) {
             if (tr == promoRow) {
-              for (final promo in ['Q','R','B','N']) moves.add(_Move(r, c, tr, tc, promotion: promo));
+              for (final promo in ['Q','R','B','N']) {
+                moves.add(_Move(r, c, tr, tc, promotion: promo));
+              }
             } else {
               moves.add(_Move(r, c, tr, tc));
             }
@@ -654,8 +662,11 @@ class _ChessGameState extends State<ChessGame> {
       final captured = _engine.board[move.toR][move.toC];
       if (captured != null) {
         final key = '${captured.isWhite ? "w" : "b"}${captured.type}';
-        if (captured.isWhite) _capturedWhite.add(key);
-        else _capturedBlack.add(key);
+        if (captured.isWhite) {
+          _capturedWhite.add(key);
+        } else {
+          _capturedBlack.add(key);
+        }
       }
     }
 
@@ -686,8 +697,11 @@ class _ChessGameState extends State<ChessGame> {
           final captured = _engine.board[aiMove.toR][aiMove.toC];
           if (captured != null) {
             final key = '${captured.isWhite ? "w" : "b"}${captured.type}';
-            if (captured.isWhite) _capturedWhite.add(key);
-            else _capturedBlack.add(key);
+            if (captured.isWhite) {
+              _capturedWhite.add(key);
+            } else {
+              _capturedBlack.add(key);
+            }
           }
         }
 

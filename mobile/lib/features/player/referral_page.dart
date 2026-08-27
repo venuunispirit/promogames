@@ -17,7 +17,7 @@ class ReferralPage extends StatelessWidget {
     final host = 'https://promogames.app';
     final shareUrl = '$host?utm_source=@$username';
 
-    void _copy() {
+    void copy() {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Link copied: $shareUrl')),
       );
@@ -52,7 +52,7 @@ class ReferralPage extends StatelessWidget {
                     Text('@$username', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 22, color: AppColors.primary)),
                   ])),
                   IconButton(
-                    onPressed: _copy,
+                    onPressed: copy,
                     icon: const Icon(Icons.copy, color: AppColors.primary),
                   ),
                 ]),
@@ -64,7 +64,7 @@ class ReferralPage extends StatelessWidget {
                 Expanded(child: _Stat(value: 'Unlimited', label: 'No cap')),
               ]),
               const SizedBox(height: AppSpace.lg),
-              AppButton(label: 'Share Invite Link', icon: Icons.share, onTap: _copy),
+              AppButton(label: 'Share Invite Link', icon: Icons.share, onTap: copy),
             ],
           ),
         ),

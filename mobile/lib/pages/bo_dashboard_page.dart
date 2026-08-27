@@ -173,7 +173,7 @@ class BODashboardPage extends StatelessWidget {
                         style: TextStyle(color: Colors.white70),
                       )
                     else
-                      ...gamesList.map((game) => _GameCard(game: game)).toList(),
+                      ...gamesList.map((game) => _GameCard(game: game)),
                     const SizedBox(height: 24),
                     const _AcceptRedemptionSection(),
                   ],

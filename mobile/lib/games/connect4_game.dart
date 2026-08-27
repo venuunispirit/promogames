@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/game_config.dart';
-import 'game_contract.dart';
+import 'package:promogames_engine/engine.dart';
+import 'package:promogames_engine/engine.dart';
 
 Widget buildConnect4Game(GameConfig config, GameFinished onFinished) {
   return _C4Game(config: config, onFinished: onFinished);
@@ -74,21 +74,29 @@ class _C4GameState extends State<_C4Game> {
         if (c + 3 < cols &&
             board[r][c + 1] == player &&
             board[r][c + 2] == player &&
-            board[r][c + 3] == player) return player;
+            board[r][c + 3] == player) {
+          return player;
+        }
         if (r + 3 < rows &&
             board[r + 1][c] == player &&
             board[r + 2][c] == player &&
-            board[r + 3][c] == player) return player;
+            board[r + 3][c] == player) {
+          return player;
+        }
         if (r + 3 < rows &&
             c + 3 < cols &&
             board[r + 1][c + 1] == player &&
             board[r + 2][c + 2] == player &&
-            board[r + 3][c + 3] == player) return player;
+            board[r + 3][c + 3] == player) {
+          return player;
+        }
         if (r - 3 >= 0 &&
             c + 3 < cols &&
             board[r - 1][c + 1] == player &&
             board[r - 2][c + 2] == player &&
-            board[r - 3][c + 3] == player) return player;
+            board[r - 3][c + 3] == player) {
+          return player;
+        }
       }
     }
     return 0;

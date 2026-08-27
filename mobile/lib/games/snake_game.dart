@@ -1,8 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/game_config.dart';
-import 'game_contract.dart';
+import 'package:promogames_engine/engine.dart';
+import 'package:promogames_engine/engine.dart';
 
 Widget buildSnakeGame(GameConfig config, GameFinished onFinished) {
   return _SnakeGame(config: config, onFinished: onFinished);
@@ -167,12 +167,14 @@ class _SnakeGameState extends State<_SnakeGame> {
                       height: cell * rows,
                       child: GestureDetector(
                         onVerticalDragEnd: (d) {
-                          if (d.primaryVelocity! < 0) _setDir(Point(0, -1));
-                          else if (d.primaryVelocity! > 0) _setDir(Point(0, 1));
+                          if (d.primaryVelocity! < 0) {
+                            _setDir(Point(0, -1));
+                          } else if (d.primaryVelocity! > 0) _setDir(Point(0, 1));
                         },
                         onHorizontalDragEnd: (d) {
-                          if (d.primaryVelocity! < 0) _setDir(Point(-1, 0));
-                          else if (d.primaryVelocity! > 0) _setDir(Point(1, 0));
+                          if (d.primaryVelocity! < 0) {
+                            _setDir(Point(-1, 0));
+                          } else if (d.primaryVelocity! > 0) _setDir(Point(1, 0));
                         },
                         child: CustomPaint(
                           painter: _SnakePainter(snake, food, cell, _primaryColor),

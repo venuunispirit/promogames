@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/game_config.dart';
-import 'game_contract.dart';
+import 'package:promogames_engine/engine.dart';
+import 'package:promogames_engine/engine.dart';
 
 Widget build2048Game(GameConfig config, GameFinished onFinished) {
   return _Game2048(config: config, onFinished: onFinished);
@@ -129,7 +129,9 @@ class _Game2048State extends State<_Game2048> {
         out.add(nonZero[i]);
       }
     }
-    while (out.length < 4) out.add(0);
+    while (out.length < 4) {
+      out.add(0);
+    }
     return out;
   }
 
@@ -216,12 +218,14 @@ class _Game2048State extends State<_Game2048> {
             Expanded(
               child: GestureDetector(
                 onVerticalDragEnd: (d) {
-                  if (d.primaryVelocity! < 0) _move('up');
-                  else if (d.primaryVelocity! > 0) _move('down');
+                  if (d.primaryVelocity! < 0) {
+                    _move('up');
+                  } else if (d.primaryVelocity! > 0) _move('down');
                 },
                 onHorizontalDragEnd: (d) {
-                  if (d.primaryVelocity! < 0) _move('left');
-                  else if (d.primaryVelocity! > 0) _move('right');
+                  if (d.primaryVelocity! < 0) {
+                    _move('left');
+                  } else if (d.primaryVelocity! > 0) _move('right');
                 },
                 child: Padding(
                   padding: const EdgeInsets.all(12),

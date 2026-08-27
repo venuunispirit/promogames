@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/game_config.dart';
-import 'game_contract.dart';
+import 'package:promogames_engine/engine.dart';
+import 'package:promogames_engine/engine.dart';
 
 Widget buildBrickImagesGame(GameConfig config, GameFinished onFinished) {
   return _BiGame(config: config, onFinished: onFinished);
@@ -75,7 +75,9 @@ class _BiGameState extends State<_BiGame> {
     final group = <List<int>>[];
     _flood(r, c, color, group);
     if (group.length < 2) return;
-    for (final p in group) grid[p[0]][p[1]] = null;
+    for (final p in group) {
+      grid[p[0]][p[1]] = null;
+    }
     score += group.length;
     _applyGravity();
     _checkDone();

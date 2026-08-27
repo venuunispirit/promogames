@@ -10,49 +10,51 @@ import ShareMenu from '../components/ShareMenu'
 // ── Lazy-load game player pages ──────────────────────────────────────────────
 // Each game is only downloaded when the user actually plays it, instead of all
 // 40+ games being bundled into the initial PlayerPage chunk.
-const CrosswordPlayerPage = lazy(() => import('./CrosswordPlayerPage'))
-const SpinPlayerPage = lazy(() => import('./SpinPlayerPage'))
-const MemoryPlayerPage = lazy(() => import('./MemoryPlayerPage'))
-const JigsawPlayerPage = lazy(() => import('./JigsawPlayerPage'))
-const WordSearchPlayerPage = lazy(() => import('./WordSearchPlayerPage'))
-const PouringPlayerPage = lazy(() => import('./PouringPlayerPage'))
-const TyperPlayerPage = lazy(() => import('./TyperPlayerPage'))
-const MathPlayerPage = lazy(() => import('./MathPlayerPage'))
-const MazePlayerPage = lazy(() => import('./MazePlayerPage'))
-const Game2048PlayerPage = lazy(() => import('./Game2048PlayerPage'))
-const SnakePlayerPage = lazy(() => import('./SnakePlayerPage'))
-const CatchPlayerPage = lazy(() => import('./CatchPlayerPage'))
-const ReactionPlayerPage = lazy(() => import('./ReactionPlayerPage'))
-const SimonPlayerPage = lazy(() => import('./SimonPlayerPage'))
-const FlappyPlayerPage = lazy(() => import('./FlappyPlayerPage'))
-const BouncePlayerPage = lazy(() => import('./BouncePlayerPage'))
-const BejeweledPlayerPage = lazy(() => import('./BejeweledPlayerPage'))
-const SpacePlayerPage = lazy(() => import('./SpacePlayerPage'))
-const Connect4PlayerPage = lazy(() => import('./Connect4PlayerPage'))
-const BowlingPlayerPage = lazy(() => import('./BowlingPlayerPage'))
-const SudokuPlayerPage = lazy(() => import('./SudokuPlayerPage'))
-const MinesweeperPlayerPage = lazy(() => import('./MinesweeperPlayerPage'))
-const WordScramblePlayerPage = lazy(() => import('./WordScramblePlayerPage'))
-const RpsPlayerPage = lazy(() => import('./RpsPlayerPage'))
-const ArrowEscapePlayerPage = lazy(() => import('./ArrowEscapePlayerPage'))
-const TetrisPlayerPage = lazy(() => import('./TetrisPlayerPage'))
-const StackPlayerPage = lazy(() => import('./StackPlayerPage'))
-const WhackAMolePlayerPage = lazy(() => import('./WhackAMolePlayerPage'))
-const HanoiPlayerPage = lazy(() => import('./HanoiPlayerPage'))
-const BreakoutPlayerPage = lazy(() => import('./BreakoutPlayerPage'))
-const BubbleShooterPlayerPage = lazy(() => import('./BubbleShooterPlayerPage'))
-const CarLaunchPlayerPage = lazy(() => import('./CarLaunchPlayerPage'))
-const SoundifyPlayerPage = lazy(() => import('./soundifyplayerpage'))
-const StressBusterPlayerPage = lazy(() => import('./frustrationplayerpage'))
-const TicTacToePlayerPage = lazy(() => import('./tictactoeplayer'))
-const SnakeAndLadderPlayerPage = lazy(() => import('./SnakeAndLadderPlayerPage'))
-const LudoPlayerPage = lazy(() => import('./LudoPlayerPage'))
-const CarromPlayerPage = lazy(() => import('./CarromPlayerPage'))
-const TicTacToeMultiplayerPlayerPage = lazy(() => import('./TicTacToeMultiplayerPlayerPage'))
-const ChessPlayerPage = lazy(() => import('./ChessPlayerPage'))
+const CrosswordPlayerPage = lazy(() => import('@games/crossword/playerpage.jsx'))
+const SpinPlayerPage = lazy(() => import('@games/spin/playerpage.jsx'))
+const MemoryPlayerPage = lazy(() => import('@games/memory/playerpage.jsx'))
+const JigsawPlayerPage = lazy(() => import('@games/jigsaw/playerpage.jsx'))
+const WordSearchPlayerPage = lazy(() => import('@games/wordsearch/playerpage.jsx'))
+const PouringPlayerPage = lazy(() => import('@games/pouring/playerpage.jsx'))
+const TyperPlayerPage = lazy(() => import('@games/typer/playerpage.jsx'))
+const MathPlayerPage = lazy(() => import('@games/math/playerpage.jsx'))
+const MazePlayerPage = lazy(() => import('@games/classicmaze/playerpage.jsx'))
+const Game2048PlayerPage = lazy(() => import('@games/2048/playerpage.jsx'))
+const SnakePlayerPage = lazy(() => import('@games/snake/playerpage.jsx'))
+const CatchPlayerPage = lazy(() => import('@games/catch/playerpage.jsx'))
+const ReactionPlayerPage = lazy(() => import('@games/reaction/playerpage.jsx'))
+const SimonPlayerPage = lazy(() => import('@games/simon/playerpage.jsx'))
+const FlappyPlayerPage = lazy(() => import('@games/flappy/playerpage.jsx'))
+const BouncePlayerPage = lazy(() => import('@games/bounce/playerpage.jsx'))
+const BejeweledPlayerPage = lazy(() => import('@games/bejeweled/playerpage.jsx'))
+const SpacePlayerPage = lazy(() => import('@games/space/playerpage.jsx'))
+const Connect4PlayerPage = lazy(() => import('@games/connect4/playerpage.jsx'))
+const BowlingPlayerPage = lazy(() => import('@games/bowling/playerpage.jsx'))
+const SudokuPlayerPage = lazy(() => import('@games/sudoku/playerpage.jsx'))
+const MinesweeperPlayerPage = lazy(() => import('@games/minesweeper/playerpage.jsx'))
+const WordScramblePlayerPage = lazy(() => import('@games/wordscramble/playerpage.jsx'))
+const RpsPlayerPage = lazy(() => import('@games/rps/playerpage.jsx'))
+const ArrowEscapePlayerPage = lazy(() => import('@games/arrowescape/playerpage.jsx'))
+const TetrisPlayerPage = lazy(() => import('@games/tetris/playerpage.jsx'))
+const StackPlayerPage = lazy(() => import('@games/stack/playerpage.jsx'))
+const WhackAMolePlayerPage = lazy(() => import('@games/whackamole/playerpage.jsx'))
+const HanoiPlayerPage = lazy(() => import('@games/hanoi/playerpage.jsx'))
+const BreakoutPlayerPage = lazy(() => import('@games/breakout/playerpage.jsx'))
+const BubbleShooterPlayerPage = lazy(() => import('@games/bubbleshooter/playerpage.jsx'))
+const CarLaunchPlayerPage = lazy(() => import('@games/carlaunch/playerpage.jsx'))
+const SoundifyPlayerPage = lazy(() => import('@games/soundify/playerpage.jsx'))
+const StressBusterPlayerPage = lazy(() => import('@games/stressbuster/playerpage.jsx'))
+const TicTacToePlayerPage = lazy(() => import('@games/tictactoe/playerpage.jsx'))
+const SnakeAndLadderPlayerPage = lazy(() => import('@games/snakeandladder/playerpage.jsx'))
+const LudoPlayerPage = lazy(() => import('@games/ludo/playerpage.jsx'))
+const CarromPlayerPage = lazy(() => import('@games/carrom/playerpage.jsx'))
+const TicTacToeMultiplayerPlayerPage = lazy(() => import('@games/tictactoemulti/playerpage.jsx'))
+const ChessPlayerPage = lazy(() => import('@games/chess/playerpage.jsx'))
+const QuizPlayerPage = lazy(() => import('@games/quiz/playerpage.jsx'))
 
-import screwPlayerHtml from './ScrewPlayerPage.html?raw'
-import towerPlayerHtml from './TowerPlayerPage.html?raw'
+import screwPlayerHtml from '@games/screw/ScrewPlayerPage.html?raw'
+import towerPlayerHtml from '@games/tower/TowerPlayerPage.html?raw'
+
 
 const api = axios.create({ baseURL: '/api' })
 
@@ -1342,542 +1344,43 @@ export default function PlayerPage() {
 
   /* ── PLAYING ── */
   if (phase === 'playing') {
-    const question = game.questions[currentQ]
-    if (!question || !game.questions.length) {
-      return (
-        <div style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f4f4ff', fontFamily:'DM Sans, sans-serif' }}>
-          <div style={{ textAlign:'center', padding:40 }}>
-            <div style={{ fontSize:48, marginBottom:12 }}>😕</div>
-            <h2 style={{ color:'#1a1a2e', fontSize:22, marginBottom:8 }}>No questions available</h2>
-            <p style={{ color:'#666', fontSize:14 }}>This game doesn't have any questions configured.</p>
-          </div>
-        </div>
-      )
-    }
-    const progress = (currentQ / game.questions.length) * 100
-    const qBg = question.question_bg_image_url
-    const gameBg = s.bg_image_url
-    const bgStyle = getPageBg(qBg, gameBg, s.bg_color || '#f4f4ff')
-    const hasBgImage = !!(qBg || gameBg)
-    const isOverlayActive = overlayState !== 'hidden'
-
-    const qImgAnimKey = question.question_image_animation || 'float'
-
-    const getOverlayImgStyle = () => {
-      if (!overlayData) return {}
-      if (overlayState === 'flyingIn') return { animation: `${overlayData.animIn} 0.6s cubic-bezier(0.34,1.3,0.64,1) forwards` }
-      if (overlayState === 'visible') return { transform: 'translateY(0) translateX(0) scale(1)', opacity: 1 }
-      if (overlayState === 'flyingOut') return { animation: `${overlayData.animOut} 0.5s cubic-bezier(0.55,0,0.85,0.36) forwards` }
-      return { opacity: 0 }
-    }
-
     return (
-      /*
-        OUTER SHELL — locks to full device screen height on every phone/tablet/desktop.
-        Nothing can push outside this box.
-      */
-      <>
-        {completing && <SubmittingPopup primaryColor={primaryColor} ff={ff} />}
-        <div style={{
-        height: '100dvh',
-        maxHeight: '100dvh',
-        overflow: 'hidden',
-        ...bgStyle,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        fontFamily: ff,
-        position: 'relative',
-        paddingTop: 'env(safe-area-inset-top)',
-        paddingBottom: 'env(safe-area-inset-bottom)',
-        paddingLeft: 'env(safe-area-inset-left)',
-        paddingRight: 'env(safe-area-inset-right)',
-        boxSizing: 'border-box',
-      }}>
-
-        {/* ── Question background video (if qBg is a video, replaces CSS bg) ── */}
-        {qBg && isVideoUrl(qBg) && (
-          <video
-            src={qBg}
-            autoPlay muted loop playsInline
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', zIndex: 0 }}
-          />
-        )}
-
-        {/* ── OVERLAY — covers entire screen, image shown fully without cropping ── */}
-        {isOverlayActive && overlayData && (
-          <div style={{
-            position: 'fixed',
-            inset: 0,
-            zIndex: 1000,
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: 'rgba(0,0,0,0.82)',
-            backdropFilter: 'blur(6px)',
-            WebkitBackdropFilter: 'blur(6px)',
-          }}>
-            {/*
-              Image: width+height both 100% of viewport, object-fit:contain
-              ensures full image is always visible regardless of its aspect ratio or screen size
-            */}
-            {renderMedia(overlayData.src, {
-              width: '100vw',
-              height: '100dvh',
-              objectFit: 'contain',
-              display: 'block',
-              ...getOverlayImgStyle()
-            }, { autoPlay: true, muted: false, loop: false, controls: false })}
-            {showNextBtn && (
-              <button
-                onClick={() => flyOutRef.current?.()}
-                style={{
-                  position: 'absolute',
-                  bottom: 'calc(env(safe-area-inset-bottom) + 32px)',
-                  zIndex: 1001,
-                  background: s.next_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-                  color: s.next_button_text_color || '#fff',
-                  border: 'none',
-                  borderRadius: 50,
-                  padding: '16px 44px',
-                  fontSize: 18,
-                  fontWeight: 700,
-                  cursor: 'pointer',
-                  fontFamily: ff,
-                  boxShadow: s.next_button_bg_color ? '0 12px 40px rgba(0,0,0,0.2)' : `0 12px 40px ${primaryColor}88`,
-                  animation: 'nextBtnIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards',
-                  letterSpacing: '0.02em',
-                  minWidth: 160,
-                  minHeight: 54,
-                  touchAction: 'manipulation',
-                }}>
-                {s.next_button_text || 'Next →'}
-              </button>
-            )}
-          </div>
-        )}
-
-        {/*
-          CONTENT COLUMN — fills all available height between safe-area paddings.
-          maxWidth caps it on tablets/desktops while phones use full width.
-        */}
-        <div style={{
-          width: '100%',
-          maxWidth: 520,
-          flex: 1,
-          minHeight: 0,
-          display: 'flex',
-          flexDirection: 'column',
-          boxSizing: 'border-box',
-          padding: '0 14px',
-        }}>
-
-          {/* ── Progress bar — fixed height, never shrinks ── */}
-          {s.show_progress !== 0 && (
-            <div style={{ flexShrink: 0, paddingTop: 12, paddingBottom: 10 }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5, fontSize: 12, color: hasBgImage ? 'rgba(255,255,255,0.9)' : '#888', fontWeight: 600 }}>
-                <span>Question {currentQ + 1} of {game.questions.length}</span>
-                <div style={{ display:'flex', gap:12, alignItems:'center' }}>
-                  {timeLeft !== null && !answered && (
-                    <span style={{ color: timeLeft <= 5 ? '#ef4444' : (hasBgImage ? 'rgba(255,255,255,0.9)' : '#888'), fontWeight:700 }}>
-                      ⏱ {timeLeft}s
-                    </span>
-                  )}
-                  <span>{Math.round(progress)}%</span>
-                </div>
-              </div>
-              <div style={{ height: 5, background: hasBgImage ? 'rgba(255,255,255,0.25)' : '#e8e8f5', borderRadius: 10, overflow: 'hidden' }}>
-                <div style={{ height: '100%', width: `${progress}%`, background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`, borderRadius: 10, transition: 'width 0.5s ease' }} />
-              </div>
-            </div>
-          )}
-
-          {/*
-            CARD — flex:1 + minHeight:0 makes it fill exactly the remaining vertical space.
-            display:flex + flexDirection:column lets its children share that space.
-            NO fixed heights, NO overflow:auto on the card itself — the card IS the screen.
-          */}
-          <div
-            key={questionKey}
-            style={{
-              flex: 1,
-              minHeight: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              background: hasBgImage ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.97)',
-              backdropFilter: 'blur(20px)',
-              WebkitBackdropFilter: 'blur(20px)',
-              borderRadius: 22,
-              border: hasBgImage ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
-              boxShadow: hasBgImage ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
-              animation: 'questionEnter 0.4s cubic-bezier(0.34,1.3,0.64,1)',
-              marginBottom: 12,
-              overflow: 'hidden',
-              boxSizing: 'border-box',
-            }}>
-
-            {/*
-              IMAGE SECTION — flex:1 with minHeight:0 so it takes up free space above the options.
-              The image itself uses maxHeight:100% + objectFit:contain so it's always fully visible
-              no matter its aspect ratio or the phone's screen height.
-            */}
-            {question.question_image_url && (() => {
-              const idleAnimDef = qImgAnimKey !== 'none'
-                ? (() => {
-                    const map = {
-                      float:     'qImgFloat 3s ease-in-out infinite',
-                      breathe:   'qImgBreathe 2.8s ease-in-out infinite',
-                      pulse:     'qImgPulse 2.4s ease-in-out infinite',
-                      shimmer:   'qImgShimmer 3s ease-in-out infinite',
-                      kenburns:  'qImgKenBurns 8s ease-in-out infinite alternate',
-                      bounce:    'qImgBounce 1.8s ease-in-out infinite',
-                      sway:      'qImgSway 2.5s ease-in-out infinite',
-                      wobble:    'qImgWobble 2.2s ease-in-out infinite',
-                      swing:     'qImgSwing 2.4s ease-in-out infinite',
-                      tada:      'qImgTada 2.6s ease-in-out infinite',
-                      heartBeat: 'qImgHeartBeat 1.6s ease-in-out infinite',
-                      rotate:    'qImgRotate 6s linear infinite',
-                      flash:     'qImgFlash 1.8s ease-in-out infinite',
-                      rubberBand:'qImgRubberBand 2s ease-in-out infinite',
-                      slideUpDown:'qImgSlideUpDown 3s ease-in-out infinite',
-                      zoomInOut: 'qImgZoomInOut 2.4s ease-in-out infinite',
-                      fadeInOut: 'qImgFadeInOut 2.6s ease-in-out infinite',
-                      wave:      'qImgWave 2.8s ease-in-out infinite',
-                      orbit:     'qImgOrbit 4s ease-in-out infinite',
-                      glitch:    'qImgGlitch 1.5s ease-in-out infinite',
-                      blurBlink: 'qImgBlurBlink 2.2s ease-in-out infinite',
-                      skew:      'qImgSkew 2.5s ease-in-out infinite',
-                      roll:      'qImgRoll 3s ease-in-out infinite',
-                      bounceIn:  'qImgBounceIn 2.2s ease-in-out infinite',
-                      jello:     'qImgJello 2.4s ease-in-out infinite',
-                    }
-                    return map[qImgAnimKey] || map.float
-                  })()
-                : null
-              const entranceAnim = inAnim(tpl.anim_question_in || 'floatIn', 0.5)
-              const combinedAnim = idleAnimDef
-                ? `${entranceAnim}, ${idleAnimDef}`
-                : entranceAnim
-              return (
-                <div ref={qImgWrapRef} style={{
-                  flex: 1,
-                  minHeight: 0,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  padding: '14px 14px 0',
-                  background: hasBgImage ? 'rgba(0,0,0,0.10)' : 'rgba(0,0,0,0.03)',
-                  overflow: 'hidden',
-                  position: 'relative',
-                  boxSizing: 'border-box',
-                }}>
-                  {renderMedia(question.question_image_url, {
-                    /*
-                      width:100% fills horizontally, height:100% fills vertically (within the flex container),
-                      object-fit:contain ensures the full image is always visible — no cropping ever.
-                      This works on any screen size automatically.
-                    */
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                    display: 'block',
-                    borderRadius: 10,
-                    animation: combinedAnim,
-                    transformOrigin: 'center center',
-                  }, {
-                    autoPlay: true, muted: false, loop: false, playsInline: true,
-                    onTimeUpdate: (e) => {
-                      const v = e.currentTarget
-                      // Freeze on the frame at the 7-second mark.
-                      if (v.currentTime >= 7) {
-                        try { v.pause() } catch {}
-                      }
-                    }
-                  })}
-                  {Boolean(game?.settings?.enable_mascot) && (
-                    <img
-                      src="/mascot.png.png"
-                      alt="Mascot"
-                      style={{
-                        position: 'absolute',
-                        right: 10,
-                        bottom: 10,
-                        width: 64,
-                        height: 'auto',
-                        zIndex: 5,
-                        pointerEvents: 'none',
-                        filter: 'drop-shadow(0 4px 10px rgba(0,0,0,0.25))',
-                        animation: 'mascotFloat 3s ease-in-out infinite',
-                      }}
-                    />
-                  )}
-                </div>
-              )
-            })()}
-
-            {/*
-              BOTTOM SECTION — question text + options. flexShrink:0 so it never gets squished.
-              Options use flex:1 with justifyContent:space-evenly to spread across available height.
-            */}
-            <div style={{
-              flexShrink: 0,
-              display: 'flex',
-              flexDirection: 'column',
-              padding: '12px 14px 14px',
-              gap: 10,
-              boxSizing: 'border-box',
-            }}>
-
-              {/* CHANGE: game logo in questions page — kept hidden, uncomment to show */}
-              {/*
-              {gameLogo && (
-                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 8 }}>
-                  <img src={gameLogo} alt="Logo" style={{ maxWidth: 120, maxHeight: 44, width: 'auto', height: 'auto', objectFit: 'contain', borderRadius: 8 }} />
-                </div>
-              )}
-              */}
-
-              {/* Question text */}
-              <h2 style={{
-                color: hasBgImage ? '#fff' : (question.question_color || '#1a1a2e'),
-                fontSize: 'clamp(13px,3.8vw,18px)',
-                lineHeight: 1.4,
-                textAlign: 'center',
-                fontFamily: ff,
-                margin: 0,
-                textShadow: hasBgImage ? '0 1px 4px rgba(0,0,0,0.4)' : 'none',
-                fontWeight: 700,
-                animation: 'questionEnter 0.45s 0.1s both ease',
-              }}>
-                {question.question_text}
-              </h2>
-
-              {/* Options — evenly distributed, flex:1 on each so they fill remaining space */}
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: 8,
-              }}>
-                {question.question_type === 'select' ? (
-                  <div style={{ display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
-                    <select
-                      value={selectValue}
-                      onChange={e => setSelectValue(e.target.value)}
-                      disabled={answered}
-                      style={{
-                        width: '100%', maxWidth: 420, padding: '14px 18px', borderRadius: 14,
-                        border: `2px solid ${primaryColor}40`, background: 'rgba(255,255,255,0.95)',
-                        fontSize: 'clamp(15px,4vw,18px)', fontWeight: 600, color: '#1a1a2e',
-                        textAlign: 'center', fontFamily: ff, outline: 'none',
-                      }}>
-                      <option value="">— Select an option —</option>
-                      {(question.options || []).map(o => (
-                        <option key={o.id} value={o.id}>{o.option_text}</option>
-                      ))}
-                    </select>
-                    {!answered && (
-                      <button onClick={() => handleSelectSubmit(sessionToken)}
-                        disabled={!selectValue}
-                        style={{
-                          background: selectValue ? `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` : '#ccc',
-                          color: '#fff', border: 'none', borderRadius: 50, padding: '14px 40px',
-                          fontSize: 16, fontWeight: 700, cursor: selectValue ? 'pointer' : 'not-allowed', fontFamily: ff,
-                        }}>
-                        Submit →
-                      </button>
-                    )}
-                    {answered && <div style={{ marginTop:8, padding:'10px 18px', borderRadius:12, background:'rgba(34,197,94,0.1)', border:'1.5px solid rgba(34,197,94,0.3)', color:'#16a34a', fontSize:14, fontWeight:600 }}>✓ Recorded</div>}
-                  </div>
-                ) : question.question_type === 'checkbox' ? (
-                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                    {(question.options || []).map(opt => {
-                      const checked = checkedOpts.some(o => o.id === opt.id)
-                      return (
-                        <button key={opt.id} onClick={() => handleCheckboxToggle(opt)}
-                          disabled={answered}
-                          style={{
-                            display:'flex', alignItems:'center', gap:12, textAlign:'left',
-                            background: checked ? `${primaryColor}1a` : 'rgba(255,255,255,0.95)',
-                            border: `2px solid ${checked ? primaryColor : '#e3e6f0'}`,
-                            borderRadius: 14, padding:'14px 18px', cursor: answered ? 'default' : 'pointer', fontFamily: ff,
-                          }}>
-                          <span style={{ width:22, height:22, borderRadius:6, border:`2px solid ${checked ? primaryColor : '#cbd0dd'}`, display:'flex', alignItems:'center', justifyContent:'center', background: checked ? primaryColor : '#fff', color:'#fff', fontWeight:800, fontSize:14 }}>{checked ? '✓' : ''}</span>
-                          <span style={{ fontSize:'clamp(15px,4vw,18px)', fontWeight:600, color:'#1a1a2e' }}>{opt.option_text}</span>
-                        </button>
-                      )
-                    })}
-                    {!answered && (
-                      <button onClick={() => handleCheckboxSubmit(sessionToken)}
-                        disabled={checkedOpts.length === 0}
-                        style={{
-                          alignSelf:'center', marginTop:6,
-                          background: checkedOpts.length ? `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` : '#ccc',
-                          color: '#fff', border: 'none', borderRadius: 50, padding: '14px 40px',
-                          fontSize: 16, fontWeight: 700, cursor: checkedOpts.length ? 'pointer' : 'not-allowed', fontFamily: ff,
-                        }}>
-                        Submit →
-                      </button>
-                    )}
-                    {answered && <div style={{ alignSelf:'center', marginTop:8, padding:'10px 18px', borderRadius:12, background:'rgba(34,197,94,0.1)', border:'1.5px solid rgba(34,197,94,0.3)', color:'#16a34a', fontSize:14, fontWeight:600 }}>✓ Recorded</div>}
-                  </div>
-                ) : question.question_type === 'short_answer' ? (
-                  <div style={{ display:'flex', flexDirection:'column', gap:10, alignItems:'center' }}>
-                    <input
-                      type={question.answer_is_number ? 'number' : 'text'}
-                      value={shortAnswerText}
-                      onChange={e => setShortAnswerText(e.target.value)}
-                      onKeyDown={e => { if (e.key === 'Enter') handleShortAnswerSubmit() }}
-                      placeholder={question.answer_is_number ? 'Enter a number…' : 'Type your answer…'}
-                      disabled={answered}
-                      style={{
-                        width: '100%',
-                        padding: '14px 18px',
-                        borderRadius: 14,
-                        border: answered ? '2px solid #22c55e' : `2px solid ${primaryColor}40`,
-                        background: answered ? 'rgba(34,197,94,0.08)' : 'rgba(255,255,255,0.95)',
-                        fontSize: 'clamp(15px,4vw,18px)',
-                        fontWeight: 600,
-                        color: '#1a1a2e',
-                        textAlign: 'center',
-                        fontFamily: ff,
-                        outline: 'none',
-                        transition: 'all 0.25s ease',
-                        boxShadow: answered ? '0 4px 16px rgba(34,197,94,0.2)' : '0 2px 8px rgba(0,0,0,0.06)',
-                      }}
-                    />
-                    {!answered && (
-                      <button
-                        onClick={handleShortAnswerSubmit}
-                        disabled={!shortAnswerText.trim()}
-                        style={{
-                          background: shortAnswerText.trim() ? `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)` : '#ccc',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: 50,
-                          padding: '14px 40px',
-                          fontSize: 16,
-                          fontWeight: 700,
-                          cursor: shortAnswerText.trim() ? 'pointer' : 'not-allowed',
-                          fontFamily: ff,
-                          boxShadow: shortAnswerText.trim() ? `0 8px 24px ${primaryColor}66` : 'none',
-                          transition: 'all 0.25s ease',
-                          touchAction: 'manipulation',
-                          animation: 'questionEnter 0.4s 0.2s both ease',
-                        }}>
-                        Submit Answer →
-                      </button>
-                    )}
-                    {answered && (
-                      <div style={{
-                        marginTop: 8,
-                        padding: '10px 18px',
-                        borderRadius: 12,
-                        background: 'rgba(34,197,94,0.1)',
-                        border: '1.5px solid rgba(34,197,94,0.3)',
-                        color: '#16a34a',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        fontFamily: ff,
-                        animation: 'questionEnter 0.3s ease',
-                      }}>
-                        ✓ Answer recorded
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                (question.options || []).map((opt, optIdx) => {
-                  const os = getOptionStyle(opt, question, selectedOpt)
-                  return (
-                    <button
-                      key={opt.id}
-                      onClick={() => handleOptionSelect(opt, sessionToken)}
-                      disabled={answered}
-                      style={{
-                        background: os.bg,
-                        border: os.border,
-                        borderRadius: 14,
-                        /*
-                          flex:1 makes every option take equal vertical space,
-                          so 4 options on a tall phone look the same as on a short one.
-                        */
-                        flex: 1,
-                        minHeight: 48,
-                        color: os.text,
-                        fontSize: 'clamp(13px,3.5vw,15px)',
-                        fontWeight: 600,
-                        cursor: answered ? 'default' : 'pointer',
-                        textAlign: 'center',
-                        lineHeight: 1.3,
-                        fontFamily: ff,
-                        transition: 'all 0.25s ease',
-                        boxShadow: os.shadow,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: 10,
-                        transform: os.scale,
-                        width: '100%',
-                        opacity: os.opacity,
-                        touchAction: 'manipulation',
-                        animation: `questionEnter 0.4s ${0.15 + optIdx * 0.06}s both ease`,
-                        WebkitTapHighlightColor: 'transparent',
-                        userSelect: 'none',
-                        WebkitUserSelect: 'none',
-                        padding: '0 14px',
-                        boxSizing: 'border-box',
-                      }}>
-                      {opt.option_image_url && renderMedia(opt.option_image_url, { width: 'auto', height: 32, objectFit: 'contain', borderRadius: 8, flexShrink: 0 })}
-                      <span style={{ flex: 1, textAlign: 'center' }}>{opt.option_text}</span>
-                    </button>
-                  )
-                })
-                )}
-              </div>
-
-              {/* ── NEW: Continue button for registration games (no overlay) ── */}
-              {showContinueBtn && (
-                <button
-                  onClick={handleContinueClick}
-                  style={{
-                    marginTop: 12,
-                    background: `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`,
-                    color: '#fff',
-                    border: 'none',
-                    borderRadius: 50,
-                    padding: '16px 44px',
-                    fontSize: 18,
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    fontFamily: ff,
-                    boxShadow: `0 12px 40px ${primaryColor}88`,
-                    animation: 'nextBtnIn 0.4s cubic-bezier(0.34,1.56,0.64,1) forwards',
-                    letterSpacing: '0.02em',
-                    minWidth: 160,
-                    minHeight: 54,
-                    touchAction: 'manipulation',
-                    width: '100%',
-                    maxWidth: 160,
-                    alignSelf: 'center',
-                  }}>
-                  Continue →
-                </button>
-              )}
-            </div>
-          </div>
-        </div>
-        
-
-        {completing && (
-          <div style={{ marginBottom: 12, flexShrink: 0, display: 'flex', alignItems: 'center', gap: 10, background: 'rgba(255,255,255,0.85)', backdropFilter: 'blur(10px)', borderRadius: 12, padding: '10px 18px', fontSize: 13, color: '#555' }}>
-              <span style={{ width: 16, height: 16, border: `2px solid ${primaryColor}44`, borderTopColor: primaryColor, borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />
-              Saving results…
-          </div>
-        )}
-
-        <style>{OVERLAY_STYLES}</style>
-      </div>
-      </>
+      <QuizPlayerPage
+        game={game}
+        currentQ={currentQ}
+        sessionToken={sessionToken}
+        answered={answered}
+        selectedOpt={selectedOpt}
+        selectValue={selectValue}
+        checkedOpts={checkedOpts}
+        shortAnswerText={shortAnswerText}
+        score={score}
+        totalScoreable={totalScoreable}
+        completing={completing}
+        timeLeft={timeLeft}
+        questionKey={questionKey}
+        overlayState={overlayState}
+        overlayData={overlayData}
+        showNextBtn={showNextBtn}
+        primaryColor={primaryColor}
+        ff={ff}
+        s={s}
+        showContinueBtn={showContinueBtn}
+        qImgWrapRef={qImgWrapRef}
+        flyOutRef={flyOutRef}
+        handleOptionSelect={handleOptionSelect}
+        handleSelectSubmit={handleSelectSubmit}
+        handleCheckboxSubmit={handleCheckboxSubmit}
+        handleShortAnswerSubmit={handleShortAnswerSubmit}
+        handleCheckboxToggle={handleCheckboxToggle}
+        handleContinueClick={handleContinueClick}
+        setSelectValue={setSelectValue}
+        setShortAnswerText={setShortAnswerText}
+        getPageBg={getPageBg}
+        optionBgColor={optionBgColor}
+        optionTextColor={optionTextColor}
+        optionBorderColor={optionBorderColor}
+      />
     )
   }
 

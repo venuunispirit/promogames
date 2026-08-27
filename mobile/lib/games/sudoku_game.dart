@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/game_config.dart';
-import 'game_contract.dart';
+import 'package:promogames_engine/engine.dart';
+import 'package:promogames_engine/engine.dart';
 
 const _bg = LinearGradient(
   begin: Alignment.topLeft,
@@ -63,7 +63,9 @@ class _SudokuGameState extends State<_SudokuGame> {
   @override
   void dispose() {
     for (final row in _controllers) {
-      for (final c in row) c.dispose();
+      for (final c in row) {
+        c.dispose();
+      }
     }
     super.dispose();
   }

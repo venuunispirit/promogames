@@ -19,32 +19,190 @@ PromoGames is a gamified marketing platform (quiz, crossword, spin wheel, and 30
 
 ```
 promogames/
+├── games/                    # === GAME MODULES (one folder per game) ===
+│   ├── snake/                # Snake game module (fully migrated)
+│   │   ├── meta.json         # Game metadata for auto-discovery
+│   │   ├── schema.js         # DB settings table definition
+│   │   ├── route.js          # Backend API (GET/PUT settings)
+│   │   ├── builderpage.jsx   # Admin config page
+│   │   ├── playerpage.jsx    # Player game page (React)
+│   │   ├── logic.dart        # Flutter game implementation
+│   │   └── assets/           # Shared assets (React + Flutter)
+│   ├── quiz/                 # Quiz game module
+│   ├── crossword/            # Crossword game module
+│   └── ... (37 games total)
+│
 ├── apps/
-│   ├── backend/          # Express API server (MySQL)
-│   │   ├── server.js     # Entry point — 340 lines, ~80 route mounts
+│   ├── backend/              # Express API server (MySQL)
+│   │   ├── server.js         # Entry point — auto-loads game routes
 │   │   ├── config/
-│   │   │   ├── db.js     # MySQL connection pool (mysql2)
-│   │   │   ├── env.js    # Env var validation (exits if required vars missing)
-│   │   │   ├── initDB.js # Schema + migrations (~135KB)
-│   │   │   ├── initPromo.js
-│   │   │   ├── initSpin.js
-│   │   │   └── upload.js # Multer config
-│   │   ├── routes/       # ~80 route files (auth, games, quiz, spin, etc.)
-│   │   ├── middleware/   # auth, requireAdmin
-│   │   ├── lib/          # apiError, geocode
-│   │   ├── cron/         # pcReset cron job
-│   │   ├── uploads/      # Uploaded files
-│   │   └── package.json
-│   └── frontend/         # React SPA (Vite + TypeScript + Tailwind)
-├── packages/
-│   ├── api-client/       # Shared axios-based API client
-│   └── ui/               # Shared React component library
-├── features/             # Feature modules (auth, quiz, crossword, spin, etc.)
-├── mobile/               # Flutter app
-├── load-test.js          # Load testing script
-├── quick-load-test.js    # Quick load test
-└── package.json          # Root — workspaces: apps/*, packages/*, features/*
+│   │   │   ├── db.js         # MySQL connection pool (mysql2)
+│   │   │   ├── env.js        # Env var validation
+│   │   │   ├── initDB.js     # Schema + migrations
+│   │   │   └── upload.js     # Multer config
+│   │   ├── routes/           # Non-game routes (auth, player, clients, etc.)
+│   │   ├── middleware/       # auth, requireAdmin
+│   │   ├── lib/              # apiError, geocode
+│   │   ├── cron/             # pcReset cron job
+│   │   └── uploads/          # Uploaded files
+│   │
+│   └── frontend/             # React SPA (Vite + TypeScript + Tailwind)
+│       └── src/
+│           ├── App.jsx       # Routes — uses @games alias for game modules
+│           ├── api.js        # Axios client
+│           ├── components/   # Shared UI components
+│           ├── pages/        # Non-game pages only
+│           └── hooks/        # Custom React hooks
+│
+├── mobile/                   # Flutter app
+│   └── lib/
+│       ├── games/            # Flutter game implementations
+│       │   ├── registry.dart # Game registry — auto-discovers via imports
+│       │   └── ...
+│       ├── features/         # Player dashboard, auth, rewards
+│       ├── models/           # Data models
+│       ├── pages/            # Non-game pages
+│       └── services/         # API services
+│
+├── packages/                 # Shared packages
+│   ├── api-client/           # Shared axios-based API client
+│   └── ui/                   # Shared React component library
+│
+├── features/                 # Feature modules (legacy — being migrated)
+├── load-test.js
+├── quick-load-test.js
+└── package.json              # Root — workspaces: apps/*, packages/*, features/*
 ```
+
+## Game Module Architecture (New)
+
+### Overview
+Each game is a **self-contained folder** in `games/` with all files needed for that game:
+- Backend route (API)
+- Frontend builder page (admin config)
+- Frontend player page (player experience)
+- Flutter game implementation
+- Shared assets (images, sounds, animations)
+- Metadata and schema definitions
+
+### Game Folder Structure
+```
+games/<game-name>/
+├── meta.json              # Game metadata (name, category, features)
+├── schema.js              # DB settings table definition
+├── route.js               # Backend API (GET/PUT settings)
+├── builderpage.jsx        # Admin config page (React)
+├── playerpage.jsx         # Player game page (React web)
+├── datapage.jsx           # Admin analytics view (optional)
+├── databopage.jsx         # Brand owner analytics view (optional)
+├── bologspage.jsx         # Brand owner logs view (optional)
+├── redemptionlogspage.jsx # Redemption logs view (optional)
+├── logic.dart             # Flutter PURE ENGINE (rules/state/fx — no UI)
+├── playerpage.dart        # Flutter PLAYER SCREEN (UI, haptics, theming)
+└── assets/                # Shared assets (React + Flutter)
+    ├── icon.svg
+    ├── sounds/
+    └── animations/
+```
+
+#### One folder = full stack (one-engineer rule)
+Everything a single game needs lives in its folder: backend route, admin
+builder, React web player, Flutter engine + native player. An engineer owns a
+game without leaving `games/<name>/`.
+
+The only shared dependency is the engine contract package
+`games/shared_pkg` (`package:promogames_engine/engine.dart`) — one file,
+`lib/engine.dart`, holding `GameConfig`, `GameBuilder`, `GameFinished`,
+`GameFx` and the `GameEngine` base class. Mobile mounts it as a pubspec
+`path:` dependency; game dart files import it by package name. Because that
+single file has zero relative imports, it resolves identically no matter how
+a game file is reached by tooling.
+
+Flutter-side discovery uses a symlink mirror `mobile/lib/games/gamelinks/`
+(real directories, leaf file-symlinks into `games/<game>/`). The registry at
+`mobile/lib/games/registry.dart` imports through this mirror; the actual code
+always executes from the canonical files inside each game folder. Note:
+extracting the repo as a zip drops symlinks — recreate with the one-liner in
+the repo README or `games/gamelinks.sh`.
+
+#### Flutter split: logic.dart vs playerpage.dart
+- `logic.dart` — headless engine extending `GameEngine` (ChangeNotifier):
+  rules, state machine, scoring, timers, level generation. Emits semantic
+  `GameFx` events (correct/wrong/match/win/gameOver…). No widgets, no colors,
+  no network.
+- `playerpage.dart` — UI shell exporting `build<Name>Player(config,
+  onFinished)` matching the `GameBuilder` typedef. Parses builder settings
+  from `config.settings` (the same DB rows the admin builder writes), renders
+  themed screens, maps `GameFx` → haptics/sounds, reports score via
+  `onFinished(score, maxScore, completed)`.
+- Settings flow: builderpage.jsx → `*_settings` table → `/api/play/game-data/:id`
+  → `GameConfig.settings/questions/words/tiles` → both React & Flutter players.
+
+### meta.json
+```json
+{
+  "name": "Snake",
+  "category": "snake",
+  "description": "Classic snake game",
+  "icon": "assets/icon.png",
+  "hasBuilder": true,
+  "hasPlayer": true,
+  "hasDataPage": true,
+  "hasDataBOPage": true,
+  "settingsTable": "snake_settings"
+}
+```
+
+### schema.js
+```js
+module.exports = {
+  table: 'snake_settings',
+  fields: ['board_width', 'board_height', 'speed', ...],
+  uploads: ['bg_image_url', 'game_logo_url', ...],
+  defaults: { board_width: 20, speed: 5, ... },
+};
+```
+
+### How It Works
+
+#### Backend
+- `server.js` imports game routes from `games/<game>/route.js`
+- Each route handles GET/PUT for its `*_settings` table
+- Generic `gameService.js` can handle any game using `schema.js`
+
+#### Frontend
+- `App.jsx` uses `@games` alias to lazy-load game modules
+- `PlayerPage.jsx` dispatches to the correct game component
+- Vite alias: `@games` → `../../games` (configured in `vite.config.js`)
+
+#### Flutter
+- `mobile/lib/games/registry.dart` maps each category to `build<Name>Player`
+  imported via the `gamelinks` mirror (`../games_links`-style relative path
+  into `mobile/lib/games/gamelinks/<game>/playerpage.dart`)
+- Each playerpage exports a builder function matching the `GameBuilder` typedef
+- Engines (`logic.dart`) extend `GameEngine`; UI shells subscribe and translate `GameFx` to haptics
+- Shared contract: `package:promogames_engine/engine.dart` (path dep on `games/shared_pkg`)
+- `game_player_page.dart` dispatches by category string
+
+### Adding a New Game
+1. Create `games/<game-name>/` folder
+2. Add `meta.json`, `schema.js`, `route.js`
+3. Copy route.js, builderpage.jsx, playerpage.jsx from a template; write `logic.dart` (engine) + `playerpage.dart` (UI)
+4. Update import paths + one registry line in `mobile/lib/games/registry.dart`
+5. Game is automatically available in admin panel, web player, and mobile
+
+### Migration Status
+- [x] Snake — backend + React + Flutter (engine/UI split)
+- [x] Quiz — backend + React + Flutter (engine/UI split)
+- [x] Math — backend + React + Flutter (engine/UI split)
+- [x] Crossword — backend + React + Flutter (engine/UI split)
+- [x] Memory — backend + React + Flutter (engine/UI split)
+- [x] Word Search — backend + React + Flutter (engine/UI split)
+- [ ] Spin, Jigsaw, Typer, ... (~31 games still in `apps/backend/routes/` + `apps/frontend/src/pages/`)
+
+Note: legacy mobile implementations (`mobile/lib/games/{quiz,memory,crossword,
+wordsearch}_game.dart`) remain on disk but are unwired from the registry;
+removal is pending a performance review.
 
 ## Backend Architecture
 
@@ -88,6 +246,12 @@ promogames/
 - React Router v6 for routing
 - Axios-based API client (shared in `packages/api-client`)
 - Shared UI components in `packages/ui`
+
+### Vite Configuration
+- **Alias**: `@games` → `../../games` (allows importing game modules from `games/` folder)
+- **Proxy**: `/api` → `http://localhost:8080` (backend API)
+- **Code splitting**: Route-level lazy loading for all pages
+- **Manual chunks**: three.js, GSAP, Leaflet, Recharts, Framer Motion split into separate chunks
 
 ### Arcade / Play page (`src/pages/ArcadePage.jsx`)
 - **Rows**: Featured (branded games, horizontal scroll track) + PromoGames (masonry)

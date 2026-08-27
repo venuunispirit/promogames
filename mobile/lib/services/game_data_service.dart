@@ -1,4 +1,4 @@
-import '../models/game_config.dart';
+import 'package:promogames_engine/engine.dart';
 import 'api_service.dart';
 import 'local_db_service.dart';
 

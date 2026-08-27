@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../models/game_config.dart';
-import 'game_contract.dart';
+import 'package:promogames_engine/engine.dart';
+import 'package:promogames_engine/engine.dart';
 
 Widget buildRpsGame(GameConfig config, GameFinished onFinished) {
   return _RpsGame(config: config, onFinished: onFinished);
@@ -58,7 +58,9 @@ class _RpsGameState extends State<_RpsGame> {
     if (a == b) return 0;
     if ((a == 'rock' && b == 'scissors') ||
         (a == 'paper' && b == 'rock') ||
-        (a == 'scissors' && b == 'paper')) return 1;
+        (a == 'scissors' && b == 'paper')) {
+      return 1;
+    }
     return -1;
   }
 

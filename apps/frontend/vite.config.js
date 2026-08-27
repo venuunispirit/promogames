@@ -1,8 +1,14 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
+import path from 'path'
 
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    alias: {
+      '@games': path.resolve(__dirname, '../../games'),
+    },
+  },
   build: {
     // Route-level code splitting already keeps page chunks small;
     // raise the warning threshold since some vendor chunks are legitimately big.

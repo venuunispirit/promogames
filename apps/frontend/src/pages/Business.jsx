@@ -1,963 +1,680 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useState, useMemo, useCallback, Suspense } from "react";
+import { Canvas } from "@react-three/fiber";
+import { useGLTF } from "@react-three/drei";
+import * as THREE from "three";
+import gsap from "gsap";
+import { ScrollTrigger } from "gsap/ScrollTrigger";
+import { CustomEase } from "gsap/CustomEase";
+import PlayerNavbar from "../components/PlayerNavbar";
 import CountUp from "../components/CountUp";
-import MascotBubble from "../components/MascotBubble";
-import MascotCursor from "../components/MascotCursor";
 
-/* ─── DATA ─────────────────────────────────────────── */
-const NAV = [
-  { label: "Play",        href: "/arcade"     },
-  { label: "Leaderboard", href: "/leaderboard" },
-];
+gsap.registerPlugin(ScrollTrigger, CustomEase);
 
-const FOOTER_NAV = [
-  ["Play Now", "/arcade"],
-  ["Leaderboard", "/leaderboard"],
-  ["Business", "/business"],
-  ["Log In", "/login"],
-];
+CustomEase.create("section", "0.83, 0, 0.17, 1");
 
-const GAME_DROPDOWN = [
-  { icon: "🧩", label: "Quiz Game"    },
-  { icon: "🎁", label: "Scratch Cards"},
-  { icon: "🏆", label: "Contests"     },
-];
+const MODEL_URL = "/model/joystick.glb";
 
-const HERO_CARDS = [
-  { label: "Quiz Games",       sub: "Brand trivia & personality tests",     color: "#9210f6", emoji: "🧩", stat: "20+",   statLabel: "Games Played"        },
-  { label: "Scratch Cards",    sub: "Instant reveal & coupon rewards",      color: "#610497", emoji: "🎁", stat: "50+", statLabel: "Leads Generated"      },
-  { label: "Spin the Wheel",   sub: "High-converting reward mechanics",     color: "#7C3AED", emoji: "🎡", stat: "10+", statLabel: "Campaigns Run"        },
-  { label: "Photo Contests",   sub: "UGC & social virality campaigns",      color: "#4F46E5", emoji: "📸", stat: "10+",  statLabel: "Happy Clients"        },
-  { label: "Casual Games",     sub: "Tile match · Memory · Word scramble",  color: "#9210f6", emoji: "🕹️", stat: "94%",   statLabel: "Engagement Rate"      },
-];
+const MODEL_ORIENTATION_FIX = { x: Math.PI, y: Math.PI / 2, z: -Math.PI / 2 };
 
-const SERVICES = [
-  { title: "Giveaway Formats",        desc: "Entry-based giveaways, Instagram contests, story challenges, and multi-platform prize draws that generate massive organic reach for your brand across social platforms.",                          tag: "Giveaway",    emoji: "🎉", img: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=900&q=85&fit=crop" },
-  { title: "Quiz-Based Engagement",   desc: "Time-based quizzes, brand trivia, personality tests, and predict-to-win formats. Perfect for educating audiences while generating qualified leads for your marketing funnel.",                    tag: "Quiz",        emoji: "🧩", img: "https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=900&q=85&fit=crop" },
-  { title: "Contest Campaigns",       desc: "User voting contests, photo & reel submissions, hashtag campaigns, and UGC challenges that amplify brand storytelling through authentic customer-generated content.",                             tag: "Contest",     emoji: "🏆", img: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=900&q=85&fit=crop" },
-  { title: "Instant Reward Games",    desc: "Spin-the-wheel, scratch cards, reveal-to-win mechanics, and coupon distribution that deliver instant gratification and drive purchase intent at the moment of peak engagement.",               tag: "Rewards",     emoji: "🎡", img: "https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?w=900&q=85&fit=crop" },
-];
+/* ── per-stage pose ──
+   PDF page reference:
+   pg-01 hero         — center, face-on, large
+   pg-02 brandtext    — center, behind text, slightly smaller
+   pg-03 stats        — center, face-on, large (stats slab below)
+   pg-04 topdock      — back/top view (flipped), dock at top
+   pg-05 ranked       — swung right, tilted
+   pg-06 promotions   — swung left, tilted
+   pg-07 promotions2  — same as 06
+   pg-08 promotions3  — same as 06
+   pg-09 promocards   — same as 06 (cards appear bottom right)
+   pg-10 promomorph   — same as 09 (cards morph)
+   pg-11 tagline      — upper left, large, tilted, partially cut
+   pg-12 capabilities — left, tilted
+   pg-13 footer       — right side, large, tilted, overlaps footer */
+const STAGE_TRANSFORM = {
+  hero:         { rx: 2.15,            ry: -.25,          rz: 2.25,    px: 0,      py: -0.05,  pz: 0,    scale: 1.15 },
+  brandtext:    { rx: 0,               ry: 0,              rz: 0,    px: 0,      py: 0,      pz: -0.5, scale: 0.95 },
+  stats:        { rx: 0,               ry: 0,              rz: 0,    px: 0,      py: 0.15,   pz: -0.3, scale: 1.1  },
+  topdock:      { rx: -0.8,            ry: 0.1,            rz: 0,    px: 0,      py: 0.05,   pz: -0.2, scale: 1.05 },
+  ranked:       { rx: 0.05,            ry: 0.6,            rz: 0.12, px: 1.0,    py: -0.1,   pz: 0,    scale: 1.1  },
+  promotions:   { rx: 0.05,            ry: -0.6,           rz: -0.1, px: -0.95,  py: 0,      pz: 0,    scale: 1.15 },
+  promocards:   { rx: 0.05,            ry: -0.6,           rz: -0.1, px: -0.95,  py: 0,      pz: 0,    scale: 1.15 },
+  tagline:      { rx: 0.2,             ry: -0.4,           rz: -0.2, px: -0.55,  py: 0.3,    pz: 0,    scale: 1.25 },
+  capabilities: { rx: 0.1,             ry: -0.5,           rz: -0.15,px: -0.85,  py: 0.1,    pz: 0,    scale: 1.15 },
+  footer:       { rx: -0.15,           ry: 0.5,            rz: 0.15, px: 1.1,    py: -0.3,   pz: 0,    scale: 1.3  },
+};
 
-const HEX_FEATURES = [
-  { id: "quiz",        icon: "🧩", label: "Quiz Games",          color: "#9210f6", short: "Brand education meets lead gen",          desc: "Time-based quizzes, trivia, personality tests, and predict-to-win formats that educate your audience while capturing qualified leads for your marketing pipeline.",                                       stat: "20+",   statLabel: "games played",       tags: ["Brand Trivia", "Personality Tests", "Predict & Win"]      },
-  { id: "scratch",     icon: "🎁", label: "Scratch Cards",        color: "#610497", short: "Instant reveals & coupon magic",          desc: "Digital scratch card mechanics deliver the thrill of instant reward. Customisable prize pools, coupon codes, and reveal animations create addictive brand touchpoints.",                                      stat: "50+", statLabel: "leads generated",    tags: ["Instant Win", "Coupons", "Reveal Animation"]               },
-  { id: "spin",        icon: "🎡", label: "Spin the Wheel",       color: "#7C3AED", short: "High-converting reward mechanics",        desc: "Spin-the-wheel experiences create a dopamine loop that keeps users engaged. Configure prize weights, visual themes, and redemption flows that match your campaign goals.",                                 stat: "3.2×",  statLabel: "conversion boost",   tags: ["Prize Configuration", "Visual Themes", "Redemption Flow"]  },
-  { id: "giveaway",    icon: "🎉", label: "Giveaways",            color: "#4F46E5", short: "Viral reach at scale",                    desc: "Entry-based giveaways, Instagram story challenges, and multi-platform draws that generate enormous organic reach. Automated winner selection and fraud prevention included.",                              stat: "10+", statLabel: "campaigns run",      tags: ["Multi-Platform", "Auto Selection", "Fraud Prevention"]     },
-  { id: "contest",     icon: "🏆", label: "Contests",             color: "#9210f6", short: "UGC that amplifies brand stories",        desc: "Photo contests, reel submissions, hashtag campaigns, and user voting mechanics generate authentic content that resonates with audiences and builds lasting brand affinity.",                              stat: "10+",  statLabel: "happy clients",      tags: ["Photo Contests", "Hashtag Campaigns", "User Voting"]       },
-  { id: "casual",      icon: "🕹️", label: "Casual Games",         color: "#610497", short: "Play longer, remember more",             desc: "Tile match, memory games, word scramble, quiz towers, and custom branded puzzlers keep users engaged for minutes — not seconds. Longer dwell time means stronger brand recall.",                            stat: "4.8×",  statLabel: "dwell time boost",   tags: ["Tile Match", "Word Scramble", "Brand Puzzlers"]            },
-  { id: "multilevel",  icon: "📅", label: "Multi-Level",          color: "#7C3AED", short: "Campaign journeys that retain",          desc: "Score-based progression rounds, voting stages, and calendar-based journey mechanics keep audiences returning day after day. Perfect for product launches and seasonal campaigns.",                            stat: "94%",   statLabel: "return play rate",   tags: ["Score Rounds", "Daily Unlock", "Seasonal Campaigns"]       },
-  { id: "analytics",  icon: "📊", label: "Analytics",             color: "#4F46E5", short: "Data that drives decisions",             desc: "Real-time campaign dashboards show participation rates, lead quality scores, geographic heatmaps, and conversion funnels. Export-ready reports for every campaign.",                                            stat: "60+",   statLabel: "data metrics",       tags: ["Live Dashboard", "Lead Scoring", "Heatmaps"]               },
-  { id: "leads",       icon: "🎯", label: "Lead Capture",         color: "#9210f6", short: "Every play generates pipeline",          desc: "Seamlessly collect verified contact details, preferences, and consents as part of the game flow. CRM integrations push leads directly to Salesforce, HubSpot, and 40+ platforms.",                         stat: "40+",   statLabel: "CRM integrations",   tags: ["Verified Leads", "CRM Sync", "Consent Management"]         },
-  { id: "whitelabel",  icon: "🎨", label: "White Label",          color: "#610497", short: "100% your brand, 0% our footprint",      desc: "Every game experience is fully white-labelled — your logo, colours, domain, and tone of voice. Clients and customers will only ever see your brand, not ours.",                                               stat: "100%",  statLabel: "brand ownership",    tags: ["Custom Domain", "Brand Colours", "Your Logo"]              },
-  { id: "security",    icon: "🛡️", label: "Security",             color: "#7C3AED", short: "Enterprise-grade data protection",      desc: "GDPR-compliant data handling, encrypted lead storage, fraud-detection algorithms, and role-based access controls ensure your campaigns and customer data stay protected.",                                    stat: "",      statLabel: "certified",          tags: ["GDPR Compliant", "Encrypted Storage", "Fraud Detection"]   },
-];
+const STAGE_KEYS = Object.keys(STAGE_TRANSFORM);
 
-const HEX_ROWS = [
-  { offset: false, ids: [0, 1, 2, 3]   },
-  { offset: true,  ids: [4, 5, 6]      },
-  { offset: false, ids: [7, 8, 9, 10]  },
-];
+/* ── z-layer: "behind" = z:1, "front" = z:5 ── */
+const STAGE_LAYER = {
+  hero: "front",
+  brandtext: "front",
+  stats: "behind",
+  topdock: "front",
+  ranked: "front",
+  promotions: "front",
+  promocards: "front",
+  tagline: "front",
+  capabilities: "front",
+  footer: "front",
+};
 
-const BRANDS = [
-  { id: 1, name: "Enterprise",    tag: "ENTERPRISE",    headline: "Brand Engagement at Scale",         color: "#9210f6", bullets: ["10K+ concurrent players", "Multi-brand management", "Dedicated account manager", "White-label platform"],            img: "https://images.unsplash.com/photo-1552664730-d307ca884978?w=700&q=80&fit=crop" },
-  { id: 2, name: "FMCG",         tag: "FMCG",          headline: "Drive Trial & Repeat Purchase",     color: "#610497", bullets: ["SKU-level gamification", "POS integration", "Coupon distribution", "Retail activation"],                              img: "https://images.unsplash.com/photo-1607082348824-0a96f2a4b9da?w=700&q=80&fit=crop" },
-  { id: 3, name: "E-commerce",    tag: "E-COMMERCE",    headline: "Convert Browsers into Buyers",      color: "#7C3AED", bullets: ["Cart abandonment games", "Flash-sale spin wheels", "Loyalty programme", "Checkout scratch cards"],                    img: "https://images.unsplash.com/photo-1541746972996-4e0b0f43e02a?w=700&q=80&fit=crop" },
-  { id: 4, name: "D2C Brands",    tag: "D2C",           headline: "Build Community & Loyalty",         color: "#4F46E5", bullets: ["Subscriber growth games", "UGC photo contests", "Referral quizzes", "Brand ambassador contests"],                     img: "https://images.unsplash.com/photo-1516534775068-ba3e7458af70?w=700&q=80&fit=crop" },
-  { id: 5, name: "Agencies",      tag: "AGENCIES",      headline: "Gamify Every Client Campaign",      color: "#9210f6", bullets: ["Multi-client dashboard", "White-label reseller", "Campaign templates", "Priority support"],                           img: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?w=700&q=80&fit=crop" },
-  { id: 6, name: "EdTech",        tag: "EDTECH",        headline: "Learning That Feels Like Play",     color: "#610497", bullets: ["Knowledge quizzes", "Leaderboards", "Badge & reward systems", "Course completion games"],                             img: "https://images.unsplash.com/photo-1522202176988-66273c2fd55f?w=700&q=80&fit=crop" },
-  { id: 7, name: "Events",        tag: "EVENTS",        headline: "Make Every Moment Memorable",       color: "#7C3AED", bullets: ["On-site game activations", "QR-triggered experiences", "Live leaderboards", "Prize fulfilment"],                      img: "https://images.unsplash.com/photo-1492684223066-81342ee5ff30?w=700&q=80&fit=crop" },
-  { id: 8, name: "Media",         tag: "MEDIA",         headline: "Monetise Your Audience",            color: "#4F46E5", bullets: ["Sponsored game integrations", "Audience segmentation", "Advertiser analytics", "Content-to-game pipelines"],          img: "https://images.unsplash.com/photo-1504711434969-e33886168f5c?w=700&q=80&fit=crop" },
-];
+/* ── per-stage flex alignment inside the full-inset content layer ── */
+const STAGE_ALIGN = {
+  hero:         { display: "flex", alignItems: "center",      justifyContent: "center" },
+  brandtext:    { display: "flex", alignItems: "center",      justifyContent: "center" },
+  stats:        { display: "flex", alignItems: "center",      justifyContent: "center" },
+  topdock:      { display: "flex", alignItems: "flex-start",  justifyContent: "center" },
+  ranked:       { display: "flex", alignItems: "center",      justifyContent: "flex-end" },
+  promotions:   { display: "flex", alignItems: "center",      justifyContent: "flex-start" },
+  promocards:   { display: "flex", alignItems: "flex-end",    justifyContent: "flex-end" },
+  tagline:      { display: "flex", alignItems: "flex-start",  justifyContent: "flex-start" },
+  capabilities: { display: "flex", alignItems: "center",      justifyContent: "flex-start" },
+  footer:       { display: "flex", alignItems: "flex-end",    justifyContent: "flex-end" },
+};
 
+/* ── DATA ── */
 const STATS = [
-  { val: "20+",   label: "Games Played"     },
-  { val: "50+", label: "Leads Generated"  },
-  { val: "10+", label: "Campaigns Run"    },
-  { val: "10+",  label: "Happy Clients"    },
+  { val: "20+", label: "Games Played" },
+  { val: "50+", label: "Leads Generated" },
+  { val: "10+", label: "Campaigns Run" },
+  { val: "10+", label: "Happy Clients" },
+];
+const TRUST = ["FMCG", "E-commerce", "D2C", "EdTech", "Events", "Media"];
+const PROMO_CARDS = [
+  { title: "Giveaways", emoji: "🎉", color: "linear-gradient(135deg,#7c3aed,#a855f7)" },
+  { title: "Quizzes", emoji: "🧩", color: "linear-gradient(135deg,#6d28d9,#8b5cf6)" },
+  { title: "Contests", emoji: "🏆", color: "linear-gradient(135deg,#7c3aed,#c084fc)" },
+];
+const INDUSTRY_CARDS = [
+  { tag: "FMCG", name: "FMCG", sub: "Sampling That Sells", items: ["Instant-win coupons", "New-flavour quizzes", "Loyalty point drops", "Retailer contests"], photo: "linear-gradient(135deg,#4c1d95,#7c3aed)", emoji: "🛒" },
+  { tag: "E-COMMERCE", name: "E-commerce", sub: "Convert Browsers into Buyers", items: ["Cart-abandonment games", "Flash-sale spin wheels", "Loyalty programme", "Checkout scratch cards"], photo: "linear-gradient(135deg,#5b21b6,#8b5cf6)", emoji: "📦" },
+  { tag: "D2C", name: "D2C Brands", sub: "Build Community & Loyalty", items: ["Subscriber growth games", "UGC photo contests", "Referral quizzes", "Brand ambassador contests"], photo: "linear-gradient(135deg,#6d28d9,#a78bfa)", emoji: "💜" },
+  { tag: "AGENCIES", name: "Agencies", sub: "Deliver Every Client Campaign", items: ["Multi-brand templates", "White-label leaderboards", "Engagement analytics", "Priority support"], photo: "linear-gradient(135deg,#4338ca,#6366f1)", emoji: "📊" },
+  { tag: "EDTECH", name: "EdTech", sub: "Make Learning Addictive", items: ["Quiz-based revisions", "Streak leaderboards", "Course-launch contests", "Scholarship spins"], photo: "linear-gradient(135deg,#312e81,#4f46e5)", emoji: "🎓" },
 ];
 
-const CHANGING_TEXTS = ["Interactive Games", "Viral Giveaways", "Scratch Cards", "Brand Quizzes", "Spin the Wheel"];
+const EXPERT_URL = "https://forms.gle/LUs2Q7cVS8tU8ra66";
 
-/* ─── CSS ──────────────────────────────────────────── */
-const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Prata&family=Karla:wght@300;400;500;600;700;800&display=swap');
-
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#0a0514;
-  --purple:#9210f6;
-  --purple2:#610497;
-  --purple3:#7C3AED;
-  --purple4:#4F46E5;
-  --glass:rgba(255,255,255,0.06);
-  --gb:rgba(255,255,255,0.12);
-  --muted:rgba(255,255,255,0.58);
-  --fh:'Prata',serif;
-  --fb:'Karla',sans-serif;
-  --cream:#fdecfd;
-  --pink-bg:linear-gradient(135deg,#1a0a2e 0%,#0f0520 50%,#0a0514 100%);
-}
-html{scroll-behavior:smooth}
-body{font-family:var(--fb);background:var(--bg);color:#fff;overflow-x:hidden;-webkit-font-smoothing:antialiased;cursor:none;max-width:100vw}
-img{display:block;max-width:100%}
-::-webkit-scrollbar{width:3px}
-::-webkit-scrollbar-track{background:var(--bg)}
-::-webkit-scrollbar-thumb{background:var(--purple);border-radius:3px}
-
-.scroll-bar{
-  position:fixed;top:0;left:0;height:3px;z-index:9999;
-  background:linear-gradient(90deg,var(--purple),var(--purple3),var(--purple4));
-  width:var(--scroll-pct,0%);
-  transition:width .05s linear;
-  box-shadow:0 0 12px var(--purple),0 0 24px rgba(146,16,246,0.5);
-}
-
-.cursor-dot{
-  position:fixed;top:0;left:0;pointer-events:none;z-index:99999;
-  width:8px;height:8px;border-radius:50%;
-  background:var(--purple);
-  transform:translate(-50%,-50%);
-  transition:width .2s,height .2s,background .2s,opacity .2s;
-  box-shadow:0 0 10px var(--purple),0 0 20px rgba(146,16,246,0.6);
-}
-.cursor-ring{
-  position:fixed;top:0;left:0;pointer-events:none;z-index:99998;
-  width:38px;height:38px;border-radius:50%;
-  border:1.5px solid rgba(146,16,246,0.55);
-  transform:translate(-50%,-50%);
-  transition:width .35s cubic-bezier(.22,1,.36,1),height .35s cubic-bezier(.22,1,.36,1),border-color .3s,opacity .3s;
-}
-body.cursor-hover .cursor-dot{width:14px;height:14px;background:#fff;box-shadow:0 0 16px #fff}
-body.cursor-hover .cursor-ring{width:54px;height:54px;border-color:rgba(146,16,246,0.9);background:rgba(146,16,246,0.06)}
-body:not(.cursor-visible) .cursor-dot,body:not(.cursor-visible) .cursor-ring{opacity:0}
-
-@keyframes shimmerSweep{0%{background-position:-200% center}100%{background-position:200% center}}
-.shimmer-card{position:relative;overflow:hidden}
-.shimmer-card::after{
-  content:'';position:absolute;inset:0;
-  background:linear-gradient(105deg,transparent 35%,rgba(255,255,255,0.09) 50%,transparent 65%);
-  background-size:200% 100%;animation:shimmerSweep 3.8s ease-in-out infinite;pointer-events:none;z-index:20;border-radius:inherit;
-}
-.shimmer-card:hover::after{animation:shimmerSweep 1.4s ease-in-out infinite;background:linear-gradient(105deg,transparent 30%,rgba(255,255,255,0.16) 50%,transparent 70%);background-size:200% 100%}
-
-/* NAV */
-.nav-wrap{position:fixed;top:0;left:0;right:0;z-index:1000;padding:18px 0;pointer-events:none;display:flex;justify-content:center}
-.navbar{pointer-events:all;width:62%;max-width:700px;min-width:580px;display:flex;align-items:center;justify-content:space-between;padding:11px 20px 11px 18px;border-radius:100px;background:rgba(10,5,20,0.82);backdrop-filter:blur(32px);-webkit-backdrop-filter:blur(32px);border:1px solid rgba(146,16,246,0.22);box-shadow:0 8px 48px rgba(0,0,0,0.60),0 0 0 0.5px rgba(146,16,246,0.08) inset}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.nav-links{list-style:none;display:flex;gap:26px;align-items:center;position:relative}
-.nav-links a{font-family:var(--fb);font-size:14px;font-weight:600;color:var(--muted);text-decoration:none;position:relative;transition:color .22s;cursor:none}
-.nav-links a::after{content:'';position:absolute;bottom:-4px;left:0;width:0;height:2px;background:linear-gradient(90deg,var(--purple),var(--purple3));transition:width .25s}
-.nav-links a:hover{color:#fff}
-.nav-links a:hover::after{width:100%}
-.nav-divider{width:1px;height:22px;background:rgba(255,255,255,0.15);margin:0 4px}
-.login-link{font-family:var(--fb);font-size:13.5px;font-weight:700;color:#fff!important;padding:7px 18px;border-radius:100px;border:1px solid rgba(146,16,246,0.45)!important;background:rgba(146,16,246,0.12);transition:background .2s,border-color .2s!important;cursor:none; margin-right:40px;}
-.login-link:hover{background:rgba(146,16,246,0.28)!important;border-color:rgba(146,16,246,0.7)!important}
-.login-link::after{display:none!important}
-.nav-btn-cta{position:relative;overflow:hidden;display:inline-flex;align-items:center;height:38px;padding:0 22px;border-radius:100px;border:none;background:linear-gradient(90deg,var(--purple2),var(--purple));text-decoration:none;cursor:none;white-space:nowrap;font-family:var(--fb);font-weight:700;font-size:13px;color:#fff;transition:opacity .2s}
-.nav-btn-cta:hover{opacity:.85}
-.ham{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:none;padding:4px}
-.ham span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:all .3s}
-.ham.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
-.ham.open span:nth-child(2){opacity:0}
-.ham.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-.mob-overlay{display:none;position:fixed;inset:0;top:74px;background:rgba(10,5,20,0.97);backdrop-filter:blur(20px);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:30px}
-.mob-overlay.open{display:flex}
-.mob-overlay a{font-family:var(--fh);font-size:26px;color:#fff;text-decoration:none;opacity:.80;transition:opacity .2s}
-.mob-overlay a:hover{opacity:1}
-.mob-cta{margin-top:8px;padding:14px 40px;border-radius:100px;background:linear-gradient(90deg,var(--purple2),var(--purple));color:#fff;font-family:var(--fb);font-size:17px;font-weight:700;text-decoration:none}
-
-/* DROPDOWN */
-.dd-wrap{position:relative}
-.dd-content{display:none;position:absolute;top:calc(100% + 14px);left:50%;transform:translateX(-50%);background:rgba(15,5,30,0.97);backdrop-filter:blur(20px);border:1px solid rgba(146,16,246,0.3);border-radius:18px;padding:18px;min-width:220px;z-index:200;box-shadow:0 20px 60px rgba(0,0,0,0.7)}
-.dd-wrap:hover .dd-content{display:block}
-.dd-title{font-family:var(--fb);font-size:10px;font-weight:700;letter-spacing:2px;color:var(--purple);margin-bottom:12px;text-transform:uppercase}
-.dd-list{list-style:none;display:flex;flex-direction:column;gap:8px;margin-bottom:14px}
-.dd-list li{display:flex;align-items:center;gap:10px;font-family:var(--fb);font-size:13px;color:rgba(255,255,255,0.75);padding:9px 12px;border-radius:10px;background:rgba(255,255,255,0.04);cursor:none;transition:background .2s}
-.dd-list li:hover{background:rgba(146,16,246,0.15);color:#fff}
-.dd-explore{display:block;text-align:center;padding:9px;border-radius:10px;background:linear-gradient(90deg,var(--purple2),var(--purple3));color:#fff;font-family:var(--fb);font-size:12px;font-weight:700;text-decoration:none;letter-spacing:1px;cursor:none}
-
-/* BOOK BTN */
-.book-btn{position:relative;overflow:hidden;display:inline-flex;align-items:center;height:54px;border-radius:100px;border:none;background:linear-gradient(90deg,var(--purple2),var(--purple));text-decoration:none;cursor:none;width:224px}
-.book-btn .ba{position:absolute;left:0;top:0;bottom:0;width:54px;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.20);border-radius:100px 0 0 100px;transform:translateX(-100%);transition:transform .42s cubic-bezier(.22,1,.36,1);z-index:2}
-.book-btn .ba svg{width:18px;height:18px;fill:none;stroke:#fff;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.book-btn .bl{font-family:var(--fb);font-weight:700;font-size:13.5px;color:#fff;position:relative;z-index:2;padding:0 22px 0 20px;white-space:nowrap;transition:transform .42s cubic-bezier(.22,1,.36,1)}
-.book-btn:hover .ba{transform:translateX(0)}
-.book-btn:hover .bl{transform:translateX(44px)}
-.ghost-btn{display:inline-flex;align-items:center;height:54px;padding:0 28px;border-radius:100px;border:1px solid rgba(255,255,255,0.22);color:#fff;font-family:var(--fb);font-weight:600;font-size:14px;text-decoration:none;cursor:none;transition:background .2s,border-color .2s}
-.ghost-btn:hover{background:rgba(255,255,255,0.07);border-color:rgba(255,255,255,0.4)}
-
-/* HERO */
-#home{width:100%;min-height:100svh;padding:110px 6% 60px;display:flex;align-items:center;position:relative;overflow:hidden;background:radial-gradient(ellipse 80% 70% at 50% 0%,rgba(146,16,246,0.18) 0%,transparent 70%)}
-.hero-inner{width:100%;max-width:1440px;margin:0 auto;display:grid;grid-template-columns:1fr 420px;gap:60px;align-items:center}
-.hero-kicker{display:inline-flex;align-items:center;gap:8px;padding:5px 14px;border-radius:100px;background:rgba(146,16,246,0.12);border:1px solid rgba(146,16,246,0.28);font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:22px}
-.hero-h1{font-family:var(--fh);font-size:clamp(32px,4.8vw,68px);font-weight:400;line-height:1.15;letter-spacing:-0.01em;margin-bottom:18px}
-.hero-h1 span{background:linear-gradient(90deg,var(--purple),var(--purple3),var(--purple4));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.hero-sub{font-family:var(--fb);font-size:17px;color:var(--muted);line-height:1.70;max-width:480px;margin-bottom:34px}
-.hero-actions{display:flex;align-items:center;gap:14px;margin-bottom:40px}
-.hero-stats{display:flex;gap:0;margin-bottom:36px}
-.hst{padding:0 24px;display:flex;flex-direction:column;gap:3px}
-.hst:not(:last-child){border-right:1px solid rgba(255,255,255,0.10);margin-right:0}
-.hst:first-child{padding-left:0}
-.hst-n{font-family:var(--fh);font-size:clamp(18px,2vw,26px);font-weight:400;line-height:1}
-.hst-l{font-family:var(--fb);font-size:11px;color:var(--muted);letter-spacing:.4px}
-.hero-trust{display:flex;flex-direction:column;gap:10px}
-.trust-label{font-family:var(--fb);font-size:11px;color:rgba(255,255,255,0.38);letter-spacing:.5px;text-transform:uppercase}
-.trust-logos{display:flex;flex-wrap:wrap;gap:8px}
-.trust-logo{padding:6px 14px;border-radius:100px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);font-family:var(--fb);font-size:11px;font-weight:600;color:rgba(255,255,255,0.55)}
-
-/* YSTACK */
-.ystack-stage{height:520px;position:relative;perspective:1200px;perspective-origin:50% 50%}
-.ycard{width:340px;height:340px;position:absolute;left:50%;top:50%;margin-left:-90px;margin-top:-155px;border-radius:24px;overflow:hidden;border:1px solid rgba(255,255,255,0.13);transition:transform .72s cubic-bezier(.22,1,.36,1),opacity .72s;will-change:transform,opacity;cursor:none;backface-visibility:hidden;transform:var(--y-transform,translateY(0) translateZ(0));opacity:var(--y-op,1)}
-.ycard.yp0{--y-transform:translateY(0) translateZ(0) rotateX(0deg) scale(1);--y-op:1;z-index:10;box-shadow:0 32px 80px rgba(0,0,0,.7),0 0 40px rgba(146,16,246,0.12)}
-.ycard.yp1{--y-transform:translateY(120px) translateZ(-120px) rotateX(-28deg) scale(0.82);--y-op:0.32;z-index:5}
-.ycard.yp-1{--y-transform:translateY(-120px) translateZ(-120px) rotateX(28deg) scale(0.82);--y-op:0.62;z-index:7;box-shadow:0 20px 50px rgba(0,0,0,.5)}
-.ycard.yp2,.ycard.yp-2{--y-op:0;z-index:1}
-.ycard-img{width:100%;height:70%;object-fit:cover}
-.ycard-body{padding:14px 18px;background:rgba(15,5,30,0.92);backdrop-filter:blur(20px);flex:1;display:flex;flex-direction:column;gap:6px}
-.ycard-tag{display:inline-flex;align-items:center;padding:3px 11px;border-radius:100px;font-family:var(--fb);font-size:9px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;width:fit-content}
-.ycard-label{font-family:var(--fh);font-size:16px;color:#fff;line-height:1.2}
-.ycard-sub{font-family:var(--fb);font-size:11px;color:var(--muted)}
-.ycard-stat{font-family:var(--fh);font-size:24px;color:#fff;line-height:1}
-.ystack-dots{position:absolute;right:-28px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:7px}
-.ydot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,0.20);transition:background .3s,height .3s}
-.ydot.active{background:var(--purple);height:20px;border-radius:3px}
-
-/* SERVICES */
-#services{width:100%;padding:90px 6% 70px;overflow:hidden}
-.svc-head{display:flex;align-items:flex-start;justify-content:space-between;gap:30px;max-width:1440px;margin:0 auto 36px}
-.svc-head h2{font-family:var(--fh);font-size:clamp(24px,3.5vw,48px);font-weight:400;line-height:1.15;letter-spacing:-0.01em}
-.svc-head p{font-family:var(--fb);font-size:15px;color:var(--muted);max-width:320px;line-height:1.7;text-align:right}
-.kicker{font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:10px}
-.exp-track{display:flex;gap:12px;max-width:1440px;margin:0 auto;height:520px}
-.exp-card{flex:1;border-radius:20px;overflow:hidden;position:relative;cursor:none;transition:flex .6s cubic-bezier(.22,1,.36,1);background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.08)}
-.exp-card.active{flex:3.8}
-.exp-img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;transition:transform .6s}
-.exp-card.active .exp-img{transform:scale(1.04)}
-.exp-card::before{content:'';position:absolute;inset:0;background:linear-gradient(to top,rgba(10,5,20,0.92) 0%,rgba(10,5,20,0.3) 50%,transparent 100%);z-index:1}
-.exp-tag{position:absolute;top:16px;left:16px;z-index:5;padding:4px 12px;border-radius:100px;font-family:var(--fb);font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;background:rgba(146,16,246,0.28);border:1px solid rgba(146,16,246,0.4);color:#e8b4ff}
-.exp-num{position:absolute;top:16px;right:16px;z-index:5;font-family:var(--fh);font-size:11px;color:rgba(255,255,255,0.30)}
-.exp-body{position:absolute;bottom:0;left:0;right:0;padding:22px 20px;z-index:5}
-.exp-body h3{font-family:var(--fh);font-size:clamp(14px,1.4vw,22px);font-weight:400;margin-bottom:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:font-size .3s}
-.exp-card.active .exp-body h3{white-space:normal;font-size:clamp(17px,1.8vw,26px)}
-.exp-desc{font-family:var(--fb);font-size:13.5px;color:rgba(255,255,255,0.68);line-height:1.7;margin-top:10px;max-height:0;overflow:hidden;transition:max-height .5s cubic-bezier(.22,1,.36,1),opacity .4s}
-.exp-card.active .exp-desc{max-height:120px;opacity:1}
-
-/* STATS STRIP */
-.stats-strip{background:linear-gradient(90deg,rgba(146,16,246,0.14),rgba(97,4,151,0.10),rgba(124,58,237,0.14));border-top:1px solid rgba(146,16,246,0.2);border-bottom:1px solid rgba(146,16,246,0.2);padding:48px 6%;display:flex;justify-content:center;gap:0;max-width:100%}
-.stat-item{flex:1;max-width:220px;text-align:center;padding:0 20px}
-.stat-item:not(:last-child){border-right:1px solid rgba(255,255,255,0.08)}
-.stat-val{font-family:var(--fh);font-size:clamp(28px,3vw,48px);font-weight:400;background:linear-gradient(90deg,var(--purple),var(--purple3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;line-height:1.1;margin-bottom:6px}
-.stat-lbl{font-family:var(--fb);font-size:11.5px;color:var(--muted);letter-spacing:.5px;font-weight:600;text-transform:uppercase}
-
-/* MARQUEE */
-.marquee-section{padding:60px 0;overflow:hidden;position:relative}
-.marquee-section::before,.marquee-section::after{content:'';position:absolute;top:0;bottom:0;width:120px;z-index:2;pointer-events:none}
-.marquee-section::before{left:0;background:linear-gradient(to right,var(--bg),transparent)}
-.marquee-section::after{right:0;background:linear-gradient(to left,var(--bg),transparent)}
-.marquee-label{text-align:center;font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:28px}
-.marquee-track{display:flex;animation:marqueeScroll 28s linear infinite}
-.marquee-track:hover{animation-play-state:paused}
-@keyframes marqueeScroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
-.marquee-item{display:inline-flex;align-items:center;padding:10px 32px;border-radius:100px;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.03);font-family:var(--fb);font-size:13px;font-weight:600;color:rgba(255,255,255,0.45);white-space:nowrap;margin:0 8px;transition:color .2s,border-color .2s}
-.marquee-item:hover{color:#fff;border-color:rgba(146,16,246,0.4)}
-
-/* CAPABILITIES / HEX */
-#capabilities{width:100%;min-height:100svh;display:flex;align-items:center;padding:90px 6% 60px}
-.cs-inner{width:100%;max-width:1440px;margin:0 auto;display:flex;flex-direction:column;gap:70px}
-.sh2{font-family:var(--fh);font-size:clamp(24px,3.2vw,44px);font-weight:400;line-height:1.15;letter-spacing:-0.01em;margin-bottom:10px}
-
-.hex-section{padding:0 0 20px}
-.hex-grid-outer{max-width:940px;margin:0 auto;padding:0 20px}
-.hex-row{display:flex;justify-content:center;margin-bottom:-22px;position:relative;z-index:1}
-.hex-row.offset{padding-left:90px}
-.hex-cell{width:152px;height:134px;margin:0 5px;position:relative;cursor:none;flex-shrink:0}
-.hex-body{width:100%;height:100%;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);background:rgba(255,255,255,0.04);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:7px;transition:transform .38s cubic-bezier(.22,1,.36,1),background .32s;position:relative;overflow:hidden}
-.hex-cell::before{content:'';position:absolute;inset:-1.5px;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%);background:rgba(255,255,255,0.09);z-index:0;pointer-events:none;transition:background .32s}
-.hex-cell.hex-active::before,.hex-cell:hover::before{background:var(--hc,rgba(146,16,246,0.5))}
-.hex-cell.hex-neighbor::before{background:rgba(255,255,255,0.14)}
-.hex-body::after{content:'';position:absolute;inset:0;background:var(--hc,#9210f6);opacity:0;transition:opacity .32s;z-index:0;clip-path:polygon(25% 0%,75% 0%,100% 50%,75% 100%,25% 100%,0% 50%)}
-.hex-cell.hex-active .hex-body::after{opacity:0.18}
-.hex-cell:hover .hex-body::after{opacity:0.14}
-.hex-cell.hex-active .hex-body{background:rgba(255,255,255,0.09);transform:scale(1.07) translateY(-3px)}
-.hex-cell:hover:not(.hex-active) .hex-body{background:rgba(255,255,255,0.07);transform:scale(1.05) translateY(-2px)}
-.hex-icon{font-size:26px;position:relative;z-index:2;line-height:1;transition:transform .3s cubic-bezier(.22,1,.36,1)}
-.hex-cell.hex-active .hex-icon{transform:scale(1.2) translateY(-3px)}
-.hex-label{font-family:var(--fb);font-size:9.5px;font-weight:700;letter-spacing:.2px;text-align:center;color:rgba(255,255,255,.60);line-height:1.3;max-width:92px;position:relative;z-index:2;transition:color .25s}
-.hex-cell.hex-active .hex-label,.hex-cell:hover .hex-label{color:#fff}
-.hex-dot{position:absolute;bottom:12px;left:50%;transform:translateX(-50%);width:5px;height:5px;border-radius:50%;background:var(--hc,#9210f6);opacity:0;transition:opacity .28s;z-index:10;box-shadow:0 0 6px var(--hc,#9210f6)}
-.hex-cell.hex-active .hex-dot{opacity:1}
-.hex-panel-wrap{max-width:940px;margin:28px auto 10px;padding:0 20px}
-.hex-panel{background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.10);border-radius:20px;overflow:hidden;position:relative;transform-origin:top center;animation:hexPanelUnfold .55s cubic-bezier(.22,1,.36,1) both}
-.hex-panel.hex-panel-closing{animation:hexPanelFold .40s cubic-bezier(.55,0,1,.45) both!important;pointer-events:none}
-@keyframes hexPanelUnfold{0%{opacity:0;transform:perspective(800px) rotateX(-22deg) translateY(-18px) scale(0.96);filter:blur(4px)}60%{filter:blur(0px)}100%{opacity:1;transform:perspective(800px) rotateX(0deg) translateY(0) scale(1)}}
-@keyframes hexPanelFold{0%{opacity:1;transform:perspective(800px) rotateX(0deg) scale(1)}100%{opacity:0;transform:perspective(800px) rotateX(-18deg) translateY(-14px) scale(0.94);filter:blur(5px)}}
-.hex-panel::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--hp-color,var(--purple));border-radius:0 2px 2px 0;animation:stripGrow .5s cubic-bezier(.22,1,.36,1) both}
-@keyframes stripGrow{from{transform:scaleY(0);transform-origin:top}to{transform:scaleY(1);transform-origin:top}}
-.hex-panel-grid{display:grid;grid-template-columns:1fr 280px}
-.hex-panel-left{padding:30px 32px 30px 36px;border-right:1px solid rgba(255,255,255,.07)}
-.hex-panel-hd{display:flex;align-items:center;gap:14px;margin-bottom:16px}
-.hex-panel-ico{width:50px;height:50px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0;background:var(--hp-bg,rgba(146,16,246,0.12));border:1px solid var(--hp-border,rgba(146,16,246,0.25));animation:icoElastic .7s cubic-bezier(.34,1.56,.64,1) .15s both}
-@keyframes icoElastic{0%{opacity:0;transform:scale(0) rotate(-20deg)}60%{transform:scale(1.18) rotate(4deg)}100%{opacity:1;transform:scale(1) rotate(0deg)}}
-.hex-panel-name{font-family:var(--fh);font-size:19px;font-weight:400;color:#fff;line-height:1.1;animation:slideInBlur .45s cubic-bezier(.22,1,.36,1) .22s both}
-.hex-panel-short{font-family:var(--fb);font-size:12px;color:rgba(255,255,255,.45);margin-top:3px;animation:slideInBlur .45s cubic-bezier(.22,1,.36,1) .28s both}
-@keyframes slideInBlur{from{opacity:0;transform:translateX(-16px);filter:blur(6px)}to{opacity:1;transform:translateX(0);filter:blur(0)}}
-.hex-panel-desc{font-family:var(--fb);font-size:14px;color:rgba(255,255,255,.68);line-height:1.80;margin-bottom:20px;animation:fadeInUp .5s cubic-bezier(.22,1,.36,1) .32s both}
-@keyframes fadeInUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
-.hex-panel-tags{display:flex;flex-wrap:wrap;gap:8px}
-.hex-panel-tag{padding:5px 15px;border-radius:100px;font-family:var(--fb);font-size:11px;font-weight:600;letter-spacing:.4px;background:var(--hp-bg,rgba(146,16,246,0.10));border:1px solid var(--hp-border,rgba(146,16,246,0.22));color:var(--hp-color,#9210f6);cursor:none;animation:tagSpring .5s cubic-bezier(.34,1.56,.64,1) var(--tag-delay,0.4s) both;transition:background .2s,transform .2s}
-.hex-panel-tag:hover{background:var(--hp-bg2,rgba(146,16,246,0.20));transform:translateY(-2px) scale(1.04)}
-@keyframes tagSpring{from{opacity:0;transform:scale(.6) translateY(8px)}to{opacity:1;transform:scale(1) translateY(0)}}
-.hex-panel-right{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:6px;padding:30px 28px;position:relative;overflow:hidden;background:rgba(0,0,0,.14)}
-.hex-panel-right::before{content:'';position:absolute;width:180px;height:180px;border-radius:50%;background:var(--hp-color,#9210f6);opacity:.07;filter:blur(50px);pointer-events:none}
-.hex-stat-val{font-family:var(--fh);font-size:clamp(38px,4vw,56px);font-weight:400;letter-spacing:-0.04em;line-height:1;color:var(--hp-color,#9210f6);position:relative;z-index:1;animation:statDrop .6s cubic-bezier(.34,1.56,.64,1) .35s both}
-@keyframes statDrop{0%{opacity:0;transform:scale(1.8) translateY(-12px);filter:blur(8px)}60%{filter:blur(0)}100%{opacity:1;transform:scale(1) translateY(0)}}
-.hex-stat-lbl{font-family:var(--fb);font-size:12px;font-weight:500;color:rgba(255,255,255,.45);letter-spacing:.8px;text-transform:uppercase;position:relative;z-index:1;animation:fadeInUp .4s cubic-bezier(.22,1,.36,1) .52s both}
-.hex-close{position:absolute;top:14px;right:16px;width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.11);color:rgba(255,255,255,.45);cursor:none;display:flex;align-items:center;justify-content:center;font-size:13px;transition:background .2s,color .2s,transform .2s;z-index:60;animation:closeIn .35s cubic-bezier(.34,1.56,.64,1) .5s both}
-@keyframes closeIn{from{opacity:0;transform:scale(0) rotate(180deg)}to{opacity:1;transform:scale(1) rotate(0deg)}}
-.hex-close:hover{background:rgba(255,255,255,.12);color:#fff;transform:rotate(90deg)}
-
-/* BRAND CAROUSEL */
-.carousel-section{padding:60px 0 90px;overflow:hidden;position:relative}
-.carousel-header{text-align:center;margin-bottom:52px;padding:0 6%}
-.carousel-header h3{font-family:var(--fh);font-size:clamp(22px,3.2vw,42px);font-weight:400;letter-spacing:-0.01em;margin-bottom:10px}
-.carousel-header h3 span{background:linear-gradient(90deg,var(--purple),var(--purple3));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
-.carousel-header p{font-family:var(--fb);font-size:15px;color:var(--muted)}
-.carousel-stage{position:relative;height:500px;perspective:1400px;perspective-origin:50% 50%}
-.cov-card{position:absolute;width:320px;height:440px;left:50%;top:50%;margin-left:-160px;margin-top:-220px;border-radius:24px;overflow:hidden;cursor:none;transition:transform .72s cubic-bezier(.22,1,.36,1),opacity .72s;will-change:transform,opacity;border:1px solid rgba(255,255,255,.13)}
-.cov-card.pos-0{transform:translateX(0) translateZ(0) rotateY(0deg) scale(1);opacity:1;z-index:10;box-shadow:0 0 0 1px rgba(255,255,255,.18),0 32px 80px rgba(0,0,0,.70),0 0 60px rgba(146,16,246,0.08);pointer-events:all}
-.cov-card.pos-1{transform:translateX(260px) translateZ(-200px) rotateY(-28deg) scale(0.82);opacity:.62;z-index:5;pointer-events:all}
-.cov-card.pos--1{transform:translateX(-260px) translateZ(-200px) rotateY(28deg) scale(0.82);opacity:.62;z-index:5;pointer-events:all}
-.cov-card.pos-2{transform:translateX(450px) translateZ(-400px) rotateY(-40deg) scale(0.62);opacity:.22;z-index:2;pointer-events:none}
-.cov-card.pos--2{transform:translateX(-450px) translateZ(-400px) rotateY(40deg) scale(0.62);opacity:.22;z-index:2;pointer-events:none}
-.cov-card.pos-hidden{transform:translateX(0) translateZ(-600px) scale(.4);opacity:0;z-index:0;pointer-events:none}
-.cov-top{height:100%;display:flex;flex-direction:column;padding:26px 24px 22px;position:relative;background:rgba(255,255,255,.06);backdrop-filter:blur(20px)}
-.cov-glow{position:absolute;top:-60px;left:-60px;right:-60px;height:200px;border-radius:50%;filter:blur(60px);opacity:.22;pointer-events:none}
-.cov-img{position:absolute;bottom:0;left:0;right:0;height:46%;overflow:hidden}
-.cov-img img{width:100%;height:100%;object-fit:cover;object-position:center 30%;transition:transform .5s}
-.cov-card.pos-0:hover .cov-img img{transform:scale(1.06)}
-.cov-img::before{content:'';position:absolute;top:0;left:0;right:0;height:60px;z-index:1;background:linear-gradient(to bottom,rgba(255,255,255,.06),transparent)}
-.cov-body{position:relative;z-index:2;display:flex;flex-direction:column;flex:1}
-.cov-tag{display:inline-flex;align-items:center;padding:4px 13px;border-radius:100px;font-family:var(--fb);font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;margin-bottom:12px;width:fit-content}
-.cov-name{font-family:var(--fh);font-size:24px;font-weight:400;letter-spacing:-0.01em;line-height:1;margin-bottom:4px;color:#fff}
-.cov-headline{font-family:var(--fb);font-size:12.5px;font-weight:600;color:rgba(255,255,255,.55);margin-bottom:16px}
-.cov-bullets{list-style:none;display:flex;flex-direction:column;gap:7px;margin-bottom:18px}
-.cov-bullets li{display:flex;align-items:center;gap:9px;font-family:var(--fb);font-size:12px;color:rgba(255,255,255,.78)}
-.cov-check{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;font-size:9px;font-weight:900;flex-shrink:0;color:#fff}
-.cov-btn{display:inline-flex;align-items:center;gap:7px;padding:9px 20px;border-radius:100px;font-family:var(--fb);font-size:12px;font-weight:700;color:#fff;border:1px solid rgba(255,255,255,.22);background:rgba(255,255,255,.10);cursor:none;width:fit-content;transition:background .2s;text-decoration:none}
-.cov-btn:hover{background:rgba(255,255,255,.20)}
-.carousel-controls{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:36px;padding:0 6%}
-.carousel-arrow{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);color:#fff;display:grid;place-items:center;cursor:none;transition:background .22s,transform .22s;flex-shrink:0}
-.carousel-arrow:hover{background:rgba(255,255,255,.14);transform:scale(1.08)}
-.carousel-dots{display:flex;align-items:center;gap:8px}
-.cdot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.25);cursor:none;transition:background .3s,width .3s}
-.cdot.active{background:#fff;width:22px;border-radius:4px}
-
-/* CHANGING TEXT */
-.changing-section{padding:80px 6%;text-align:center;position:relative;overflow:hidden;background:radial-gradient(ellipse 60% 80% at 50% 50%,rgba(146,16,246,0.08) 0%,transparent 70%)}
-.changing-section h3{font-family:var(--fh);font-size:clamp(20px,2.8vw,36px);font-weight:400;margin-bottom:16px;line-height:1.4}
-#changingText{color:var(--purple);position:relative;transition:opacity .4s,transform .4s}
-#changingText::after{content:'';position:absolute;bottom:-4px;left:0;width:100%;height:2px;background:linear-gradient(90deg,var(--purple),var(--purple3));border-radius:2px}
-.ct-fade-out{opacity:0;transform:translateY(-10px)}
-.ct-fade-in{opacity:1;transform:translateY(0)}
-
-/* FOOTER */
-.footer{padding-top:80px}
-.footer-tagline{font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:16px}
-.footer-brand-img{height:48px;width:auto;margin-bottom:12px;border-radius:8px}
-.footer-desc{font-family:var(--fb);font-size:14px;color:var(--muted);line-height:1.75;max-width:360px;margin-bottom:28px}
-.socials{display:flex;gap:10px}
-.soc{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);display:grid;place-items:center;color:#fff;font-family:var(--fb);font-size:12px;font-weight:700;text-decoration:none;transition:background .2s}
-.soc:hover{background:rgba(146,16,246,0.25)}
-.footer-links-title{font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:20px}
-.footer-links{display:flex;flex-direction:column;gap:12px}
-.footer-links a{font-family:var(--fb);font-size:14px;color:var(--muted);text-decoration:none;transition:color .2s}
-.footer-links a:hover{color:#fff}
-.footer-contact{display:flex;flex-direction:column;gap:10px;margin-top:28px}
-.footer-contact a{font-family:var(--fb);font-size:14px;color:var(--muted);text-decoration:none;transition:color .2s}
-.footer-contact a:hover{color:#fff}
-.footer-bar{border-top:1px solid rgba(255,255,255,.07);padding:18px 6%;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;font-family:var(--fb);font-size:13px;color:rgba(255,255,255,.36);max-width:1440px;margin:0 auto}
-.footer-bar a{color:rgba(255,255,255,.36);text-decoration:none;transition:color .2s}
-.footer-bar a:hover{color:#fff}
-.footer-main{padding:60px 6%;display:grid;grid-template-columns:1.4fr 1fr 1.6fr;gap:40px;max-width:1440px;margin:0 auto}
-/* RANKED GAMES */
-.rg-section{padding:70px 6% 60px;position:relative;overflow:hidden}
-.rg-section::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(146,16,246,0.4),transparent)}
-.rg-kicker{font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:10px}
-.rg-heading{font-family:var(--fh);font-size:clamp(22px,3vw,40px);font-weight:400;line-height:1.15;letter-spacing:-0.01em;margin-bottom:8px}
-.rg-sub{font-family:var(--fb);font-size:14px;color:var(--muted);margin-bottom:40px}
-.rg-track{display:flex;gap:0;align-items:flex-end;overflow-x:auto;padding-bottom:12px;scrollbar-width:none}
-.rg-track::-webkit-scrollbar{display:none}
-.rg-item{position:relative;flex-shrink:0;cursor:pointer;transition:transform .32s cubic-bezier(.22,1,.36,1)}
-.rg-item:hover{transform:scale(1.04) translateY(-6px);z-index:10}
-.rg-rank{position:absolute;left:-10px;top:-18px;font-family:var(--fh);font-size:clamp(60px,7vw,100px);font-weight:400;line-height:1;color:transparent;-webkit-text-stroke:2px rgba(227, 227, 227, 0.45);user-select:none;z-index:20;pointer-events:none;transition:color .3s,-webkit-text-stroke .3s}
-.rg-item:hover .rg-rank{-webkit-text-stroke:2px rgba(146,16,246,0.85);text-shadow:0 0 40px rgba(146,16,246,0.3)}
-.rg-card{width:210px;height:290px;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.08);background:rgba(255,255,255,0.04);position:relative;transition:border-color .3s,box-shadow .3s}.rg-item:hover .rg-card{border-color:rgba(146,16,246,0.5);box-shadow:0 16px 48px rgba(146,16,246,0.18),0 0 0 1px rgba(146,16,246,0.2)}
-.rg-card-img{width:100%;height:65%;object-fit:cover;display:block;transition:transform .4s}
-.rg-item:hover .rg-card-img{transform:scale(1.08)}
-.rg-card-body{position:absolute;bottom:0;left:0;right:0;padding:10px 12px 12px;background:linear-gradient(to top,rgba(10,5,20,0.97) 0%,rgba(10,5,20,0.6) 60%,transparent 100%)}
-.rg-card-name{font-family:var(--fb);font-size:12.5px;font-weight:700;color:#fff;line-height:1.3;margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rg-card-plays{font-family:var(--fb);font-size:10px;color:var(--muted);display:flex;align-items:center;gap:4px}
-.rg-card-badge{position:absolute;top:8px;right:8px;background:rgba(146,16,246,0.7);border:1px solid rgba(146,16,246,0.5);backdrop-filter:blur(8px);padding:3px 8px;border-radius:100px;font-family:var(--fb);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#fff}
-.rg-card-overlay{position:absolute;inset:0;background:rgba(146,16,246,0.12);opacity:0;transition:opacity .3s;display:flex;align-items:center;justify-content:center;border-radius:14px}
-.rg-item:hover .rg-card-overlay{opacity:1}
-.rg-play-btn{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 20px rgba(0,0,0,0.4);transform:scale(0.6);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
-.rg-item:hover .rg-play-btn{transform:scale(1)}
-.rg-empty{text-align:center;padding:60px 20px;font-family:var(--fb);font-size:14px;color:var(--muted)}
-@keyframes rgSlideIn{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
-.rg-item{animation:rgSlideIn .5s cubic-bezier(.22,1,.36,1) both};
-
-@media(max-width:1100px){.navbar{width:78%}}
-@media(max-width:900px){.nav-links,.nav-btn-cta{display:none}.ham{display:flex}.nav-wrap{padding:12px 20px;display:block}.navbar{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}.hero-inner{grid-template-columns:1fr;gap:32px}.hero-stats{flex-wrap:wrap;gap:16px}.hst{flex:1 1 calc(50% - 16px);padding-right:0;border-right:none!important}}
-@media(max-width:768px){.hero-h1{font-size:30px}.exp-track{flex-direction:column!important;height:auto!important;gap:8px}.exp-card{flex:none!important;width:100%!important;height:130px;border-radius:14px;transition:height .5s cubic-bezier(.22,1,.36,1)!important}.exp-card.active{height:260px!important}.footer-main{grid-template-columns:1fr}.hex-row.offset{padding-left:72px}.hex-cell{width:118px;height:104px;margin:0 3px}.hex-panel-grid{grid-template-columns:1fr}.hex-panel-right{border-top:1px solid rgba(255,255,255,.07);flex-direction:row;justify-content:center;gap:24px;padding:20px 24px}.cov-card{width:250px;height:370px;margin-left:-125px;margin-top:-185px}.carousel-stage{height:400px}.cov-card.pos-1{transform:translateX(170px) translateZ(-180px) rotateY(-26deg) scale(0.78)}.cov-card.pos--1{transform:translateX(-170px) translateZ(-180px) rotateY(26deg) scale(0.78)}.stats-strip{flex-wrap:wrap;gap:24px}.stat-item{min-width:40%}body{cursor:auto}.cursor-dot,.cursor-ring{display:none}}
-`;
-
-
-/* ─── SUB-COMPONENTS ────────────────────────────────── */
-const Arr = ({ size = 20 }) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5"
-    strokeLinecap="round" strokeLinejoin="round" style={{ width: size, height: size }}>
-    <line x1="5" y1="12" x2="19" y2="12" />
-    <polyline points="12 5 19 12 12 19" />
-  </svg>
-);
-
-function BookBtn({ href, label }) {
-  return (
-    <a href={href} className="book-btn">
-      <span className="ba">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
-          <line x1="5" y1="12" x2="19" y2="12" /><polyline points="12 5 19 12 12 19" />
-        </svg>
-      </span>
-      <span className="bl">{label}</span>
-    </a>
-  );
-}
-
-/* ─── YSTACK ────────────────────────────────────────── */
-function YStack() {
-  const [current, setCurrent] = useState(0);
-  const timerRef = useRef(null);
-  const total = HERO_CARDS.length;
-
-  const rotate = useCallback((dir = 1) => {
-    setCurrent(p => (p + dir + total) % total);
-  }, [total]);
-
-  useEffect(() => {
-    timerRef.current = setInterval(() => rotate(1), 3200);
-    return () => clearInterval(timerRef.current);
-  }, [rotate]);
-
-  const getPos = (i) => {
-    const d = (i - current + total) % total;
-    if (d === 0) return "yp0";
-    if (d === 1) return "yp1";
-    if (d === total - 1) return "yp-1";
-    if (d === 2) return "yp2";
-    return "yp-2";
-  };
-
-  return (
-    <div className="hero-right">
-      <div className="ystack-stage">
-        {HERO_CARDS.map((c, i) => (
-          <div key={c.label} className={`ycard ${getPos(i)}`}
-            style={{ background: `linear-gradient(135deg,${c.color}22,${c.color}08)`, borderColor: `${c.color}30` }}>
-            <div style={{ height: "60%", background: `linear-gradient(135deg,${c.color}33,rgba(10,5,20,0.9))`, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 56 }}>
-              {c.emoji}
-            </div>
-            <div className="ycard-body">
-              <span className="ycard-tag" style={{ background: `${c.color}22`, border: `1px solid ${c.color}44`, color: c.color }}>{c.label}</span>
-              <div className="ycard-sub">{c.sub}</div>
-              <CountUp as="div" className="ycard-stat" value={c.stat} />
-              <div style={{ fontFamily: "var(--fb)", fontSize: 10, color: "var(--muted)" }}>{c.statLabel}</div>
-            </div>
-          </div>
-        ))}
-        <div className="ystack-dots">
-          {HERO_CARDS.map((_, i) => (
-            <button key={i} className={`ydot ${i === current ? "active" : ""}`} onClick={() => setCurrent(i)} style={{ border: "none", background: "none", cursor: "none", padding: 0 }} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ─── HEX CAPABILITIES ──────────────────────────────── */
-function HexCapabilities() {
-  const [activeId, setActiveId] = useState(null);
-  const [closing, setClosing] = useState(false);
-  const panelKey = useRef(0);
-
-  const openPanel = (id) => {
-    if (id === activeId) {
-      setClosing(true);
-      setTimeout(() => { setActiveId(null); setClosing(false); }, 380);
-    } else {
-      panelKey.current += 1;
-      setActiveId(id);
-      setClosing(false);
-    }
-  };
-
-  const activeFeature = HEX_FEATURES.find(f => f.id === activeId);
-
-  return (
-    <div className="hex-section">
-      <div style={{ marginBottom: 32 }}>
-        <p className="kicker">Platform Capabilities</p>
-        <h2 className="sh2">Everything You Need to<br />Gamify Your Brand</h2>
-      </div>
-      <div className="hex-grid-outer">
-        {HEX_ROWS.map((row, ri) => (
-          <div key={ri} className={`hex-row${row.offset ? " offset" : ""}`}>
-            {row.ids.map(idx => {
-              const f = HEX_FEATURES[idx];
-              if (!f) return null;
-              const isActive = activeId === f.id;
-              return (
-                <div key={f.id} className={`hex-cell ${isActive ? "hex-active" : ""}`}
-                  style={{ "--hc": f.color }} onClick={() => openPanel(f.id)}>
-                  <div className="hex-body">
-                    <span className="hex-icon">{f.icon}</span>
-                    <span className="hex-label">{f.label}</span>
-                  </div>
-                  <div className="hex-dot" />
-                </div>
-              );
-            })}
-          </div>
-        ))}
-      </div>
-
-      {(activeId || closing) && activeFeature && (
-        <div className="hex-panel-wrap">
-          <div className={`hex-panel${closing ? " hex-panel-closing" : ""}`}
-            style={{ "--hp-color": activeFeature.color, "--hp-bg": `${activeFeature.color}18`, "--hp-bg2": `${activeFeature.color}30`, "--hp-border": `${activeFeature.color}35` }}>
-            <button className="hex-close" onClick={() => openPanel(activeId)}>✕</button>
-            <div className="hex-panel-grid">
-              <div className="hex-panel-left">
-                <div className="hex-panel-hd">
-                  <div className="hex-panel-ico" key={`ico-${panelKey.current}`}>{activeFeature.icon}</div>
-                  <div>
-                    <div className="hex-panel-name" key={`nm-${panelKey.current}`}>{activeFeature.label}</div>
-                    <div className="hex-panel-short" key={`sh-${panelKey.current}`}>{activeFeature.short}</div>
-                  </div>
-                </div>
-                <p className="hex-panel-desc" key={`desc-${panelKey.current}`}>{activeFeature.desc}</p>
-                <div className="hex-panel-tags">
-                  {activeFeature.tags?.map((t, ti) => (
-                    <span key={`${t}-${panelKey.current}`} className="hex-panel-tag" style={{ "--tag-delay": `${0.40 + ti * 0.09}s` }}>{t}</span>
-                  ))}
-                </div>
-              </div>
-              <div className="hex-panel-right">
-                <CountUp as="div" className="hex-stat-val" value={activeFeature.stat} key={`sv-${panelKey.current}`} />
-                <div className="hex-stat-lbl" key={`sl-${panelKey.current}`}>{activeFeature.statLabel}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-/* ─── BRAND CAROUSEL ────────────────────────────────── */
-function BrandCarousel() {
-  const [center, setCenter] = useState(0);
-  const total = BRANDS.length;
-  const timerRef = useRef(null);
-
-  const go = useCallback((dir) => {
-    setCenter(p => (p + dir + total) % total);
-  }, [total]);
-
-  useEffect(() => {
-    timerRef.current = setInterval(() => go(1), 4000);
-    return () => clearInterval(timerRef.current);
-  }, [go]);
-
-  const getClass = (i) => {
-    const d = i - center;
-    const wrapped = ((d % total) + total) % total;
-    const norm = wrapped > total / 2 ? wrapped - total : wrapped;
-    if (norm === 0) return "pos-0";
-    if (norm === 1) return "pos-1";
-    if (norm === -1) return "pos--1";
-    if (norm === 2) return "pos-2";
-    if (norm === -2) return "pos--2";
-    return "pos-hidden";
-  };
-
-  return (
-    <div className="carousel-section">
-      <div className="carousel-header">
-        <h3>Built for <span>Every Industry</span></h3>
-        <p>From FMCG to EdTech — Promogames powers engagement across every category.</p>
-      </div>
-      <div className="carousel-stage">
-        {BRANDS.map((b, i) => (
-          <div key={b.id} className={`cov-card ${getClass(i)}`}
-            onClick={() => setCenter(i)}>
-            <div className="cov-top">
-              <div className="cov-glow" style={{ background: b.color }} />
-              <div className="cov-body">
-                <span className="cov-tag" style={{ background: `${b.color}22`, border: `1px solid ${b.color}44`, color: b.color }}>
-                  {b.tag}
-                </span>
-                <div className="cov-name">{b.name}</div>
-                <div className="cov-headline">{b.headline}</div>
-                <ul className="cov-bullets">
-                  {b.bullets.map(bullet => (
-                    <li key={bullet}>
-                      <span className="cov-check" style={{ background: b.color }}>✓</span>
-                      {bullet}
-                    </li>
-                  ))}
-                </ul>
-                <a href="#contact" className="cov-btn">Learn More <Arr size={14} /></a>
-              </div>
-              <div className="cov-img">
-                <img src={b.img} alt={b.name} loading="lazy" />
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="carousel-controls">
-        <button className="carousel-arrow" onClick={() => go(-1)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
-            <polyline points="15 18 9 12 15 6" />
-          </svg>
-        </button>
-        <div className="carousel-dots">
-          {BRANDS.map((_, i) => (
-            <button key={i} className={`cdot ${i === center ? "active" : ""}`}
-              onClick={() => setCenter(i)}
-              style={{ border: "none", padding: 0, cursor: "none" }} />
-          ))}
-        </div>
-        <button className="carousel-arrow" onClick={() => go(1)}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ width: 18, height: 18 }}>
-            <polyline points="9 18 15 12 9 6" />
-          </svg>
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/* ─── CHANGING TEXT ─────────────────────────────────── */
-function ChangingText() {
-  const [idx, setIdx] = useState(0);
-  const [fading, setFading] = useState(false);
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      setFading(true);
-      setTimeout(() => {
-        setIdx(p => (p + 1) % CHANGING_TEXTS.length);
-        setFading(false);
-      }, 450);
-    }, 2400);
-    return () => clearInterval(t);
-  }, []);
-
-  return (
-    <section className="changing-section">
-      <h3>
-        The leading Brand Engagement Platform for<br />
-        <span id="changingText" className={fading ? "ct-fade-out" : "ct-fade-in"}>
-          {CHANGING_TEXTS[idx]}
-        </span>
-      </h3>
-      <p style={{ fontFamily: "var(--fb)", fontSize: 16, color: "var(--muted)", maxWidth: 540, margin: "0 auto 32px", lineHeight: 1.7 }}>
-        Brand Promotions that feel like play — and perform like your best campaign.
-      </p>
-      <BookBtn href="https://forms.gle/LUs2Q7cVS8tU8ra66" label="Get a Trial Game" />
-    </section>
-  );
-}
-/* ─── RANKED GAMES ──────────────────────────────────── */
-function RankedGames() {
+/* ═══════════════ RANKED GAMES ═══════════════ */
+function useRankedGames() {
   const [games, setGames] = useState([]);
   const [loading, setLoading] = useState(true);
-
   useEffect(() => {
-    fetch('/api/play/hero-games')
-      .then(r => r.json())
-      .then(d => { if (d.success) setGames(d.games || []); })
+    fetch("/api/play/hero-games")
+      .then((r) => r.json())
+      .then((d) => { if (d.success) setGames(d.games || []); })
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);
+  return { games, loading };
+}
 
-  if (loading || games.length === 0) return null;
+/* ── stage contents ── */
 
-  const COLORS = ['#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497','#7C3AED','#4F46E5','#9210f6','#610497'];
+/* pg-01 — no content, just joystick + CTA */
+function HeroContent() { return null; }
 
+/* pg-02 — giant text OVER the joystick (text in front) */
+function BrandTextContent() {
   return (
-    <section className="rg-section">
-      <p className="rg-kicker">🔥 Trending Now</p>
-      <h2 className="rg-heading">Top Games This Week</h2>
-      <p className="rg-sub">Play brand games from our partners — live &amp; free</p>
-
-      <div className="rg-track">
-        {games.map((game, i) => (
-          <div
-            key={game.id}
-            className="rg-item"
-            style={{ animationDelay: `${i * 60}ms`, marginLeft: i === 0 ? 0 : i < 3 ? 36 : 24, marginTop: 28 }}
-            onClick={() => window.open(`/play/${game.slug}/${game.client_slug}`, '_blank')}
-          >
-            <span className="rg-rank">{i + 1}</span>
-
-            <div className="rg-card">
-              {game.game_logo_url || game.bg_image_url ? (
-                <img className="rg-card-img" src={game.game_logo_url || game.bg_image_url} alt={game.name} loading="lazy" />
-              ) : (
-                <div className="rg-card-img" style={{
-                  background: `linear-gradient(135deg, ${COLORS[i % COLORS.length]}44, ${COLORS[(i+2) % COLORS.length]}22)`,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 40
-                }}>
-                  🎮
-                </div>
-              )}
-              <span className="rg-card-badge">{game.category || 'Quiz'}</span>
-              <div className="rg-card-body">
-                <div className="rg-card-name">{game.name}</div>
-                <div className="rg-card-plays">
-                  <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                  {(game.play_count || 0).toLocaleString()} plays
-                </div>
-              </div>
-              <div className="rg-card-overlay">
-                <div className="rg-play-btn">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="#9210f6"><polygon points="5 3 19 12 5 21 5 3"/></svg>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-    </section>
+    <div className="ss-panel ss-brand-panel">
+      <h1 className="ss-giant solid">BRAND MARKETING</h1>
+      <h1 className="ss-giant outline">GAMIFIED</h1>
+    </div>
   );
 }
-/* ─── MAIN COMPONENT ────────────────────────────────── */
-export default function Business() {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const [active, setActive] = useState(0);
-  const hovRef = useRef(false);
-  const dotRef = useRef(null);
-  const ringRef = useRef(null);
-  const mx = useRef(0); const my = useRef(0);
-  const rx = useRef(0); const ry = useRef(0);
-  const rafRef = useRef(null);
 
-  useEffect(() => {
-    const move = (e) => { mx.current = e.clientX; my.current = e.clientY; document.body.classList.add("cursor-visible"); };
-    const enter = () => document.body.classList.add("cursor-hover");
-    const leave = () => document.body.classList.remove("cursor-hover");
-    document.addEventListener("mousemove", move);
-    document.querySelectorAll("a,button").forEach(el => { el.addEventListener("mouseenter", enter); el.addEventListener("mouseleave", leave); });
-    const loop = () => {
-      rx.current += (mx.current - rx.current) * 0.14;
-      ry.current += (my.current - ry.current) * 0.14;
-      if (dotRef.current) dotRef.current.style.transform = `translate(${mx.current - 4}px,${my.current - 4}px)`;
-      if (ringRef.current) ringRef.current.style.transform = `translate(${rx.current - 19}px,${ry.current - 19}px)`;
-      rafRef.current = requestAnimationFrame(loop);
-    };
-    rafRef.current = requestAnimationFrame(loop);
-    return () => { document.removeEventListener("mousemove", move); cancelAnimationFrame(rafRef.current); };
-  }, []);
-
-  useEffect(() => {
-    const onScroll = () => {
-      const pct = window.scrollY / (document.body.scrollHeight - window.innerHeight) * 100;
-      document.documentElement.style.setProperty("--scroll-pct", `${pct}%`);
-    };
-    window.addEventListener("scroll", onScroll);
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    const t = setInterval(() => {
-      if (!hovRef.current) setActive(p => (p + 1) % SERVICES.length);
-    }, 3800);
-    return () => clearInterval(t);
-  }, []);
-
+/* pg-03 — stats slab at bottom, behind joystick */
+function StatsContent() {
   return (
-    <>
-      <style>{CSS}</style>
-      <MascotBubble />
-      <MascotCursor />
-      <div className="scroll-bar" />
-      <div ref={dotRef} className="cursor-dot" />
-      <div ref={ringRef} className="cursor-ring" />
-
-      <div className="nav-wrap">
-        <nav className="navbar">
-          <a href="/" className="logo">
-            <img src="/favicon2.png" alt="Promogames" style={{height:60,width:'auto',borderRadius:8}} />
-          </a>
-          <div style={{flex:1}} />
-          <ul className="nav-links">
-            {NAV.map(n => (
-              <li key={n.label}>
-                <a href={n.href}>{n.label}</a>
-              </li>
-            ))}
-            <li><div className="nav-divider" /></li>
-<li>
-  <a href="/login" className="login-link">Log in</a>
-</li>          </ul>
-          <a href="tel:+916366870248" className="nav-btn-cta">🎧 Talk to an Expert</a>
-          <button className={`ham${menuOpen ? " open" : ""}`} onClick={() => setMenuOpen(p => !p)}>
-            <span /><span /><span />
-          </button>
-        </nav>
-      </div>
-      <div className={`mob-overlay${menuOpen ? " open" : ""}`}>
-        {NAV.map(n => <a key={n.label} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>)}
-        <a href="/login" style={{ fontSize: 18, fontFamily: "var(--fb)", fontWeight: 700, border: "1px solid rgba(146,16,246,0.5)", padding: "12px 32px", borderRadius: 100 }}>Log in</a>
-        <a href="tel:+916366870248" className="mob-cta">Talk to an Expert</a>
-      </div>
-
-      <section id="home">
-        <div className="hero-inner">
-          <div className="hero-left">
-            <div className="hero-kicker">🎮 Brand Marketing Gamified</div>
-            <h1 className="hero-h1">
-              Brand<br />
-              MARKETING<br />
-              <span>Gamified</span>
-            </h1>
-            <p className="hero-sub">
-              Transform your brand promotions into interactive experiences. Engage customers with quizzes, scratch cards, contests, and instant rewards that drive real results.
-            </p>
-            <div className="hero-actions">
-              <BookBtn href="#contact" label="Get a Trial Game" />
-              <a href="#games" className="ghost-btn">Explore Games</a>
-            </div>
-            <div className="hero-stats">
-              {STATS.map(({ val, label }) => (
-                <div className="hst" key={label}>
-                  <CountUp as="span" className="hst-n" value={val} />
-                  <span className="hst-l">{label}</span>
-                </div>
-              ))}
-            </div>
-            <div className="hero-trust">
-              <div className="trust-label">Trusted by brands across industries</div>
-              <div className="trust-logos">
-                {["FMCG", "E-commerce", "D2C", "EdTech", "Events", "Media"].map(b => (
-                  <span key={b} className="trust-logo">{b}</span>
-                ))}
-              </div>
-            </div>
-          </div>
-          <YStack />
-        </div>
-      </section>
-
-      <div className="stats-strip">
-        {STATS.map(({ val, label }) => (
-          <div key={label} className="stat-item">
-            <CountUp as="div" className="stat-val" value={val} />
-            <div className="stat-lbl">{label}</div>
-          </div>
-        ))}
-      </div>
-      <RankedGames />
-      <section id="services">
-        <div className="svc-head">
-          <div>
-            <p className="kicker">Game Formats</p>
-            <h2 style={{ fontFamily: "var(--fh)", fontSize: "clamp(24px,3.5vw,48px)", fontWeight: 400, lineHeight: 1.15 }}>
-              Promotions That Feel<br />Like Play
-            </h2>
-          </div>
-          <p style={{ fontFamily: "var(--fb)", fontSize: 15, color: "var(--muted)", maxWidth: 320, lineHeight: 1.7, textAlign: "right" }}>
-            Hover any card to explore each format — from viral giveaways to instant-win mechanics.
-          </p>
-        </div>
-        <div className="exp-track" onMouseLeave={() => { hovRef.current = false; }}>
-          {SERVICES.map((s, i) => (
-            <div key={i} className={`exp-card shimmer-card${active === i ? " active" : ""}`}
-              onMouseEnter={() => { hovRef.current = true; setActive(i); }}>
-              <img className="exp-img" src={s.img} alt={s.title} loading="lazy" />
-              <span className="exp-tag">{s.tag}</span>
-              <span className="exp-num">0{i + 1}</span>
-              <div className="exp-body">
-                <h3>{s.emoji} {s.title}</h3>
-                <p className="exp-desc">{s.desc}</p>
-              </div>
+    <div className="ss-panel ss-stats-panel">
+      <div className="ss-stats-slab">
+        <div className="ss-stats-row">
+          {STATS.map(({ val, label }) => (
+            <div className="ss-stat" key={label}>
+              <CountUp as="div" className="ss-stat-val" value={val} />
+              <div className="ss-stat-lbl">{label}</div>
             </div>
           ))}
         </div>
-      </section>
-
-      <section className="marquee-section">
-        <div className="marquee-label">Trusted by brands across India</div>
-        <div className="marquee-track">
-          {[...Array(2)].flatMap(() =>
-            ["FMCG Leaders", "D2C Brands", "E-commerce Giants", "EdTech Platforms", "Event Companies", "Media Houses", "Insurance Brands", "Banking Apps", "Retail Chains", "Healthcare Brands"].map((b, i) => (
-              <span key={`${b}-${Math.random()}`} className="marquee-item">{b}</span>
-            ))
-          )}
+        <div className="ss-trust-label">Trusted by brands across industries</div>
+        <div className="ss-trust-logos">
+          {TRUST.map((b) => <span key={b} className="ss-trust-chip">{b}</span>)}
         </div>
-      </section>
+      </div>
+    </div>
+  );
+}
 
-      <ChangingText />
+function TopDockContent() { return null; }
 
-      <section id="capabilities">
-        <div className="cs-inner">
-          <HexCapabilities />
-          <BrandCarousel />
+/* pg-05 — trending panel LEFT, joystick RIGHT */
+function RankedContent() {
+  const { games, loading } = useRankedGames();
+  const game = games[0];
+  return (
+    <div className="ss-panel ss-ranked-panel">
+      <p className="ss-eyebrow">🔥 Trending Now</p>
+      <h2 className="ss-h2">Top Games This Week</h2>
+      <p className="ss-p">Play brand games from our partners — live &amp; free</p>
+      {!loading && game && (
+        <div className="ss-ranked-card">
+          <span className="ss-ranked-tag">{game.category || "Quiz"}</span>
+          <RankedImage src={game.game_logo_url || game.bg_image_url} alt={game.name} />
+          <div className="ss-ranked-name">{game.name}</div>
+          <div className="ss-ranked-plays">▶ {(game.play_count || 0).toLocaleString()} plays</div>
         </div>
-      </section>
+      )}
+      {!loading && !game && <div className="ss-ranked-empty">Check back soon for trending games.</div>}
+    </div>
+  );
+}
 
-      <footer className="footer">
-        <div className="footer-main">
-          <div>
-            <p className="footer-tagline">Play Everyday. Win Everyday.</p>
-            <img src="/favicon2.png" alt="Promogames" className="footer-brand-img" />
-            <p className="footer-desc">
-              Quick games, real rewards, and a leaderboard that keeps you coming back. Your reward journey starts here.
-            </p>
-            <div className="socials">
-              {[["in","https://www.linkedin.com"],["f","https://www.facebook.com/profile.php?id=61579982040453"],["𝕏","#"],["▶","#"],["📷","#"]].map(([s, href], i) => (
-                <a key={i} href={href} target="_blank" rel="noopener noreferrer" className="soc">{s}</a>
-              ))}
+function RankedImage({ src, alt }) {
+  const [failed, setFailed] = useState(!src);
+  if (failed) return <div className="ss-ranked-fallback">🎮</div>;
+  return <img src={src} alt={alt} onError={() => setFailed(true)} />;
+}
+
+/* pg-06/07/08 — HUGE outlined text RIGHT side, joystick LEFT */
+function PromotionsContent() {
+  return (
+    <div className="ss-panel ss-promo-panel">
+      <h2 className="ss-outline-h2 ss-pl" data-line="0">PROMOTIONS</h2>
+      <h2 className="ss-outline-h2 dim ss-pl" data-line="1">THAT FEELS LIKE</h2>
+      <h2 className="ss-solid-h2 ss-pl" data-line="2">PLAYING</h2>
+    </div>
+  );
+}
+
+/* pg-09/10 — cards appear bottom right, then morph */
+function PromoCardsContent() {
+  return (
+    <div className="ss-panel ss-promocards-panel">
+      <div className="ss-promo-cards">
+        {PROMO_CARDS.map((c, i) => (
+          <div className="ss-promo-card" data-card={i} key={c.title} style={{ background: c.color }}>
+            <span>{c.emoji}</span><p>{c.title}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* pg-11 — tagline RIGHT, joystick LEFT-UPPER */
+function TaglineContent() {
+  return (
+    <div className="ss-panel ss-tagline-panel">
+      <p className="ss-tagline-serif">
+        The leading Brand Engagement Platform for<br /><span>Spin the Wheel</span>
+      </p>
+      <p className="ss-p">Brand Promotions that feel like play — and perform like your best campaign.</p>
+      <a href={EXPERT_URL} className="ss-standalone-btn">Get a Trial Game</a>
+    </div>
+  );
+}
+
+/* pg-12 — coverflow cards */
+function CapabilitiesContent() {
+  const center = 2;
+  return (
+    <div className="ss-panel ss-cap-panel">
+      <h2 className="ss-h2 solid ss-cap-h2">BUILT FOR EVERY INDUSTRY</h2>
+      <div className="ss-fan">
+        {INDUSTRY_CARDS.map((c, i) => {
+          const o = i - center;
+          return (
+            <div className="ss-ind-card" key={c.name} data-off={o}>
+              <span className="ss-ind-tag">{c.tag}</span>
+              <h3 className="ss-ind-name">{c.name}</h3>
+              <p className="ss-ind-sub">{c.sub}</p>
+              <ul className="ss-ind-list">
+                {c.items.map((it) => <li key={it}><i>✓</i>{it}</li>)}
+              </ul>
+              <button className="ss-ind-more" type="button">Learn More <b>→</b></button>
+              <div className="ss-ind-photo" style={{ background: c.photo }}>
+                <span>{c.emoji}</span>
+              </div>
             </div>
-          </div>
-          <div>
-            <div className="footer-links-title">Quick Links</div>
-            <div className="footer-links">
-              {FOOTER_NAV.map(([label, href]) => (
-                <a key={label} href={href}>{label}</a>
-              ))}
-              <a href="/company">Company</a>
-            </div>
-          </div>
-          <div>
-            <div className="footer-links-title">Get in Touch</div>
-            <div className="footer-contact">
-              <a href="tel:+916366870248">📞 +91 6366 870 248</a>
-              <a href="mailto:play@promogames.in">📧 play@promogames.in</a>
-            </div>
-          </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
-        </div>
-        <div className="footer-bar">
-          <p>© 2026 Promogames. Fun Games. Exciting Gifts.</p>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <a href="/terms">Terms & Conditions</a><span>|</span><a href="/privacy">Privacy Policy</a>
+/* pg-13 — footer with joystick overlapping from right */
+function FooterContent() { return null; }
+
+const STAGE_CONTENT = {
+  hero: HeroContent, brandtext: BrandTextContent, stats: StatsContent,
+  topdock: TopDockContent, ranked: RankedContent, promotions: PromotionsContent,
+  promocards: PromoCardsContent, tagline: TaglineContent, capabilities: CapabilitiesContent,
+  footer: FooterContent,
+};
+
+/* ── pg-13 footer ── */
+function SocialIcon({ d, label }) {
+  return (
+    <a className="ss-soc" href="#" aria-label={label} onClick={(e) => e.preventDefault()}>
+      <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d={d} /></svg>
+    </a>
+  );
+}
+function BusinessFooter() {
+  const icons = [
+    { label: "LinkedIn", d: "M4.98 3.5C4.98 4.88 3.87 6 2.5 6S0 4.88 0 3.5 1.12 1 2.5 1s2.48 1.12 2.48 2.5zM.2 8h4.6v14H.2V8zm7.6 0h4.4v1.9h.06c.6-1.14 2.1-2.34 4.3-2.34 4.6 0 5.44 3 5.44 6.9V22h-4.6v-6.6c0-1.58-.03-3.6-2.2-3.6-2.2 0-2.54 1.72-2.54 3.5V22H7.8V8z" },
+    { label: "Facebook", d: "M22 12a10 10 0 1 0-11.56 9.88v-6.99H7.9V12h2.54V9.8c0-2.5 1.5-3.89 3.78-3.89 1.1 0 2.24.2 2.24.2v2.46H15.2c-1.24 0-1.63.77-1.63 1.56V12h2.78l-.44 2.89h-2.34v6.99A10 10 0 0 0 22 12z" },
+    { label: "X", d: "M18.9 2H22l-6.77 7.74L23.2 22h-6.24l-4.9-6.4L6.5 22H3.36l7.24-8.28L1.6 2h6.4l4.42 5.85L18.9 2zm-1.1 18.1h1.72L7.1 3.8H5.26L17.8 20.1z" },
+    { label: "YouTube", d: "M23.5 6.2a3 3 0 0 0-2.12-2.12C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.53A3 3 0 0 0 .5 6.2 31.2 31.2 0 0 0 0 12a31.2 31.2 0 0 0 .5 5.8 3 3 0 0 0 2.12 2.12c1.88.53 9.38.53 9.38.53s7.5 0 9.38-.53a3 3 0 0 0 2.12-2.12A31.2 31.2 0 0 0 24 12a31.2 31.2 0 0 0-.5-5.8zM9.6 15.6V8.4L15.8 12l-6.2 3.6z" },
+    { label: "Instagram", d: "M12 2.2c3.2 0 3.58.01 4.85.07 3.25.15 4.77 1.7 4.92 4.92.06 1.27.07 1.65.07 4.85s-.01 3.58-.07 4.85c-.15 3.23-1.66 4.77-4.92 4.92-1.27.06-1.65.07-4.85.07s-3.58-.01-4.85-.07c-3.26-.15-4.77-1.7-4.92-4.92C2.17 15.6 2.15 15.2 2.15 12s.01-3.58.07-4.85C2.37 3.92 3.88 2.38 7.14 2.23 8.42 2.17 8.8 2.15 12 2.15zm0 3.68a6.16 6.16 0 1 0 0 12.32 6.16 6.16 0 0 0 0-12.32zm0 10.16a4 4 0 1 1 0-8 4 4 0 0 1 0 8zm6.4-11.85a1.44 1.44 0 1 0 0 2.88 1.44 1.44 0 0 0 0-2.88z" },
+  ];
+  return (
+    <footer className="ss-footer">
+      <p className="ss-footer-kicker">Play Everyday. Win Everyday.</p>
+      <div className="ss-footer-grid">
+        <div className="ss-footer-brand">
+          <a className="ss-nav-logo big" href="/"><img src="/favicon.png" alt="" /><span>promogames</span></a>
+          <p>Quick games, real rewards, and a leaderboard that keeps you coming back. Your reward journey starts here.</p>
+          <div className="ss-soc-row">
+            {icons.map((ic) => <SocialIcon key={ic.label} {...ic} />)}
           </div>
         </div>
-      </footer>
+        <div>
+          <div className="ss-footer-title">Quick Links</div>
+          <a href="/arcade">Play Now</a>
+          <a href="/leaderboard">Leaderboard</a>
+          <a href="/business">Business</a>
+          <a href="/login">Log In</a>
+          <a href="/company">Company</a>
+        </div>
+        <div>
+          <div className="ss-footer-title">Get in Touch</div>
+          <a href="tel:+916366870248">📞 +91 6366 870 248</a>
+          <a href="mailto:play@promogames.in">✉️ play@promogames.in</a>
+        </div>
+      </div>
+      <div className="ss-footer-bar">
+        <span>© 2026 Promogames. Fun Games. Exciting Gifts.</span>
+        <span className="ss-footer-legal"><a href="#">Terms &amp; Conditions</a> | <a href="#">Privacy Policy</a></span>
+      </div>
+    </footer>
+  );
+}
+
+/* ═══════════════════════ 3D MODEL ═══════════════════════ */
+function ControllerModel({ onReady }) {
+  const { scene } = useGLTF(MODEL_URL);
+  const groupRef = useRef();
+  const innerRef = useRef();
+  const cloned = useMemo(() => scene.clone(true), [scene]);
+
+  useEffect(() => {
+    if (!innerRef.current || !groupRef.current) return;
+    const box = new THREE.Box3().setFromObject(cloned);
+    const size = new THREE.Vector3();
+    const center = new THREE.Vector3();
+    box.getSize(size);
+    box.getCenter(center);
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    const targetSize = 1.65;
+    const baseScale = targetSize / maxDim;
+
+    innerRef.current.position.set(-center.x, -center.y, -center.z);
+    groupRef.current.scale.setScalar(baseScale);
+    groupRef.current.userData.baseScale = baseScale;
+    groupRef.current.rotation.set(MODEL_ORIENTATION_FIX.x, MODEL_ORIENTATION_FIX.y, MODEL_ORIENTATION_FIX.z);
+
+    onReady(groupRef.current);
+  }, [cloned, onReady]);
+
+  return (
+    <group ref={groupRef}>
+      <primitive ref={innerRef} object={cloned} />
+    </group>
+  );
+}
+useGLTF.preload(MODEL_URL);
+
+function SceneLights() {
+  return (
+    <>
+      <ambientLight intensity={0.75} />
+      <hemisphereLight args={["#ffffff", "#3b1a6b", 0.7]} />
+      <directionalLight position={[3, 5, 6]} intensity={1.6} />
+      <directionalLight position={[-5, 2, 4]} intensity={0.7} />
+      <directionalLight position={[0, -4, -4]} intensity={0.5} color="#9210f6" />
+      <pointLight position={[0, 3, -3]} intensity={0.7} color="#7C3AED" />
     </>
   );
 }
+
+/* ═══════════════════════ MAIN ═══════════════════════ */
+export default function ScrollStoryHero3D() {
+  const rootRef = useRef(null);
+  const pinRef = useRef(null);
+  const dockRef = useRef(null);
+  const ctaRef = useRef(null);
+  const contentRefs = useRef({});
+  const [modelGroup, setModelGroup] = useState(null);
+
+  const setContentRef = useCallback((key) => (el) => { contentRefs.current[key] = el; }, []);
+  const handleModelReady = useCallback((group) => setModelGroup(group), []);
+
+  useEffect(() => {
+    if (!modelGroup) return;
+    const ctx = gsap.context(() => {
+      Object.entries(contentRefs.current).forEach(([key, el]) => {
+        if (!el) return;
+        gsap.set(el, { opacity: key === "hero" ? 1 : 0, y: key === "hero" ? 0 : 24 });
+        el.querySelectorAll?.(".ss-pl, .ss-promo-card").forEach((n) => gsap.set(n, { opacity: 0, y: 26 }));
+      });
+      gsap.set(dockRef.current, { opacity: 0, y: -20 });
+
+      const base = modelGroup.userData.baseScale;
+      const pose = (key) => {
+        const t = STAGE_TRANSFORM[key];
+        return {
+          rotation: {
+            x: MODEL_ORIENTATION_FIX.x + t.rx,
+            y: MODEL_ORIENTATION_FIX.y + t.ry,
+            z: MODEL_ORIENTATION_FIX.z + t.rz,
+          },
+          position: { x: t.px, y: t.py, z: t.pz },
+          scale: base * t.scale,
+        };
+      };
+
+      const p0 = pose("hero");
+      gsap.set(modelGroup.rotation, p0.rotation);
+      gsap.set(modelGroup.position, p0.position);
+      gsap.set(modelGroup.scale, { x: p0.scale, y: p0.scale, z: p0.scale });
+
+      const MOVE = 0.45, HOLD = 0.55;
+      const tl = gsap.timeline({
+        scrollTrigger: {
+          trigger: rootRef.current,
+          start: "top top",
+          end: () => `+=${window.innerHeight * (STAGE_KEYS.length + 0.3)}`,
+          scrub: 0.6,
+          pin: pinRef.current,
+          anticipatePin: 1,
+          snap: {
+            snapTo: "labels",
+            duration: { min: 0.25, max: 0.7 },
+            delay: 0.04,
+            ease: "power2.inOut",
+          },
+        },
+      });
+
+      STAGE_KEYS.forEach((key, i) => {
+        const label = `s${i}`;
+        if (i === 0) { tl.addLabel(label, 0); return; }
+        const prevKey = STAGE_KEYS[i - 1];
+        const start = (i - 1) + HOLD;
+        const p = pose(key);
+
+        tl.addLabel(label, start + MOVE);
+
+        tl.to(modelGroup.rotation, { ...p.rotation, duration: MOVE, ease: "section" }, start);
+        tl.to(modelGroup.position, { ...p.position, duration: MOVE, ease: "section" }, start);
+        tl.to(modelGroup.scale, { x: p.scale, y: p.scale, z: p.scale, duration: MOVE, ease: "section" }, start);
+
+        tl.to(contentRefs.current[prevKey], { opacity: 0, y: -26, duration: 0.3, ease: "power2.in" }, start);
+        tl.fromTo(contentRefs.current[key],
+          { opacity: 0, y: 26 }, { opacity: 1, y: 0, duration: 0.32, ease: "power2.out" }, start + MOVE * 0.45);
+
+        /* CTA hides during brandtext (pg-02) */
+        if (key === "brandtext") tl.to(ctaRef.current, { opacity: 0, duration: 0.25, ease: "power2.in" }, start);
+        if (prevKey === "brandtext") tl.to(ctaRef.current, { opacity: 1, duration: 0.25 }, start + 0.15);
+
+        /* pg-04 dock */
+        if (key === "topdock") tl.to(dockRef.current, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }, start + 0.15);
+        if (prevKey === "topdock") tl.to(dockRef.current, { opacity: 0, y: -20, duration: 0.3, ease: "power2.in" }, start);
+
+        /* pg-06→08: headline lines stagger in */
+        if (key === "promotions" && contentRefs.current.promotions) {
+          contentRefs.current.promotions.querySelectorAll(".ss-pl").forEach((line, li) => {
+            tl.fromTo(line, { opacity: 0, y: 34 },
+              { opacity: 1, y: 0, duration: 0.22, ease: "power3.out" },
+              start + MOVE + 0.06 + li * 0.16);
+          });
+        }
+
+        /* pg-09→10: cards pop in, then morph */
+        if (key === "promocards" && contentRefs.current.promocards) {
+          const cards = contentRefs.current.promocards.querySelectorAll(".ss-promo-card");
+          cards.forEach((card, ci) => {
+            tl.fromTo(card, { opacity: 0, y: 40, scale: 0.9 },
+              { opacity: 1, y: 0, scale: 1, duration: 0.26, ease: "back.out(1.6)" },
+              start + 0.08 + ci * 0.1);
+          });
+          cards.forEach((card, ci) => {
+            if (ci === 0) return;
+            tl.to(card, {
+              scaleX: 0.18, borderRadius: 100, duration: 0.3, ease: "section",
+            }, start + MOVE + 0.12);
+            tl.to(card.querySelector("p"), { opacity: 0, duration: 0.2 }, start + MOVE + 0.12);
+            tl.to(card.querySelector("span"), { opacity: 0, duration: 0.2 }, start + MOVE + 0.12);
+          });
+        }
+      });
+    }, rootRef);
+
+    return () => ctx.revert();
+  }, [modelGroup]);
+
+  return (
+    <section ref={rootRef} className="scroll-story-root">
+      <style>{SCROLL_STORY_CSS}</style>
+
+      <div ref={pinRef} className="ss-pin">
+        <PlayerNavbar />
+
+        {/* pg-04 — stats docked at top */}
+        <div ref={dockRef} className="ss-dock">
+          {STATS.map(({ val, label }) => (
+            <div className="ss-dock-stat" key={label}>
+              <span className="ss-dock-val">{val}</span>
+              <span className="ss-dock-lbl">{label}</span>
+            </div>
+          ))}
+        </div>
+
+        <div className="ss-canvas-wrap">
+          <Canvas camera={{ position: [0, 0, 6], fov: 32 }} dpr={[1, 2]}>
+            <SceneLights />
+            <Suspense fallback={null}>
+              <ControllerModel onReady={handleModelReady} />
+            </Suspense>
+          </Canvas>
+        </div>
+
+        {/* persistent floating CTA pill */}
+        <div ref={ctaRef} className="ss-cta-float">
+          <div className="ss-cta-pill">
+            <a href={EXPERT_URL} className="ss-book-btn">Get a Trial Game</a>
+            <a href="/arcade" className="ss-ghost-btn">Explore Games</a>
+          </div>
+        </div>
+
+        <div className="ss-content-behind">
+          {STAGE_KEYS.filter((k) => STAGE_LAYER[k] === "behind").map((key) => {
+            const Content = STAGE_CONTENT[key];
+            return (
+              <div
+                key={key}
+                ref={setContentRef(key)}
+                className="ss-content-layer"
+                style={{ position: "absolute", inset: 0, pointerEvents: "none", ...STAGE_ALIGN[key] }}
+              >
+                <Content />
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="ss-content-front">
+          {STAGE_KEYS.filter((k) => STAGE_LAYER[k] === "front").map((key) => {
+            const Content = STAGE_CONTENT[key];
+            return (
+              <div
+                key={key}
+                ref={setContentRef(key)}
+                className="ss-content-layer"
+                style={{ position: "absolute", inset: 0, pointerEvents: "none", ...STAGE_ALIGN[key] }}
+              >
+                <Content />
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      <BusinessFooter />
+    </section>
+  );
+}
+
+/* ══════════════════════════════ CSS ══════════════════════════════ */
+const SCROLL_STORY_CSS = `
+.scroll-story-root{position:relative;width:100%;background:#0d0a1a}
+.ss-pin{position:relative;width:100%;height:100svh;overflow:hidden;background:radial-gradient(ellipse 80% 70% at 50% 0%,rgba(146,16,246,0.18) 0%,transparent 70%)}
+
+.ss-canvas-wrap{position:absolute;inset:0;z-index:4;pointer-events:none}
+.ss-canvas-wrap canvas{pointer-events:none}
+
+.ss-content-behind{position:absolute;inset:0;z-index:1;pointer-events:none}
+.ss-content-front{position:absolute;inset:0;z-index:5;pointer-events:none}
+.ss-content-layer{position:absolute;inset:0;display:flex;align-items:center;pointer-events:none}
+.ss-panel{pointer-events:auto}
+
+/* persistent CTA pill — bottom center */
+.ss-cta-float{position:absolute;left:50%;bottom:30px;transform:translateX(-50%);z-index:15;will-change:opacity}
+.ss-cta-pill{display:flex;gap:10px;background:rgba(10,6,22,0.9);border:1px solid rgba(255,255,255,0.08);border-radius:100px;padding:8px}
+.ss-book-btn{display:inline-flex;align-items:center;height:44px;padding:0 24px;border-radius:100px;background:linear-gradient(90deg,var(--purple2),var(--purple));color:#fff;font-family:var(--fb);font-weight:700;font-size:13px;text-decoration:none}
+.ss-ghost-btn{display:inline-flex;align-items:center;height:44px;padding:0 22px;border-radius:100px;border:1px solid rgba(255,255,255,0.16);color:#fff;font-family:var(--fb);font-weight:600;font-size:13px;text-decoration:none}
+
+/* pg-02 — HUGE text filling the screen, over the joystick */
+.ss-brand-panel{width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;gap:0;pointer-events:none}
+.ss-giant{font-family:var(--fh);font-size:clamp(60px,13vw,200px);line-height:0.92;letter-spacing:-0.02em;margin:0;text-align:center;width:100%;white-space:nowrap}
+.ss-giant.solid{color:#fff;text-shadow:0 0 80px rgba(146,16,246,0.3)}
+.ss-giant.outline{-webkit-text-stroke:3px rgba(255,255,255,0.65);color:transparent}
+
+/* pg-03 — stats slab full-width at bottom, behind joystick */
+.ss-stats-panel{width:100%;height:100%;flex-direction:column;align-items:center;justify-content:flex-end;padding-bottom:0}
+.ss-stats-slab{width:72%;max-width:900px;background:rgba(12,6,26,0.92);border:1px solid rgba(255,255,255,0.07);border-radius:28px;padding:28px 40px 24px;display:flex;flex-direction:column;align-items:center;margin-bottom:24px}
+.ss-stats-row{display:flex;margin-bottom:16px;width:100%;justify-content:space-around}
+.ss-stat{padding:0 24px;text-align:center;border-right:1px solid rgba(255,255,255,0.1)}
+.ss-stat:last-child{border-right:none}
+.ss-stat-val{font-family:var(--fh);font-size:clamp(24px,2.8vw,38px);color:#fff}
+.ss-stat-lbl{font-family:var(--fb);font-size:11px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;margin-top:3px}
+.ss-trust-label{font-family:var(--fb);font-size:10.5px;color:rgba(255,255,255,0.38);letter-spacing:1.4px;text-transform:uppercase;margin-bottom:12px}
+.ss-trust-logos{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+.ss-trust-chip{padding:6px 16px;border-radius:100px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);font-family:var(--fb);font-size:11px;font-weight:600;color:rgba(255,255,255,0.55)}
+
+/* pg-04 dock — full-width purple bar at top */
+.ss-dock{position:absolute;top:80px;left:50%;transform:translateX(-50%);width:88%;max-width:1100px;display:flex;justify-content:space-around;background:linear-gradient(135deg,#2a0a54,#4c1d95 55%,#6d28d9);border:1px solid rgba(167,139,250,0.35);border-radius:100px;padding:22px 20px;z-index:20;box-shadow:0 20px 60px rgba(76,29,149,0.5);will-change:opacity,transform}
+.ss-dock-stat{padding:0 28px;display:flex;flex-direction:column;align-items:center;border-right:1px solid rgba(255,255,255,0.14)}
+.ss-dock-stat:last-child{border-right:none}
+.ss-dock-val{font-family:var(--fh);font-size:24px;color:#c4b5fd}
+.ss-dock-lbl{font-family:var(--fb);font-size:9px;color:rgba(255,255,255,0.6);letter-spacing:.6px;text-transform:uppercase;margin-top:2px}
+
+/* pg-05 ranked — panel LEFT */
+.ss-ranked-panel{max-width:480px;margin-left:6%;background:rgba(10,6,22,0.85);border:1px solid rgba(255,255,255,0.07);border-radius:28px;padding:36px}
+.ss-eyebrow{font-family:var(--fb);font-size:11px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--purple);margin-bottom:8px}
+.ss-h2{font-family:var(--fh);font-size:clamp(22px,3vw,40px);font-weight:400;margin-bottom:8px;color:#fff}
+.ss-h2.solid{color:#fff}
+.ss-p{font-family:var(--fb);font-size:14px;color:var(--muted);margin-bottom:24px}
+.ss-ranked-card{width:210px;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:16px;padding:14px;position:relative}
+.ss-ranked-card img{width:100%;height:120px;object-fit:cover;border-radius:10px;margin-bottom:10px;display:block}
+.ss-ranked-fallback{width:100%;height:120px;border-radius:10px;margin-bottom:10px;display:flex;align-items:center;justify-content:center;font-size:34px;background:rgba(146,16,246,0.12)}
+.ss-ranked-tag{position:absolute;top:24px;right:24px;background:rgba(146,16,246,0.85);padding:3px 10px;border-radius:100px;font-family:var(--fb);font-size:9px;font-weight:700;text-transform:uppercase;color:#fff;z-index:2}
+.ss-ranked-name{font-family:var(--fb);font-size:13px;font-weight:700;color:#fff;margin-bottom:4px}
+.ss-ranked-plays{font-family:var(--fb);font-size:11px;color:var(--muted)}
+.ss-ranked-empty{font-family:var(--fb);font-size:13px;color:var(--muted)}
+
+/* pg-06→08 — HUGE text RIGHT side, joystick LEFT */
+.ss-promo-panel{width:100%;height:100%;flex-direction:column;align-items:flex-end;justify-content:center;text-align:right;padding:0 5% 0 0}
+.ss-outline-h2{font-family:var(--fh);font-size:clamp(48px,8vw,120px);font-weight:400;-webkit-text-stroke:2px rgba(255,255,255,0.6);color:transparent;line-height:1.0;margin:0}
+.ss-outline-h2.dim{-webkit-text-stroke:2px rgba(255,255,255,0.3)}
+.ss-solid-h2{font-family:var(--fh);font-size:clamp(48px,8vw,120px);font-weight:400;color:#fff;line-height:1.0;margin:0;text-shadow:0 0 40px rgba(146,16,246,0.4)}
+
+/* pg-09/10 — promo cards bottom right */
+.ss-promocards-panel{width:100%;height:100%;flex-direction:column;align-items:flex-end;justify-content:flex-end;padding:0 5% 8% 0}
+.ss-promo-cards{display:flex;gap:18px}
+.ss-promo-card{width:180px;height:200px;border-radius:22px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;box-shadow:0 18px 44px rgba(0,0,0,0.45);will-change:transform}
+.ss-promo-card span{font-size:36px}
+.ss-promo-card p{font-family:var(--fb);font-size:13px;font-weight:700;color:#fff;margin:0}
+
+/* pg-11 — tagline RIGHT, joystick LEFT-UPPER */
+.ss-tagline-panel{width:50%;max-width:560px;margin-left:auto;margin-right:6%;display:flex;flex-direction:column;align-items:flex-start;text-align:left}
+.ss-tagline-serif{font-family:var(--fh);font-size:clamp(22px,2.8vw,36px);font-weight:400;line-height:1.4;margin-bottom:14px;color:#fff}
+.ss-tagline-serif span{color:#c084fc;font-style:italic;border-bottom:2px solid rgba(192,132,252,0.5);padding-bottom:2px}
+.ss-tagline-panel .ss-p{text-align:left;color:rgba(255,255,255,0.7);margin-bottom:28px}
+.ss-standalone-btn{display:inline-flex;align-items:center;height:52px;padding:0 36px;border-radius:14px;background:linear-gradient(90deg,var(--purple2),var(--purple));color:#fff;font-family:var(--fb);font-weight:700;font-size:15px;text-decoration:none;box-shadow:0 8px 30px rgba(146,16,246,0.4)}
+
+/* pg-12 — coverflow */
+.ss-cap-panel{width:100%;height:100%;flex-direction:column;align-items:center;justify-content:center;padding:0 4%}
+.ss-cap-h2{text-align:center;margin-bottom:26px;font-size:clamp(24px,3.4vw,46px)}
+.ss-fan{display:flex;justify-content:center;align-items:center;perspective:1400px;position:relative;height:420px;width:100%}
+.ss-ind-card{position:absolute;left:50%;top:50%;width:260px;height:380px;margin:-190px 0 0 -130px;background:linear-gradient(180deg,rgba(20,10,40,0.96),rgba(10,6,22,0.96));border:1px solid rgba(167,139,250,0.22);border-radius:20px;padding:18px;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,0.5);transform-style:preserve-3d}
+.ss-ind-card[data-off="0"]{transform:translateX(0) translateZ(60px);z-index:10}
+.ss-ind-card[data-off="-1"]{transform:translateX(-58%) translateZ(-40px) rotateY(32deg);z-index:5;opacity:.92}
+.ss-ind-card[data-off="1"]{transform:translateX(58%) translateZ(-40px) rotateY(-32deg);z-index:5;opacity:.92}
+.ss-ind-card[data-off="-2"]{transform:translateX(-104%) translateZ(-120px) rotateY(42deg);z-index:1;opacity:.75}
+.ss-ind-card[data-off="2"]{transform:translateX(104%) translateZ(-120px) rotateY(-42deg);z-index:1;opacity:.75}
+.ss-ind-tag{align-self:flex-start;font-family:var(--fb);font-size:9px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;color:#c4b5fd;border:1px solid rgba(167,139,250,0.45);border-radius:100px;padding:4px 10px;margin-bottom:12px}
+.ss-ind-name{font-family:var(--fh);font-size:22px;color:#fff;margin:0 0 4px}
+.ss-ind-sub{font-family:var(--fb);font-size:10.5px;color:rgba(255,255,255,0.55);margin:0 0 12px}
+.ss-ind-list{list-style:none;margin:0 0 14px;padding:0;display:flex;flex-direction:column;gap:8px}
+.ss-ind-list li{display:flex;align-items:center;gap:8px;font-family:var(--fb);font-size:11px;color:rgba(255,255,255,0.85)}
+.ss-ind-list li i{font-style:normal;width:16px;height:16px;border-radius:50%;background:rgba(146,16,246,0.25);color:#c4b5fd;font-size:9px;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.ss-ind-more{align-self:flex-start;display:inline-flex;align-items:center;gap:6px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.14);color:#fff;font-family:var(--fb);font-size:11px;font-weight:600;padding:8px 14px;border-radius:100px;cursor:pointer;margin-bottom:14px}
+.ss-ind-more b{color:#c4b5fd}
+.ss-ind-photo{flex:1;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:44px;min-height:70px}
+
+/* pg-13 footer */
+.ss-footer{position:relative;z-index:2;background:linear-gradient(180deg,#0d0a1a 0%,#120b24 60%,#160d2b 100%);padding:70px 6% 0}
+.ss-footer-kicker{font-family:var(--fb);font-size:11px;font-weight:800;letter-spacing:3px;text-transform:uppercase;color:#a78bfa;margin:0 0 34px}
+.ss-footer-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px;padding-bottom:46px}
+.ss-footer-brand p{font-family:var(--fb);font-size:13px;color:rgba(255,255,255,0.55);line-height:1.7;max-width:340px;margin:16px 0 22px}
+.ss-nav-logo{display:flex;align-items:center;gap:8px;text-decoration:none}
+.ss-nav-logo img{width:24px;height:24px}
+.ss-nav-logo span{font-family:var(--fb);font-weight:800;font-size:15px;color:#fff}
+.ss-nav-logo.big img{width:28px;height:28px}
+.ss-soc-row{display:flex;gap:10px}
+.ss-soc{width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,0.07);border:1px solid rgba(255,255,255,0.1);display:inline-flex;align-items:center;justify-content:center;color:rgba(255,255,255,0.75)}
+.ss-soc:hover{background:rgba(146,16,246,0.3);color:#fff}
+.ss-footer-title{font-family:var(--fb);font-size:12px;font-weight:800;letter-spacing:2px;text-transform:uppercase;color:#a78bfa;margin-bottom:18px}
+.ss-footer-grid > div:not(.ss-footer-brand){display:flex;flex-direction:column;gap:12px}
+.ss-footer-grid > div a{font-family:var(--fb);font-size:13.5px;color:rgba(255,255,255,0.72);text-decoration:none}
+.ss-footer-grid > div a:hover{color:#fff}
+.ss-footer-bar{display:flex;justify-content:space-between;align-items:center;gap:14px;border-top:1px solid rgba(255,255,255,0.08);padding:20px 0;font-family:var(--fb);font-size:12px;color:rgba(255,255,255,0.45)}
+.ss-footer-legal a{color:rgba(255,255,255,0.55);text-decoration:none}
+.ss-footer-legal a:hover{color:#fff}
+
+@media(max-width:900px){
+  .ss-giant{font-size:clamp(44px,11vw,120px);white-space:normal;line-height:1}
+  .ss-ranked-panel{margin:0 5%}
+  .ss-promo-panel,.ss-cap-panel{align-items:center;text-align:center;padding:0 5%}
+  .ss-promo-panel .ss-pl{text-align:center}
+  .ss-promo-cards{gap:10px}
+  .ss-promo-card{width:100px;height:130px}
+  .ss-tagline-panel{width:80%;margin:0 auto;text-align:center;align-items:center}
+  .ss-tagline-panel .ss-p{text-align:center}
+  .ss-fan{height:430px}
+  .ss-ind-card[data-off="-2"],.ss-ind-card[data-off="2"]{display:none}
+  .ss-ind-card[data-off="-1"]{transform:translateX(-72%) translateZ(-40px) rotateY(32deg) scale(.9)}
+  .ss-ind-card[data-off="1"]{transform:translateX(72%) translateZ(-40px) rotateY(-32deg) scale(.9)}
+  .ss-dock{width:94%;top:86px;padding:16px 10px}
+  .ss-dock-stat{padding:0 16px}
+  .ss-stats-slab{width:92%}
+  .ss-footer-grid{grid-template-columns:1fr;gap:30px}
+  .ss-footer-bar{flex-direction:column}
+}
+`;

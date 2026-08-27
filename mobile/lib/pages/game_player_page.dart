@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import '../models/game.dart';
-import '../models/game_config.dart';
+import 'package:promogames_engine/engine.dart';
 import '../services/api_service.dart';
 import '../services/auth_service.dart';
 import '../services/player_provider.dart';

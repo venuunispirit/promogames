@@ -1,82 +1,94 @@
-import 'game_contract.dart';
+import 'package:promogames_engine/engine.dart';
 import 'fallback_game.dart';
 
-import 'quiz_game.dart';
-import 'memory_game.dart';
-import 'tictactoe_game.dart';
-import 'simon_game.dart';
-import 'reaction_game.dart';
-import 'whackamole_game.dart';
-import 'snake_game.dart';
-import 'game2048_game.dart';
-import 'breakout_game.dart';
-import 'space_game.dart';
-import 'flappy_game.dart';
-import 'catch_game.dart';
-import 'maze_game.dart';
-import 'sudoku_game.dart';
-import 'crossword_game.dart';
-import 'wordsearch_game.dart';
-import 'jigsaw_game.dart';
-import 'wordscramble_game.dart';
-import 'pouring_game.dart';
-import 'typer_game.dart';
-import 'screw_game.dart';
-import 'bounce_game.dart';
-import 'stack_game.dart';
-import 'hanoi_game.dart';
-import 'bowling_game.dart';
-import 'minesweeper_game.dart';
-import 'rps_game.dart';
-import 'arrowescape_game.dart';
-import 'bejeweled_game.dart';
-import 'tetris_game.dart';
-import 'bubbleshooter_game.dart';
-import 'carlaunch_game.dart';
-import 'stressbuster_game.dart';
-import 'soundify_game.dart';
-import 'connect4_game.dart';
-import 'chess_game.dart';
+import 'gamelinks/quiz/playerpage.dart';
+import 'gamelinks/memory/playerpage.dart';
+import 'gamelinks/snake/playerpage.dart';
+import 'gamelinks/math/playerpage.dart';
+import 'gamelinks/crossword/playerpage.dart';
+import 'gamelinks/wordsearch/playerpage.dart';
+import 'gamelinks/wordscramble/playerpage.dart';
+import 'gamelinks/bubbleshooter/playerpage.dart';
+import 'gamelinks/tictactoe/playerpage.dart';
+import 'gamelinks/tictactoemulti/playerpage.dart';
+import 'gamelinks/flappy/playerpage.dart';
+import 'gamelinks/typer/playerpage.dart';
+import 'gamelinks/chess/playerpage.dart';
+import 'gamelinks/arrowescape/playerpage.dart';
+import 'gamelinks/bounce/playerpage.dart';
+import 'gamelinks/bowling/playerpage.dart';
+import 'gamelinks/bejeweled/playerpage.dart';
+import 'gamelinks/classicmaze/playerpage.dart';
+import 'gamelinks/connect4/playerpage.dart';
+import 'gamelinks/stressbuster/playerpage.dart';
+import 'gamelinks/2048/playerpage.dart';
+import 'gamelinks/ludo/playerpage.dart';
+import 'gamelinks/snakeandladder/playerpage.dart';
+import 'gamelinks/pouring/playerpage.dart';
+import 'gamelinks/simon/playerpage.dart';
+import 'gamelinks/reaction/playerpage.dart';
+import 'gamelinks/whackamole/playerpage.dart';
+import 'gamelinks/breakout/playerpage.dart';
+import 'gamelinks/space/playerpage.dart';
+import 'gamelinks/catch/playerpage.dart';
+import 'gamelinks/sudoku/playerpage.dart';
+import 'gamelinks/jigsaw/playerpage.dart';
+import 'gamelinks/screw/playerpage.dart';
+import 'gamelinks/stack/playerpage.dart';
+import 'gamelinks/hanoi/playerpage.dart';
+import 'gamelinks/minesweeper/playerpage.dart';
+import 'gamelinks/rps/playerpage.dart';
+import 'gamelinks/tetris/playerpage.dart';
+import 'gamelinks/carlaunch/playerpage.dart';
+import 'gamelinks/soundify/playerpage.dart';
+import 'gamelinks/carrom/playerpage.dart';
+import 'gamelinks/tower/playerpage.dart';
 import 'canva_game.dart';
 import 'brickimages_game.dart';
 
 final Map<String, GameBuilder> _builders = {
-  'quiz': buildQuizGame,
-  'memory': buildMemoryGame,
-  'tictactoe': buildTictactoeGame,
-  'simon': buildSimonGame,
-  'reaction': buildReactionGame,
-  'whackamole': buildWhackamoleGame,
-  'snake': buildSnakeGame,
-  '2048': build2048Game,
-  'breakout': buildBreakoutGame,
-  'space': buildSpaceGame,
-  'flappy': buildFlappyGame,
-  'catch': buildCatchGame,
-  'maze': buildMazeGame,
-  'sudoku': buildSudokuGame,
-  'crossword': buildCrosswordGame,
-  'wordsearch': buildWordSearchGame,
-  'jigsaw': buildJigsawGame,
-  'wordscramble': buildWordScrambleGame,
-  'pouring': buildPouringGame,
-  'typer': buildTyperGame,
-  'screw': buildScrewGame,
-  'bounce': buildBounceGame,
-  'stack': buildStackGame,
-  'hanoi': buildHanoiGame,
-  'bowling': buildBowlingGame,
-  'minesweeper': buildMinesweeperGame,
-  'rps': buildRpsGame,
-  'arrowescape': buildArrowEscapeGame,
-  'bejeweled': buildBejeweledGame,
-  'tetris': buildTetrisGame,
-  'bubbleshooter': buildBubbleShooterGame,
-  'carlaunch': buildCarLaunchGame,
-  'stressbuster': buildStressBusterGame,
-  'soundify': buildSoundifyGame,
-  'connect4': buildConnect4Game,
-  'chess': buildChessGame,
+  'quiz': buildQuizPlayer,
+  'memory': buildMemoryPlayer,
+  'math': buildMathPlayer,
+  'tictactoe': buildTicTacToePlayer,
+  'simon': buildSimonPlayer,
+  'reaction': buildReactionPlayer,
+  'whackamole': buildWhackamolePlayer,
+  'snake': buildSnakePlayer,
+  'crossword': buildCrosswordPlayer,
+  'wordsearch': buildWordSearchPlayer,
+  'wordscramble': buildWordScramblePlayer,
+  'bubbleshooter': buildBubbleShooterPlayer,
+  'tictactoemulti': buildTicTacToeMultiPlayer,
+  'flappy': buildFlappyPlayer,
+  '2048': build2048Player,
+  'breakout': buildBreakoutPlayer,
+  'space': buildSpacePlayer,
+  'catch': buildCatchPlayer,
+  'maze': buildClassicMazePlayer,
+  'sudoku': buildSudokuPlayer,
+  'jigsaw': buildJigsawPlayer,
+  'pouring': buildPouringPlayer,
+  'typer': buildTyperPlayer,
+  'screw': buildScrewPlayer,
+  'bounce': buildBouncePlayer,
+  'stack': buildStackPlayer,
+  'hanoi': buildHanoiPlayer,
+  'bowling': buildBowlingPlayer,
+  'minesweeper': buildMinesweeperPlayer,
+  'rps': buildRpsPlayer,
+  'arrowescape': buildArrowEscapePlayer,
+  'bejeweled': buildBejeweledPlayer,
+  'tetris': buildTetrisPlayer,
+  'carlaunch': buildCarLaunchPlayer,
+  'stressbuster': buildStressBusterPlayer,
+  'soundify': buildSoundifyPlayer,
+  'connect4': buildConnect4Player,
+  'chess': buildChessPlayer,
+  'ludo': buildLudoPlayer,
+  'snakeandladder': buildSnakeAndLadderPlayer,
+  'carrom': buildCarromPlayer,
+  'tower': buildTowerPlayer,
   'canva': buildCanvaGame,
   'brickimages': buildBrickImagesGame,
 };

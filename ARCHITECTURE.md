@@ -267,3 +267,13 @@ removal is pending a performance review.
 ## Environment Variables
 See `apps/backend/.env.example` for all required and optional variables.
 Required: DB_HOST, DB_PORT, DB_USER, DB_PASSWORD, DB_NAME, JWT_SECRET, SMTP_*
+
+## Git Workflow / Deployment
+
+- **NO pushes to any remote (origin) unless explicitly instructed.** Do not run
+  `git push` (or create/approve PRs) on your own initiative — wait for an
+  explicit "push" / "commit & push" instruction from the user.
+- Local commits are fine, but the working tree must never be pushed to
+  `origin` (including branch creation/rename that syncs remotely, or deleting
+  remote branches) without a direct go-ahead.
+- When in doubt, leave changes local and ask.

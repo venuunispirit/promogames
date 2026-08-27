@@ -1668,6 +1668,16 @@ const handleModalClose = () => {
               </svg>
             </span>
           </button>
+
+          {/* PC rule — guests earn no Promo Coins, only registered players do */}
+          {!playerProfile && !saveClaim?.pc_awarded && (
+            <p style={{
+              fontSize: '0.72rem', fontWeight: 600, color: '#9ca3af',
+              marginTop: 12, marginBottom: 0, lineHeight: 1.4,
+            }}>
+              💡 Promo Coins are earned by registered players only. Sign up free to start collecting coins, best scores &amp; rewards.
+            </p>
+          )}
         </div>
         <style>{OVERLAY_STYLES}</style>
       </div>

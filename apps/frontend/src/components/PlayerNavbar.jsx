@@ -162,12 +162,12 @@ const CSS = `
   .pn-logo-mobile{display:none}
   @media(max-width:1100px){.pn-nav{width:78%}}
   @media(max-width:900px){
-      .pn-links,.pn-cta,.pn-wire-wrap,.pn-greet{display:none}
-      .pn-ham{display:flex}
-      .pn-wrap{padding:12px 20px;display:block}
-      .pn-nav{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}
-      .pn-logo-desktop{display:none}
-      .pn-logo-mobile{display:block}
+    .pn-links,.pn-cta,.pn-wire-wrap{display:none}
+    .pn-ham{display:flex}
+    .pn-wrap{padding:12px 20px;display:block}
+    .pn-nav{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}
+    .pn-logo-desktop{display:none}
+    .pn-logo-mobile{display:block}
   }
   @media(min-width:901px){.pn-mob-overlay{display:none!important}}
 `;
@@ -328,7 +328,7 @@ export default function PlayerNavbar() {
 
           {isAuth ? (
               <div style={{display:'flex',alignItems:'center',gap:12}}>
-              <div className="pn-greet" style={{lineHeight:1.2}}>
+              <div style={{lineHeight:1.2}}>
                 <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:700,color:'#fff',whiteSpace:'nowrap',textAlign:'right',display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end'}}>Hi, {player.name?.split(' ')[0]} <Sparkles size={14} color="#c084fc" /></div>
                 <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:'rgba(255,255,255,0.45)',fontWeight:500,whiteSpace:'nowrap',marginTop:1,textAlign:'right'}}>Welcome back</div>
               </div>

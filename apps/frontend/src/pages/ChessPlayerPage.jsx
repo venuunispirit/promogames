@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import {
   Swords, Puzzle, LineChart, Trophy, MessageSquare,
-  User, Play, Bot, Link2, Clock, Flag, RotateCcw, Maximize2,
+  User, Play, Bot, Link2, Clock, Flag, RotateCcw, Home,
   ChevronLeft, ChevronRight, X, Check, Crown, Flame, Star, Sparkles,
   Copy, Repeat, Download, Share2,
   Target, Award, Medal, Info, Lightbulb, ShieldCheck, Send,
@@ -9,6 +9,8 @@ import {
 } from "lucide-react";
 import api from "../api";
 import { AvatarDisplay } from "../components/AvatarData";
+import { selectBotForDifficulty, calculateThinkTime, evaluatePosition, scoreMoveWithPersonality, getThinkingBubble, selectHumanLikeMove } from "../lib/botBrain";
+import { loadPlayerModel, updatePlayerModel, createLiveTracker, recordMove, getAdaptiveStrategy } from "../lib/playerModel";
 
 /* ============================================================================
    CHESSVERSE — "Play. Learn. Conquer."
@@ -494,6 +496,250 @@ function rollOutcomeBias() {
 }
 
 /* ---------------------------------------------------------------------------
+   BOT REACTION SYSTEM — cosmetic dialogue layer (zero game-logic influence)
+--------------------------------------------------------------------------- */
+const BOT_REACTIONS = {
+  pools: {
+    brilliant: [
+      "Whoa. Nice find.",
+      "That was actually really good.",
+      "Okay... you've got my attention.",
+      "Clever.",
+      "I almost missed that.",
+      "That's a strong move.",
+      "Wow, didn't see that coming.",
+      "Alright, I'm impressed.",
+      "Sharp play.",
+      "That was surgical.",
+    ],
+    excellent: [
+      "Nice move.",
+      "Okay, I see you 👀",
+      "That was clean.",
+      "Interesting...",
+      "Good one.",
+      "Didn't expect that.",
+      "You're making this difficult.",
+      "Strong play.",
+      "Well calculated.",
+      "That was precise.",
+    ],
+    good: [
+      "Not bad.",
+      "Solid.",
+      "Okay.",
+      "I see what you're doing.",
+      "Fair enough.",
+      "That works.",
+      "Decent move.",
+      "You're thinking ahead.",
+    ],
+    normal: [
+      "Hmm.",
+      "Okay.",
+      "Interesting.",
+      "I see.",
+      "Let's go.",
+      "Sure.",
+      "Right.",
+      "Noted.",
+    ],
+    inaccuracy: [
+      "Interesting choice...",
+      "Are you sure about that?",
+      "Hmm...",
+      "I'll take it.",
+      "That gives me an idea.",
+      "Let's see where this goes.",
+      "If you say so.",
+      "Bold.",
+    ],
+    mistake: [
+      "Oh...",
+      "You might regret that.",
+      "I think you left something open.",
+      "Was that intentional?",
+      "I won't complain 😏",
+      "Thanks.",
+      "I was hoping for that.",
+      "That helps me.",
+    ],
+    blunder: [
+      "Ouch.",
+      "That's gonna hurt.",
+      "I think you dropped something.",
+      "Are you okay?",
+      "I'll definitely take that.",
+      "That was free.",
+      "Didn't expect a gift.",
+      "Well, I appreciate that.",
+    ],
+    check: [
+      "Check? Already?",
+      "Okay, okay...",
+      "I saw that coming. Mostly.",
+      "Getting aggressive, are we?",
+      "Nice pressure.",
+      "Watch it.",
+      "I see the check.",
+    ],
+    promotion: [
+      "A queen? Bold.",
+      "New queen on the board.",
+      "Promoted. Respect.",
+      "That's a power move.",
+    ],
+    captureQueen: [
+      "Ouch. That queen was important.",
+      "There goes my queen.",
+      "You really wanted that one, huh?",
+      "I need to be more careful.",
+      "That queen served me well.",
+      "Okay... that hurt.",
+    ],
+    captureRook: [
+      "There goes my rook.",
+      "Ouch.",
+      "You took my rook.",
+      "That's a big piece.",
+      "I'll remember that.",
+    ],
+    captureMinor: [
+      "Good capture.",
+      "Okay, that's fair.",
+      "You got one.",
+      "Noted.",
+      "I'll recover from that.",
+    ],
+    capturePawn: [
+      "A pawn?",
+      "Sure.",
+      "Go ahead.",
+      "Every bit counts, huh?",
+    ],
+    playerWin: [
+      "Well played.",
+      "You got me.",
+      "Okay, that was good.",
+      "GG. You earned that.",
+      "Rematch?",
+      "Impressive finish.",
+      "You were on fire.",
+    ],
+    botWin: [
+      "Good game.",
+      "That was close.",
+      "Nice fight.",
+      "GG.",
+      "Want another one?",
+      "Better luck next time.",
+      "You'll get me next time.",
+    ],
+    draw: [
+      "Fair enough.",
+      "Looks like we're even.",
+      "I'll take the draw.",
+      "GG.",
+      "Nobody wins, nobody loses.",
+      "Evenly matched.",
+    ],
+    timeWin: [
+      "Good game. Time pressure is real.",
+      "You played fast.",
+      "GG. The clock was the decider.",
+    ],
+    timeLoss: [
+      "Time got me.",
+      "I ran out of time. GG.",
+      "Flag fell. Well played.",
+    ],
+    resignation: [
+      "Good game.",
+      "GG.",
+      "You fought well.",
+    ],
+  },
+};
+
+function pickRandom(arr, recent) {
+  if (!arr || arr.length === 0) return null;
+  const available = arr.filter((m) => !recent.includes(m));
+  const pool = available.length > 0 ? available : arr;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+const PIECE_VALUES = { p: 1, n: 3, b: 3.1, r: 5, q: 9, k: 0 };
+
+function classifyMove(evalBefore, evalAfter, move, playerColor) {
+  const perspective = playerColor === "w" ? 1 : -1;
+  const delta = (evalAfter - evalBefore) * perspective;
+
+  let classification = "normal";
+  if (delta >= 4.0) classification = "brilliant";
+  else if (delta >= 2.0) classification = "excellent";
+  else if (delta >= 0.5) classification = "good";
+  else if (delta <= -5.0) classification = "blunder";
+  else if (delta <= -3.0) classification = "mistake";
+  else if (delta <= -1.5) classification = "inaccuracy";
+
+  if (move.capture) {
+    const capturedVal = PIECE_VALUES[move.capture] || 0;
+    if (capturedVal >= 9 && classification !== "blunder") classification = "excellent";
+    if (capturedVal >= 5 && delta >= 1.0 && classification !== "brilliant") classification = "excellent";
+  }
+
+  return classification;
+}
+
+function getBotReaction({
+  moveQuality,
+  isCheck,
+  isCheckmate,
+  isPromotion,
+  capturedPiece,
+  gameOutcome,
+  triggerOnTime,
+  playerResigned,
+  recentMessages,
+}) {
+  const roll = Math.random();
+
+  if (gameOutcome) {
+    if (playerResigned) return pickRandom(BOT_REACTIONS.pools.resignation, recentMessages);
+    if (triggerOnTime) {
+      return pickRandom(
+        gameOutcome === "win" ? BOT_REACTIONS.pools.timeWin : BOT_REACTIONS.pools.timeLoss,
+        recentMessages
+      );
+    }
+    if (isCheckmate) {
+      return pickRandom(
+        gameOutcome === "win" ? BOT_REACTIONS.pools.playerWin : BOT_REACTIONS.pools.botWin,
+        recentMessages
+      );
+    }
+    return pickRandom(BOT_REACTIONS.pools.draw, recentMessages);
+  }
+
+  if (isPromotion && roll < 0.85) return pickRandom(BOT_REACTIONS.pools.promotion, recentMessages);
+
+  if (capturedPiece === "q" && roll < 0.85) return pickRandom(BOT_REACTIONS.pools.captureQueen, recentMessages);
+  if (capturedPiece === "r" && roll < 0.7) return pickRandom(BOT_REACTIONS.pools.captureRook, recentMessages);
+  if (capturedPiece === "b" || capturedPiece === "n") {
+    if (roll < 0.6) return pickRandom(BOT_REACTIONS.pools.captureMinor, recentMessages);
+  }
+  if (capturedPiece === "p" && roll < 0.5) return pickRandom(BOT_REACTIONS.pools.capturePawn, recentMessages);
+
+  if (isCheck && roll < 0.8) return pickRandom(BOT_REACTIONS.pools.check, recentMessages);
+
+  const qualityThresholds = { brilliant: 0.85, excellent: 0.8, good: 0.5, normal: 0.45, inaccuracy: 0.7, mistake: 0.7, blunder: 0.75 };
+  const threshold = qualityThresholds[moveQuality] || 0.45;
+  if (roll < threshold) return pickRandom(BOT_REACTIONS.pools[moveQuality] || BOT_REACTIONS.pools.normal, recentMessages);
+
+  return null;
+}
+
+/* ---------------------------------------------------------------------------
    PIECE GLYPHS (board rendering — unchanged)
 --------------------------------------------------------------------------- */
 const GLYPHS = {
@@ -574,8 +820,8 @@ function defaultProfile() {
     name: "Player",
     flag: "🌐",
     createdAt: new Date().toISOString(),
-    ratings: { bullet: 1200, blitz: 1200, rapid: 1200 },
-    ratingHistory: { bullet: [1200], blitz: [1200], rapid: [1200] },
+    ratings: { bullet: 0, blitz: 0, rapid: 0 },
+    ratingHistory: { bullet: [0], blitz: [0], rapid: [0] },
     gamesPlayed: 0,
     wins: 0,
     losses: 0,
@@ -584,7 +830,7 @@ function defaultProfile() {
     bestWinStreak: 0,
     recentGames: [],
     puzzle: {
-      rating: 1200,
+      rating: 0,
       solved: 0,
       failed: 0,
       streak: 0,
@@ -626,7 +872,7 @@ function applyGameResult(profile, { category, result, opponentName, opponentRati
   const myRating = profile.ratings[category];
   const actual = result === "win" ? 1 : result === "draw" ? 0.5 : 0;
   const delta = eloDelta(myRating, opponentRating, actual);
-  const newRating = Math.max(100, myRating + delta);
+  const newRating = Math.max(0, myRating + delta);
   const ratingHistory = { ...profile.ratingHistory };
   ratingHistory[category] = [...ratingHistory[category].slice(-19), newRating];
   const currentWinStreak = result === "win" ? profile.currentWinStreak + 1 : 0;
@@ -662,7 +908,7 @@ function applyPuzzleResult(profile, correct) {
     ...profile,
     puzzle: {
       ...p,
-      rating: Math.max(400, p.rating + delta),
+      rating: Math.max(0, p.rating + delta),
       solved: p.solved + (correct ? 1 : 0),
       failed: p.failed + (correct ? 0 : 1),
       streak,
@@ -702,7 +948,7 @@ const OPPONENT_POOL = [
 ];
 function generateOpponent(myRating) {
   const pick = OPPONENT_POOL[Math.floor(Math.random() * OPPONENT_POOL.length)];
-  const rating = Math.max(400, Math.round(myRating + (Math.random() * 2 - 1) * 150));
+  const rating = Math.max(0, Math.round(myRating + (Math.random() * 2 - 1) * 150));
   const title = rating >= 2200 ? "GM" : rating >= 2000 ? "IM" : rating >= 1800 ? "FM" : null;
   return { ...pick, rating, title };
 }
@@ -945,11 +1191,11 @@ const Style = () => (
     }
     .btn-ghost {
       background: transparent;
-      border-color: var(--line);
-      color: var(--ivory-dim);
+      border-color: var(--line-soft);
+      color: var(--muted);
     }
     .btn-ghost:hover {
-      color: var(--ivory);
+      color: var(--ivory-dim);
       border-color: var(--line);
       background: var(--surface);
     }
@@ -958,9 +1204,17 @@ const Style = () => (
       border-radius: 10px;
     }
     .btn-sm {
-      padding: 7px 14px;
+      padding: 5px 10px;
       font-size: 12px;
-      border-radius: 8px;
+      border-radius: 6px;
+      border: none;
+      color: var(--muted);
+      background: transparent;
+      box-shadow: none;
+    }
+    .btn-sm:hover {
+      color: var(--ivory-dim);
+      background: var(--surface);
     }
     .btn-lg {
       padding: 14px 26px;
@@ -1009,11 +1263,11 @@ const Style = () => (
 
     /* ---- Sidebar ---- */
     .sidebar {
-      width: 250px;
+      width: 200px;
       flex-shrink: 0;
       display: flex;
       flex-direction: column;
-      padding: 24px 18px;
+      padding: 16px 12px;
       border-right: 1px solid var(--line);
       background: var(--ink-soft);
       position: sticky;
@@ -1024,13 +1278,13 @@ const Style = () => (
     .brand {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 4px 8px 20px;
+      gap: 8px;
+      padding: 4px 6px 16px;
     }
     .brand-mark {
-      width: 36px;
-      height: 36px;
-      border-radius: 12px;
+      width: 28px;
+      height: 28px;
+      border-radius: 8px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1041,7 +1295,7 @@ const Style = () => (
     .brand-name {
       font-family: var(--font-body);
       font-weight: 700;
-      font-size: 18px;
+      font-size: 15px;
       color: var(--ivory);
     }
     .nav-list {
@@ -1053,15 +1307,15 @@ const Style = () => (
     .nav-item {
       display: flex;
       align-items: center;
-      gap: 10px;
-      padding: 9px 12px;
-      border-radius: 10px;
+      gap: 8px;
+      padding: 7px 10px;
+      border-radius: 8px;
       border: 1px solid rgba(168, 85, 247, 0.3);
       background: rgba(168, 85, 247, 0.12);
       color: #c4b5fd;
       font-family: var(--font-body);
       font-weight: 600;
-      font-size: 13.5px;
+      font-size: 12.5px;
       cursor: pointer;
       transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
     }
@@ -1102,18 +1356,19 @@ const Style = () => (
       overflow: hidden;
       display: flex;
       align-items: center;
-      justify-content: space-between;
+      justify-content: center;
       flex-wrap: wrap;
       gap: 32px;
       padding: 48px;
       border-radius: 24px;
       border: 1px solid var(--line);
       background: linear-gradient(135deg, var(--surface-raised) 0%, var(--surface) 60%, var(--ink-soft) 100%);
+      min-height: 0;
     }
     .landing-hero-text {
-      flex: 1 1 380px;
+      flex: 1 1 300px;
       min-width: 0;
-      max-width: 560px;
+      max-width: 400px;
     }
     .landing-lede {
       margin: 14px 0 28px;
@@ -1147,9 +1402,11 @@ const Style = () => (
     .landing-board {
       position: relative;
       z-index: 1;
-      width: 340px;
-      height: 340px;
-      flex-shrink: 0;
+      width: 100%;
+      max-width: 520px;
+      max-height: 100%;
+      aspect-ratio: 1;
+      flex-shrink: 1;
       display: grid;
       grid-template-columns: repeat(8, 1fr);
       grid-template-rows: repeat(8, 1fr);
@@ -1157,12 +1414,13 @@ const Style = () => (
       overflow: hidden;
       box-shadow: 0 26px 60px rgba(0,0,0,0.45);
       border: 1px solid var(--line-soft);
+      margin: 0 auto;
     }
     .lb-cell { position: relative; display: flex; align-items: center; justify-content: center; }
     .lb-light { background: #f0d9b5; }
     .lb-dark { background: #b58863; }
     .lb-cell.lb-last::after { content: ''; position: absolute; inset: 0; background: rgba(246, 238, 128, 0.4); pointer-events: none; }
-    .landing-board .piece-glyph { font-size: 31px; line-height: 1; }
+    .landing-board .piece-glyph { font-size: clamp(24px, 5vw, 44px); line-height: 1; }
     .landing-board .piece-glyph.lb-moved { animation: lbPop 0.35s ease; }
     @keyframes lbPop {
       0% { transform: scale(0.55); }
@@ -1176,10 +1434,12 @@ const Style = () => (
       display: grid;
       grid-template-columns: repeat(2, 1fr);
       gap: 14px;
+      width: 100%;
     }
     .mode-card {
       display: flex;
       flex-direction: column;
+      align-items: flex-start;
       gap: 8px;
       padding: 18px;
       border-radius: 14px;
@@ -1190,28 +1450,21 @@ const Style = () => (
       text-align: left;
       color: var(--ivory-dim);
       font-family: var(--font-body);
+      min-height: 100%;
     }
     .mode-card:hover {
       border-color: var(--line);
       background: var(--surface-raised);
     }
-    /* Featured “Play a Friend” — spans the full grid width (2x the others) */
     .mode-card.mode-friend {
       grid-column: 1 / -1;
-      flex-direction: row;
-      align-items: center;
-      gap: 16px;
-      padding: 20px 24px;
     }
     .mode-card.mode-friend .mode-icon {
-      width: 56px;
-      height: 56px;
-      border-radius: 16px;
-      flex-shrink: 0;
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
     }
-    .mode-card.mode-friend .mode-icon svg { width: 26px; height: 26px; }
-    .mode-card.mode-friend .h3 { font-size: 17px; }
-    .mode-card.mode-friend .muted { font-size: 13.5px; }
+    .mode-card.mode-friend .mode-icon svg { width: 19px; height: 19px; }
     .mode-icon {
       width: 40px;
       height: 40px;
@@ -1224,16 +1477,26 @@ const Style = () => (
       margin-bottom: 4px;
     }
     .play-options { margin-top: 36px; }
+    .play-btn-mobile {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+      max-width: 560;
+      margin-top: 20px;
+    }
+    @media (min-width: 769px) {
+      .play-btn-mobile { display: none; }
+    }
 
     /* ---- Time control chips ---- */
-    .tc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+    .tc-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; }
     .tc-chip {
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 2px;
-      padding: 13px 10px;
-      border-radius: 12px;
+      gap: 4px;
+      padding: 14px 10px;
+      border-radius: 14px;
       border: 1px solid var(--line-soft);
       background: var(--surface);
       cursor: pointer;
@@ -1247,8 +1510,8 @@ const Style = () => (
       background: var(--surface-hover);
       color: var(--brass-bright);
     }
-    .tc-label { font-weight: 700; font-family: var(--font-mono); font-size: 13px; }
-    .tc-sub { font-size: 10.5px; color: var(--muted); }
+    .tc-label { font-weight: 700; font-family: var(--font-mono); font-size: 14px; }
+    .tc-sub { font-size: 11px; color: var(--muted); }
 
     /* ---- Tab bar ---- */
     .tabbar {
@@ -1287,7 +1550,10 @@ const Style = () => (
       height: 120px;
       margin: 0 auto;
       border-radius: 50%;
-      border: 3px solid transparent;
+      border: 3px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
     .mm-ring::before {
       content: '';
@@ -1298,6 +1564,15 @@ const Style = () => (
       border-top-color: var(--brass-bright);
       border-right-color: var(--brass);
       animation: spin 1s linear infinite;
+    }
+    .mm-ring::after {
+      content: '';
+      position: absolute;
+      inset: -14px;
+      border-radius: 50%;
+      border: 2px solid transparent;
+      border-bottom-color: rgba(180, 150, 80, 0.25);
+      animation: spin 2.5s linear infinite reverse;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
     .mm-ring-found {
@@ -1340,7 +1615,13 @@ const Style = () => (
     .square .coord.rank { top: 2px; left: 3px; }
     .square.light .coord { color: #8a6238; }
     .square.dark .coord { color: #f2ddb8; }
+    @keyframes piece-land {
+      0% { opacity: 0.5; transform: scale(0.7) translateY(6px); }
+      50% { opacity: 1; transform: scale(1.1) translateY(-2px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
     .piece-glyph { font-family: 'Noto Sans Symbols 2', 'Segoe UI Symbol', 'DejaVu Sans', 'Apple Symbols', serif; font-size: calc(var(--sqsize) * 0.8); line-height: 1; font-weight: 400; transition: transform 0.1s ease; filter: drop-shadow(0 3px 2px rgba(35,20,5,0.4)); }
+    .piece-glyph.piece-landed { animation: piece-land 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
     .piece-glyph.white { color: #fffdf6; -webkit-text-fill-color: #fffdf6; -webkit-text-stroke: 0.6px #5c3a1e; paint-order: stroke fill; }
     .piece-glyph.black { color: #1a0f04; -webkit-text-fill-color: #1a0f04; -webkit-text-stroke: 0.6px #2a1608; paint-order: stroke fill; }
     .square:hover .piece-glyph { transform: scale(1.06); }
@@ -1354,26 +1635,194 @@ const Style = () => (
       display: flex;
       gap: 24px;
       align-items: flex-start;
+      justify-content: center;
+    }
+    .game-main {
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .game-board-area {
+      width: min(100%, 640px);
+    }
+    .game-player-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      width: 100%;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--line-soft);
+      min-height: 48px;
+      margin: 8px 0;
+    }
+    .game-player-row.is-active {
+      border-color: var(--brass-dim);
+      box-shadow: 0 0 0 1px rgba(168, 85, 247, 0.15);
+    }
+    .game-player-row.is-low .game-timer { color: var(--danger-bright); }
+    .game-pa-wrap { position: relative; flex-shrink: 0; }
+    .game-pa-wrap .online-dot {
+      position: absolute;
+      right: -2px;
+      bottom: -2px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--malachite);
+      border: 2px solid var(--surface);
+    }
+    .game-pinfo { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+    .game-pname-row { display: flex; align-items: center; gap: 6px; min-width: 0; }
+    .game-pname {
+      font-weight: 600;
+      font-size: 13.5px;
+      color: var(--ivory);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .game-pmeta { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+    .game-timer {
+      font-family: var(--font-mono);
+      font-weight: 700;
+      font-size: 17px;
+      color: var(--ivory-dim);
+      padding: 5px 12px;
+      border-radius: 5px;
+      background: var(--surface-hover);
+      border: 1px solid var(--line-soft);
+      white-space: nowrap;
+      flex-shrink: 0;
+      min-width: 62px;
+      text-align: center;
+      line-height: 1;
+    }
+    .game-timer.active-timer {
+      color: var(--ivory);
+      background: var(--surface-raised);
+      border-color: var(--brass-dim);
+    }
+    .game-tc-line {
+      font-size: 11px;
+      color: var(--muted);
+      text-align: center;
+      padding: 3px 0 6px;
+      letter-spacing: 0.02em;
+    }
+    .bot-reaction-bubble-wrap {
+      min-height: 34px;
+      width: 100%;
+      padding: 0 12px;
+      box-sizing: border-box;
+    }
+    .bot-reaction-bubble {
+      margin-top: 4px;
+      padding: 6px 12px;
+      border-radius: 10px 10px 10px 2px;
+      background: var(--surface);
+      border: 1px solid rgba(168, 85, 247, 0.25);
+      color: var(--ivory-dim);
+      font-size: 12px;
+      font-weight: 600;
+      font-family: var(--font-body);
+      line-height: 1.3;
+      max-width: 200px;
+      animation: bubbleIn 0.25s ease-out both, bubbleOut 0.4s ease-in 3.1s forwards;
+    }
+    @keyframes bubbleIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes bubbleOut {
+      from { opacity: 1; }
+      to { opacity: 0; }
     }
     .below-board-row {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 12px;
-      margin-top: 14px;
+      gap: 6px;
+      margin-top: 10px;
+      flex-wrap: wrap;
     }
     .below-board-row .clock { display: none; }
     .board-controls {
       display: flex;
       align-items: center;
-      gap: 8px;
+      justify-content: center;
+      gap: 6px;
+      padding: 6px 36px;
+      background: rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 9999px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.25);
+    }
+    .board-controls .btn-icon {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--ivory-dim);
+      cursor: pointer;
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .board-controls .btn-icon:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: var(--ivory);
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    }
+    .board-controls .btn-icon:active {
+      transform: translateY(0) scale(0.95);
+    }
+    .board-controls .btn-icon:disabled {
+      opacity: 0.3;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
+    }
+    .board-controls .btn-resign {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 0 14px;
+      height: 34px;
+      border-radius: 9999px;
+      font-weight: 600;
+      font-size: 12px;
+      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+      border: 1px solid rgba(239, 68, 68, 0.35);
+      color: #fff;
+      cursor: pointer;
+      box-shadow: 0 2px 10px rgba(239, 68, 68, 0.25);
+      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .board-controls .btn-resign:hover {
+      background: linear-gradient(135deg, #f87171 0%, #ef4444 100%);
+      box-shadow: 0 4px 14px rgba(239, 68, 68, 0.4);
+      transform: translateY(-1px);
+    }
+    .board-controls .btn-resign:active {
+      transform: translateY(0) scale(0.97);
+    }
+    .board-controls .btn-resign:disabled {
+      opacity: 0.35;
+      cursor: default;
+      transform: none;
+      box-shadow: none;
     }
     .game-header {
-      display: grid;
-      grid-template-columns: 1fr auto 1fr;
-      align-items: center;
-      gap: 14px;
-      width: 100%;
+      display: contents;
     }
     .player-pill {
       display: flex;
@@ -1446,18 +1895,155 @@ const Style = () => (
     .clock.low { color: var(--danger-bright); }
     .clock-sm { font-size: 15px; min-width: 76px; padding: 7px 12px; }
     .format-pill {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 2px;
-      padding: 7px 18px;
-      border-radius: 12px;
-      border: 1px solid var(--line-soft);
-      background: var(--surface);
+      display: none;
     }
     .format-time { display: flex; align-items: center; gap: 6px; font-family: var(--font-mono); font-weight: 700; font-size: 17px; color: var(--brass-bright); }
     .format-label { font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-    .ctrl-divider { width: 1px; height: 22px; background: var(--line); margin: 0 2px; }
+    .ctrl-divider { width: 1px; height: 18px; background: var(--line); margin: 0 2px; }
+
+    /* ---- Bottom sheet ---- */
+    .game-sheet-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 90;
+      background: rgba(0,0,0,0.55);
+    }
+    .game-sheet-overlay.open { display: block; }
+    .game-sheet {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 95;
+      max-height: 65vh;
+      background: var(--surface);
+      border-top: 1px solid var(--line);
+      border-radius: 14px 14px 0 0;
+      transform: translateY(100%);
+      transition: transform 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .game-sheet.open { transform: translateY(0); }
+    .game-sheet-handle {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 10px 0 4px;
+      flex-shrink: 0;
+    }
+    .game-sheet-handle span {
+      width: 36px;
+      height: 4px;
+      border-radius: 2px;
+      background: var(--line);
+    }
+    .game-sheet-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px 16px 8px;
+      flex-shrink: 0;
+    }
+    .game-sheet-body {
+      flex: 1;
+      overflow-y: auto;
+      padding: 0 16px 16px;
+    }
+    .game-sheet-tabs {
+      display: flex;
+      gap: 2px;
+      padding: 0 16px 8px;
+      flex-shrink: 0;
+    }
+    .game-sheet-tabs button {
+      flex: 1;
+      padding: 7px 0;
+      border: none;
+      border-radius: 6px;
+      background: transparent;
+      color: var(--muted);
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 5px;
+      transition: background 0.12s, color 0.12s;
+    }
+    .game-sheet-tabs button:hover { background: var(--surface-hover); color: var(--ivory-dim); }
+    .game-sheet-tabs button.active-tab { background: var(--surface-hover); color: var(--brass-bright); }
+    .game-sheet-foot {
+      display: flex;
+      gap: 8px;
+      padding: 10px 16px 16px;
+      border-top: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+    .game-sheet-foot button {
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 8px 12px;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      background: transparent;
+      color: var(--ivory-dim);
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 12px;
+      cursor: pointer;
+      transition: background 0.12s;
+    }
+    .game-sheet-foot button:hover { background: var(--surface-hover); }
+
+    /* ---- Compact moves strip (mobile) ---- */
+    .mobile-moves-strip {
+      display: none;
+      width: 100%;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      margin-top: 8px;
+      border-radius: 6px;
+      background: var(--surface);
+      border: 1px solid var(--line-soft);
+    }
+    .mobile-moves-scroll {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      overflow-x: auto;
+      white-space: nowrap;
+      scrollbar-width: none;
+    }
+    .mobile-moves-scroll::-webkit-scrollbar { display: none; }
+    .mobile-moves-pair {
+      display: inline-flex;
+      align-items: center;
+      gap: 3px;
+      font-family: var(--font-mono);
+      font-size: 11.5px;
+      flex-shrink: 0;
+    }
+    .mobile-moves-num { color: var(--muted); font-size: 10px; }
+    .mobile-moves-mv {
+      padding: 1px 5px;
+      border-radius: 3px;
+      color: var(--ivory-dim);
+      cursor: pointer;
+      transition: background 0.1s;
+    }
+    .mobile-moves-mv:hover { background: var(--surface-hover); }
+    .mobile-moves-mv.current { background: var(--surface-hover); color: var(--brass-bright); }
 
     .sparkline-wrap { height: 30px; }
     .sparkline-fill { fill: rgba(139,92,246,0.25); }
@@ -1829,19 +2415,29 @@ const Style = () => (
     .thinking-dots {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 2px 0;
+      gap: 6px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
     }
     .thinking-dots .dot {
-      width: 5px;
-      height: 5px;
+      width: 7px;
+      height: 7px;
       border-radius: 50%;
-      background: var(--muted);
-      animation: blink 1.2s infinite;
+      background: var(--brass);
+      animation: dotPulse 1.4s ease-in-out infinite;
     }
-    .thinking-dots .dot:nth-child(2) { animation-delay: 0.2s; }
-    .thinking-dots .dot:nth-child(3) { animation-delay: 0.4s; }
-    @keyframes blink { 0%, 80%, 100% { opacity: 0.25; } 40% { opacity: 1; } }
+    .thinking-dots .dot:nth-child(2) { animation-delay: 0.15s; }
+    .thinking-dots .dot:nth-child(3) { animation-delay: 0.3s; }
+    @keyframes dotPulse {
+      0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
+      40% { transform: scale(1.15); opacity: 1; }
+    }
+    @keyframes countdownPop {
+      0% { transform: scale(1.4); opacity: 0.5; }
+      100% { transform: scale(1); opacity: 1; }
+    }
     .fade-in { animation: fadein 0.3s ease both; }
     @keyframes fadeUp {
       from { opacity: 0; transform: translateY(12px); }
@@ -1872,7 +2468,6 @@ const Style = () => (
       .landing-hero { flex-direction: column; align-items: stretch; padding: 36px; }
       .landing-hero-text { flex: 0 0 auto; max-width: 620px; }
       .landing-board { align-self: center; }
-      .landing-cta { display: none; }
     }
 
     /* Compact fit for short screens — everything visible without scrolling. */
@@ -1906,7 +2501,7 @@ const Style = () => (
         height: auto;
         flex-direction: row;
         align-items: stretch;
-        padding: 10px 12px;
+        padding: 5px 12px;
         border-right: none;
         border-top: 1px solid var(--line);
         background: var(--ink-soft);
@@ -1924,40 +2519,52 @@ const Style = () => (
         flex-direction: column;
         justify-content: center;
         gap: 4px;
-        padding: 9px 4px;
+        padding: 6px 4px;
         font-size: 10.5px;
         font-weight: 700;
         text-align: center;
       }
-      .main-col { padding-bottom: 70px; }
-      .content { padding: 18px 14px; }
-      .h1 { font-size: 24px; }
-      .h2 { font-size: 17px; }
-      .below-board-row { flex-wrap: wrap; justify-content: center; gap: 10px; }
-      .below-board-row .btn-sm { padding: 8px 10px; font-size: 12px; }
-      .board-controls { flex-wrap: wrap; justify-content: center; gap: 6px; }
-      .board-controls .btn-icon { padding: 6px; }
-      .player-pill.you .player-meta { display: none; }
-      .game-header { grid-template-columns: 1fr 1fr; }
-      .player-pill:first-child { grid-column: 1; grid-row: 1; }
-      .player-pill.you { grid-column: 2; grid-row: 1; }
-      .player-pill { padding: 6px 10px; gap: 8px; }
-      .player-pill .avatar { width: 32px !important; height: 32px !important; font-size: 12px !important; }
-      .player-name { font-size: 13px; }
-      .player-meta { font-size: 10px; }
-      .pill-clock { font-size: 13px; padding: 4px 8px; }
-      .format-pill { grid-column: 1 / -1; grid-row: 2; justify-self: center; flex-direction: row; gap: 6px; padding: 5px 12px; }
-      .format-time { font-size: 14px; }
-      .format-label { font-size: 9.5px; }
-      .landing-hero { padding: 28px 22px; border-radius: 20px; gap: 14px; }
+      .main-col { padding-bottom: 52px; }
+      .content { padding: 8px; max-width: 100%; display: flex; flex-direction: column; }
+      .game-layout { min-height: calc(100vh - 78px); align-items: flex-start; flex: 1; overflow-y: auto; }
+      .game-main { width: 100%; }
+      .game-board-area { width: 100%; }
+      .game-player-row { padding: 6px 10px; border-radius: 6px; }
+      .game-pa-wrap .avatar { width: 32px !important; height: 32px !important; font-size: 11px !important; }
+      .game-pname { font-size: 13px; }
+      .game-pmeta { font-size: 10px; }
+      .game-timer { font-size: 15px; padding: 4px 10px; min-width: 52px; }
+      .game-tc-line { font-size: 10px; padding: 1px 0 4px; }
+      .bot-reaction-bubble-wrap { min-height: 30px; } .bot-reaction-bubble { max-width: 170px; font-size: 11px; }
+      .below-board-row { flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: 12px; }
+      .below-board-row .btn-sm { padding: 6px 8px; font-size: 11px; }
+      .board-controls { gap: 4px; padding: 5px 10px; }
+      .board-controls .btn-resign { padding: 0 11px; height: 30px; font-size: 11px; gap: 4px; }
+      .board-controls .btn-icon { width: 30px; height: 30px; }
+      .right-panel { display: none !important; }
+      .mobile-moves-strip { display: flex; }
+      .landing-hero { padding: 18px 16px; border-radius: 20px; gap: 8px; flex-direction: column; align-items: stretch; }
+      .landing-hero-text { flex: 0 0 auto; }
+      .landing-hero-text .h1 { font-size: 22px; margin-top: 4px; }
       .landing-lede { display: none; }
       .landing-stats { display: none; }
-      .landing-board { width: 100%; height: auto; aspect-ratio: 1 / 1; max-width: 400px; margin: 0 auto; }
-      .mode-grid, .tc-grid { grid-template-columns: repeat(2, 1fr); }
+      .landing-board { width: min(85vw, 340px); height: min(85vw, 340px); aspect-ratio: 1 / 1; margin: 0 auto; }
+      .mode-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .mode-card { padding: 14px; gap: 6px; }
+      .mode-card .h3 { font-size: 13.5px; }
+      .mode-card .muted { font-size: 12px; }
+      .tc-grid { grid-template-columns: repeat(3, 1fr); }
       .grid-3 { grid-template-columns: 1fr; }
       .ov-grid { grid-template-columns: 1fr; }
       #cv-play-options .h2 { display: none; }
       .toast { bottom: 88px; }
+      .board-wrap { border-radius: 6px; }
+    }
+
+    @media (max-width: 820px) and (max-height: 650px) {
+      .landing-hero { padding: 12px 14px; gap: 6px; }
+      .landing-hero-text .h1 { font-size: 18px; margin-top: 4px; }
+      .landing-board { width: min(70vw, 240px); height: min(70vw, 240px); }
     }
   `}</style>
 );
@@ -2045,6 +2652,7 @@ function ChessBoard({ board, legalTargets, selected, onSquareClick, lastMove, or
             const piece = board[r][c];
             const isSelected = selected && selected.r === r && selected.c === c;
             const isLast = lastMove && ((lastMove.from.r === r && lastMove.from.c === c) || (lastMove.to.r === r && lastMove.to.c === c));
+            const isMoveTarget = lastMove && lastMove.to.r === r && lastMove.to.c === c;
             const isCheck = checkSquare && checkSquare.r === r && checkSquare.c === c;
             const isPremoveFrom = premoveFrom && premoveFrom.r === r && premoveFrom.c === c;
             const isPremoveTo = premoveTo && premoveTo.r === r && premoveTo.c === c;
@@ -2067,7 +2675,7 @@ function ChessBoard({ board, legalTargets, selected, onSquareClick, lastMove, or
                 {showFile && <span className="coord file">{FILES[c]}</span>}
                 {showRank && <span className="coord rank">{8 - r}</span>}
                 {piece && (
-                  <span className={`piece-glyph ${piece.color === "w" ? "white" : "black"}`}>
+                  <span className={`piece-glyph ${piece.color === "w" ? "white" : "black"} ${isMoveTarget ? "piece-landed" : ""}`}>
                     {GLYPHS[piece.color][piece.type]}
                   </span>
                 )}
@@ -2111,7 +2719,7 @@ function PromotionDialog({ color, onChoose }) {
 /* ---------------------------------------------------------------------------
    GAME OVER MODAL
 --------------------------------------------------------------------------- */
-function GameOverModal({ result, onRematch, onExit }) {
+function GameOverModal({ result, onRematch, onExit, isComputer }) {
   return (
     <div className="modal-backdrop">
       <div className="modal-card fade-in">
@@ -2127,7 +2735,7 @@ function GameOverModal({ result, onRematch, onExit }) {
         )}
         <div className="divider" />
         <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-          <button className="btn btn-brass" onClick={onRematch}><Repeat size={15} /> Rematch</button>
+          {!isComputer && <button className="btn btn-brass" onClick={onRematch}><Repeat size={15} /> Rematch</button>}
           <button className="btn btn-ghost" onClick={onExit}>Back to Play</button>
         </div>
       </div>
@@ -2270,11 +2878,15 @@ function PlayView({ onStart, profile, notify }) {
   const [searchPhase, setSearchPhase] = useState("idle"); // idle | searching | found | timeout
   const [queueId, setQueueId] = useState(null);
   const [matchData, setMatchData] = useState(null);
+  const [quickBotOpponent, setQuickBotOpponent] = useState(null);
+
   
   // Play a Friend state
   const [friendCode, setFriendCode] = useState("");
   const [friendJoining, setFriendJoining] = useState(false);
   const [friendStatus, setFriendStatus] = useState(null); // null | "waiting" | "active" | "notfound" | "full"
+  const [friendAction, setFriendAction] = useState(null); // null | "create" | "join"
+  const [createdRoomCode, setCreatedRoomCode] = useState(null);
   
   const [searchPollTimer, setSearchPollTimer] = useState(null);
   const [friendPollTimer, setFriendPollTimer] = useState(null);
@@ -2285,6 +2897,22 @@ function PlayView({ onStart, profile, notify }) {
       if (searchPollTimer) clearTimeout(searchPollTimer);
       if (friendPollTimer) clearInterval(friendPollTimer);
     };
+  }, []);
+
+  // Auto-join from shareable link (?join=ROOMCODE)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const joinCode = params.get("join");
+    if (joinCode) {
+      const code = joinCode.trim().toUpperCase();
+      // Clear the URL param so refresh doesn't re-join
+      window.history.replaceState({}, "", window.location.pathname);
+      setFriendCode(code);
+      setFriendAction("join");
+      setMode("friend");
+      setStep("options");
+      setTimeout(() => joinFriendRoom(code), 100);
+    }
   }, []);
 
   const cancelSearch = async () => {
@@ -2311,7 +2939,7 @@ function PlayView({ onStart, profile, notify }) {
 
     try {
       const category = controlCategory(tc);
-      const rating = profile.ratings[category] || 1200;
+      const rating = profile.ratings[category] || 0;
       const res = await api.post("/chess/queue/join", {
         player_name: profile.name || "Player",
         rating: rating,
@@ -2320,14 +2948,15 @@ function PlayView({ onStart, profile, notify }) {
 
       if (res.data.matched) {
         // Immediate match!
-        setSearchPhase("found");
-        setMatchData({
+        const md = {
           roomCode: res.data.roomCode,
           color: res.data.color,
           opponentName: res.data.opponentName,
           isOnline: true,
-        });
-        setTimeout(() => startOnlineGame(matchData.roomCode, res.data.color, res.data.opponentName), 1500);
+        };
+        setSearchPhase("found");
+        setMatchData(md);
+        setTimeout(() => startOnlineGame(md.roomCode, md.color, md.opponentName), 1500);
         return;
       }
 
@@ -2357,11 +2986,21 @@ function PlayView({ onStart, profile, notify }) {
               return;
             }
             if (pollCount >= maxPolls) {
-              // Timeout - fallback to bot
+              // Timeout - generate a bot opponent that looks like a real player
               clearTimeout(searchPollTimer);
               setSearchPollTimer(null);
-              setSearchPhase("timeout");
-              setTimeout(() => startBotGame(), 1500);
+              const category = controlCategory(tc);
+              const botOpp = generateOpponent(profile.ratings[category] || 0);
+              setQuickBotOpponent(botOpp);
+              setSearchPhase("found");
+              setMatchData({
+                roomCode: null,
+                color: "w",
+                opponentName: botOpp.name,
+                isOnline: false,
+                isBot: true,
+              });
+              setTimeout(() => startBotGame(botOpp), 1500);
               return;
             }
             // Continue polling
@@ -2378,32 +3017,42 @@ function PlayView({ onStart, profile, notify }) {
       }
     } catch (e) {
       console.error("Queue join error:", e);
-      notify("Could not find match. Starting vs computer...");
-      setTimeout(() => startBotGame(), 1500);
+      const category = controlCategory(tc);
+      const botOpp = generateOpponent(profile.ratings[category] || 0);
+      setQuickBotOpponent(botOpp);
+      setSearchPhase("found");
+      setMatchData({
+        roomCode: null,
+        color: "w",
+        opponentName: botOpp.name,
+        isOnline: false,
+        isBot: true,
+      });
+      setTimeout(() => startBotGame(botOpp), 1500);
     }
   };
 
   // Create a room for Play a Friend (host)
   const createFriendRoom = async () => {
-    const code = `CVRS-${Math.random().toString(36).slice(2, 6).toUpperCase()}`;
     setFriendStatus("waiting");
     
     try {
       const res = await api.post("/chess/room", {
         game_id: 0,
         player_name: profile.name || "Player",
-        time_control: tc.base,
+        time_control: tc.base * 60,
       });
       
       if (res.data.success) {
+        const code = res.data.room.room_code;
+        setCreatedRoomCode(code);
         // Poll for opponent joining
         const pollInterval = setInterval(async () => {
           try {
             const checkRes = await api.get(`/chess/room/${code}`);
-            if (checkRes.data.room?.player2_name) {
+            if (checkRes.data.room?.status === "active") {
               clearInterval(pollInterval);
               setFriendStatus("active");
-              // Start game as white
               setTimeout(() => startOnlineGame(code, "w", checkRes.data.room.player2_name), 1500);
             }
           } catch (e) { /* keep polling */ }
@@ -2417,12 +3066,12 @@ function PlayView({ onStart, profile, notify }) {
   };
 
   // Join an existing friend room
-  const joinFriendRoom = async () => {
-    if (!friendCode.trim()) {
+  const joinFriendRoom = async (overrideCode) => {
+    const code = (overrideCode || friendCode).trim().toUpperCase();
+    if (!code) {
       notify("Enter a room code");
       return;
     }
-    const code = friendCode.trim().toUpperCase();
     setFriendJoining(true);
     setFriendStatus("waiting");
     
@@ -2449,19 +3098,26 @@ function PlayView({ onStart, profile, notify }) {
         setFriendStatus("active");
         // Start game as black
         setTimeout(() => startOnlineGame(code, "b", room.player1_name), 1500);
+      } else {
+        setFriendStatus("notfound");
       }
     } catch (e) {
-      setFriendStatus("notfound");
+      console.error("Join room error:", e);
+      setFriendStatus("error");
     }
     setFriendJoining(false);
   };
 
   const startOnlineGame = (roomCode, color, opponentName) => {
+    // Backend speaks in "white"/"black"; the game engine uses "w"/"b"
+    color = color === "white" ? "w" : color === "black" ? "b" : color;
     setSearching(false);
     setSearchPhase("idle");
     cancelSearch();
     if (friendPollTimer) clearInterval(friendPollTimer);
     setFriendStatus(null);
+    setFriendAction(null);
+    setCreatedRoomCode(null);
     
     const category = controlCategory(tc);
     onStart({
@@ -2470,34 +3126,39 @@ function PlayView({ onStart, profile, notify }) {
       color,
       category,
       roomCode,
-      opponent: { name: opponentName, rating: 1200, flag: null, title: null },
+      opponent: { name: opponentName, rating: 0, flag: null, title: null },
+      preGameCountdown: 3,
     });
   };
 
-  const startBotGame = () => {
+  const startBotGame = (botOpp) => {
     setSearching(false);
     setSearchPhase("idle");
     cancelSearch();
     const category = controlCategory(tc);
+    const opponent = botOpp || { name: "ChessVerse Engine", rating: profile.ratings[category], flag: null, title: null };
     onStart({
       mode: "computer",
       tc,
       color: "w",
       category,
-      difficulty: botDiff,
-      opponent: { name: "ChessVerse Engine", rating: profile.ratings[category], flag: null, title: null },
+      difficulty: botOpp ? (botOpp.rating >= 1800 ? "hard" : botOpp.rating >= 1400 ? "medium" : "easy") : botDiff,
+      opponent,
+      preGameCountdown: 3,
     });
   };
 
+  const [step, setStep] = useState("home"); // home | mode | options
+
   const modes = [
-    { id: "quick", title: "Quick Match", desc: "Search for a real player for 4s, then vs bot.", icon: Play },
+    { id: "quick", title: "Quick Match", desc: "Find a real player instantly, or face a tough opponent.", icon: Play },
     { id: "computer", title: "Play the Computer", desc: "Practice against the ChessVerse engine.", icon: Bot },
     { id: "friend", title: "Play a Friend", desc: "Create or join a room with a code.", icon: Link2 },
   ];
 
   const pickMode = (id) => {
     setMode(id);
-    setTimeout(() => document.getElementById("cv-play-options")?.scrollIntoView({ behavior: "smooth", block: "start" }), 120);
+    setStep("options");
   };
 
   // Render searching UI
@@ -2513,12 +3174,7 @@ function PlayView({ onStart, profile, notify }) {
               </div>
             </div>
             <div className="h3" style={{ marginTop: 26 }}>Searching for players…</div>
-            <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Will fallback to bot in 4s if no match</div>
-            <div className="thinking-dots" style={{ marginTop: 16 }}>
-              <span className="dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--brass)", display: "inline-block", margin: "0 3px" }} />
-              <span className="dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--brass)", display: "inline-block", margin: "0 3px" }} />
-              <span className="dot" style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--brass)", display: "inline-block", margin: "0 3px" }} />
-            </div>
+            <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Finding the best match for you</div>
           </>
         )}
 
@@ -2529,29 +3185,13 @@ function PlayView({ onStart, profile, notify }) {
                 <div style={{ fontSize: 32 }}>✓</div>
               </div>
             </div>
-            <div className="h3" style={{ marginTop: 26, color: "var(--malachite)" }}>Player found!</div>
-            <div className="match-found-opponent" style={{ marginTop: 16 }}>
-              <div className="opponent-avatar">
-                <span style={{ fontSize: 28 }}>🧑‍🤝‍🧑</span>
-              </div>
-              <div className="h2" style={{ marginTop: 8 }}>{matchData.opponentName}</div>
-              <div className="muted" style={{ fontSize: 14, marginTop: 4 }}>Room: {matchData.roomCode}</div>
+            <div className="h3" style={{ marginTop: 26, color: "var(--malachite)" }}>
+              {matchData.isBot ? "Opponent found!" : "Player found!"}
             </div>
-            <div className="muted" style={{ fontSize: 13, marginTop: 14 }}>Starting match…</div>
+            <div className="muted" style={{ fontSize: 13, marginTop: 10 }}>Starting match…</div>
           </div>
         )}
 
-        {searchPhase === "timeout" && (
-          <div className="fade-in">
-            <div className="mm-ring">
-              <div style={{ textAlign: "center" }}>
-                <div style={{ fontSize: 32 }}>🤖</div>
-              </div>
-            </div>
-            <div className="h3" style={{ marginTop: 26 }}>No players found</div>
-            <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>Starting vs ChessVerse engine…</div>
-          </div>
-        )}
 
         <button className="btn btn-ghost" style={{ marginTop: 22 }} onClick={cancelSearch}>
           <X size={14} /> Cancel
@@ -2560,6 +3200,243 @@ function PlayView({ onStart, profile, notify }) {
     );
   }
 
+  // Step 2: Mode selection
+  if (step === "mode") {
+    return (
+      <div className="fade-in" style={{ maxWidth: 700, width: "100%", margin: "0 auto", padding: "40px 20px" }}>
+        <button className="btn btn-sm" style={{ marginBottom: 20 }} onClick={() => setStep("home")}>
+          <ChevronLeft size={13} /> Back
+        </button>
+        <div className="eyebrow">Choose mode</div>
+        <div className="h2" style={{ marginTop: 6 }}>How would you like to play?</div>
+        <div className="mode-grid" style={{ marginTop: 20 }}>
+          {modes.map((m) => (
+            <div
+              key={m.id}
+              className={`mode-card ${m.id === "friend" ? "mode-friend" : ""}`}
+              onClick={() => pickMode(m.id)}
+            >
+              <div className="mode-icon"><m.icon size={19} /></div>
+              <div className="h3">{m.title}</div>
+              <div className="muted" style={{ fontSize: 13 }}>{m.desc}</div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // Step 3: Options (time control, difficulty, friend room)
+  if (step === "options") {
+    return (
+      <div className="fade-in" style={{ maxWidth: 520, width: "100%", margin: "0 auto", padding: "40px 20px" }}>
+        <button className="btn btn-sm" style={{ marginBottom: 24 }} onClick={() => { setMode(null); setStep("mode"); setFriendAction(null); setCreatedRoomCode(null); setFriendStatus(null); }}>
+          <ChevronLeft size={13} /> Back
+        </button>
+        <div className="eyebrow">{mode === "quick" ? "Quick Match" : mode === "computer" ? "Play the Computer" : "Play a Friend"}</div>
+        <div className="h2" style={{ marginTop: 6 }}>Game settings</div>
+
+        {mode === "computer" && (
+          <div className="card fade-in" style={{ marginTop: 20 }}>
+            <div className="h3">Difficulty</div>
+            <div className="tabbar" style={{ maxWidth: 340, marginTop: 14 }}>
+              {["easy", "medium", "hard"].map((d) => (
+                <button
+                  key={d}
+                  className={`tab-btn ${botDiff === d ? "active" : ""}`}
+                  onClick={() => setBotDiff(d)}
+                >
+                  {d[0].toUpperCase() + d.slice(1)}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div className="card fade-in" style={{ marginTop: 16 }}>
+          <div className="h3">Time control</div>
+          <div className="tc-grid" style={{ marginTop: 14 }}>
+            {TIME_CONTROLS.map((t) => (
+              <div
+                key={t.label}
+                className={`tc-chip ${tc.label === t.label ? "active" : ""}`}
+                onClick={() => setTc(t)}
+              >
+                <div className="tc-label">{t.label}</div>
+                <div className="tc-sub">{t.sub}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {mode === "friend" && (
+          <div className="card fade-in" style={{ marginTop: 16 }}>
+            <div className="h3">Play a Friend</div>
+
+            {/* Two buttons: Create / Join */}
+            {!friendAction && !createdRoomCode && (
+              <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+                <button
+                  className="btn btn-brass"
+                  style={{ flex: 1, justifyContent: "center" }}
+                  onClick={() => { setFriendAction("create"); createFriendRoom(); }}
+                >
+                  <Link2 size={15} /> Create a Room
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  style={{ flex: 1, justifyContent: "center" }}
+                  onClick={() => setFriendAction("join")}
+                >
+                  <Play size={15} /> Join a Room
+                </button>
+              </div>
+            )}
+
+            {/* Create room: show room code + share link */}
+            {friendAction === "create" && (
+              <div className="fade-in" style={{ marginTop: 16 }}>
+                {friendStatus === "waiting" && !createdRoomCode && (
+                  <div className="muted" style={{ fontSize: 13, textAlign: "center", padding: "20px 0" }}>
+                    Creating room…
+                  </div>
+                )}
+                {createdRoomCode && (
+                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                    <div style={{ textAlign: "center", padding: "16px 0 4px" }}>
+                      <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>Share this code with your friend</div>
+                      <div style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: 32,
+                        fontWeight: 800,
+                        letterSpacing: "0.12em",
+                        color: "var(--brass-bright)",
+                      }}>
+                        {createdRoomCode}
+                      </div>
+                    </div>
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <button
+                        className="btn btn-ghost"
+                        style={{ flex: 1, justifyContent: "center" }}
+                        onClick={() => { navigator.clipboard.writeText(createdRoomCode); notify("Code copied!"); }}
+                      >
+                        <Copy size={13} /> Copy Code
+                      </button>
+                      <button
+                        className="btn btn-brass"
+                        style={{ flex: 1, justifyContent: "center" }}
+                        onClick={() => {
+                          const link = `${window.location.origin}/play/chess?join=${createdRoomCode}`;
+                          navigator.clipboard.writeText(link).then(() => notify("Link copied!")).catch(() => notify(link));
+                        }}
+                      >
+                        <Share2 size={13} /> Copy Link
+                      </button>
+                    </div>
+                    {window.location.hostname === "localhost" && (
+                      <div style={{ color: "var(--warning)", fontSize: 11, marginTop: 6, textAlign: "center" }}>
+                        On another device? Replace "localhost" in the link with your IP address.
+                      </div>
+                    )}
+                    {friendStatus === "waiting" && (
+                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 0" }}>
+                        <span className="thinking-dots" style={{ fontSize: 10 }}>
+                          <span className="dot" /><span className="dot" /><span className="dot" />
+                        </span>
+                        <span className="muted" style={{ fontSize: 12 }}>Waiting for opponent to join…</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginTop: 14, width: "100%", justifyContent: "center" }}
+                  onClick={() => {
+                    if (friendPollTimer) clearInterval(friendPollTimer);
+                    setFriendAction(null);
+                    setCreatedRoomCode(null);
+                    setFriendStatus(null);
+                  }}
+                >
+                  <X size={12} /> Cancel
+                </button>
+              </div>
+            )}
+
+            {/* Join room: enter code */}
+            {friendAction === "join" && (
+              <div className="fade-in" style={{ marginTop: 16 }}>
+                <div style={{ display: "flex", gap: 8 }}>
+                  <input
+                    type="text"
+                    placeholder="Enter room code"
+                    value={friendCode}
+                    onChange={(e) => setFriendCode(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => { if (e.key === "Enter") joinFriendRoom(); }}
+                    autoFocus
+                    style={{
+                      flex: 1,
+                      padding: "10px 12px",
+                      borderRadius: 8,
+                      border: "1px solid var(--line-soft)",
+                      background: "var(--surface)",
+                      color: "#fff",
+                      fontFamily: "var(--font-mono)",
+                      letterSpacing: "0.1em",
+                      fontSize: 16,
+                      textTransform: "uppercase",
+                    }}
+                  />
+                  <button
+                    className="btn btn-brass"
+                    onClick={() => joinFriendRoom()}
+                    disabled={friendJoining}
+                  >
+                    {friendJoining ? "…" : "Join"}
+                  </button>
+                </div>
+                {friendStatus === "waiting" && (
+                  <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 8 }}>Joining room…</div>
+                )}
+                {friendStatus === "notfound" && (
+                  <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>Room not found — double-check the code</div>
+                )}
+                {friendStatus === "full" && (
+                  <div style={{ color: "var(--warning)", fontSize: 12, marginTop: 8 }}>Room is full</div>
+                )}
+                {friendStatus === "error" && (
+                  <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>Connection error — try again</div>
+                )}
+                {friendStatus === "active" && (
+                  <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 8 }}>Opponent found! Starting…</div>
+                )}
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ marginTop: 14, width: "100%", justifyContent: "center" }}
+                  onClick={() => { setFriendAction(null); setFriendCode(""); setFriendStatus(null); setFriendJoining(false); }}
+                >
+                  <X size={12} /> Back
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {mode !== "friend" && (
+          <button
+            className="btn btn-brass"
+            style={{ width: "100%", justifyContent: "center", marginTop: 20 }}
+            onClick={mode === "computer" ? startBotGame : startQuickMatch}
+          >
+            {mode === "computer" ? <>Start Game <Bot size={15} /></> : <>Find Match <Play size={15} /></>}
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // Step 1: Home (landing hero)
   return (
     <div className="fade-in">
       <section className="landing-hero">
@@ -2570,10 +3447,6 @@ function PlayView({ onStart, profile, notify }) {
             Challenge players in Rapid, Blitz &amp; Bullet, duel the ChessVerse engine, or battle a friend —
             then sharpen your game with puzzles and live analysis.
           </p>
-          <div className="landing-cta">
-            <button className="btn btn-brass btn-lg" onClick={startQuickMatch}><Swords size={17} /> Quick Match</button>
-            <button className="btn btn-ghost btn-lg" onClick={() => pickMode("computer")}><Bot size={17} /> vs Computer</button>
-          </div>
           <div className="landing-stats">
             <div className="ls-item"><span className="stat-num">{profile.gamesPlayed}</span><span className="ls-label">Games played</span></div>
             <div className="ls-item"><span className="stat-num">{profile.puzzle.solved}</span><span className="ls-label">Puzzles solved</span></div>
@@ -2582,130 +3455,9 @@ function PlayView({ onStart, profile, notify }) {
         </div>
         <LandingBoardArt />
       </section>
-
-      <section id="cv-play-options" className="play-options">
-        <div className="eyebrow">Start playing</div>
-        <div className="h2" style={{ marginTop: 6 }}>Choose how you'd like to play</div>
-
-        <div className="mode-grid" style={{ marginTop: 18 }}>
-          {modes.map((m) => (
-            <div
-              key={m.id}
-              className={`mode-card ${m.id === "friend" ? "mode-friend" : ""}`}
-              style={mode === m.id ? { borderColor: "var(--brass)", background: "var(--surface-hover)" } : {}}
-              onClick={() => pickMode(m.id)}
-            >
-              <div className="mode-icon"><m.icon size={19} /></div>
-              <div className="h3">{m.title}</div>
-              <div className="muted" style={{ fontSize: 13 }}>{m.desc}</div>
-            </div>
-          ))}
-        </div>
-
-        {mode && (
-          <div className="card fade-in" style={{ marginTop: 20 }}>
-            {mode === "computer" && (
-              <>
-                <div className="h3">Difficulty</div>
-                <div className="tabbar" style={{ maxWidth: 340, marginTop: 14 }}>
-                  {["easy", "medium", "hard"].map((d) => (
-                    <button
-                      key={d}
-                      className={`tab-btn ${botDiff === d ? "active" : ""}`}
-                      onClick={() => setBotDiff(d)}
-                    >
-                      {d[0].toUpperCase() + d.slice(1)}
-                    </button>
-                  ))}
-                </div>
-                <div className="divider" />
-              </>
-            )}
-
-            <div className="h3">Time control</div>
-            <div className="tc-grid" style={{ marginTop: 14 }}>
-              {TIME_CONTROLS.map((t) => (
-                <div
-                  key={t.label}
-                  className={`tc-chip ${tc.label === t.label ? "active" : ""}`}
-                  onClick={() => setTc(t)}
-                >
-                  <div className="tc-label">{t.label}</div>
-                  <div className="tc-sub">{t.sub}</div>
-                </div>
-              ))}
-            </div>
-
-            {mode === "friend" ? (
-              <>
-                <div className="divider" />
-                <div className="h3">Play a Friend</div>
-                <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 12 }}>
-                  {/* Create room */}
-                  <div style={{ padding: 12, background: "var(--surface-raised)", borderRadius: 10 }}>
-                    <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>Create a new room</div>
-                    <button 
-                      className="btn btn-brass" 
-                      style={{ width: "100%" }}
-                      onClick={createFriendRoom}
-                      disabled={friendStatus === "waiting"}
-                    >
-                      {friendStatus === "waiting" ? "Waiting for opponent..." : "Create Room"}
-                    </button>
-                  </div>
-                  
-                  {/* Join room */}
-                  <div style={{ padding: 12, background: "var(--surface-raised)", borderRadius: 10 }}>
-                    <div className="muted" style={{ fontSize: 12, marginBottom: 8 }}>Join an existing room</div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <input
-                        type="text"
-                        placeholder="Enter room code"
-                        value={friendCode}
-                        onChange={(e) => setFriendCode(e.target.value.toUpperCase())}
-                        style={{
-                          flex: 1,
-                          padding: "10px 12px",
-                          borderRadius: 8,
-                          border: "1px solid var(--line-soft)",
-                          background: "var(--surface)",
-                          color: "#fff",
-                          fontFamily: "var(--font-mono)",
-                          letterSpacing: "0.05em",
-                        }}
-                      />
-                      <button 
-                        className="btn btn-ghost"
-                        onClick={joinFriendRoom}
-                        disabled={friendJoining || friendStatus === "waiting"}
-                      >
-                        {friendJoining ? "..." : "Join"}
-                      </button>
-                    </div>
-                    {friendStatus === "notfound" && (
-                      <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 6 }}>Room not found</div>
-                    )}
-                    {friendStatus === "full" && (
-                      <div style={{ color: "var(--warning)", fontSize: 12, marginTop: 6 }}>Room is full</div>
-                    )}
-                    {friendStatus === "waiting" && (
-                      <div style={{ color: "var(--malachite)", fontSize: 12, marginTop: 6 }}>Waiting for host…</div>
-                    )}
-                  </div>
-                </div>
-              </>
-            ) : (
-              <button
-                className="btn btn-brass"
-                style={{ width: "100%", justifyContent: "center", marginTop: 18 }}
-                onClick={mode === "computer" ? startBotGame : startQuickMatch}
-              >
-                {mode === "computer" ? <>Start Game <Bot size={15} /></> : <>Find Match <Play size={15} /></>}
-              </button>
-            )}
-          </div>
-        )}
-      </section>
+      <div style={{ paddingTop: 16, paddingBottom: 8, flexShrink: 0 }}>
+        <button className="btn btn-brass btn-lg" style={{ width: "100%", maxWidth: 560, justifyContent: "center" }} onClick={() => setStep("mode")}><Swords size={17} /> Play Now</button>
+      </div>
     </div>
   );
 }
@@ -2730,7 +3482,7 @@ function initGameState(playerColor) {
   };
 }
 
-function GameView({ session, onExit, onGameEnd, notify }) {
+function GameView({ session, onExit, onGameEnd, notify, profile }) {
   const [gs, setGs] = useState(() => initGameState(session.color));
   const [panelTab, setPanelTab] = useState("analysis");
   const [selected, setSelected] = useState(null);
@@ -2748,8 +3500,33 @@ function GameView({ session, onExit, onGameEnd, notify }) {
   const [viewIndex, setViewIndex] = useState(null);
   const [flipped, setFlipped] = useState(false);
   const [focusMode, setFocusMode] = useState(false);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetTab, setSheetTab] = useState("moves");
+  const [preGameCountdown, setPreGameCountdown] = useState(() => session.preGameCountdown || 0);
+  const preGameCountdownRef = useRef(null);
+  const [botReaction, setBotReaction] = useState(null);
   const timerRef = useRef(null);
   const gameEndedRef = useRef(false);
+  const recentReactionsRef = useRef([]);
+  const reactionTimerRef = useRef(null);
+
+  // Pre-game countdown timer
+  useEffect(() => {
+    if (preGameCountdown > 0) {
+      preGameCountdownRef.current = setInterval(() => {
+        setPreGameCountdown((c) => {
+          if (c <= 1) {
+            clearInterval(preGameCountdownRef.current);
+            return 0;
+          }
+          return c - 1;
+        });
+      }, 1000);
+      return () => clearInterval(preGameCountdownRef.current);
+    }
+  }, []);
+  const preGameCounting = preGameCountdown > 0;
   const isComputer = session.mode === "computer";
   const isOnline = session.mode === "online";
   const opponentName = session.opponent?.name || "Opponent";
@@ -2775,87 +3552,169 @@ function GameView({ session, onExit, onGameEnd, notify }) {
     return null;
   }, [gs.board, gs.turn]);
 
+  const triggerBotReaction = useCallback((text) => {
+    if (!text) return;
+    if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
+    setBotReaction({ text, id: Date.now() });
+    recentReactionsRef.current = [...recentReactionsRef.current.slice(-9), text];
+    reactionTimerRef.current = setTimeout(() => setBotReaction(null), 3500);
+  }, []);
+
+  const analyzePlayerMove = useCallback((analysis) => {
+    if (!isComputer) return;
+    const moveQuality = classifyMove(analysis.prevEval, analysis.newEval, analysis.move, session.color);
+    const reaction = getBotReaction({
+      moveQuality,
+      isCheck: analysis.inCheck,
+      isCheckmate: analysis.isCheckmate,
+      isPromotion: analysis.isPromotion,
+      capturedPiece: analysis.capturedPiece,
+      gameOutcome: null,
+      triggerOnTime: false,
+      playerResigned: false,
+      recentMessages: recentReactionsRef.current,
+    });
+    if (reaction) triggerBotReaction(reaction);
+  }, [isComputer, session.color, triggerBotReaction]);
+
+  const triggerGameEndReaction = useCallback((outcome, title) => {
+    if (!isComputer) return;
+    const onTime = /time/i.test(title || "");
+    const reaction = getBotReaction({
+      moveQuality: "normal",
+      isCheck: false,
+      isCheckmate: false,
+      isPromotion: false,
+      capturedPiece: null,
+      gameOutcome: outcome,
+      triggerOnTime: onTime,
+      playerResigned: false,
+      recentMessages: recentReactionsRef.current,
+    });
+    if (reaction) triggerBotReaction(reaction);
+  }, [isComputer, triggerBotReaction]);
+
   const finishGame = useCallback(
     (modalResult, outcome) => {
       if (gameEndedRef.current) return;
       gameEndedRef.current = true;
-      const opponentRating = session.opponent?.rating ?? 1200;
+      const opponentRating = session.opponent?.rating ?? 0;
       const control = `${session.tc.sub} · ${session.tc.label}`;
       const category = session.category;
       const delta = eloDelta(0, 0, 0); // placeholder unused; real delta computed by App via profile
       setGameOver({ ...modalResult });
       onGameEnd({ category, result: outcome, opponentName, opponentRating, control });
+      triggerGameEndReaction(outcome, modalResult?.title);
     },
-    [onGameEnd, session, opponentName]
+    [onGameEnd, session, opponentName, triggerGameEndReaction]
   );
+
+  const pendingMoveAnalysisRef = useRef(null);
+  const turnStartClockRef = useRef(session.tc.base * 60);
+  const clocksRef = useRef(clocks);
+  const gsRef = useRef(gs);
+  useEffect(() => {
+    clocksRef.current = clocks;
+    gsRef.current = gs;
+  }, [clocks, gs]);
 
   const commitMove = useCallback(
     (move) => {
-      setGs((prev) => {
-        const result = applyMove(prev.board, { castling: prev.castling, enPassant: prev.enPassant }, move);
-        const san = sanFor(prev.board, prev, move);
-        const captured = { ...prev.captured };
-        if (result.takenPiece) {
-          const key = result.takenPiece.color;
-          captured[key] = [...captured[key], result.takenPiece.type];
-        }
-        const nextTurn = prev.turn === "w" ? "b" : "w";
-        const nextState = { castling: result.castling, enPassant: result.enPassant };
-        const legal = getLegalMoves(result.board, nextTurn, nextState);
-        const inCheck = (() => {
-          const k = findKing(result.board, nextTurn);
-          return k && isSquareAttacked(result.board, k.r, k.c, prev.turn);
-        })();
-        let sanFinal = san;
-        let status = "playing";
-        if (legal.length === 0) {
-          status = inCheck ? "checkmate" : "stalemate";
-          sanFinal += inCheck ? "#" : "";
-        } else if (inCheck) {
-          sanFinal += "+";
-        }
+      // Compute everything from gsRef.current (always up-to-date)
+      // instead of inside setGs updater (React 18 batches updaters)
+      const prev = gsRef.current;
+      const result = applyMove(prev.board, { castling: prev.castling, enPassant: prev.enPassant }, move);
+      const san = sanFor(prev.board, prev, move);
+      const captured = { ...prev.captured };
+      if (result.takenPiece) {
+        const key = result.takenPiece.color;
+        captured[key] = [...captured[key], result.takenPiece.type];
+      }
+      const nextTurn = prev.turn === "w" ? "b" : "w";
+      const nextState = { castling: result.castling, enPassant: result.enPassant };
+      const legal = getLegalMoves(result.board, nextTurn, nextState);
+      const inCheck = (() => {
+        const k = findKing(result.board, nextTurn);
+        return k && isSquareAttacked(result.board, k.r, k.c, prev.turn);
+      })();
+      let sanFinal = san;
+      let status = "playing";
+      if (legal.length === 0) {
+        status = inCheck ? "checkmate" : "stalemate";
+        sanFinal += inCheck ? "#" : "";
+      } else if (inCheck) {
+        sanFinal += "+";
+      }
 
-        if (status === "checkmate") {
-          const outcome = prev.turn === session.color ? "win" : "loss";
-          finishGame(
-            {
-              title: outcome === "win" ? "You win by checkmate" : `${opponentName} wins by checkmate`,
-              subtitle: `Checkmate delivered in ${prev.history.length + 1} moves.`,
-            },
-            outcome
-          );
-        } else if (status === "stalemate") {
-          finishGame({ title: "Draw by stalemate", subtitle: "No legal moves remain." }, "draw");
-        }
+      if (status === "checkmate") {
+        const outcome = prev.turn === session.color ? "win" : "loss";
+        finishGame(
+          {
+            title: outcome === "win" ? "You win by checkmate" : `${opponentName} wins by checkmate`,
+            subtitle: `Checkmate delivered in ${prev.history.length + 1} moves.`,
+          },
+          outcome
+        );
+      } else if (status === "stalemate") {
+        finishGame({ title: "Draw by stalemate", subtitle: "No legal moves remain." }, "draw");
+      }
 
-        return {
-          ...prev,
-          board: result.board,
-          boardHistory: [...prev.boardHistory, result.board],
-          castling: result.castling,
-          enPassant: result.enPassant,
-          turn: nextTurn,
-          history: [...prev.history, sanFinal],
-          evalHistory: [...prev.evalHistory, materialScore(result.board, "w")],
-          captured,
-          lastMove: move,
-          status,
-        };
-      });
+      // Analysis
+      if (prev.turn === session.color) {
+        analyzePlayerMove({
+          move,
+          prevEval: prev.evalHistory[prev.evalHistory.length - 1] || 0,
+          newEval: materialScore(result.board, "w"),
+          capturedPiece: result.takenPiece ? result.takenPiece.type : null,
+          inCheck,
+          isCheckmate: status === "checkmate",
+          isPromotion: !!move.promotion,
+        });
+      }
+
+      // Update local board state
+      setGs(() => ({
+        board: result.board,
+        boardHistory: [...prev.boardHistory, result.board],
+        castling: result.castling,
+        enPassant: result.enPassant,
+        turn: nextTurn,
+        history: [...prev.history, sanFinal],
+        evalHistory: [...prev.evalHistory, materialScore(result.board, "w")],
+        captured,
+        lastMove: move,
+        status,
+      }));
+
       setSelected(null);
       setLegalTargets([]);
       setViewIndex(null);
+
+      // Online POST — computed directly, not from a ref inside setGs
+      if (session.mode === "online" && prev.turn === session.color && session.roomCode) {
+        const fen = boardToFen(result.board, nextTurn, result.castling, result.enPassant);
+        const colorMap = { w: "white", b: "black" };
+        const timeSpent = Math.round(Math.max(0, turnStartClockRef.current - clocksRef.current[prev.turn]));
+        turnStartClockRef.current = clocksRef.current[nextTurn];
+        const onlineData = {
+          notation: sanFinal,
+          fen_after: fen,
+          player_color: colorMap[prev.turn] || "white",
+          time_spent: timeSpent,
+        };
+        api.post(`/chess/room/${session.roomCode}/move`, onlineData).then(() => {
+          console.log("[CHESS] Move posted:", onlineData.notation, "→", session.roomCode);
+        }).catch((e) => {
+          console.error("[CHESS] Move sync failed:", e?.response?.data || e.message);
+          notify("Move failed to sync — check connection");
+        });
+      }
     },
-    [finishGame, session.color, opponentName]
+    [finishGame, session.color, session.mode, session.roomCode, opponentName, analyzePlayerMove]
   );
 
-  const clocksRef = useRef(clocks);
   useEffect(() => {
-    clocksRef.current = clocks;
-  }, [clocks]);
-
-  useEffect(() => {
-    if (gameOver) return;
+    if (gameOver || preGameCounting) return;
     timerRef.current = setInterval(() => {
       setClocks((prev) => {
         const nextVal = Math.max(0, prev[gs.turn] - 0.1);
@@ -2872,11 +3731,14 @@ function GameView({ session, onExit, onGameEnd, notify }) {
       });
     }, 100);
     return () => clearInterval(timerRef.current);
-  }, [gs.turn, gameOver, finishGame, session.color, opponentName]);
+  }, [gs.turn, gameOver, finishGame, session.color, opponentName, preGameCounting]);
 
   // ── Online mode: Poll opponent's moves ────────────────────────────────────────
   const lastFenRef = useRef("");
   const pollTimerRef = useRef(null);
+  const lastMoveNumRef = useRef(0);
+  const initialSyncRef = useRef(false);
+
 
   useEffect(() => {
     if (!isOnline || gameOver) {
@@ -2884,74 +3746,108 @@ function GameView({ session, onExit, onGameEnd, notify }) {
       return;
     }
 
-    // Store initial FEN
     lastFenRef.current = boardToFen(gs.board, gs.turn, gs.castling, gs.enPassant);
+    lastMoveNumRef.current = 0;
+    initialSyncRef.current = false;
 
     const poll = async () => {
       if (gameOver) return;
       try {
-        const res = await api.get(`/chess/room/${session.roomCode}`);
-        const room = res.data.room;
+        const res = await api.get(`/chess/room/${session.roomCode}/moves?after=${lastMoveNumRef.current}`);
+        const { room, moves } = res.data;
         if (!room) return;
 
-        // Check for game over
         if (room.status === "finished") {
           if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-          const outcome = room.result === "draw" ? "draw" : 
-            (room.result === "white" ? (session.color === "w" ? "win" : "loss") : 
-            (session.color === "b" ? "win" : "loss"));
+          const colorMap = { white: "w", black: "b" };
+          const resultColor = colorMap[room.result] || room.result;
+          const outcome = room.result === "draw" ? "draw" :
+            (resultColor === session.color ? "win" : "loss");
           finishGame(
-            { title: outcome === "draw" ? "Draw" : outcome === "win" ? "You win!" : "You lose", 
-              subtitle: room.result === "draw" ? "Game ended in a draw" : `Game over - ${room.result} wins` },
+            { title: outcome === "draw" ? "Draw" : outcome === "win" ? "You win!" : "You lose",
+              subtitle: room.result === "draw" ? "Game ended in a draw" : `${room.result} wins` },
             outcome
           );
           return;
         }
 
-        // Update clocks from server
-        setClocks({ w: room.white_time_left, b: room.black_time_left });
+        if (moves && moves.length > 0) {
+          const latestMove = moves[moves.length - 1];
+          lastMoveNumRef.current = latestMove.move_number;
 
-        // Check if FEN changed (new move made)
-        if (room.fen && room.fen !== lastFenRef.current) {
-          lastFenRef.current = room.fen;
-          
-          // Parse the new FEN and update board
-          const newBoard = fenToBoard(room.fen);
-          const newTurn = fenToTurn(room.fen);
-          const newCastling = fenToCastling(room.fen);
-          const newEnPassant = fenToEnPassant(room.fen);
-          
-          // Apply move by updating board state
-          setGs(prev => {
-            // Calculate SAN from history would be complex - use algebraic for now
-            const san = `Move ${prev.history.length + 1}`;
-            
-            // Update captured pieces
-            const captured = { ...prev.captured };
-            // Simplified: we'd need to compare boards to know what was captured
-            // For now, just update board
-            
-            return {
-              ...prev,
-              board: newBoard,
-              boardHistory: [...prev.boardHistory, newBoard],
-              turn: newTurn,
-              castling: newCastling,
-              enPassant: newEnPassant,
-              history: [...prev.history, san],
-              evalHistory: [...prev.evalHistory, materialScore(newBoard, "w")],
-              lastMove: null, // We'd need to track this properly
-              status: "playing",
-            };
-          });
+
+          if (room.fen && room.fen !== lastFenRef.current) {
+            // Check if our local board already matches the server FEN
+            // (happens when we just posted our own move via commitMove)
+            const cur = gsRef.current;
+            const currentFen = boardToFen(cur.board, cur.turn, cur.castling, cur.enPassant);
+            if (currentFen === room.fen) {
+              lastFenRef.current = room.fen;
+              setClocks({ w: room.white_time_left, b: room.black_time_left });
+              turnStartClockRef.current = cur.turn === "w" ? room.white_time_left : room.black_time_left;
+              return;
+            }
+
+            // This is an opponent's move — apply it
+            lastFenRef.current = room.fen;
+
+            const newBoard = fenToBoard(room.fen);
+            const newTurn = fenToTurn(room.fen);
+            const newCastling = fenToCastling(room.fen);
+            const newEnPassant = fenToEnPassant(room.fen);
+
+            setGs(prev => {
+              const captured = { ...prev.captured };
+              const oldBoard = prev.board;
+              for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                  const oldP = oldBoard[r][c];
+                  const newP = newBoard[r][c];
+                  if (oldP && (!newP || (newP.color !== oldP.color || newP.type !== oldP.type))) {
+                    if (newP && oldP.color !== newP.color) continue;
+                    if (oldP && (!newP || oldP.color !== newP.color)) {
+                      captured[oldP.color] = [...captured[oldP.color], oldP.type];
+                    }
+                  }
+                }
+              }
+
+              const san = latestMove.notation || `Move ${prev.history.length + 1}`;
+              const lastMoveObj = null;
+
+              return {
+                ...prev,
+                board: newBoard,
+                boardHistory: [...prev.boardHistory, newBoard],
+                turn: newTurn,
+                castling: newCastling,
+                enPassant: newEnPassant,
+                history: [...prev.history, san],
+                evalHistory: [...prev.evalHistory, materialScore(newBoard, "w")],
+                captured,
+                lastMove: lastMoveObj,
+                status: "playing",
+              };
+            });
+
+            setClocks({ w: room.white_time_left, b: room.black_time_left });
+            turnStartClockRef.current = newTurn === "w" ? room.white_time_left : room.black_time_left;
+          } else {
+            // FEN didn't change but we got moves — just sync clocks
+            setClocks({ w: room.white_time_left, b: room.black_time_left });
+          }
+        } else if (!initialSyncRef.current) {
+          initialSyncRef.current = true;
+          setClocks({ w: room.white_time_left, b: room.black_time_left });
         }
+
       } catch (e) {
+
         // Ignore polling errors
       }
     };
 
-    // Poll every 500ms
-    pollTimerRef.current = setInterval(poll, 500);
+    pollTimerRef.current = setInterval(poll, 800);
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
@@ -2960,64 +3856,45 @@ function GameView({ session, onExit, onGameEnd, notify }) {
   // ── Bot move (computer mode + fallback from quick match) ────────────────────
   useEffect(() => {
     // Skip if online mode or not our turn
-    if (isOnline || gs.turn === session.color || gs.status !== "playing" || gameOver) return;
+    if (isOnline || gs.turn === session.color || gs.status !== "playing" || gameOver || preGameCounting) return;
 
     setBotThinking(true);
     const remainingMs = clocksRef.current[gs.turn] * 1000;
-    
-    let difficulty = 1;
-    let blunderChance = 0.34;
-    let drawSeeking = false;
-    let thinkScale = 1;
-    let strongSearch = false;
-    
+
+    // --- Brain-powered bot selection ---
+    let botProfile;
     if (isComputer) {
       const d = session.difficulty || "medium";
-      if (d === "easy") { difficulty = 1; blunderChance = 0.4; thinkScale = 0.7; }
-      else if (d === "hard") { difficulty = 3; blunderChance = 0.01; thinkScale = 2; strongSearch = true; }
-      else { difficulty = 3; blunderChance = 0.04; thinkScale = 1.6; }
+      botProfile = selectBotForDifficulty(d, profile?.ratings?.[session.category] || 0);
     } else {
-      // Fallback bot from quick match - use outcomeBias for human-like play
+      // Quick-match fallback
       const bias = gs.outcomeBias;
-      difficulty = bias === "bot" ? 3 : bias === "draw" ? 2 : 1;
-      blunderChance = bias === "bot" ? 0.06 : bias === "draw" ? 0.16 : 0.34;
-      drawSeeking = bias === "draw";
+      const d = bias === "bot" ? "hard" : bias === "draw" ? "medium" : "easy";
+      botProfile = selectBotForDifficulty(d, profile?.ratings?.[session.category] || 0);
     }
 
-    // Human-like thinking time based on position complexity
-    // More complex positions (more pieces, more legal moves) = longer think time
-    const legalMoves = getLegalMoves(gs.board, gs.turn, state);
-    const pieceCount = gs.board.flat().filter(p => p !== null).length;
-    
-    // Base think time: 800ms - 2500ms depending on position
-    let humanThinkTime = 800 + Math.random() * 700;
-    
-    // Add time based on game phase
-    if (pieceCount > 20) {
-      // Opening/mid-game: think faster
-      humanThinkTime = 600 + Math.random() * 500;
-    } else if (pieceCount < 10) {
-      // Endgame: think longer, more precision needed
-      humanThinkTime = 1200 + Math.random() * 1500;
-    }
-    
-    // Add time based on number of legal moves (more options = more thinking)
-    if (legalMoves.length > 10) {
-      humanThinkTime += 300 + Math.random() * 500;
-    }
-    
-    // Occasionally pause "looking at the board" - human behavior
-    if (Math.random() < 0.15) {
-      humanThinkTime += 400 + Math.random() * 600;
-    }
-    
-    // Scale by difficulty
-    humanThinkTime *= thinkScale;
+    // Wire up chess engine helpers so the brain can call them
+    const helpers = {
+      applyMove: (b, s, m) => applyMove(b, { castling: s.castling, enPassant: s.enPassant }, m),
+      findKing,
+      isSquareAttacked,
+      getLegalMoves: (b, c, s) => getLegalMoves(b, c, { castling: s.castling, enPassant: s.enPassant }),
+    };
+    const stateWithHelpers = {
+      ...state,
+      _helpers: helpers,
+      _moveCount: gs.history.length,
+      _legalMoveCount: getLegalMoves(gs.board, gs.turn, state).length,
+    };
+
+    // Human-like thinking time from the brain
+    const humanThinkTime = calculateThinkTime(gs.board, gs.turn, stateWithHelpers, botProfile);
+    const thinkBubble = getThinkingBubble(botProfile);
+    if (thinkBubble) setBotThinking(thinkBubble);
 
     const t = setTimeout(() => {
-      const move = strongSearch
-        ? chooseStrongComputerMove(gs.board, gs.turn, state, 2)
-        : chooseComputerMove(gs.board, gs.turn, state, difficulty, blunderChance, drawSeeking);
+      const moves = getLegalMoves(gs.board, gs.turn, state);
+      const move = selectHumanLikeMove(gs.board, moves, stateWithHelpers, gs.turn, botProfile);
       setBotThinking(false);
       if (move) commitMove(move);
     }, humanThinkTime);
@@ -3026,7 +3903,7 @@ function GameView({ session, onExit, onGameEnd, notify }) {
       clearTimeout(t);
       setBotThinking(false);
     };
-  }, [gs.turn, gs.board, session.color, gameOver, gs.status, state, commitMove, gs.outcomeBias, session.difficulty, isComputer, isOnline]);
+  }, [gs.turn, gs.board, session.color, gameOver, gs.status, state, commitMove, gs.outcomeBias, session.difficulty, isComputer, isOnline, profile, session.category, preGameCounting]);
 
   useEffect(() => {
     if (!premove || gameOver) return;
@@ -3051,7 +3928,7 @@ function GameView({ session, onExit, onGameEnd, notify }) {
     clocks[session.color] <= premoveThreshold;
 
   const handleSquareClick = (r, c) => {
-    if (gameOver || pendingPromotion || isViewingHistory) return;
+    if (gameOver || pendingPromotion || isViewingHistory || preGameCounting) return;
 
     if (gs.turn !== session.color) {
       if (!premoveActive) return;
@@ -3199,78 +4076,111 @@ function GameView({ session, onExit, onGameEnd, notify }) {
 
   return (
     <div className="fade-in game-layout" style={{ display: "flex", gap: 26 }}>
-      <div style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center" }}>
-        <div style={{ width: "min(100%, 640px)" }}>
-          <div className="game-header">
-            <div className="player-pill">
-              <div className="player-avatar-wrap">
-                <Avatar name={opp.name} size={44} />
-                <span className="online-dot" />
-              </div>
-              <div className="pill-info">
-                <div className="player-name-row">
-                  {opponentTitle && <span className="title-badge">{opponentTitle}</span>}
-                  <span className="player-name">{opp.name}</span>
-                  {opponentFlag && <span className="player-flag">{opponentFlag}</span>}
-                  {botThinking && (
-                    <span className="thinking-dots muted" style={{ fontSize: 11, fontWeight: 500 }}>
-                      <span className="dot">.</span><span className="dot">.</span><span className="dot">.</span>
+      <div className="game-main">
+        <div className="game-board-area">
+
+          {/* Opponent row */}
+          <div className={`game-player-row ${gs.turn !== orientation ? "is-active" : ""} ${clocks[orientation === "w" ? "b" : "w"] < 20 ? "is-low" : ""}`}>
+            <div className="game-pa-wrap">
+              <Avatar name={opp.name} size={36} />
+              {!isComputer && <span className="online-dot" />}
+            </div>
+            <div className="game-pinfo">
+              <div className="game-pname-row">
+                {opponentTitle && <span className="title-badge" style={{ fontSize: 10, padding: "3px 8px" }}>{opponentTitle}</span>}
+                <span className="game-pname">{opp.name}</span>
+                {opponentFlag && <span style={{ fontSize: 13 }}>{opponentFlag}</span>}
+                {botThinking && (
+                  typeof botThinking === "string" ? (
+                    <span style={{ fontSize: 10, padding: "2px 8px", color: "var(--ivory-dim)", fontStyle: "italic" }}>
+                      {botThinking}
                     </span>
-                  )}
-                </div>
-                <div className="player-meta">
-                  <Trophy size={11} />
-                  <span className="mono">{opp.rating !== "—" ? opp.rating : diffLabel}</span>
-                </div>
+                  ) : (
+                    <span className="thinking-dots" style={{ fontSize: 9, padding: "2px 8px" }}>
+                      <span className="dot" /><span className="dot" /><span className="dot" />
+                    </span>
+                  )
+                )}
               </div>
-              <span className={`pill-clock ${gs.turn !== orientation ? "active" : ""} ${clocks[orientation === "w" ? "b" : "w"] < 20 ? "low" : ""}`}>
-                {fmtClock(clocks[orientation === "w" ? "b" : "w"])}
-              </span>
-            </div>
-            <div className="format-pill">
-              <div className="format-time"><Clock size={14} /> {fmtClock(clocks[orientation === "w" ? "b" : "w"])}</div>
-              <div className="format-label">{session.tc.sub} · {session.tc.label}</div>
-            </div>
-            <div className="player-pill you">
-              <span className={`pill-clock ${gs.turn === orientation ? "active" : ""} ${clocks[orientation] < 20 ? "low" : ""}`}>
-                {fmtClock(clocks[orientation])}
-              </span>
-              <div className="pill-info">
-                <div className="player-name-row"><span className="player-name">{you.name}</span></div>
-                <div className="player-meta">
-                  <span className={`piece-glyph ${orientation === "w" ? "white" : "black"}`} style={{ fontSize: 13 }}>{GLYPHS[orientation === "w" ? "w" : "b"].k}</span>
-                  Playing {orientation === "w" ? "White" : "Black"}
-                </div>
-              </div>
-              <div className="player-avatar-wrap">
-                <Avatar name={you.name} size={44} />
-                <span className="online-dot" />
+              <div className="game-pmeta">
+                <Trophy size={10} />
+                <span className="mono">{opp.rating !== "—" ? opp.rating : diffLabel}</span>
               </div>
             </div>
+            <span className={`game-timer ${gs.turn !== orientation ? "active-timer" : ""}`}>
+              {fmtClock(clocks[orientation === "w" ? "b" : "w"])}
+            </span>
           </div>
 
-          <ChessBoard
-            board={displayBoard}
-            legalTargets={selected && !isViewingHistory ? legalTargets : []}
-            selected={isViewingHistory ? null : selected}
-            onSquareClick={handleSquareClick}
-            lastMove={isViewingHistory ? null : gs.lastMove}
-            orientation={boardOrientation}
-            checkSquare={isViewingHistory ? null : checkInfo}
-            sqSize={focusMode ? 78 : 72}
-            premoveFrom={premoveSelected || (premove ? premove.from : null)}
-            premoveTo={premove ? premove.to : null}
-          />
+          {/* Bot reaction bubble — always reserves space */}
+          <div className="bot-reaction-bubble-wrap">
+            {botReaction && (
+              <div key={botReaction.id} className="bot-reaction-bubble">
+                {botReaction.text}
+              </div>
+            )}
+          </div>
 
+          {/* Time control line */}
+          <div className="game-tc-line">{session.tc.sub} · {session.tc.label}</div>
+
+          {/* Board */}
+          <div style={{ position: "relative" }}>
+            <ChessBoard
+              board={displayBoard}
+              legalTargets={selected && !isViewingHistory ? legalTargets : []}
+              selected={isViewingHistory ? null : selected}
+              onSquareClick={handleSquareClick}
+              lastMove={isViewingHistory ? null : gs.lastMove}
+              orientation={boardOrientation}
+              checkSquare={isViewingHistory ? null : checkInfo}
+              sqSize={focusMode ? 78 : 72}
+              premoveFrom={premoveSelected || (premove ? premove.from : null)}
+              premoveTo={premove ? premove.to : null}
+            />
+            {preGameCounting && (
+              <div style={{ position: "absolute", inset: 0, zIndex: 10, display: "flex", alignItems: "center", justifyContent: "center", background: "rgba(0,0,0,0.55)", borderRadius: 12, backdropFilter: "blur(2px)" }}>
+                <div style={{ textAlign: "center" }}>
+                  <div key={preGameCountdown} style={{ fontSize: 96, fontWeight: 800, fontFamily: "var(--font-mono)", color: "var(--brass-bright)", lineHeight: 1, textShadow: "0 0 40px rgba(168,85,247,0.5)", animation: "countdownPop 0.4s ease" }}>
+                    {preGameCountdown}
+                  </div>
+                  <div className="muted" style={{ fontSize: 13, marginTop: 10 }}>{opponentName}</div>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Player row */}
+          <div className={`game-player-row ${gs.turn === orientation ? "is-active" : ""} ${clocks[orientation] < 20 ? "is-low" : ""}`}>
+            <div className="game-pa-wrap">
+              <Avatar name={you.name} size={36} />
+              <span className="online-dot" />
+            </div>
+            <div className="game-pinfo">
+              <div className="game-pname-row">
+                <span className="game-pname">{you.name}</span>
+              </div>
+              <div className="game-pmeta">
+                <span className={`piece-glyph ${orientation === "w" ? "white" : "black"}`} style={{ fontSize: 12 }}>{GLYPHS[orientation === "w" ? "w" : "b"].k}</span>
+                <span>Playing {orientation === "w" ? "White" : "Black"}</span>
+              </div>
+            </div>
+            <span className={`game-timer ${gs.turn === orientation ? "active-timer" : ""}`}>
+              {fmtClock(clocks[orientation])}
+            </span>
+          </div>
+
+          {/* Viewing history banner */}
           {isViewingHistory && (
-            <div className="premove-banner fade-in">
+            <div className="premove-banner fade-in" style={{ marginTop: 8 }}>
               <span><ListChecks size={13} /> Viewing move {displayIndex} of {liveIndex}</span>
               <button className="btn btn-ghost btn-sm" onClick={jumpToLive}><SkipForward size={12} /> Return to live</button>
             </div>
           )}
 
+          {/* Premove banner */}
           {!isViewingHistory && premoveActive && (
-            <div className="premove-banner fade-in">
+            <div className="premove-banner fade-in" style={{ marginTop: 8 }}>
               {premove ? (
                 <>
                   <span><Clock size={13} /> Premove queued — it'll play the instant it's your turn.</span>
@@ -3282,20 +4192,43 @@ function GameView({ session, onExit, onGameEnd, notify }) {
             </div>
           )}
 
+          {/* Board controls */}
           <div className="below-board-row">
             <div className="board-controls">
-              <button className="btn btn-danger btn-sm" onClick={handleResign} disabled={!!gameOver}><Flag size={14} /> Resign</button>
-              <div className="ctrl-divider" />
-              <button className="btn btn-ghost btn-icon" onClick={jumpToStart} disabled={liveIndex === 0} title="Jump to start"><SkipBack size={15} /></button>
-              <button className="btn btn-ghost btn-icon" onClick={stepBack} disabled={displayIndex === 0} title="Step back"><ChevronLeft size={15} /></button>
-              <button className="btn btn-ghost btn-icon" onClick={stepForward} disabled={!isViewingHistory} title="Step forward"><ChevronRight size={15} /></button>
-              <button className="btn btn-ghost btn-icon" onClick={() => setFlipped((f) => !f)} title="Flip board"><RotateCcw size={15} /></button>
-              <button className="btn btn-ghost btn-icon" onClick={() => setFocusMode((f) => !f)} title="Focus mode"><Maximize2 size={15} /></button>
+              <button className="btn-resign" onClick={handleResign} disabled={!!gameOver}><Flag size={13} /> Resign</button>
+              <button className="btn-icon" onClick={jumpToStart} disabled={liveIndex === 0} title="Jump to start"><SkipBack size={14} /></button>
+              <button className="btn-icon" onClick={stepBack} disabled={displayIndex === 0} title="Step back"><ChevronLeft size={14} /></button>
+              <button className="btn-icon" onClick={stepForward} disabled={!isViewingHistory} title="Step forward"><ChevronRight size={14} /></button>
+              <button className="btn-icon" onClick={() => { setSheetTab("chat"); setSheetOpen(true); }} title="Quick message"><MessageSquare size={14} /></button>
+              <button className="btn-icon" onClick={() => setShowLeaveConfirm(true)} title="Home"><Home size={14} /></button>
+              <button className="btn-icon" onClick={() => { setSheetTab("moves"); setSheetOpen(true); }} title="All moves"><Menu size={14} /></button>
             </div>
           </div>
+
+          {/* Compact moves strip (mobile) */}
+          {gs.history.length > 0 && (
+            <div className="mobile-moves-strip">
+              <div className="mobile-moves-scroll">
+                {Array.from({ length: Math.ceil(gs.history.length / 2) }).slice(-4).map((_, ri) => {
+                  const i = Math.ceil(gs.history.length / 2) - 4 + ri;
+                  if (i < 0) return null;
+                  return (
+                    <span key={i} className="mobile-moves-pair">
+                      <span className="mobile-moves-num">{i + 1}.</span>
+                      <span className={`mobile-moves-mv ${!isViewingHistory && gs.history.length - 1 === i * 2 ? "current" : ""}`}>{gs.history[i * 2]}</span>
+                      {gs.history[i * 2 + 1] && <span className={`mobile-moves-mv ${!isViewingHistory && gs.history.length - 1 === i * 2 + 1 ? "current" : ""}`}>{gs.history[i * 2 + 1]}</span>}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+
         </div>
       </div>
 
+      {/* Desktop right panel */}
       {!focusMode && (
         <div className="right-panel">
           <div className="card">
@@ -3414,10 +4347,112 @@ function GameView({ session, onExit, onGameEnd, notify }) {
         </div>
       )}
 
+      {/* Bottom sheet (mobile) */}
+      <div className={`game-sheet-overlay ${sheetOpen ? "open" : ""}`} onClick={() => setSheetOpen(false)} />
+      <div className={`game-sheet ${sheetOpen ? "open" : ""}`}>
+        <div className="game-sheet-handle"><span /></div>
+        <div className="game-sheet-head">
+          <div className="h3">{sheetTab === "moves" ? "Moves" : sheetTab === "chat" ? "Chat" : "Game Info"}</div>
+          <button className="btn btn-ghost btn-icon" onClick={() => setSheetOpen(false)} style={{ padding: 6 }}><X size={16} /></button>
+        </div>
+        <div className="game-sheet-tabs">
+          <button className={sheetTab === "moves" ? "active-tab" : ""} onClick={() => setSheetTab("moves")}><Menu size={13} /> Moves</button>
+          <button className={sheetTab === "chat" ? "active-tab" : ""} onClick={() => setSheetTab("chat")}><MessageSquare size={13} /> Chat</button>
+          <button className={sheetTab === "info" ? "active-tab" : ""} onClick={() => setSheetTab("info")}><Info size={13} /> Info</button>
+        </div>
+        <div className="game-sheet-body">
+          {sheetTab === "moves" && (
+            <>
+              <div className="movelist" style={{ maxHeight: "none" }}>
+                {gs.history.length === 0 && <div className="muted" style={{ fontSize: 12.5, padding: "6px 4px" }}>No moves yet — make the opening move.</div>}
+                {Array.from({ length: Math.ceil(gs.history.length / 2) }).map((_, i) => (
+                  <div className="movelist-row" key={i}>
+                    <span className="movelist-num">{i + 1}.</span>
+                    <span
+                      className={`movelist-move ${!isViewingHistory && gs.history.length - 1 === i * 2 ? "current" : ""}`}
+                      onClick={() => { const idx = i * 2 + 1; setViewIndex(idx >= liveIndex ? null : idx); }}
+                    >
+                      {gs.history[i * 2]}
+                    </span>
+                    <span
+                      className={`movelist-move ${!isViewingHistory && gs.history.length - 1 === i * 2 + 1 ? "current" : ""}`}
+                      onClick={() => { if (!gs.history[i * 2 + 1]) return; const idx = i * 2 + 2; setViewIndex(idx >= liveIndex ? null : idx); }}
+                    >
+                      {gs.history[i * 2 + 1] || ""}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+          {sheetTab === "chat" && (
+            isComputer ? (
+              <div className="muted" style={{ fontSize: 12.5, textAlign: "center", padding: "18px 0" }}>Chat is unavailable against the engine.</div>
+            ) : (
+              <>
+                <div className="chat-log" style={{ maxHeight: "none" }}>
+                  {chatMessages.map((m, i) => (
+                    <div className="chat-msg" key={i} style={m.from === "you" ? { flexDirection: "row-reverse" } : {}}>
+                      <Avatar name={m.from === "you" ? you.name : opponentName} size={26} />
+                      <div className="chat-bubble">{m.text}<span className="chat-time">{m.time}</span></div>
+                    </div>
+                  ))}
+                </div>
+                <div className="divider" />
+                <div className="quick-msg-row" style={{ marginBottom: 10 }}>
+                  {QUICK_MESSAGES.map((q) => (
+                    <button key={q} className="quick-msg-chip" onClick={() => sendChatMessage(q)}>{q}</button>
+                  ))}
+                </div>
+                <div className="chat-input-row">
+                  <input
+                    placeholder="Type a message…"
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") sendChatMessage(chatInput); }}
+                  />
+                  <button className="chat-send-btn" disabled={!chatInput.trim()} onClick={() => sendChatMessage(chatInput)}>
+                    <Send size={14} />
+                  </button>
+                </div>
+              </>
+            )
+          )}
+          {sheetTab === "info" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 12.5 }}>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span className="muted">Time control</span><span>{session.tc.sub} · {session.tc.label}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span className="muted">Moves played</span><span>{gs.history.length}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span className="muted">You</span><span className="mono">Playing {session.color === "w" ? "White" : "Black"}</span></div>
+              <div style={{ display: "flex", justifyContent: "space-between" }}><span className="muted">{opp.name}</span><span className="mono">{opp.rating}</span></div>
+            </div>
+          )}
+        </div>
+        {sheetTab === "moves" && (
+          <div className="game-sheet-foot">
+            <button onClick={handleDownloadPGN} disabled={gs.history.length === 0}><Download size={13} /> PGN</button>
+            <button onClick={handleShare}><Share2 size={13} /> Share</button>
+          </div>
+        )}
+      </div>
+
       {pendingPromotion && <PromotionDialog color={gs.turn} onChoose={choosePromotion} />}
+      {showLeaveConfirm && (
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => setShowLeaveConfirm(false)}>
+          <div className="card" style={{ maxWidth: 380, width: "90%", padding: 28, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <Home size={32} style={{ color: "var(--brass-bright)", marginBottom: 12 }} />
+            <div className="h3" style={{ marginBottom: 6 }}>Leave the match?</div>
+            <div className="muted" style={{ fontSize: 13, marginBottom: 20 }}>Your current game progress will be lost.</div>
+            <div style={{ display: "flex", gap: 10 }}>
+              <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setShowLeaveConfirm(false)}>Stay</button>
+              <button className="btn btn-brass" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setShowLeaveConfirm(false); onExit(); }}>Leave</button>
+            </div>
+          </div>
+        </div>
+      )}
       {gameOver && (
         <GameOverModal
           result={gameOver}
+          isComputer={isComputer}
           onRematch={() => {
             setGameOver(null);
             gameEndedRef.current = false;
@@ -3427,6 +4462,9 @@ function GameView({ session, onExit, onGameEnd, notify }) {
             setPremoveSelected(null);
             setBotThinking(false);
             setViewIndex(null);
+            setBotReaction(null);
+            recentReactionsRef.current = [];
+            if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
           }}
           onExit={onExit}
         />
@@ -4082,12 +5120,12 @@ export default function ChessVerse() {
       <Style />
       <div className="scrim" />
       <div className="cv-shell">
-        <Sidebar view={view} setView={setView} profile={profile} />
+        {view !== "game" && <Sidebar view={view} setView={setView} profile={profile} />}
         <div className="main-col">
           <div className="content">
             {view === "play" && <PlayView onStart={startGame} profile={profile} notify={notify} />}
             {view === "game" && session && (
-              <GameView session={session} onExit={() => setView("play")} onGameEnd={onGameEnd} notify={notify} />
+              <GameView session={session} onExit={() => setView("play")} onGameEnd={onGameEnd} notify={notify} profile={profile} />
             )}
             {view === "puzzles" && <PuzzlesView profile={profile} onPuzzleResult={onPuzzleResult} onRushEnd={onRushEnd} />}
             {view === "profile" && <ProfileView profile={profile} />}

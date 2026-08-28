@@ -14,6 +14,14 @@ function generateRoomCode() {
   return code;
 }
 
+/* ── Helper: check if a room has expired (10 min TTL) ─────────── */
+const ROOM_TTL_MS = 10 * 60 * 1000;
+function isRoomExpired(room) {
+  if (!room || room.status === 'active' || room.status === 'finished') return false;
+  const created = new Date(room.created_at).getTime();
+  return Date.now() - created > ROOM_TTL_MS;
+}
+
 /* ═══════════════ SETTINGS ═══════════════ */
 
 // GET settings for a game
@@ -77,6 +85,10 @@ router.post('/room/:code/join', async (req, res) => {
     const [rooms] = await db.query('SELECT * FROM chess_rooms WHERE room_code = ?', [req.params.code.toUpperCase()]);
     if (rooms.length === 0) return res.status(404).json({ success: false, error: 'Room not found' });
     const room = rooms[0];
+    if (isRoomExpired(room)) {
+      await db.query("UPDATE chess_rooms SET status = 'finished', result = 'draw' WHERE id = ?", [room.id]);
+      return res.status(400).json({ success: false, error: 'Room has expired' });
+    }
     if (room.status !== 'waiting') return res.status(400).json({ success: false, error: 'Game already in progress' });
     if (room.player2_id && room.player2_id !== null) return res.status(400).json({ success: false, error: 'Room is full' });
 
@@ -95,6 +107,10 @@ router.get('/room/:code', async (req, res) => {
   try {
     const [rooms] = await db.query('SELECT * FROM chess_rooms WHERE room_code = ?', [req.params.code.toUpperCase()]);
     if (rooms.length === 0) return res.status(404).json({ success: false, error: 'Room not found' });
+    if (isRoomExpired(rooms[0])) {
+      await db.query("UPDATE chess_rooms SET status = 'finished', result = 'draw' WHERE id = ?", [rooms[0].id]);
+      return res.json({ success: true, room: { ...rooms[0], status: 'finished', result: 'draw' } });
+    }
     res.json({ success: true, room: rooms[0] });
   } catch (err) {
     sendError(res, err);
@@ -120,8 +136,8 @@ router.post('/room/:code/move', async (req, res) => {
     );
 
     const nextTurn = player_color === 'white' ? 'black' : 'white';
-    const newWhiteTime = player_color === 'white' ? Math.max(0, room.white_time_left - (time_spent || 0) + (room.time_control || 0)) : room.white_time_left;
-    const newBlackTime = player_color === 'black' ? Math.max(0, room.black_time_left - (time_spent || 0) + (room.time_control || 0)) : room.black_time_left;
+    const newWhiteTime = player_color === 'white' ? Math.max(0, room.white_time_left - (time_spent || 0)) : room.white_time_left;
+    const newBlackTime = player_color === 'black' ? Math.max(0, room.black_time_left - (time_spent || 0)) : room.black_time_left;
 
     await db.query(
       `UPDATE chess_rooms SET fen = ?, current_turn = ?, white_time_left = ?, black_time_left = ?, updated_at = NOW() WHERE id = ?`,

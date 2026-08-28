@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { AvatarDisplay } from '../components/AvatarData';
-import { Home, Gamepad2, Gift, LogOut, Sparkles, User, Trophy } from 'lucide-react';
+import { AvatarDisplay } from './AvatarData';
+import { Home, Gamepad2, Gift, LogOut, Sparkles, User } from 'lucide-react';
 
 const PUBLIC_LINKS = [
   { label: 'Play', href: '/arcade' },
@@ -43,38 +43,21 @@ const CSS = `
   .pn-dd-item.active{color:#c040ff}
   .pn-dd-icon{width:24px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
   .pn-dd-divider{height:1px;background:rgba(255,255,255,0.06);margin:4px 12px}
-  .pn-ham{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:6px;border-radius:8px;transition:background .2s}
-  .pn-ham:active{background:rgba(255,255,255,0.08)}
-  .pn-ham span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:all .3s cubic-bezier(.4,0,.2,1)}
+  .pn-greet{display:block}
+  .pn-ham{display:none;flex-direction:column;gap:5px;background:none;border:none;cursor:pointer;padding:4px}
+  .pn-ham span{display:block;width:22px;height:2px;background:#fff;border-radius:2px;transition:all .3s}
   .pn-ham.open span:nth-child(1){transform:translateY(7px) rotate(45deg)}
   .pn-ham.open span:nth-child(2){opacity:0}
   .pn-ham.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
-  .pn-mob-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(7,4,15,0.97);backdrop-filter:blur(20px);z-index:999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;opacity:0;transform:translateY(-20px);pointer-events:none;transition:opacity .3s ease,transform .3s ease}
-  .pn-mob-overlay.open{opacity:1;transform:translateY(0);pointer-events:auto}
-  .pn-mob-links{display:flex;flex-direction:column;gap:14px;width:100%;max-width:300px}
-  .pn-mob-link{display:flex;align-items:center;gap:16px;padding:18px 24px;border-radius:16px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.07);text-decoration:none;color:rgba(255,255,255,0.85);font-family:'DM Sans',sans-serif;font-size:17px;font-weight:600;letter-spacing:1px;transition:all .25s cubic-bezier(.22,1,.36,1);opacity:0;transform:translateY(16px);position:relative;overflow:hidden}
-  .pn-mob-link::after{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(146,16,246,0.08),transparent 60%);opacity:0;transition:opacity .25s}
-  .pn-mob-link:active::after{opacity:1}
-  .pn-mob-overlay.open .pn-mob-link{opacity:1;transform:translateY(0)}
-  .pn-mob-overlay.open .pn-mob-link:nth-child(1){transition-delay:.06s}
-  .pn-mob-overlay.open .pn-mob-link:nth-child(2){transition-delay:.12s}
-  .pn-mob-overlay.open .pn-mob-link:nth-child(3){transition-delay:.18s}
-  .pn-mob-link:active{background:rgba(146,16,246,0.12);border-color:rgba(146,16,246,0.3);transform:scale(0.97)!important}
-  .pn-mob-link-icon{width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .25s}
-  .pn-mob-link:nth-child(1) .pn-mob-link-icon{background:linear-gradient(135deg,rgba(146,16,246,0.25),rgba(97,4,151,0.2));border:1px solid rgba(146,16,246,0.3)}
-  .pn-mob-link:nth-child(2) .pn-mob-link-icon{background:linear-gradient(135deg,rgba(245,200,66,0.2),rgba(245,200,66,0.1));border:1px solid rgba(245,200,66,0.25)}
-  .pn-mob-link:nth-child(3) .pn-mob-link-icon{background:linear-gradient(135deg,rgba(34,197,94,0.2),rgba(34,197,94,0.1));border:1px solid rgba(34,197,94,0.25)}
-  .pn-mob-link:nth-child(1) .pn-mob-link-icon svg{color:#c084ff}
-  .pn-mob-link:nth-child(2) .pn-mob-link-icon svg{color:#f5c842}
-  .pn-mob-link:nth-child(3) .pn-mob-link-icon svg{color:#22c55e}
-  .pn-mob-cta-wrap{margin-top:20px;width:100%;max-width:300px;opacity:0;transform:translateY(16px)}
-  .pn-mob-overlay.open .pn-mob-cta-wrap{opacity:1;transform:translateY(0);transition-delay:.24s}
-  .pn-mob-cta{display:flex;align-items:center;justify-content:center;width:100%;padding:16px;border-radius:16px;background:linear-gradient(135deg,#610497,#9210f6)!important;color:#fff!important;font-family:'DM Sans',sans-serif;font-size:16px!important;font-weight:700!important;letter-spacing:1px!important;text-decoration:none;border:none;cursor:pointer;box-shadow:0 8px 32px rgba(146,16,246,0.35);transition:all .25s}
-  .pn-mob-cta:active{transform:scale(0.97)!important;box-shadow:0 4px 16px rgba(146,16,246,0.3)!important}
+  .pn-mob-overlay{display:none;position:fixed;inset:0;top:74px;background:rgba(7,4,15,0.97);backdrop-filter:blur(20px);z-index:999;flex-direction:column;align-items:center;justify-content:center;gap:30px}
+  .pn-mob-overlay.open{display:flex}
+  .pn-mob-overlay a,.pn-mob-overlay button{font-family:'DM Sans',sans-serif;font-size:26px;color:#fff;text-decoration:none;opacity:.80;transition:opacity .2s;letter-spacing:2px;background:none;border:none;cursor:pointer}
+  .pn-mob-overlay a:hover,.pn-mob-overlay button:hover{opacity:1}
+  .pn-mob-cta{margin-top:8px;padding:14px 40px;border-radius:100px;background:linear-gradient(90deg,#610497,#9210f6)!important;color:#fff!important;font-size:17px!important;font-weight:700!important;letter-spacing:0!important}
   .pn-mob-avatar{display:flex;flex-direction:column;align-items:center;gap:8px;margin-bottom:16px}
   .pn-mob-name{font-family:'DM Sans',sans-serif;font-size:16px;font-weight:700;color:#fff;letter-spacing:0}
   /* Hanging wire */
-  .pn-wire-wrap{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:2px;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:1001}
+  .pn-wire-wrap{position:absolute;top:100%;left:50%;transform:translateX(-50%);width:2px;display:flex;flex-direction:column;align-items:center;pointer-events:none;z-index:100000}
   .pn-wire{width:2px;background:linear-gradient(180deg,rgba(146,16,246,0.6),rgba(146,16,246,0.15));border-radius:1px;transition:height .4s cubic-bezier(.22,1,.36,1)}
   .pn-wire-handle{
     width:28px;height:28px;border-radius:50%;
@@ -96,7 +79,6 @@ const CSS = `
     filter:drop-shadow(0 4px 16px rgba(146,16,246,0.35));
     transition:opacity .15s;
   }
-  .pn-wire-mascot{transition:opacity .3s ease,visibility .3s ease}
   .pn-wire-mascot.hidden{opacity:0;visibility:hidden;pointer-events:none}
   .pn-wire-mascot img{width:100%;height:auto;display:block}
   .pn-mascot-bubble{
@@ -115,22 +97,78 @@ const CSS = `
     border-right:1px solid rgba(146,16,246,0.4);border-bottom:1px solid rgba(146,16,246,0.4);
     transform:rotate(45deg);
   }
+  .pn-wire-mascot .pn-mascot-r,.pn-wire-mascot .pn-mascot-b{
+    position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;mix-blend-mode:screen;opacity:0
+  }
+  .pn-wire-mascot .pn-mascot-scanlines{
+    position:absolute;inset:0;pointer-events:none;z-index:10;
+    background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.12) 2px,rgba(0,0,0,0.12) 4px);opacity:0
+  }
   @keyframes mascotBounce{0%,100%{transform:translateY(0)}50%{transform:translateY(-8px)}}
+  .pn-wire-mascot.glitch-in{animation:smallGlitchIn .6s steps(1) forwards}
+  .pn-wire-mascot.glitch-in .pn-mascot-r{animation:pRGB_R_IN .6s steps(1) forwards}
+  .pn-wire-mascot.glitch-in .pn-mascot-b{animation:pRGB_B_IN .6s steps(1) forwards}
+  .pn-wire-mascot.glitch-in .pn-mascot-scanlines{animation:pScan_IN .6s steps(1) forwards}
+  .pn-wire-mascot.glitch-out{animation:smallGlitchOut .5s steps(1) forwards}
+  .pn-wire-mascot.glitch-out .pn-mascot-r{animation:pRGB_R_OUT .5s steps(1) forwards}
+  .pn-wire-mascot.glitch-out .pn-mascot-b{animation:pRGB_B_OUT .5s steps(1) forwards}
+  .pn-wire-mascot.glitch-out .pn-mascot-scanlines{animation:pScan_OUT .5s steps(1) forwards}
+  @keyframes smallGlitchIn{
+    0%{opacity:0;transform:translateY(-20px) scale(0.8);clip-path:inset(0 0 100% 0)}
+    5%{opacity:1;transform:translate(6px,-2px) skewX(5deg);clip-path:inset(10% 0 60% 0)}
+    10%{opacity:0.7;transform:translate(-10px,2px) skewX(-7deg);clip-path:inset(30% 0 20% 0);filter:hue-rotate(40deg) drop-shadow(3px 0 6px rgba(255,0,100,0.6))}
+    15%{opacity:1;transform:translate(4px,-1px) skewX(3deg);clip-path:inset(5% 0 70% 0);filter:hue-rotate(-30deg) drop-shadow(-2px 0 5px rgba(0,200,255,0.5))}
+    20%{opacity:0.8;transform:translate(-6px,3px) skewX(-4deg);clip-path:inset(40% 0 10% 0);filter:hue-rotate(60deg)}
+    25%{opacity:1;transform:translate(2px,-1px);clip-path:inset(15% 0 45% 0);filter:none}
+    35%{opacity:1;transform:translate(-1px,0);clip-path:inset(8% 0 55% 0)}
+    50%{opacity:1;transform:translate(0,0);clip-path:inset(0)}
+    100%{opacity:1;transform:translate(0,0) scale(1);clip-path:inset(0);animation:mascotBounce 3s ease-in-out infinite}
+  }
+  @keyframes smallGlitchOut{
+    0%{opacity:1;transform:translate(0,0) scale(1);clip-path:inset(0)}
+    10%{opacity:1;transform:translate(-5px,2px) skewX(-4deg);clip-path:inset(10% 0 50% 0);filter:hue-rotate(-30deg) drop-shadow(3px 0 6px rgba(255,0,100,0.5))}
+    15%{opacity:0.8;transform:translate(8px,-3px) skewX(6deg);clip-path:inset(30% 0 20% 0);filter:hue-rotate(50deg) drop-shadow(-3px 0 7px rgba(0,200,255,0.6))}
+    20%{opacity:0.9;transform:translate(-4px,1px) skewX(-3deg);clip-path:inset(5% 0 60% 0);filter:hue-rotate(-40deg)}
+    30%{opacity:0.5;transform:translate(3px,-2px);clip-path:inset(20% 0 40% 0);filter:none}
+    40%{opacity:0.3;transform:translate(-2px,1px);clip-path:inset(50% 0 25% 0)}
+    55%{opacity:0.1;transform:translate(0,0);clip-path:inset(30% 0 50% 0)}
+    70%{opacity:0;transform:translate(0,0);clip-path:inset(50% 0 50% 0)}
+    100%{opacity:0;transform:translate(0,0) scale(0.9);clip-path:inset(50% 0 50% 0);visibility:hidden}
+  }
+  @keyframes pRGB_R_IN{
+    0%{opacity:0}5%{opacity:0.6;transform:translate(5px,-2px);filter:hue-rotate(-30deg) saturate(2)}
+    15%{opacity:0.5;transform:translate(-3px,1px);filter:hue-rotate(20deg)}30%{opacity:0.2}50%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pRGB_B_IN{
+    0%{opacity:0}5%{opacity:0.5;transform:translate(-4px,2px);filter:hue-rotate(50deg) saturate(2)}
+    15%{opacity:0.4;transform:translate(3px,-1px);filter:hue-rotate(-40deg)}30%{opacity:0.15}50%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pScan_IN{
+    0%{opacity:0}5%{opacity:0.5}15%{opacity:0.3}25%{opacity:0.4}40%{opacity:0.15}55%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pRGB_R_OUT{
+    0%{opacity:0}5%{opacity:0.3;transform:translate(4px,-2px);filter:hue-rotate(-40deg) saturate(2)}
+    15%{opacity:0.5;transform:translate(-6px,2px);filter:hue-rotate(40deg) saturate(2.5)}
+    25%{opacity:0.4;transform:translate(2px,-1px)}40%{opacity:0.2}60%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pRGB_B_OUT{
+    0%{opacity:0}5%{opacity:0.35;transform:translate(-3px,2px);filter:hue-rotate(50deg) saturate(2)}
+    15%{opacity:0.5;transform:translate(5px,-2px);filter:hue-rotate(-50deg) saturate(2.5)}
+    25%{opacity:0.35;transform:translate(-2px,1px)}40%{opacity:0.15}60%{opacity:0}100%{opacity:0}
+  }
+  @keyframes pScan_OUT{
+    0%{opacity:0}5%{opacity:0.3}15%{opacity:0.5}25%{opacity:0.4}40%{opacity:0.3}55%{opacity:0.1}70%{opacity:0}100%{opacity:0}
+  }
   .pn-logo-desktop{display:block}
   .pn-logo-mobile{display:none}
   @media(max-width:1100px){.pn-nav{width:78%}}
   @media(max-width:900px){
-    .pn-links,.pn-cta,.pn-wire-wrap{display:none}
+    .pn-links,.pn-cta,.pn-wire-wrap,.pn-greet{display:none}
     .pn-ham{display:flex}
-    .pn-wrap{padding:12px 20px;display:block}
-    .pn-nav{width:100%;max-width:100%;min-width:unset;padding:10px 20px;border-radius:18px}
+    .pn-wrap{padding:12px 20px;display:block;width:100%;box-sizing:border-box}
+    .pn-nav{width:100%;min-width:unset;padding:10px 20px;border-radius:18px;grid-template-columns:auto 1fr auto;overflow:hidden}
     .pn-logo-desktop{display:none}
     .pn-logo-mobile{display:block}
-  }
-  @media(max-width:640px){
-    .pn-wrap{padding:10px 12px}
-    .pn-nav{padding:8px 14px;border-radius:14px}
-    .pn-logo img{height:48px}
   }
   @media(min-width:901px){.pn-mob-overlay{display:none!important}}
 `;
@@ -185,11 +223,19 @@ export default function PlayerNavbar() {
   /* Listen for mascot-switch events (auto 5s cycle) */
   useEffect(() => {
     const handler = (e) => {
-      const { phase } = e.detail;
-      if (phase === 'glitch-in') {
-        setMascotGlitch('visible');
-      } else if (phase === 'glitch-out') {
-        setMascotGlitch('hidden');
+      const { phase, activeMascot } = e.detail;
+      if (activeMascot === 'small' && phase === 'glitch-in') {
+        setMascotGlitch('glitch-in');
+        setTimeout(() => setMascotGlitch('visible'), 600);
+      } else if (activeMascot === 'small' && phase === 'glitch-out') {
+        setMascotGlitch('glitch-out');
+        setTimeout(() => setMascotGlitch('hidden'), 500);
+      } else if (activeMascot === 'big' && phase === 'glitch-out') {
+        setMascotGlitch('glitch-out');
+        setTimeout(() => setMascotGlitch('hidden'), 500);
+      } else if (activeMascot === 'big' && phase === 'glitch-in') {
+        setMascotGlitch('glitch-in');
+        setTimeout(() => setMascotGlitch('visible'), 600);
       }
     };
     window.addEventListener('mascot-switch', handler);
@@ -255,6 +301,7 @@ export default function PlayerNavbar() {
   };
 
   const isAuth = !!player;
+  const showTrigger = location.pathname === '/';
   const visibleDropdown = DROPDOWN_ITEMS.filter(item => {
     if (item.divider) return true;
     return location.pathname !== item.href;
@@ -282,7 +329,7 @@ export default function PlayerNavbar() {
 
           {isAuth ? (
               <div style={{display:'flex',alignItems:'center',gap:12}}>
-              <div style={{lineHeight:1.2}}>
+              <div className="pn-greet" style={{lineHeight:1.2}}>
                 <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:13,fontWeight:700,color:'#fff',whiteSpace:'nowrap',textAlign:'right',display:'flex',alignItems:'center',gap:4,justifyContent:'flex-end'}}>Hi, {player.name?.split(' ')[0]} <Sparkles size={14} color="#c084fc" /></div>
                 <div style={{fontFamily:"'DM Sans',sans-serif",fontSize:10,color:'rgba(255,255,255,0.45)',fontWeight:500,whiteSpace:'nowrap',marginTop:1,textAlign:'right'}}>Welcome back</div>
               </div>
@@ -316,6 +363,7 @@ export default function PlayerNavbar() {
           ) : (
             <div style={{ position: 'relative' }}>
               <a href="/login" className="pn-cta">Login</a>
+              {showTrigger && (
               <div className="pn-wire-wrap" ref={wireRef}>
                 <div className="pn-wire" style={{ height: wireDragging ? 80 : 40, transition: wireDragging ? 'none' : 'height .4s cubic-bezier(.22,1,.36,1)' }} />
                 <div
@@ -328,11 +376,20 @@ export default function PlayerNavbar() {
                     <polyline points="6 9 12 15 18 9" />
                   </svg>
                 </div>
-                <div className={`pn-wire-mascot${mascotGlitch === 'visible' ? '' : ' hidden'}`}>
+                {/* Small mascot below the pulling trigger */}
+                <div className={`pn-wire-mascot${mascotGlitch === 'visible' ? '' : mascotGlitch === 'hidden' ? ' hidden' : ' ' + mascotGlitch}`}>
                   <div className={`pn-mascot-bubble${bubbleShow ? ' show' : ''}`}>{bubbleText}</div>
-                  <img src="/mascotques.png" alt="Mascot" />
+                  <img src="/mascotques.webp" alt="Mascot" />
+                  {mascotGlitch === 'glitch-in' && (
+                    <>
+                      <img src="/mascotques.webp" alt="" className="pn-mascot-r" />
+                      <img src="/mascotques.webp" alt="" className="pn-mascot-b" />
+                      <div className="pn-mascot-scanlines" />
+                    </>
+                  )}
                 </div>
               </div>
+              )}
             </div>
           )}
 
@@ -342,38 +399,23 @@ export default function PlayerNavbar() {
         </nav>
       </div>
 
-      <div className={`pn-mob-overlay${menuOpen ? ' open' : ''}`} onClick={() => setMenuOpen(false)}>
+      <div className={`pn-mob-overlay${menuOpen ? ' open' : ''}`}>
         {isAuth && (
-          <div className="pn-mob-avatar" onClick={e => e.stopPropagation()}>
+          <div className="pn-mob-avatar">
             <AvatarDisplay avatarId={player.avatar_id} size={56} style={{ border: '3px solid rgba(146,16,246,0.3)' }} />
             <span className="pn-mob-name">{player.name}</span>
           </div>
         )}
-        <div className="pn-mob-links">
-          <a className="pn-mob-link" href="/arcade" onClick={() => setMenuOpen(false)}>
-            <span className="pn-mob-link-icon"><Gamepad2 size={20} /></span>
-            Play
-          </a>
-          <a className="pn-mob-link" href="/leaderboard" onClick={() => setMenuOpen(false)}>
-            <span className="pn-mob-link-icon"><Trophy size={20} /></span>
-            Leaderboard
-          </a>
-          {isAuth && (
-            <a className="pn-mob-link" href="/player/dashboard" onClick={() => setMenuOpen(false)}>
-              <span className="pn-mob-link-icon"><Home size={20} /></span>
-              Dashboard
-            </a>
-          )}
-        </div>
-        <div className="pn-mob-cta-wrap">
-          {isAuth ? (
-            <button className="pn-mob-cta" onClick={() => { setMenuOpen(false); navigate('/player/dashboard'); }}>
-              Go to Dashboard
-            </button>
-          ) : (
-            <a href="/login" className="pn-mob-cta">Login</a>
-          )}
-        </div>
+        {PUBLIC_LINKS.map(n => (
+          <a key={n.href} href={n.href} onClick={() => setMenuOpen(false)}>{n.label}</a>
+        ))}
+        {isAuth ? (
+          <button className="pn-mob-cta" onClick={() => { setMenuOpen(false); navigate('/player/dashboard'); }}>
+            Dashboard
+          </button>
+        ) : (
+          <a href="/login" className="pn-mob-cta">Login</a>
+        )}
       </div>
     </>
   );

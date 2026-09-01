@@ -942,6 +942,7 @@ export default function PlayerPage() {
   // Auto-pop the centered login card for guests when they finish a game
   useEffect(() => {
     if (phase !== 'thankyou') return
+    if (game?.category === 'quiz') return
     if (!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))) {
       setShowSaveAuth(true)
     }
@@ -951,6 +952,7 @@ export default function PlayerPage() {
   // covers games whose own result screens bypass the thankyou phase
   useEffect(() => {
     const onDone = () => {
+      if (game?.category === 'quiz') return
       if (!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))) {
         setShowSaveAuth(true)
       }

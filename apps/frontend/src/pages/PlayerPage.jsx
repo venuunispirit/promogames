@@ -625,6 +625,15 @@ export default function PlayerPage() {
           if (profile) payload.promo_player_id = profile.id
           const sessRes = await api.post('/play/session/start', payload)
           setSessionToken(sessRes.data.session_token)
+          // Filter questions if backend returned selected_question_ids (randomise + questions_per_session)
+          if (sessRes.data.selected_question_ids && sessRes.data.selected_question_ids.length > 0 && g.questions && g.questions.length > 0) {
+            const selectedIds = sessRes.data.selected_question_ids
+            const filtered = selectedIds.map(id => g.questions.find(q => q.id === id)).filter(Boolean)
+            if (filtered.length > 0) {
+              g.questions = filtered
+              setGame({ ...g })
+            }
+          }
         }
 
         if (g.category === 'crossword') {
@@ -772,6 +781,15 @@ export default function PlayerPage() {
       if (playerProfile) payload.promo_player_id = playerProfile.id
       const res = await api.post('/play/session/start', payload)
       setSessionToken(res.data.session_token)
+      // Filter questions if backend returned selected_question_ids (randomise + questions_per_session)
+      if (res.data.selected_question_ids && res.data.selected_question_ids.length > 0 && game.questions && game.questions.length > 0) {
+        const selectedIds = res.data.selected_question_ids
+        const filtered = selectedIds.map(id => game.questions.find(q => q.id === id)).filter(Boolean)
+        if (filtered.length > 0) {
+          const updatedGame = { ...game, questions: filtered }
+          setGame(updatedGame)
+        }
+      }
       if (game.category === 'crossword') {
         setPhase('crossword')
       } else if (game.category === 'spin') {

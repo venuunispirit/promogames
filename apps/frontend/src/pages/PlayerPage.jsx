@@ -556,17 +556,36 @@ export default function PlayerPage() {
 
         // Update OG meta tags for social sharing
         if (g.settings?.game_logo_url) {
-          const ogImage = g.settings.game_logo_url
+          let ogImage = g.settings.game_logo_url
+          if (!/^https?:\/\//i.test(ogImage)) ogImage = window.location.origin + (ogImage.startsWith('/') ? ogImage : '/' + ogImage)
           document.querySelectorAll('meta[property="og:image"]').forEach(m => m.remove())
+          document.querySelectorAll('meta[property="og:image:width"]').forEach(m => m.remove())
+          document.querySelectorAll('meta[property="og:image:height"]').forEach(m => m.remove())
           document.querySelectorAll('meta[name="twitter:image"]').forEach(m => m.remove())
           const ogImgTag = document.createElement('meta')
           ogImgTag.setAttribute('property', 'og:image')
           ogImgTag.setAttribute('content', ogImage)
           document.head.appendChild(ogImgTag)
+          const ogWTag = document.createElement('meta')
+          ogWTag.setAttribute('property', 'og:image:width')
+          ogWTag.setAttribute('content', '1200')
+          document.head.appendChild(ogWTag)
+          const ogHTag = document.createElement('meta')
+          ogHTag.setAttribute('property', 'og:image:height')
+          ogHTag.setAttribute('content', '630')
+          document.head.appendChild(ogHTag)
           const twitterImgTag = document.createElement('meta')
           twitterImgTag.setAttribute('name', 'twitter:image')
           twitterImgTag.setAttribute('content', ogImage)
           document.head.appendChild(twitterImgTag)
+          const twitterWTag = document.createElement('meta')
+          twitterWTag.setAttribute('name', 'twitter:image:width')
+          twitterWTag.setAttribute('content', '1200')
+          document.head.appendChild(twitterWTag)
+          const twitterHTag = document.createElement('meta')
+          twitterHTag.setAttribute('name', 'twitter:image:height')
+          twitterHTag.setAttribute('content', '630')
+          document.head.appendChild(twitterHTag)
         }
         if (g.name) {
           document.title = g.name
@@ -575,6 +594,13 @@ export default function PlayerPage() {
           ogTitleTag.setAttribute('property', 'og:title')
           ogTitleTag.setAttribute('content', g.name)
           document.head.appendChild(ogTitleTag)
+        }
+        if (window.location.pathname.startsWith('/play/')) {
+          document.querySelectorAll('meta[property="og:url"]').forEach(m => m.remove())
+          const ogUrlTag = document.createElement('meta')
+          ogUrlTag.setAttribute('property', 'og:url')
+          ogUrlTag.setAttribute('content', window.location.origin + window.location.pathname)
+          document.head.appendChild(ogUrlTag)
         }
         if (g.settings?.meta_description) {
           const descTag = document.querySelector('meta[name="description"]') || document.createElement('meta')

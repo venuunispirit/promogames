@@ -264,12 +264,16 @@ const OG_TEMPLATE = `<!DOCTYPE html>
     <meta property="og:title" content="__TITLE__" />
     <meta property="og:description" content="__DESCRIPTION__" />
     <meta property="og:image" content="__IMAGE__" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
     <meta property="og:url" content="__URL__" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="__TITLE__" />
     <meta name="twitter:description" content="__DESCRIPTION__" />
     <meta name="twitter:image" content="__IMAGE__" />
+    <meta name="twitter:image:width" content="1200" />
+    <meta name="twitter:image:height" content="630" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -302,25 +306,78 @@ app.get('/play/:gameSlug/:clientSlug', async (req, res) => {
   if (SOCIAL_BOTS.test(ua)) {
     try {
       const db = require('./config/db');
+      // Mirror the /api/play logic: LEFT JOIN clients so games with no client
+      // still resolve, and allow a null / matching client slug so both branded
+      // (/play/game/client) and un-branded (/play/game) shares work.
       const [rows] = await db.query(`
         SELECT g.name, g.slug, g.description, g.meta_description, g.game_logo_url as g_logo,
                COALESCE(qs.game_logo_url, g.game_logo_url) as game_logo_url,
-               qs.bg_image_url,
+               qs.bg_image_url, qs.meta_description as qs_meta_description,
                c.company_name, c.slug as client_slug
-        FROM games g JOIN clients c ON g.client_id = c.id
+        FROM games g LEFT JOIN clients c ON g.client_id = c.id
         LEFT JOIN quiz_settings qs ON qs.game_id = g.id
-        WHERE g.slug = ? AND c.slug = ?
+        WHERE g.slug = ? AND (c.slug = ? OR c.slug IS NULL)
       `, [req.params.gameSlug, req.params.clientSlug]);
 
       if (rows.length > 0) {
         const game = rows[0];
         const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const gameUrl = `${baseUrl}/play/${game.slug}/${game.client_slug}`;
+        // Use the exact URL the user visited/shared so og:url is canonical and
+        // not a null-suffixed variant.
+        const gameUrl = `${baseUrl}${req.originalUrl.split('?')[0]}`;
         const title = game.name || 'Play this game';
-        const description = game.meta_description || game.description || `Play ${game.name} and win exciting rewards!`;
+        const description = game.qs_meta_description || game.meta_description || game.description || `Play ${game.name} and win exciting rewards!`;
         const image = game.game_logo_url
           ? (game.game_logo_url.startsWith('http') ? game.game_logo_url : `${baseUrl}${game.game_logo_url}`)
-          : `${baseUrl}/favicon.png`;
+          : `${baseUrl}/og-image.png`;
+
+        let html = OG_TEMPLATE
+          .replace(/__TITLE__/g, title)
+          .replace(/__DESCRIPTION__/g, description)
+          .replace(/__IMAGE__/g, image)
+          .replace(/__URL__/g, gameUrl);
+
+        return res.type('html').send(html);
+      }
+    } catch (err) {
+      console.error('OG tag error:', err.message);
+    }
+  }
+
+  // For regular users, serve the SPA index.html (React Router handles routing)
+  if (fs.existsSync(INDEX_HTML_PATH)) {
+    return res.sendFile(INDEX_HTML_PATH);
+  }
+  res.status(404).send('Frontend not built. Run npm run build first.');
+});
+
+// Single-segment player URL (e.g. /play/guess-the-hair-style) — matching the
+// frontend route `/play/:gameName` for un-branded games.
+app.get('/play/:gameSlug', async (req, res) => {
+  const ua = req.headers['user-agent'] || '';
+
+  if (SOCIAL_BOTS.test(ua)) {
+    try {
+      const db = require('./config/db');
+      const [rows] = await db.query(`
+        SELECT g.name, g.slug, g.description, g.meta_description, g.game_logo_url as g_logo,
+               COALESCE(qs.game_logo_url, g.game_logo_url) as game_logo_url,
+               qs.bg_image_url, qs.meta_description as qs_meta_description,
+               c.company_name, c.slug as client_slug
+        FROM games g LEFT JOIN clients c ON g.client_id = c.id
+        LEFT JOIN quiz_settings qs ON qs.game_id = g.id
+        WHERE g.slug = ?
+      `, [req.params.gameSlug]);
+
+      if (rows.length > 0) {
+        const game = rows[0];
+        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const gameUrl = `${baseUrl}/play/${game.slug}${game.client_slug ? '/' + game.client_slug : ''}`;
+        const title = game.name || 'Play this game';
+        const description = game.qs_meta_description || game.meta_description || game.description || `Play ${game.name} and win exciting rewards!`;
+        const image = game.game_logo_url
+          ? (game.game_logo_url.startsWith('http') ? game.game_logo_url : `${baseUrl}${game.game_logo_url}`)
+          : `${baseUrl}/og-image.png`;
 
         let html = OG_TEMPLATE
           .replace(/__TITLE__/g, title)

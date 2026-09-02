@@ -578,6 +578,30 @@ export default function PlayerPage() {
           twitterImgTag.setAttribute('name', 'twitter:image')
           twitterImgTag.setAttribute('content', ogImage)
           document.head.appendChild(twitterImgTag)
+          // Detect the logo's real dimensions (handles any orientation) so the
+          // og:image width/height tags are accurate for social previews.
+          const img = new window.Image()
+          img.onload = () => {
+            document.querySelectorAll('meta[property="og:image:width"]').forEach(m => m.remove())
+            document.querySelectorAll('meta[property="og:image:height"]').forEach(m => m.remove())
+            const ogWTag2 = document.createElement('meta')
+            ogWTag2.setAttribute('property', 'og:image:width')
+            ogWTag2.setAttribute('content', String(img.naturalWidth))
+            document.head.appendChild(ogWTag2)
+            const ogHTag2 = document.createElement('meta')
+            ogHTag2.setAttribute('property', 'og:image:height')
+            ogHTag2.setAttribute('content', String(img.naturalHeight))
+            document.head.appendChild(ogHTag2)
+            const twitterWTag2 = document.createElement('meta')
+            twitterWTag2.setAttribute('name', 'twitter:image:width')
+            twitterWTag2.setAttribute('content', String(img.naturalWidth))
+            document.head.appendChild(twitterWTag2)
+            const twitterHTag2 = document.createElement('meta')
+            twitterHTag2.setAttribute('name', 'twitter:image:height')
+            twitterHTag2.setAttribute('content', String(img.naturalHeight))
+            document.head.appendChild(twitterHTag2)
+          }
+          img.src = ogImage
           const twitterWTag = document.createElement('meta')
           twitterWTag.setAttribute('name', 'twitter:image:width')
           twitterWTag.setAttribute('content', '1200')

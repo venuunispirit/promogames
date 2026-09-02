@@ -264,16 +264,16 @@ const OG_TEMPLATE = `<!DOCTYPE html>
     <meta property="og:title" content="__TITLE__" />
     <meta property="og:description" content="__DESCRIPTION__" />
     <meta property="og:image" content="__IMAGE__" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
+    <meta property="og:image:width" content="__WIDTH__" />
+    <meta property="og:image:height" content="__HEIGHT__" />
     <meta property="og:url" content="__URL__" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="__TITLE__" />
     <meta name="twitter:description" content="__DESCRIPTION__" />
     <meta name="twitter:image" content="__IMAGE__" />
-    <meta name="twitter:image:width" content="1200" />
-    <meta name="twitter:image:height" content="630" />
+    <meta name="twitter:image:width" content="__WIDTH__" />
+    <meta name="twitter:image:height" content="__HEIGHT__" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
@@ -283,6 +283,144 @@ const OG_TEMPLATE = `<!DOCTYPE html>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>`;
+
+// Map each game category to its per-game settings table. Each game builder
+// saves its logo + meta_description into its OWN settings table, and social
+// crawlers (Facebook/WhatsApp) don't run JS — so we must resolve the right
+// table server-side to inject the customized image/text into index.html.
+const CATEGORY_SETTINGS = {
+  quiz: 'quiz_settings', crossword: 'crossword_settings', spin: 'spin_settings',
+  memory: 'memory_settings', jigsaw: 'jigsaw_settings', wordsearch: 'wordsearch_settings',
+  pouring: 'pouring_settings', typer: 'typer_settings', screw: 'screw_settings', tower: 'tower_settings',
+  math: 'math_settings', maze: 'maze_settings', '2048': 'game2048_settings',
+  snake: 'snake_settings', catch: 'catch_settings', reaction: 'reaction_settings',
+  simon: 'simon_settings', connect4: 'connect4_settings', flappy: 'flappy_settings',
+  bounce: 'bounce_settings', space: 'space_settings', bejeweled: 'bejeweled_settings',
+  tetris: 'tetris_settings', stack: 'stack_settings', whackamole: 'whackamole_settings',
+  hanoi: 'hanoi_settings', breakout: 'breakout_settings', bubbleshooter: 'bubbleshooter_settings',
+  carlaunch: 'carlaunch_settings', tictactoe: 'tictactoe_settings', stressbuster: 'stressbuster_settings',
+  soundify: 'soundify_settings', arrowescape: 'arrowescape_settings', bowling: 'bowling_settings',
+  sudoku: 'sudoku_settings', minesweeper: 'minesweeper_settings', wordscramble: 'wordscramble_settings',
+  rps: 'rps_settings',
+  snakeandladder: 'snake_ladder_settings', ludo: 'ludo_settings',
+  Carrom: 'Carrom_settings', carrom: 'Carrom_settings', tictactoemultiplayer: 'tictactoe_multi_settings',
+};
+
+// Resolve a game's OG title/description/image from its row + category settings
+// table. Returns null if the game slug isn't found.
+async function resolveGameOG(req, gameSlug, clientSlug) {
+  const db = require('./config/db');
+
+  const baseUrl = `${req.protocol}://${req.get('host')}`;
+
+  // LEFT JOIN clients so games with no client still resolve; when a client slug
+  // is present allow it to be null (mirrors the /api/play lookup).
+  let game;
+  if (clientSlug) {
+    const [games] = await db.query(`
+      SELECT g.id, g.name, g.slug, g.category, g.description, g.meta_description,
+             g.game_logo_url as g_logo
+      FROM games g LEFT JOIN clients c ON g.client_id = c.id
+      WHERE g.slug = ? AND (c.slug = ? OR c.slug IS NULL)
+      LIMIT 1
+    `, [gameSlug, clientSlug]);
+    game = games[0];
+  } else {
+    const [games] = await db.query(`
+      SELECT g.id, g.name, g.slug, g.category, g.description, g.meta_description,
+             g.game_logo_url as g_logo
+      FROM games g
+      WHERE g.slug = ?
+      LIMIT 1
+    `, [gameSlug]);
+    game = games[0];
+  }
+
+  if (!game) return null;
+
+  const table = CATEGORY_SETTINGS[game.category];
+
+  let metaDesc = game.meta_description || null;
+  let logo = game.g_logo || null;
+
+  if (table) {
+    try {
+      const [rows] = await db.query(
+        `SELECT game_logo_url, meta_description FROM ${table} WHERE game_id = ? ORDER BY id DESC LIMIT 1`,
+        [game.id]
+      );
+      if (rows[0]) {
+        if (rows[0].game_logo_url) logo = rows[0].game_logo_url;
+        if (rows[0].meta_description) metaDesc = rows[0].meta_description;
+      }
+    } catch (e) {
+      console.error('OG settings lookup error:', e.message);
+    }
+  }
+
+  const toAbs = (url) => url && (url.startsWith('http') ? url : `${baseUrl}${url}`);
+  const image = toAbs(logo) || `${baseUrl}/og-image.png`;
+  const title = game.name || 'Play this game';
+  const description = metaDesc || game.description || `Play ${game.name} and win exciting rewards!`;
+  const url = `${baseUrl}${req.originalUrl.split('?')[0]}`;
+
+  // Detect the logo's real pixel dimensions so the og:image:width/height tags
+  // are accurate regardless of orientation (landscape/square/portrait logos).
+  // Pass the raw source (relative path or remote URL) so local uploads are read
+  // straight off disk instead of round-tripping through an HTTP fetch.
+  // Falls back to 1200x630 if detection fails.
+  const size = await detectImageSize(logo);
+
+  return { title, description, image, url, width: size.width, height: size.height };
+}
+
+// Determine the pixel width/height of an OG image as fast as possible.
+// - Local upload paths (e.g. /uploads/images/x.png) are read from disk via sharp.
+// - Remote URLs are fetched and parsed with sharp.
+// Falls back to 1200x630 on any error so crawlers get something to work with.
+async function detectImageSize(imageSrc) {
+  const fallback = { width: 1200, height: 630 };
+  if (!imageSrc) return fallback;
+  try {
+    const sharp = require('sharp');
+    let buffer;
+    if (/^https?:\/\//i.test(imageSrc)) {
+      const ctrl = new AbortController();
+      const t = setTimeout(() => ctrl.abort(), 4000);
+      try {
+        const resp = await fetch(imageSrc, { signal: ctrl.signal });
+        t.clearTimeout();
+        if (!resp.ok) return fallback;
+        const arr = await resp.arrayBuffer();
+        buffer = Buffer.from(arr);
+      } catch {
+        t.clearTimeout();
+        return fallback;
+      }
+    } else {
+      // Local path: server.js lives in apps/backend, uploads under ./uploads
+      const localPath = path.join(__dirname, imageSrc.replace(/^\//, ''));
+      if (!fs.existsSync(localPath)) return fallback;
+      buffer = fs.readFileSync(localPath);
+    }
+    const meta = await sharp(buffer).metadata();
+    if (meta.width && meta.height) return { width: meta.width, height: meta.height };
+  } catch (e) {
+    console.error('OG image size detection error:', e.message);
+  }
+  return fallback;
+}
+
+// Render the OG template from resolved metadata.
+function renderOG(meta) {
+  return OG_TEMPLATE
+    .replace(/__TITLE__/g, meta.title)
+    .replace(/__DESCRIPTION__/g, meta.description)
+    .replace(/__IMAGE__/g, meta.image)
+    .replace(/__WIDTH__/g, meta.width || 1200)
+    .replace(/__HEIGHT__/g, meta.height || 630)
+    .replace(/__URL__/g, meta.url);
+}
 
 // Serve static frontend assets in production.
 // Hashed build assets are immutable → long cache; index.html stays fresh so
@@ -299,45 +437,16 @@ if (fs.existsSync(FRONTEND_DIST)) {
   }));
 }
 
-// Serve frontend HTML with OG tags for social media crawlers
+// Serve frontend HTML with OG tags for social media crawlers.
+// Two-segment URL: /play/:gameSlug/:clientSlug (branded game share link)
 app.get('/play/:gameSlug/:clientSlug', async (req, res) => {
   const ua = req.headers['user-agent'] || '';
 
   if (SOCIAL_BOTS.test(ua)) {
     try {
-      const db = require('./config/db');
-      // Mirror the /api/play logic: LEFT JOIN clients so games with no client
-      // still resolve, and allow a null / matching client slug so both branded
-      // (/play/game/client) and un-branded (/play/game) shares work.
-      const [rows] = await db.query(`
-        SELECT g.name, g.slug, g.description, g.meta_description, g.game_logo_url as g_logo,
-               COALESCE(qs.game_logo_url, g.game_logo_url) as game_logo_url,
-               qs.bg_image_url, qs.meta_description as qs_meta_description,
-               c.company_name, c.slug as client_slug
-        FROM games g LEFT JOIN clients c ON g.client_id = c.id
-        LEFT JOIN quiz_settings qs ON qs.game_id = g.id
-        WHERE g.slug = ? AND (c.slug = ? OR c.slug IS NULL)
-      `, [req.params.gameSlug, req.params.clientSlug]);
-
-      if (rows.length > 0) {
-        const game = rows[0];
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        // Use the exact URL the user visited/shared so og:url is canonical and
-        // not a null-suffixed variant.
-        const gameUrl = `${baseUrl}${req.originalUrl.split('?')[0]}`;
-        const title = game.name || 'Play this game';
-        const description = game.qs_meta_description || game.meta_description || game.description || `Play ${game.name} and win exciting rewards!`;
-        const image = game.game_logo_url
-          ? (game.game_logo_url.startsWith('http') ? game.game_logo_url : `${baseUrl}${game.game_logo_url}`)
-          : `${baseUrl}/og-image.png`;
-
-        let html = OG_TEMPLATE
-          .replace(/__TITLE__/g, title)
-          .replace(/__DESCRIPTION__/g, description)
-          .replace(/__IMAGE__/g, image)
-          .replace(/__URL__/g, gameUrl);
-
-        return res.type('html').send(html);
+      const meta = await resolveGameOG(req, req.params.gameSlug, req.params.clientSlug);
+      if (meta) {
+        return res.type('html').send(renderOG(meta));
       }
     } catch (err) {
       console.error('OG tag error:', err.message);
@@ -358,34 +467,9 @@ app.get('/play/:gameSlug', async (req, res) => {
 
   if (SOCIAL_BOTS.test(ua)) {
     try {
-      const db = require('./config/db');
-      const [rows] = await db.query(`
-        SELECT g.name, g.slug, g.description, g.meta_description, g.game_logo_url as g_logo,
-               COALESCE(qs.game_logo_url, g.game_logo_url) as game_logo_url,
-               qs.bg_image_url, qs.meta_description as qs_meta_description,
-               c.company_name, c.slug as client_slug
-        FROM games g LEFT JOIN clients c ON g.client_id = c.id
-        LEFT JOIN quiz_settings qs ON qs.game_id = g.id
-        WHERE g.slug = ?
-      `, [req.params.gameSlug]);
-
-      if (rows.length > 0) {
-        const game = rows[0];
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const gameUrl = `${baseUrl}/play/${game.slug}${game.client_slug ? '/' + game.client_slug : ''}`;
-        const title = game.name || 'Play this game';
-        const description = game.qs_meta_description || game.meta_description || game.description || `Play ${game.name} and win exciting rewards!`;
-        const image = game.game_logo_url
-          ? (game.game_logo_url.startsWith('http') ? game.game_logo_url : `${baseUrl}${game.game_logo_url}`)
-          : `${baseUrl}/og-image.png`;
-
-        let html = OG_TEMPLATE
-          .replace(/__TITLE__/g, title)
-          .replace(/__DESCRIPTION__/g, description)
-          .replace(/__IMAGE__/g, image)
-          .replace(/__URL__/g, gameUrl);
-
-        return res.type('html').send(html);
+      const meta = await resolveGameOG(req, req.params.gameSlug, null);
+      if (meta) {
+        return res.type('html').send(renderOG(meta));
       }
     } catch (err) {
       console.error('OG tag error:', err.message);

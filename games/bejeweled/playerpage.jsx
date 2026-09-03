@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import api from '../../apps/frontend/src/api'
 
 const DEFAULT_TILE_COLORS = {
   '2': '#ff6b6b',
@@ -17,93 +16,46 @@ const DEFAULT_TILE_COLORS = {
   '4096': '#0f3d3f'
 }
 
-export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete }) {
+export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete, config }) {
   const params = useParams()
   const navigate = useNavigate()
   const id = gameData?.id || params.id
 
+  const settings = gameData?.settings || config?.settings || {}
+
   const [gameConfig, setGameConfig] = useState(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState(null)
   const [gameBoard, setGameBoard] = useState([])
   const [score, setScore] = useState(0)
   const [moves, setMoves] = useState(0)
-  const [bestScore, setBestScore] = useState(0)
-  const [gameOver, setGameOver] = useState(false)
+  const [started, setStarted] = useState(false)
+  const [finished, setFinished] = useState(false)
   const [selectedTile, setSelectedTile] = useState(null)
   const [matchEffect, setMatchEffect] = useState(null)
-  const [sessionId, setSessionId] = useState(null)
 
   const gameContainerRef = useRef(null)
 
-  // Load game configuration and start game
+  // Parse settings from gameData (player-facing) — same DB row the admin builder writes
   useEffect(() => {
-    const loadGame = async () => {
-      try {
-        setLoading(true)
-
-        // Use gameData.id when embedded via PlayerPage, or params.id for standalone
-        const gameId = gameData?.id || id
-
-        // Load game config from bejeweled API
-        const configResponse = await api.get(`/bejeweled/${gameId}/settings`)
-        const config = configResponse.data.settings || configResponse.data
-
-        if (!config || !config.is_active) {
-          setError('Game not available')
-          return
-        }
-
-        setGameConfig(config)
-
-        // Create or get session
-        const sessionResponse = await api.post(`/bejeweled/${gameId}/session`, {
-          player_id: `player_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
-        })
-        const sessionId = sessionResponse.data.session_id
-        setSessionId(sessionId)
-
-        // Initialize game board
-        initializeGameBoard(config)
-
-      } catch (err) {
-        setError(err.response?.data?.message || 'Failed to load game')
-        console.error('Game load error:', err)
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    loadGame()
+    const gridSize = parseInt(settings.grid_size) || 8
+    const tileColors = parseTileColors(settings.theme_colors)
+    setGameConfig({ gridSize, tileColors, matchScore: parseInt(settings.match_score) || 10, chainMultiplier: parseFloat(settings.chain_score_multiplier) || 2 })
+    setGameBoard(buildBoard(gridSize, tileColors))
+    setScore(0)
+    setMoves(0)
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, gameData?.id])
+  }, [])
 
-  // Initialize game board with logo segments
-  const initializeGameBoard = (config) => {
-    const size = config.grid_size || 8
-    const tileColors = parseTileColors(config.theme_colors)
-
-    // Create board with random tiles from logo colors
-    let board = []
+  const buildBoard = (size, tileColors) => {
+    const board = []
     for (let row = 0; row < size; row++) {
-      let rowData = []
+      const rowData = []
       for (let col = 0; col < size; col++) {
-        // Get random tile value (powers of 2)
         const tileValue = getRandomTileValue()
-        rowData.push({
-          value: tileValue,
-          color: tileColors[tileValue] || tileColors[2],
-          matched: false,
-          animating: false
-        })
+        rowData.push({ value: tileValue, color: tileColors[tileValue] || tileColors[2], matched: false, animating: false })
       }
       board.push(rowData)
     }
-
-    setGameBoard(board)
-    setScore(0)
-    setMoves(0)
-    setGameOver(false)
+    return board
   }
 
   // Parse tile colors from JSON string
@@ -126,9 +78,18 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
     return values[Math.floor(Math.random() * values.length)]
   }
 
+  // Report score via the standard game completion flow
+  const finishGame = (finalScore) => {
+    if (finished) return
+    setFinished(true)
+    if (onComplete) {
+      onComplete({ score: finalScore || score, moves })
+    }
+  }
+
   // Handle tile click
   const handleTileClick = (row, col) => {
-    if (gameOver) return
+    if (finished) return
 
     const tile = gameBoard[row][col]
 
@@ -172,131 +133,99 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
     setGameBoard(newBoard)
 
     // Check for matches
-    await detectMatches()
+    await detectMatches(newBoard)
 
     // Update move count
     setMoves(prev => prev + 1)
   }
 
   // Detect matches and handle chain reactions
-  const detectMatches = async () => {
-    const newBoard = [...gameBoard]
-    const toRemove = []
+  const detectMatches = async (board) => {
+    const size = board.length
+    const toRemove = new Set()
     let matchCount = 0
 
     // Check horizontal matches
-    for (let row = 0; row < gameBoard.length; row++) {
-      for (let col = 0; col < gameBoard[row].length - 2; col++) {
-        if (gameBoard[row][col].value === gameBoard[row][col + 1].value &&
-            gameBoard[row][col].value === gameBoard[row][col + 2].value) {
-          toRemove.push(
-            { row, col },
-            { row, col: col + 1 },
-            { row, col: col + 2 }
-          )
+    for (let row = 0; row < size; row++) {
+      for (let col = 0; col < size - 2; col++) {
+        if (board[row][col].value === board[row][col + 1].value &&
+            board[row][col].value === board[row][col + 2].value) {
+          toRemove.add(`${row},${col}`)
+          toRemove.add(`${row},${col + 1}`)
+          toRemove.add(`${row},${col + 2}`)
           matchCount += 3
         }
       }
     }
 
     // Check vertical matches
-    for (let col = 0; col < gameBoard[0].length; col++) {
-      for (let row = 0; row < gameBoard.length - 2; row++) {
-        if (gameBoard[row][col].value === gameBoard[row + 1][col].value &&
-            gameBoard[row][col].value === gameBoard[row + 2][col].value) {
-          toRemove.push(
-            { row, col },
-            { row: row + 1, col },
-            { row: row + 2, col }
-          )
+    for (let col = 0; col < size; col++) {
+      for (let row = 0; row < size - 2; row++) {
+        if (board[row][col].value === board[row + 1][col].value &&
+            board[row][col].value === board[row + 2][col].value) {
+          toRemove.add(`${row},${col}`)
+          toRemove.add(`${row + 1},${col}`)
+          toRemove.add(`${row + 2},${col}`)
           matchCount += 3
         }
       }
     }
 
-    // Remove matched tiles and apply gravity
-    if (toRemove.length > 0) {
-      // Mark tiles for removal
-      toRemove.forEach(pos => {
-        newBoard[pos.row][pos.col].matched = true
-      })
-
-      // Apply gravity
-      for (let col = 0; col < gameBoard[0].length; col++) {
+    if (toRemove.size > 0) {
+      // Mark tiles for removal and apply gravity
+      const removeSet = toRemove
+      for (let col = 0; col < size; col++) {
         let emptySpaces = 0
-        for (let row = gameBoard.length - 1; row >= 0; row--) {
-          if (newBoard[row][col].matched) {
+        for (let row = size - 1; row >= 0; row--) {
+          if (removeSet.has(`${row},${col}`)) {
             emptySpaces++
+            board[row][col] = { value: 0, color: '#ddd', matched: true, animating: false }
           } else if (emptySpaces > 0) {
-            newBoard[row + emptySpaces][col] = newBoard[row][col]
-            newBoard[row][col] = { value: 0, color: '#ddd', matched: false, animating: false }
+            board[row + emptySpaces][col] = board[row][col]
+            board[row][col] = { value: 0, color: '#ddd', matched: false, animating: false }
           }
         }
-
         // Fill top with new tiles
         for (let row = 0; row < emptySpaces; row++) {
-          newBoard[row][col] = {
-            value: getRandomTileValue(),
-            color: gameConfig.theme_colors ? JSON.parse(gameConfig.theme_colors)[newBoard[row][col].value] || DEFAULT_TILE_COLORS[2] : DEFAULT_TILE_COLORS[2],
+          const v = getRandomTileValue()
+          board[row][col] = {
+            value: v,
+            color: gameConfig.tileColors[v] || gameConfig.tileColors[2],
             matched: false,
             animating: true
           }
         }
       }
 
-      setGameBoard(newBoard)
+      setGameBoard(board)
 
       // Calculate score
-      const baseScore = matchCount * (gameConfig.match_score || 10)
-      const chainMultiplier = matchEffect ? (gameConfig.chain_score_multiplier || 2) : 1
+      const gc = gameConfig
+      const baseScore = matchCount * gc.matchScore
+      const chainMultiplier = matchEffect ? gc.chainMultiplier : 1
       const finalScore = baseScore * chainMultiplier
-
       setScore(prev => prev + finalScore)
 
       // Trigger chain reaction if more matches exist
       if (matchEffect) {
-        setTimeout(() => {
-          detectMatches()
-        }, 300)
+        setTimeout(() => detectMatches(board), 300)
       } else {
         setMatchEffect(true)
         setTimeout(() => setMatchEffect(false), 300)
       }
+      return
     }
 
-    // Check for game over
-    const hasMoves = gameBoard.some(row =>
-      row.some(tile => tile.value !== 0)
-    )
-    if (!hasMoves) {
-      setGameOver(true)
-      saveGameResult()
+    // No matches remain — check for game over (no possible adjacent same-value swaps)
+    for (let row = 0; row < size; row++) {
+      for (let col = 0; col < size; col++) {
+        const v = board[row][col].value
+        if (v === 0) continue
+        if (col + 1 < size && board[row][col + 1].value === v) return
+        if (row + 1 < size && board[row + 1][col].value === v) return
+      }
     }
-  }
-
-  // Save game result
-  const saveGameResult = async () => {
-    if (!sessionId) return
-
-    try {
-      await api.put(`/bejeweled/${id}/session/${sessionId}`, {
-        score,
-        moves,
-        status: 'completed'
-      })
-
-      // Save move history
-      await api.post(`/bejeweled/${id}/move`, {
-        session_id: sessionId,
-        move_type: 'game_completed',
-        position_x: -1,
-        position_y: -1
-      })
-
-      if (onComplete) onComplete({ score, moves })
-    } catch (err) {
-      console.error('Failed to save game result:', err)
-    }
+    finishGame()
   }
 
   // Get tile value display
@@ -307,7 +236,7 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
     return value
   }
 
-  if (loading) {
+  if (!gameConfig) {
     return (
       <div className="gb-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
         <style>{LIGHT}</style>
@@ -320,87 +249,64 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
     )
   }
 
-  if (error) {
-    return (
-      <div className="gb-wrap" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
-        <style>{LIGHT}</style>
-        <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <div style={{ fontSize: 48, marginBottom: 12 }}>⚠️</div>
-          <h2 style={{ color: 'var(--gb-danger)', marginBottom: 8 }}>Game Failed to Load</h2>
-          <p style={{ color: 'var(--gb-text2)', marginBottom: 20 }}>{error}</p>
-          <button className="gb-btn gb-btn-primary" onClick={() => window.location.reload()}>Retry</button>
-        </div>
-      </div>
-    )
-  }
+  const gridSize = gameConfig.gridSize
+  const bgStyle = settings.bg_image_url
+    ? `url(${settings.bg_image_url}) center/cover`
+    : (settings.bg_color || '#f4f6fb')
 
   return (
-    <div className="gb-wrap" style={{ padding: '20px' }}>
+    <div className="gb-wrap" style={{ minHeight: '100vh', background: bgStyle, padding: '20px' }}>
       <style>{LIGHT}</style>
 
       {/* Game Header */}
       <div style={{ maxWidth: 1200, margin: '0 auto 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
-          <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4 }}>Logo Bejeweled</h1>
+          <h1 style={{ fontSize: 24, fontWeight: 800, marginBottom: 4, color: settings.heading_1_color || 'var(--gb-text)' }}>
+            {settings.heading_1 || 'Logo Bejeweled'}
+          </h1>
           <div style={{ fontSize: 14, color: 'var(--gb-text2)' }}>
             Match logo segments • Score: {score} • Moves: {moves}
           </div>
         </div>
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button
-            className="gb-btn gb-btn-ghost"
-            onClick={() => window.top.location.href = '/arcade'}
-            style={{ fontSize: 12 }}
-          >
-            ← Back to Games
-          </button>
-          <button
-            className="gb-btn gb-btn-danger"
-            onClick={() => {
-              setGameOver(true)
-              saveGameResult()
-            }}
-            style={{ fontSize: 12 }}
-          >
-            Give Up
-          </button>
-        </div>
+        {settings.game_logo_url && <img src={settings.game_logo_url} alt="" style={{ maxHeight: 48, objectFit: 'contain', borderRadius: 8 }} />}
       </div>
 
       {/* Game Board */}
       <div
         ref={gameContainerRef}
         className="gb-phone"
-        style={{ margin: '0 auto', position: 'relative' }}
+        style={{ margin: '0 auto', position: 'relative', maxWidth: Math.min(gridSize * 42 + 24, 520) }}
       >
         <div style={{
           display: 'grid',
-          gridTemplateColumns: `repeat(${gameConfig?.grid_size || 8}, 1fr)`,
-          gap: '2px',
+          gridTemplateColumns: `repeat(${gridSize}, 1fr)`,
+          gap: '4px',
           padding: '10px',
-          background: '#ddd',
-          borderRadius: '20px'
+          background: 'rgba(0,0,0,0.08)',
+          borderRadius: '20px',
+          aspectRatio: '1 / 1'
         }}>
           {gameBoard.map((row, rowIndex) => (
             row.map((tile, colIndex) => (
               <div
                 key={`${rowIndex}-${colIndex}`}
                 style={{
-                  width: '30px',
-                  height: '30px',
+                  width: '100%',
+                  height: '100%',
                   backgroundColor: tile.color,
-                  borderRadius: '4px',
+                  borderRadius: '6px',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  fontSize: tile.value >= 1000 ? '10px' : '14px',
+                  fontSize: tile.value >= 1000 ? '0.7em' : '1em',
                   fontWeight: 'bold',
                   color: tile.value <= 4 ? '#776e65' : '#f9f6f2',
                   border: tile.matched ? '2px solid #ff4444' : '1px solid rgba(0,0,0,0.1)',
-                  cursor: gameOver ? 'default' : 'pointer',
-                  transform: tile.animating ? 'scale(1.2)' : 'scale(1)',
+                  cursor: finished ? 'default' : 'pointer',
+                  transform: tile.animating ? 'scale(1.15)' : 'scale(1)',
                   transition: 'all 0.2s ease',
-                  animation: tile.matched ? 'matchFlash 0.3s ease' : 'none'
+                  animation: tile.matched ? 'matchFlash 0.3s ease' : 'none',
+                  boxSizing: 'border-box'
                 }}
                 onClick={() => handleTileClick(rowIndex, colIndex)}
               >
@@ -412,9 +318,9 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
       </div>
 
       {/* Game Over Overlay */}
-      {gameOver && (
+      {finished && (
         <div style={{
-          position: 'absolute',
+          position: 'fixed',
           top: 0,
           left: 0,
           right: 0,
@@ -423,8 +329,7 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 1000,
-          borderRadius: '28px'
+          zIndex: 1000
         }}>
           <div style={{
             backgroundColor: '#fff',
@@ -437,18 +342,7 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
             <div style={{ fontSize: 16, marginBottom: 20 }}>
               <div>Score: {score}</div>
               <div>Moves: {moves}</div>
-              <div>Best Score: {bestScore}</div>
             </div>
-            <button
-              className="gb-btn gb-btn-primary"
-              onClick={() => {
-                initializeGameBoard(gameConfig)
-                setGameOver(false)
-              }}
-              style={{ marginRight: '10px' }}
-            >
-              Play Again
-            </button>
             <button
               className="gb-btn gb-btn-ghost"
               onClick={() => window.top.location.href = '/arcade'}
@@ -464,10 +358,6 @@ export default function BejeweledPlayerPage({ gameData, sessionToken, onComplete
         @keyframes matchFlash {
           0%, 100% { opacity: 1; }
           50% { opacity: 0.5; }
-        }
-        @keyframes gravity {
-          from { transform: translateY(0); }
-          to { transform: translateY(20px); }
         }
       `}</style>
     </div>
@@ -498,4 +388,12 @@ const LIGHT = `
   color: var(--gb-text);
   min-height: 100vh;
 }
+.gb-btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 8px 16px; font-size: 13px; font-weight: 600;
+  border-radius: 8px; border: none; cursor: pointer;
+  transition: all .15s; white-space: nowrap; font-family: inherit;
+}
+.gb-btn-ghost { background: #fff; color: #64657a; border: 1.5px solid #e2e6f0; }
+.gb-btn-ghost:hover { border-color: #6366f1; color: #6366f1; }
 `;

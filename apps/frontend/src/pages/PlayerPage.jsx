@@ -21,6 +21,7 @@ const MathPlayerPage = lazy(() => import('@games/math/playerpage.jsx'))
 const MazePlayerPage = lazy(() => import('@games/classicmaze/playerpage.jsx'))
 const Game2048PlayerPage = lazy(() => import('@games/2048/playerpage.jsx'))
 const SnakePlayerPage = lazy(() => import('@games/snake/playerpage.jsx'))
+const NagarajaPlayerPage = lazy(() => import('@games/nagaraja/playerpage.jsx'))
 const CatchPlayerPage = lazy(() => import('@games/catch/playerpage.jsx'))
 const ReactionPlayerPage = lazy(() => import('@games/reaction/playerpage.jsx'))
 const SimonPlayerPage = lazy(() => import('@games/simon/playerpage.jsx'))
@@ -57,6 +58,21 @@ import towerPlayerHtml from '@games/tower/TowerPlayerPage.html?raw'
 
 
 const api = axios.create({ baseURL: '/api' })
+
+// Persistent guest device identity — lets guests' high scores / best scores be
+// tracked across plays without forcing login. Stored once per browser.
+function getDeviceId() {
+  try {
+    let id = localStorage.getItem('device_id')
+    if (!id) {
+      id = (crypto.randomUUID && crypto.randomUUID()) || ('d-' + Date.now() + '-' + Math.random().toString(36).slice(2))
+      localStorage.setItem('device_id', id)
+    }
+    return id
+  } catch {
+    return null
+  }
+}
 
 function loadFont(font) {
   if (!font || font === 'DM Sans') return
@@ -339,6 +355,7 @@ export default function PlayerPage() {
   const [sessionToken, setSessionToken] = useState(null)
   const [sessionId,    setSessionId]    = useState(null)
   const [currentQ, setCurrentQ] = useState(0)
+  const [questionPool, setQuestionPool] = useState([])
   const [selectedOpt, setSelectedOpt] = useState(null)
   const [checkedOpts, setCheckedOpts] = useState([])
   const [selectValue, setSelectValue] = useState('')
@@ -381,10 +398,13 @@ export default function PlayerPage() {
     return () => clearInterval(questionTimerRef.current)
   }, [currentQ, phase, answered, game?.settings?.time_per_question])
 
+  // The actual question set shown to the player (shuffled + capped per session for quizzes).
+  const questions = questionPool.length ? questionPool : (game?.questions || [])
+
   // Auto-advance when timer hits 0
   useEffect(() => {
     if (timeLeft === 0 && !answered && autoAdvanceRef.current.doAdvance) {
-      const qs = game?.questions?.length || 0
+      const qs = questions.length
       autoAdvanceRef.current.doAdvance(currentQ + 1 >= qs, autoAdvanceRef.current.sessionToken)
     }
   }, [timeLeft, answered, currentQ, game?.questions?.length])
@@ -400,7 +420,7 @@ export default function PlayerPage() {
   useEffect(() => {
     const s = game?.settings
     if (!s?.enable_speech || phase !== 'playing') return
-    const q = game?.questions?.[currentQ]
+    const q = questions[currentQ]
     if (!q) return
     const texts = [q.question_text, ...(q.options || []).map(o => o.option_text).filter(Boolean)]
     tts.speak(texts, ttsOpts(s))
@@ -449,7 +469,7 @@ export default function PlayerPage() {
   // so we explicitly call play() after the user gesture and retry until it starts.
   useEffect(() => {
     if (phase !== 'playing') return
-    const q = game?.questions?.[currentQ]
+    const q = questions[currentQ]
     if (!q?.question_image_url || !isVideoUrl(q.question_image_url)) return
     const el = qImgWrapRef.current?.querySelector('video')
     if (!el) return
@@ -551,6 +571,23 @@ export default function PlayerPage() {
         const res = await api.get(playUrl)
         let g = res.data.game
         setGame(g)
+
+        // ── Question pool: shuffle + per-session cutoff (mirrors games/quiz/logic.dart) ──
+        if (g.category === 'quiz' && Array.isArray(g.questions) && g.questions.length) {
+          let pool = [...g.questions]
+          const randomize = g.settings?.randomize_questions === 1 || g.settings?.randomize_questions === '1'
+          if (randomize) {
+            for (let i = pool.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1))
+              ;[pool[i], pool[j]] = [pool[j], pool[i]]
+            }
+          }
+          const perSession = parseInt(g.settings?.questions_per_session, 10) || 0
+          if (perSession > 0 && perSession < pool.length) pool = pool.slice(0, perSession)
+          setQuestionPool(pool)
+        } else {
+          setQuestionPool([])
+        }
         if (g.settings?.font_family) loadFont(g.settings.font_family)
 
         // Chess is a self-contained game (no question bank) — open the chess player directly.
@@ -625,6 +662,8 @@ export default function PlayerPage() {
             utm_content: utmContent,
           }
           if (profile) payload.promo_player_id = profile.id
+          const devId = getDeviceId()
+          if (devId) payload.device_id = devId
           const sessRes = await api.post('/play/session/start', payload)
           setSessionToken(sessRes.data.session_token)
         }
@@ -772,6 +811,8 @@ export default function PlayerPage() {
         utm_content: utmContent,
       }
       if (playerProfile) payload.promo_player_id = playerProfile.id
+      const devId = getDeviceId()
+      if (devId) payload.device_id = devId
       const res = await api.post('/play/session/start', payload)
       setSessionToken(res.data.session_token)
       if (game.category === 'crossword') {
@@ -796,6 +837,8 @@ export default function PlayerPage() {
         setPhase('2048')
       } else if (game.category === 'snake') {
         setPhase('snake')
+      } else if (game.category === 'nagaraja') {
+        setPhase('nagaraja')
       } else if (game.category === 'catch') {
         setPhase('catch')
       } else if (game.category === 'reaction') {
@@ -944,7 +987,7 @@ export default function PlayerPage() {
   // Auto-pop the centered login card for guests when they finish a game
   useEffect(() => {
     if (phase !== 'thankyou') return
-    if (!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))) {
+    if (game?.force_login !== false && !(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))) {
       setShowSaveAuth(true)
     }
   }, [phase])
@@ -953,7 +996,7 @@ export default function PlayerPage() {
   // covers games whose own result screens bypass the thankyou phase
   useEffect(() => {
     const onDone = () => {
-      if (!(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))) {
+      if (game?.force_login !== false && !(localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken'))) {
         setShowSaveAuth(true)
       }
     }
@@ -982,10 +1025,10 @@ export default function PlayerPage() {
   if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
   setShowContinueBtn(false)
   
-  const isLastQ = currentQ + 1 >= game.questions.length
+  const isLastQ = currentQ + 1 >= questions.length
   const token = sessionToken
   doAdvance(isLastQ, token)
-}, [currentQ, game, sessionToken, doAdvance])
+}, [currentQ, game, sessionToken, doAdvance, questions])
 
   const startOverlayFlyOut = useCallback(() => {
     if (overlayTimerRef.current) clearTimeout(overlayTimerRef.current)
@@ -1014,9 +1057,9 @@ export default function PlayerPage() {
   const videoEl = qImgWrapRef.current?.querySelector('video')
   if (videoEl) { try { videoEl.muted = true; videoEl.pause() } catch {} }
 
-  const question = game.questions[currentQ]
+  const question = questions[currentQ]
   const isCorrect = question.question_type === 'right_wrong' ? !!opt.is_correct : null
-  const isLastQ = currentQ + 1 >= game.questions.length
+  const isLastQ = currentQ + 1 >= questions.length
   const soundMap = game.soundMap || {}
   const settingsObj = game.settings || {}
 
@@ -1091,8 +1134,8 @@ export default function PlayerPage() {
     if (answered || checkedOpts.length === 0) return
     tts.cancel()
     setAnswered(true)
-    const question = game.questions[currentQ]
-    const isLastQ = currentQ + 1 >= game.questions.length
+    const question = questions[currentQ]
+    const isLastQ = currentQ + 1 >= questions.length
     try {
       await api.post('/play/session/answer', {
         session_token: token, question_id: question.id,
@@ -1107,8 +1150,8 @@ export default function PlayerPage() {
     if (answered || !selectValue) return
     tts.cancel()
     setAnswered(true)
-    const question = game.questions[currentQ]
-    const isLastQ = currentQ + 1 >= game.questions.length
+    const question = questions[currentQ]
+    const isLastQ = currentQ + 1 >= questions.length
     const opt = (question.options || []).find(o => String(o.id) === String(selectValue))
     try {
       await api.post('/play/session/answer', {
@@ -1124,8 +1167,8 @@ export default function PlayerPage() {
     tts.cancel()
     setAnswered(true)
 
-    const question = game.questions[currentQ]
-    const isLastQ = currentQ + 1 >= game.questions.length
+    const question = questions[currentQ]
+    const isLastQ = currentQ + 1 >= questions.length
     const soundMap = game.soundMap || {}
     const settingsObj = game.settings || {}
     const playerAnswer = shortAnswerText.trim()
@@ -1349,6 +1392,7 @@ export default function PlayerPage() {
         game={game}
         currentQ={currentQ}
         sessionToken={sessionToken}
+        questions={questions}
         answered={answered}
         selectedOpt={selectedOpt}
         selectValue={selectValue}
@@ -1787,6 +1831,10 @@ const handleModalClose = () => {
     return <Suspense fallback={gameFallback}><SnakePlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
+  if (phase === 'nagaraja') {
+    return <Suspense fallback={gameFallback}><NagarajaPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
+  }
+
   if (phase === 'snakeandladder') {
     return <Suspense fallback={gameFallback}><SnakeAndLadderPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
@@ -1802,7 +1850,7 @@ const handleModalClose = () => {
   if (phase === 'bejeweled') {
     return (
       <Suspense fallback={gameFallback}>
-        <CatchPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
+        <BejeweledPlayerPage gameData={game} sessionToken={sessionToken} onComplete={(data) => { setRedirectUrl(data?.redirect_url || null); setPhase('thankyou') }} />
       </Suspense>
     )
   }

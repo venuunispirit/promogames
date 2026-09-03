@@ -48,12 +48,13 @@ const ScrewBuilderPage         = lazy(() => import('@games/screw/builderpage.jsx
 const TowerBuilderPage         = lazy(() => import('@games/tower/builderpage.jsx'))
 const Game2048BuilderPage      = lazy(() => import('@games/2048/builderpage.jsx'))
 const SnakeBuilderPage         = lazy(() => import('@games/snake/builderpage.jsx'))
+const NagarajaBuilderPage      = lazy(() => import('@games/nagaraja/builderpage.jsx'))
 const CatchBuilderPage         = lazy(() => import('@games/catch/builderpage.jsx'))
 const ReactionBuilderPage      = lazy(() => import('@games/reaction/builderpage.jsx'))
 const SimonBuilderPage         = lazy(() => import('@games/simon/builderpage.jsx'))
 const FlappyBuilderPage        = lazy(() => import('@games/flappy/builderpage.jsx'))
 const BejeweledBuilderPage     = lazy(() => import('@games/bejeweled/builderpage.jsx'))
-const BejeweledPlayerPage      = lazy(() => import('./pages/BejeweledPlayerPage.jsx'))
+const BejeweledPlayerPage      = lazy(() => import('@games/bejeweled/playerpage.jsx'))
 const TetrisBuilderPage        = lazy(() => import('@games/tetris/builderpage.jsx'))
 const StackBuilderPage         = lazy(() => import('@games/stack/builderpage.jsx'))
 const WhackAMoleBuilderPage    = lazy(() => import('@games/whackamole/builderpage.jsx'))
@@ -200,6 +201,7 @@ function AppRoutes() {
         <Route path="games/:id/responses"             element={<GameResponsesPage />} />
         <Route path="games/:id/2048-builder"           element={<Game2048BuilderPage />} />
         <Route path="games/:id/snake-builder"          element={<SnakeBuilderPage />} />
+        <Route path="games/:id/nagaraja-builder"       element={<NagarajaBuilderPage />} />
         <Route path="games/:id/catch-builder"          element={<CatchBuilderPage />} />
         <Route path="games/:id/reaction-builder"       element={<ReactionBuilderPage />} />
         <Route path="games/:id/simon-builder"          element={<SimonBuilderPage />} />

@@ -21,23 +21,38 @@ function getPromoPlayerId(req) {
 }
 
 // Upsert per-player best score (GREATEST) + all-time high score.
-async function recordBestScore(playerId, gameId, finalScore) {
-  const [prev] = await db.query(
-    'SELECT best_score FROM player_best_scores WHERE promo_player_id = ? AND game_id = ?',
-    [playerId, gameId]
+// Identity is either a logged-in player (player_id) or a guest (device_id).
+// player_best_scores schema: player_id, device_id, game_id, best_score, updated_at.
+async function recordBestScore({ promoPlayerId, deviceId }, gameId, finalScore) {
+  let playerId = promoPlayerId || null;
+  // A logged-in player's best is stored on their promo_players.id (player_id);
+  // a guest's is stored on their persistent device_id.
+  const idCol = playerId ? 'player_id' : 'device_id';
+  const idVal = playerId ? playerId : deviceId;
+  if (!idVal) {
+    await db.query('UPDATE games SET high_score = GREATEST(COALESCE(high_score, 0), ?) WHERE id = ?', [finalScore, gameId]);
+    return { player_best: null, high_score: finalScore, is_new_best: false };
+  }
+
+  const [existing] = await db.query(
+    `SELECT best_score FROM player_best_scores WHERE ${idCol} = ? AND game_id = ?`,
+    [idVal, gameId]
   );
-  const prevBest = prev.length ? prev[0].best_score : 0;
-  if (prev.length === 0) {
+
+  if (existing.length > 0) {
     await db.query(
-      'INSERT INTO player_best_scores (promo_player_id, game_id, best_score) VALUES (?, ?, ?)',
-      [playerId, gameId, finalScore]
+      `UPDATE player_best_scores SET best_score = GREATEST(best_score, ?), updated_at = CURRENT_TIMESTAMP WHERE ${idCol} = ? AND game_id = ?`,
+      [finalScore, idVal, gameId]
     );
   } else {
     await db.query(
-      'UPDATE player_best_scores SET best_score = GREATEST(best_score, ?), plays = plays + 1 WHERE promo_player_id = ? AND game_id = ?',
-      [finalScore, playerId, gameId]
+      `INSERT INTO player_best_scores (player_id, device_id, game_id, best_score)
+       VALUES (?, ?, ?, ?)`,
+      [playerId, playerId ? null : deviceId, gameId, finalScore]
     );
   }
+
+  const prevBest = existing.length ? existing[0].best_score : 0;
   await db.query('UPDATE games SET high_score = GREATEST(COALESCE(high_score, 0), ?) WHERE id = ?', [finalScore, gameId]);
   const [hs] = await db.query('SELECT high_score FROM games WHERE id = ?', [gameId]);
   return {
@@ -90,7 +105,7 @@ router.get('/game-data/:gameId', async (req, res) => {
       memory: 'memory_settings', jigsaw: 'jigsaw_settings', wordsearch: 'wordsearch_settings',
       pouring: 'pouring_settings', typer: 'typer_settings', screw: 'screw_settings', tower: 'tower_settings',
       math: 'math_settings', maze: 'maze_settings', '2048': 'game2048_settings',
-      snake: 'snake_settings', catch: 'catch_settings', reaction: 'reaction_settings',
+      snake: 'snake_settings', nagaraja: 'nagaraja_settings', catch: 'catch_settings', reaction: 'reaction_settings',
       simon: 'simon_settings', connect4: 'connect4_settings', flappy: 'flappy_settings',
       bounce: 'bounce_settings', space: 'space_settings', bejeweled: 'bejeweled_settings',
       tetris: 'tetris_settings', stack: 'stack_settings', whackamole: 'whackamole_settings',
@@ -183,7 +198,7 @@ router.get('/game-data/:gameId', async (req, res) => {
         id: game.id, name: game.name, category: game.category,
         description: game.description, redirect_url: game.redirect_url,
         client_slug: game.client_slug, company_name: game.company_name,
-        game_type: game.game_type, status: game.status,
+        game_type: game.game_type, status: game.status, force_login: game.force_login,
         settings, questions, words, tiles, segments, formFields, soundMap,
       },
     });
@@ -251,6 +266,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           words: cwWords,
           soundMap,
@@ -299,6 +315,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           segments: spinSegments,
           formFields,
@@ -343,6 +360,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           tiles: memTiles,
           formFields,
@@ -393,6 +411,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -435,6 +454,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           words: wsWords,
           formFields,
@@ -475,6 +495,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -517,6 +538,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           words: typerWords,
           formFields,
@@ -554,6 +576,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -590,6 +613,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -629,6 +653,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -665,6 +690,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -698,6 +724,44 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
+          settings,
+          formFields,
+          soundMap,
+          questions: [],
+        },
+      });
+    }
+
+    // ── NAGARAJA branch ───────────────────────────────────────────────────────
+    if (game.category === 'nagaraja') {
+      const [gameSettings] = await db.query('SELECT * FROM nagaraja_settings WHERE game_id = ?', [game.id]);
+      const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+      const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
+
+      const soundMap = {};
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+
+      const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
+      for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
+        if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
+      }
+      if (typeof settings.gifts_json === 'string') {
+        try { settings.gifts_json = JSON.parse(settings.gifts_json); } catch (_) { settings.gifts_json = []; }
+      }
+
+      return res.json({
+        success: true,
+        game: {
+          id: game.id,
+          name: game.name,
+          category: game.category,
+          description: game.description,
+          redirect_url: game.redirect_url,
+          client_logo: toAbs(game.client_logo),
+          company_name: game.company_name,
+          game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -727,6 +791,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -753,6 +818,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -779,6 +845,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -805,6 +872,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -835,6 +903,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -868,6 +937,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -901,6 +971,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings,
           formFields,
           soundMap,
@@ -980,6 +1051,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           client_logo: toAbs(game.client_logo),
           company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1003,6 +1075,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1026,6 +1099,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1049,6 +1123,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1072,6 +1147,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1148,9 +1224,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
         id: game.id, name: game.name, category: game.category,
         description: game.description, redirect_url: game.redirect_url,
         client_logo: toAbs(game.client_logo),
-        company_name: game.company_name,
-        game_type: game.game_type,
-        intro_video: introVideo,
+         company_name: game.company_name,
+         game_type: game.game_type,
+         force_login: game.force_login,
+         intro_video: introVideo,
         media_list: mediaList,
         settings: safeSettings, formFields, questions, soundMap,
       },
@@ -1162,16 +1239,18 @@ router.get('/:gameName/:companyName', async (req, res) => {
 });
 
 router.post('/session/start', async (req, res) => {
-  const { game_id, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content } = req.body;
+  const { game_id, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, device_id } = req.body;
   const validSrc = ['direct', 'link', 'player'];
   const src = validSrc.includes(source_type) ? source_type : 'link';
   try {
-    // ── Look up game type for replay rules ──────────────────────────────────────
-    const [gameRows] = await db.query('SELECT game_type FROM games WHERE id = ?', [game_id]);
+    // ── Look up game type + status for replay rules ────────────────────────────
+    const [gameRows] = await db.query('SELECT game_type, status FROM games WHERE id = ?', [game_id]);
     const gameType = gameRows[0]?.game_type || 'promogames';
+    const gameStatus = gameRows[0]?.status || 'development';
 
-    // ── Hardened uniqueness check (only block replay for branded games) ──────────
-    if (gameType === 'branded') {
+    // ── Hardened uniqueness check (only block replay for branded games that are LIVE) ──
+    //    In development/testing, allow endless replays so testers are not restricted.
+    if (gameType === 'branded' && gameStatus === 'live') {
       if (promo_player_id) {
         const [existing] = await db.query(
           'SELECT id FROM player_sessions WHERE game_id = ? AND promo_player_id = ? AND completed = 1 LIMIT 1',
@@ -1206,10 +1285,11 @@ router.post('/session/start', async (req, res) => {
 
     const token = uuidv4();
     const [result] = await db.query(
-      `INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, referred_by)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      `INSERT INTO player_sessions (game_id, session_token, player_data, source_type, promo_player_id, utm_source, utm_medium, utm_campaign, utm_term, utm_content, referred_by, device_id)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [game_id, token, JSON.stringify(player_data || {}), src, promo_player_id || null,
-       utm_source || null, utm_medium || null, utm_campaign || null, utm_term || null, utm_content || null, referredBy]
+       utm_source || null, utm_medium || null, utm_campaign || null, utm_term || null, utm_content || null, referredBy,
+       (typeof device_id === 'string' && device_id) ? device_id : null]
     );
 
     // ── Question pool: select random subset if configured ──
@@ -1324,7 +1404,7 @@ router.post('/session/:token/claim', async (req, res) => {
       pc_awarded_now = await awardPCOnce(session);
       const finalScore = parseInt(session.score, 10) || 0;
       if (finalScore > 0) {
-        try { score_info = await recordBestScore(playerId, session.game_id, finalScore); }
+        try { score_info = await recordBestScore({ promoPlayerId: playerId, deviceId: session.device_id }, session.game_id, finalScore); }
         catch (err) { console.error('Claim best-score error:', err.message); }
       }
     }
@@ -1337,16 +1417,25 @@ router.post('/session/:token/claim', async (req, res) => {
 });
 
 // ── Per-game high score info (all-time + caller's personal best) ─────────────
+// Personal best resolves via the logged-in player (Bearer) falling back to the
+// guest ?device_id= query param, so unregistered players also see their own best.
 router.get('/game/:id/score-info', async (req, res) => {
   try {
     const [rows] = await db.query('SELECT high_score FROM games WHERE id = ?', [req.params.id]);
     if (rows.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
     const playerId = getPromoPlayerId(req);
+    const deviceId = typeof req.query.device_id === 'string' ? req.query.device_id : null;
     let player_best = null;
     if (playerId) {
       const [best] = await db.query(
-        'SELECT best_score FROM player_best_scores WHERE promo_player_id = ? AND game_id = ?',
+        'SELECT best_score FROM player_best_scores WHERE player_id = ? AND game_id = ?',
         [playerId, req.params.id]
+      );
+      player_best = best.length ? best[0].best_score : null;
+    } else if (deviceId) {
+      const [best] = await db.query(
+        'SELECT best_score FROM player_best_scores WHERE device_id = ? AND game_id = ?',
+        [deviceId, req.params.id]
       );
       player_best = best.length ? best[0].best_score : null;
     }
@@ -1497,11 +1586,17 @@ router.post('/session/complete', async (req, res) => {
     }
 
     // ── High scores: per-player best + all-time high (score reported games) ──
+    // Records for logged-in players (promo_player_id) AND guests (device_id),
+    // as long as a positive score was reported. games.high_score always updated.
     let scoreInfo = null;
     const finalScore = parseInt(score !== undefined ? score : session.score, 10) || 0;
-    if (session.promo_player_id && finalScore > 0) {
+    if (finalScore > 0 && (session.promo_player_id || session.device_id)) {
       try {
-        scoreInfo = await recordBestScore(session.promo_player_id, session.game_id, finalScore);
+        scoreInfo = await recordBestScore(
+          { promoPlayerId: session.promo_player_id, deviceId: session.device_id },
+          session.game_id,
+          finalScore
+        );
       } catch (err) {
         console.error('Best score update error:', err.message);
       }
@@ -1789,6 +1884,7 @@ router.get('/:gameName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, words: cwWords, soundMap, formFields: cwFormFields, questions: [],
         },
       });
@@ -1817,6 +1913,7 @@ router.get('/:gameName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, segments: spinSegments, formFields, soundMap,
         },
       });
@@ -1840,6 +1937,7 @@ router.get('/:gameName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1863,6 +1961,7 @@ router.get('/:gameName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1886,6 +1985,7 @@ router.get('/:gameName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1909,6 +2009,7 @@ router.get('/:gameName', async (req, res) => {
           description: game.description, redirect_url: game.redirect_url,
           client_logo: toAbs(game.client_logo), company_name: game.company_name,
           game_type: game.game_type,
+          force_login: game.force_login,
           settings, formFields, soundMap, questions: [],
         },
       });
@@ -1964,9 +2065,10 @@ router.get('/:gameName', async (req, res) => {
       game: {
         id: game.id, name: game.name, category: game.category,
         description: game.description, redirect_url: game.redirect_url,
-        client_logo: toAbs(game.client_logo), company_name: game.company_name,
-        game_type: game.game_type,
-        intro_video: introVideo, media_list: mediaList,
+         client_logo: toAbs(game.client_logo), company_name: game.company_name,
+         game_type: game.game_type,
+         force_login: game.force_login,
+         intro_video: introVideo, media_list: mediaList,
         settings: safeSettings, formFields, questions, soundMap,
       },
     });

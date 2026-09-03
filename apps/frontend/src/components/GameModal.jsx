@@ -1,6 +1,20 @@
 import { useState, useEffect, useRef } from 'react'
 import ShareMenu from './ShareMenu'
 
+// Persistent guest device identity — used to resolve personal best for guests.
+function getDeviceId() {
+  try {
+    let id = localStorage.getItem('device_id')
+    if (!id) {
+      id = (crypto.randomUUID && crypto.randomUUID()) || ('d-' + Date.now() + '-' + Math.random().toString(36).slice(2))
+      localStorage.setItem('device_id', id)
+    }
+    return id
+  } catch {
+    return null
+  }
+}
+
 const STYLES = `
   .gm-overlay{position:fixed;inset:0;z-index:8000;background:rgba(5,2,12,0.9);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);display:flex;align-items:center;justify-content:center;padding:0;animation:gmFadeIn .2s ease both}
   @keyframes gmFadeIn{from{opacity:0}to{opacity:1}}
@@ -151,24 +165,31 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
     document.body.style.overflow = 'hidden'
     return () => { document.removeEventListener('keydown', onKey); document.body.style.overflow = '' }
   }, [onClose])
+  // Play count: fetch immediately on open (so the bar updates right away),
+  // then keep polling in place every 10s. Only the number is updated via
+  // setPlayCount — the game iframe/modal never remounts.
   useEffect(() => {
-    const poll = setInterval(async () => {
-      if (document.hidden) return // no wasted DB hits while the tab is in background
+    let alive = true
+    const fetchCount = async () => {
+      if (document.hidden) return
       try {
         const r = await fetch(`/api/play/game/${game.id}/play-count`)
         const d = await r.json()
-        if (d.play_count !== undefined) setPlayCount(d.play_count)
+        if (alive && d.play_count !== undefined) setPlayCount(d.play_count)
       } catch {}
-    }, 10000)
-    return () => clearInterval(poll)
+    }
+    fetchCount()
+    const poll = setInterval(fetchCount, 10000)
+    return () => { alive = false; clearInterval(poll) }
   }, [game.id])
 
-  // High score / personal best chip
+  // High score / personal best chip (guest best via device_id fallback)
   const [scoreInfo, setScoreInfo] = useState(null)
   useEffect(() => {
     let alive = true
     setScoreInfo(null)
-    fetch(`/api/play/game/${game.id}/score-info`)
+    const devId = getDeviceId()
+    fetch(`/api/play/game/${game.id}/score-info${devId ? `?device_id=${encodeURIComponent(devId)}` : ''}`)
       .then(r => r.json())
       .then(d => { if (alive && d.success) setScoreInfo(d) })
       .catch(() => {})

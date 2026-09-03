@@ -31,6 +31,7 @@ const CATEGORY_META = {
   maze:      { label:'Maze Game',     bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#6366F1', icon:'🌀', desc:'Navigate the maze' },
   '2048':    { label:'2048',           bg:'var(--chip-orange-bg)', fg:'var(--chip-orange-fg)', dot:'#FB923C', icon:'🔢', desc:'Merge tiles to reach 2048' },
   snake:     { label:'Snake',          bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'🐍', desc:'Classic snake game' },
+  nagaraja:  { label:'Nagaraja',       bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#8B5CF6', icon:'🐍', desc:'Slither-style snake — eat gifts, dodge AI snakes' },
   catch:     { label:'Catch',          bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#A78BFA', icon:'🧺', desc:'Catch falling objects' },
   reaction:  { label:'Reaction',       bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)', dot:'#EC4899', icon:'⚡', desc:'Test reaction speed' },
   simon:     { label:'Simon Says',     bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#818CF8', icon:'🎯', desc:'Repeat the color sequence' },
@@ -71,7 +72,7 @@ const CATEGORY_ICON = {
   quiz:'HelpCircle', survey:'ClipboardList', poll:'BarChart3', registration:'FileText',
   crossword:'Grid3x3', spin:'Sparkles', memory:'Puzzle', jigsaw:'Image', wordsearch:'Search',
   pouring:'Droplets', typer:'Keyboard', screw:'Wrench',   math:'Calculator', maze:'Route',
-  '2048':'Grid3x3',   snake:'Snail', catch:'ShoppingBasket', reaction:'Zap', simon:'Target',
+  '2048':'Grid3x3',   snake:'Snail', nagaraja:'Snail', catch:'ShoppingBasket', reaction:'Zap', simon:'Target',
   flappy:'Bird', bounce:'CircleDot', space:'Rocket', connect4:'CircleDot',   bejeweled:'Sparkles',
   tetris:'Layers', stack:'Layers', tower:'TowerControl', bowling:'Building', sudoku:'Grid3x3', minesweeper:'Bomb',
   wordscramble:'Shuffle', rps:'Hand', whackamole:'Hammer', hanoi:'TowerControl', breakout:'Boxes',
@@ -411,6 +412,8 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/2048-builder`)
     } else if (game.category === 'snake') {
       navigate(`/dashboard/games/${game.id}/snake-builder`)
+    } else if (game.category === 'nagaraja') {
+      navigate(`/dashboard/games/${game.id}/nagaraja-builder`)
     } else if (game.category === 'catch') {
       navigate(`/dashboard/games/${game.id}/catch-builder`)
     } else if (game.category === 'reaction') {
@@ -724,7 +727,6 @@ const COLUMNS = [
   { key:'is_active',    label:'Active',        sortable:false, center:true },
   { key:'show_in_play_page', label:'Play Page', sortable:false, center:true },
   { key:'show_in_hero_page', label:'Hero',     sortable:false, center:true },
-  { key:'game_type',    label:'Game Type',     sortable:false, center:true },
   { key:'status',       label:'Status',        sortable:false, center:true },
   { key:'created_edited', label:'Created / Edited', sortable:false },
   { key:'actions',      label:'Actions',       sortable:false, center:true },
@@ -1490,24 +1492,33 @@ export default function GamesPage() {
                             title={game.show_in_hero_page ? 'Remove from hero' : 'Feature on homepage hero'}
                             onClick={e => { e.stopPropagation(); toggleField(game, 'show_in_hero_page') }}
                           />
-                          <span className="gp-toggle-label">{game.show_in_hero_page ? 'On' : 'Off'}</span>
-                        </div>
-                      </td>
+                           <span className="gp-toggle-label">{game.show_in_hero_page ? 'On' : 'Off'}</span>
+                         </div>
+                       </td>
 
-                      {/* Game Type */}
-                      <td className="center" style={{minWidth:90}} onClick={e => e.stopPropagation()}>
-                        <div className="gp-toggle-wrap">
-                          <button
-                            className={`gp-toggle ${game.game_type === 'branded' ? 'on' : 'off'}`}
-                            onClick={e => handleGameTypeToggle(game, e)}
-                          />
-                          <span className="gp-toggle-label">
-                            {game.game_type === 'branded' ? 'Branded' : 'PromoGames'}
-                          </span>
-                        </div>
-                      </td>
+                        {/* Game Type — combined: row 1 branded/promogames toggle, row 2 force-login toggle */}
+                        <td className="center" style={{minWidth:115}} onClick={e => e.stopPropagation()}>
+                          <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:6}}>
+                            <div className="gp-toggle-wrap">
+                              <button
+                                className={`gp-toggle ${game.game_type === 'branded' ? 'on' : 'off'}`}
+                                title={game.game_type === 'branded' ? 'Switch to PromoGames' : 'Switch to branded'}
+                                onClick={e => { e.stopPropagation(); handleGameTypeToggle(game, e) }}
+                              />
+                              <span className="gp-toggle-label">{game.game_type === 'branded' ? 'Branded' : 'PromoGames'}</span>
+                            </div>
+                            <div className="gp-toggle-wrap">
+                              <button
+                                className={`gp-toggle ${game.force_login ? 'on' : 'off'}`}
+                                title={game.force_login ? 'Require login to save progress' : 'Guests can finish without prompt'}
+                                onClick={e => { e.stopPropagation(); toggleField(game, 'force_login') }}
+                              />
+                              <span className="gp-toggle-label">{game.force_login ? 'Login' : 'No-prompt'}</span>
+                            </div>
+                          </div>
+                        </td>
 
-                      {/* Status */}
+                        {/* Status */}
                       <td className="center" style={{minWidth:80}} onClick={e => e.stopPropagation()}>
                         <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:3}}>
                           <span style={{
@@ -1565,6 +1576,7 @@ export default function GamesPage() {
                                 else if (game.category === 'maze') navigate(`/dashboard/games/${game.id}/maze-builder`)
                                 else if (game.category === '2048') navigate(`/dashboard/games/${game.id}/2048-builder`)
                                 else if (game.category === 'snake') navigate(`/dashboard/games/${game.id}/snake-builder`)
+                                else if (game.category === 'nagaraja') navigate(`/dashboard/games/${game.id}/nagaraja-builder`)
                                 else if (game.category === 'catch') navigate(`/dashboard/games/${game.id}/catch-builder`)
                                 else if (game.category === 'reaction') navigate(`/dashboard/games/${game.id}/reaction-builder`)
                                 else if (game.category === 'simon') navigate(`/dashboard/games/${game.id}/simon-builder`)

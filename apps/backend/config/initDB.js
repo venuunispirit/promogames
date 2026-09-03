@@ -853,6 +853,32 @@ async function initDB() {
     )
   `, 'snake_settings table');
 
+  /* ── NAGARAJA TABLE ── */
+  console.log('🐍 Creating nagaraja tables...');
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS nagaraja_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
+      world_width INT DEFAULT 1600, world_height INT DEFAULT 1200, speed INT DEFAULT 5,
+      snake_color VARCHAR(20) DEFAULT '#22c55e',
+      ai_snake_count INT DEFAULT 6, ai_speed INT DEFAULT 3, gift_count INT DEFAULT 40,
+      gifts_json MEDIUMTEXT,
+      boost_enabled TINYINT(1) DEFAULT 1, show_timer TINYINT(1) DEFAULT 0, time_limit_seconds INT DEFAULT 0,
+      heading_1 VARCHAR(500), heading_2 VARCHAR(500), heading_3 VARCHAR(500), description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e', heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777', description_color VARCHAR(20) DEFAULT '#888888',
+      bg_color VARCHAR(20) DEFAULT '#0d0a1a', primary_color VARCHAR(20) DEFAULT '#8b5cf6',
+      bg_image_url VARCHAR(500), thankyou_bg_image_url VARCHAR(500), game_logo_url VARCHAR(500),
+      submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_eat_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
+      intro_text TEXT, outro_text TEXT, submit_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →', start_button_text VARCHAR(500),
+      reveal_text VARCHAR(500), terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
+      terms_url VARCHAR(500), meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'nagaraja_settings table');
+
   /* ── SNAKE & LADDER TABLE ── */
   console.log('🐍 Creating snake & ladder tables...');
   await safeQuery(connection, `
@@ -1282,7 +1308,7 @@ async function initDB() {
   // already exist in the table. A single legacy row with an unlisted value
   // used to abort the whole ALTER ("Data truncated for column 'category'").
   try {
-    const KNOWN_CATEGORIES = ['quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer','candyblast','blockblaster','classicmaze'];
+    const KNOWN_CATEGORIES = ['quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','nagaraja','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer','candyblast','blockblaster','classicmaze'];
     let existing = [];
     try {
       const [rows] = await connection.query("SELECT DISTINCT category FROM games WHERE category IS NOT NULL");
@@ -1304,6 +1330,9 @@ async function initDB() {
   await addColumn(connection, 'games', 'game_logo_url', 'VARCHAR(500)');
   await addColumn(connection, 'games', 'show_in_play_page', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'games', 'show_in_hero_page', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'games', 'force_login', 'TINYINT(1) DEFAULT 1');
+  await safeQuery(connection, 'UPDATE games SET force_login = 1 WHERE force_login IS NULL');
+  await addColumn(connection, 'games', 'testing_started_at', 'DATETIME NULL');
   await addColumn(connection, 'games', 'created_by', 'INT');
   await addColumn(connection, 'games', 'updated_at', 'TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
   await addColumn(connection, 'games', 'updated_by', 'INT DEFAULT NULL');

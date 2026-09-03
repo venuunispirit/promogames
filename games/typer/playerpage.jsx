@@ -6,6 +6,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
   const sessionTokenRef = useRef(sessionToken)
   const onCompleteRef = useRef(onComplete)
   const gameDataRef = useRef(gameData)
+  const endNotifiedRef = useRef(false)
 
   useEffect(() => { sessionTokenRef.current = sessionToken }, [sessionToken])
   useEffect(() => { onCompleteRef.current = onComplete }, [onComplete])
@@ -763,6 +764,12 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
 
       submitSession(wpm, acc, score);
       stampResults();
+      // Notify the host PlayerPage that the game is finished so guests get the
+      // "save your progress" login prompt (mentors/completes the thankyou flow).
+      if (!endNotifiedRef.current && onCompleteRef.current) {
+        endNotifiedRef.current = true;
+        setTimeout(function(){ onCompleteRef.current({ complete: true }); }, 800);
+      }
     }
 
     function stampResults(){

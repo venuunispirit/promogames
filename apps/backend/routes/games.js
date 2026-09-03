@@ -89,8 +89,8 @@ router.post('/', requireAdmin, async (req, res) => {
 
 router.put('/:id', requireAdmin, upload.single('intro_video'), async (req, res) => {
   try {
-    const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','meta_description','game_type','status','template_id','intro_video_url','thumbnail_url'];
-    const booleans = ['is_active','show_in_play_page','show_in_hero_page'];
+    const allowed = ['name','slug','description','redirect_url','is_active','category','show_in_play_page','show_in_hero_page','force_login','meta_description','game_type','status','template_id','intro_video_url','thumbnail_url'];
+    const booleans = ['is_active','show_in_play_page','show_in_hero_page','force_login'];
     const fields = []; const values = [];
     for (const key of allowed) {
       if (req.body[key] === undefined) continue;
@@ -482,6 +482,20 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
       );
     }
 
+    // Clone nagaraja_settings
+    const [nagarajaSettings] = await db.query('SELECT * FROM nagaraja_settings WHERE game_id = ?', [gameId]);
+    if (nagarajaSettings[0]) {
+      const ns = nagarajaSettings[0];
+      const { id, game_id, created_at, updated_at, ...nagarajaData } = ns;
+      const nagarajaKeys = Object.keys(nagarajaData);
+      await db.query(
+        `INSERT INTO nagaraja_settings (game_id,${nagarajaKeys.join(',')}) VALUES (?,${
+          nagarajaKeys.map(() => '?').join(',')
+        })`,
+        [newId, ...Object.values(nagarajaData)]
+      );
+    }
+
     // Clone snake_ladder_settings
     const [snakeLadderSettings] = await db.query('SELECT * FROM snake_ladder_settings WHERE game_id = ?', [gameId]);
     if (snakeLadderSettings[0]) {
@@ -854,15 +868,71 @@ router.put('/:id/status', requireAdmin, async (req, res) => {
   const allowed = ['development','testing','live'];
   if (!allowed.includes(status)) return res.status(400).json({ success: false, message: 'Invalid status' });
   try {
+    const [gameRows] = await db.query('SELECT testing_started_at FROM games WHERE id = ?', [req.params.id]);
+    const testingStartedAt = gameRows[0]?.testing_started_at || null;
+
     if (status === 'live') {
-      // Clear test player sessions & answers for this game
-      await db.query(
-        `DELETE pa FROM player_answers pa
-         INNER JOIN player_sessions ps ON pa.session_id = ps.id
-         WHERE ps.game_id = ?`, [req.params.id]
-      );
-      await db.query('DELETE FROM player_sessions WHERE game_id = ?', [req.params.id]);
-      await db.query('UPDATE games SET status=?, is_active=1 WHERE id=?', [status, req.params.id]);
+      // ── Bounded wipe: remove ONLY entries written during the most recent
+      //    testing round (started_at >= testing_started_at). Production data
+      //    from earlier live periods is preserved. If there was no tracked
+      //    testing round (e.g. brand-new game going live first time) a full
+      //    wipe is safe since no production data exists yet.
+      const startedAt = testingStartedAt;
+
+      // 1. Player answers (tied to sessions; legacy rows via join)
+      if (startedAt) {
+        await db.query(
+          `DELETE pa FROM player_answers pa
+           INNER JOIN player_sessions ps ON pa.session_id = ps.id
+           WHERE ps.game_id = ? AND ps.started_at >= ?`,
+          [req.params.id, startedAt]
+        );
+      } else {
+        await db.query(
+          `DELETE pa FROM player_answers pa
+           INNER JOIN player_sessions ps ON pa.session_id = ps.id
+           WHERE ps.game_id = ?`,
+          [req.params.id]
+        );
+      }
+      // 2. Player sessions (cascades remaining player_answers via FK)
+      if (startedAt) {
+        await db.query(
+          'DELETE FROM player_sessions WHERE game_id = ? AND started_at >= ?',
+          [req.params.id, startedAt]
+        );
+      } else {
+        await db.query('DELETE FROM player_sessions WHERE game_id = ?', [req.params.id]);
+      }
+      // 3. High scores written during testing
+      if (startedAt) {
+        await db.query(
+          'DELETE FROM player_best_scores WHERE game_id = ? AND updated_at >= ?',
+          [req.params.id, startedAt]
+        );
+      } else {
+        await db.query('DELETE FROM player_best_scores WHERE game_id = ?', [req.params.id]);
+      }
+      // 4. Points transactions awarded during testing
+      if (startedAt) {
+        await db.query(
+          'DELETE FROM pc_transactions WHERE game_id = ? AND created_at >= ?',
+          [req.params.id, startedAt]
+        );
+      } else {
+        await db.query('DELETE FROM pc_transactions WHERE game_id = ?', [req.params.id]);
+      }
+      // 5. Business redemptions created during testing
+      if (startedAt) {
+        await db.query(
+          'DELETE FROM business_redemptions WHERE game_id = ? AND created_at >= ?',
+          [req.params.id, startedAt]
+        );
+      } else {
+        await db.query('DELETE FROM business_redemptions WHERE game_id = ?', [req.params.id]);
+      }
+
+      await db.query('UPDATE games SET status=?, is_active=1, testing_started_at=NULL WHERE id=?', [status, req.params.id]);
       // Auto-sync linked BD request to live
       await db.query('UPDATE bd_requests SET status=? WHERE game_id=? AND status!=?', ['live', req.params.id, 'live']);
       // Notify the BD who requested this game
@@ -878,8 +948,16 @@ router.put('/:id/status', requireAdmin, async (req, res) => {
            '/bd/requests']
         );
       }
+    } else if (status === 'development') {
+      // Leaving any lifecycle state back to development clears the test window
+      await db.query('UPDATE games SET status=?, testing_started_at=NULL WHERE id=?', [status, req.params.id]);
     } else {
-      await db.query('UPDATE games SET status=? WHERE id=?', [status, req.params.id]);
+      // testing — begin/continue a testing round; keep earliest start so we
+      // wipe everything accumulated since this round began
+      await db.query(
+        'UPDATE games SET status=?, testing_started_at = IFNULL(testing_started_at, NOW()) WHERE id=?',
+        [status, req.params.id]
+      );
     }
     res.json({ success: true, message: `Game status changed to ${status}` });
   } catch (err) {

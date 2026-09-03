@@ -295,8 +295,11 @@ export default function ArcadePage() {
   }, [loadGames])
 
   const handlePlay = useCallback((game) => setActiveGame(game), [])
-  const handleSwitch = useCallback((game) => setActiveGame(game), [])
-  const handleClose = useCallback(() => setActiveGame(null), [])
+  // Refreshing the underlying game counts in place (loadGames only setState's the
+  // numbers — the grid/modal never reload) right after switching or closing a game,
+  // so the "N plays" shown reflects the latest play.
+  const handleSwitch = useCallback((game) => { setActiveGame(game); loadGames() }, [loadGames])
+  const handleClose = useCallback(() => { setActiveGame(null); loadGames() }, [loadGames])
 
   const allGames = [...featured, ...promogames]
 

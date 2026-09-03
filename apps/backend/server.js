@@ -117,6 +117,7 @@ const typerRoutes = require("../../games/typer/route");
 const screwRoutes = require("../../games/screw/route");
 const towerRoutes = require("../../games/tower/route");
 const snakeRoutes = require("../../games/snake/route");
+const nagarajaRoutes = require("../../games/nagaraja/route");
 const catchRoutes = require("../../games/catch/route");
 const reactionRoutes = require("../../games/reaction/route");
 const mathRoutes = require("../../games/math/route");
@@ -185,6 +186,7 @@ app.use("/api/typer", requireAdmin, typerRoutes);
 app.use("/api/screw", requireAdmin, screwRoutes);
 app.use("/api/tower", requireAdmin, towerRoutes);
 app.use("/api/snake", requireAdmin, snakeRoutes);
+app.use("/api/nagaraja", requireAdmin, nagarajaRoutes);
 app.use("/api/catch", requireAdmin, catchRoutes);
 app.use("/api/reaction", requireAdmin, reactionRoutes);
 app.use("/api/math", requireAdmin, mathRoutes);
@@ -262,6 +264,7 @@ const OG_TEMPLATE = `<!DOCTYPE html>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>__TITLE__</title>
     <meta property="og:title" content="__TITLE__" />
+    <meta name="description" content="__DESCRIPTION__" />
     <meta property="og:description" content="__DESCRIPTION__" />
     <meta property="og:image" content="__IMAGE__" />
     <meta property="og:url" content="__URL__" />
@@ -295,47 +298,67 @@ if (fs.existsSync(FRONTEND_DIST)) {
   }));
 }
 
-// Serve frontend HTML with OG tags for social media crawlers
-app.get('/play/:gameSlug/:clientSlug', async (req, res) => {
+// Serve frontend HTML with OG tags for social media crawlers.
+// Covers BOTH URL forms: /play/:gameSlug and /play/:gameSlug/:clientSlug.
+// Social crawlers (WhatsApp/Meta/Twitter) don't run JS, so they must get tags
+// from the raw server HTML — not from React's client-side <head> mutations.
+const serveOGTags = async (req, res, gameSlug, clientSlug) => {
   const ua = req.headers['user-agent'] || '';
+  if (!SOCIAL_BOTS.test(ua)) return false;
 
-  if (SOCIAL_BOTS.test(ua)) {
-    try {
-      const db = require('./config/db');
-      const [rows] = await db.query(`
-        SELECT g.name, g.slug, g.description, g.meta_description, g.game_logo_url as g_logo,
-               COALESCE(qs.game_logo_url, g.game_logo_url) as game_logo_url,
-               qs.bg_image_url,
-               c.company_name, c.slug as client_slug
-        FROM games g JOIN clients c ON g.client_id = c.id
-        LEFT JOIN quiz_settings qs ON qs.game_id = g.id
-        WHERE g.slug = ? AND c.slug = ?
-      `, [req.params.gameSlug, req.params.clientSlug]);
+  try {
+    const db = require('./config/db');
+    const baseSelect = `
+      SELECT g.name, g.slug, g.description, g.meta_description, g.game_logo_url as g_logo,
+             COALESCE(qs.game_logo_url, g.game_logo_url) as game_logo_url,
+             qs.bg_image_url,
+             c.company_name, c.slug as client_slug
+      FROM games g JOIN clients c ON g.client_id = c.id
+      LEFT JOIN quiz_settings qs ON qs.game_id = g.id
+    `;
+    const [rows] = clientSlug
+      ? await db.query(`${baseSelect} WHERE g.slug = ? AND c.slug = ?`, [gameSlug, clientSlug])
+      : await db.query(`${baseSelect} WHERE g.slug = ? ORDER BY qs.id DESC LIMIT 1`, [gameSlug]);
 
-      if (rows.length > 0) {
-        const game = rows[0];
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
-        const gameUrl = `${baseUrl}/play/${game.slug}/${game.client_slug}`;
-        const title = game.name || 'Play this game';
-        const description = game.meta_description || game.description || `Play ${game.name} and win exciting rewards!`;
-        const image = game.game_logo_url
-          ? (game.game_logo_url.startsWith('http') ? game.game_logo_url : `${baseUrl}${game.game_logo_url}`)
-          : `${baseUrl}/favicon.png`;
+    const game = rows && rows.length ? rows[0] : null;
+    if (game) {
+      const baseUrl = `${req.protocol}://${req.get('host')}`;
+      const gameUrl = `${baseUrl}/play/${game.slug}/${game.client_slug}`;
+      const title = game.name || 'Play this game';
+      const description = game.meta_description || game.description || `Play ${game.name} and win exciting rewards!`;
+      const image = game.game_logo_url
+        ? (game.game_logo_url.startsWith('http') ? game.game_logo_url : `${baseUrl}${game.game_logo_url}`)
+        : `${baseUrl}/favicon.png`;
 
-        let html = OG_TEMPLATE
-          .replace(/__TITLE__/g, title)
-          .replace(/__DESCRIPTION__/g, description)
-          .replace(/__IMAGE__/g, image)
-          .replace(/__URL__/g, gameUrl);
+      let html = OG_TEMPLATE
+        .replace(/__TITLE__/g, title)
+        .replace(/__DESCRIPTION__/g, description)
+        .replace(/__IMAGE__/g, image)
+        .replace(/__URL__/g, gameUrl);
 
-        return res.type('html').send(html);
-      }
-    } catch (err) {
-      console.error('OG tag error:', err.message);
+      res.type('html').send(html);
+      return true;
     }
+  } catch (err) {
+    console.error('OG tag error:', err.message);
   }
+  return false;
+};
+
+app.get('/play/:gameSlug/:clientSlug', async (req, res) => {
+  if (await serveOGTags(req, res, req.params.gameSlug, req.params.clientSlug)) return;
 
   // For regular users, serve the SPA index.html (React Router handles routing)
+  if (fs.existsSync(INDEX_HTML_PATH)) {
+    return res.sendFile(INDEX_HTML_PATH);
+  }
+  res.status(404).send('Frontend not built. Run npm run build first.');
+});
+
+// Single-segment play URL (no client slug) — must also serve OG tags.
+app.get('/play/:gameSlug', async (req, res) => {
+  if (await serveOGTags(req, res, req.params.gameSlug, null)) return;
+
   if (fs.existsSync(INDEX_HTML_PATH)) {
     return res.sendFile(INDEX_HTML_PATH);
   }

@@ -98,9 +98,12 @@ export default function QuizPlayerPage({
   handleShortAnswerSubmit, handleCheckboxToggle, handleContinueClick,
   setSelectValue, setShortAnswerText,
   getPageBg, optionBgColor, optionTextColor, optionBorderColor,
+  questions,
 }) {
-  const question = game.questions[currentQ]
-  if (!question || !game.questions.length) {
+  const qlist = questions && questions.length ? questions : (game.questions || [])
+  const question = qlist[currentQ]
+  const poolLen = qlist.length
+  if (!question || !poolLen) {
     return (
       <div style={{ minHeight:'100dvh', display:'flex', alignItems:'center', justifyContent:'center', background:'#f4f4ff', fontFamily:'DM Sans, sans-serif' }}>
         <div style={{ textAlign:'center', padding:40 }}>
@@ -113,7 +116,7 @@ export default function QuizPlayerPage({
   }
 
   const tpl = s.templateConfig || {}
-  const progress = (currentQ / game.questions.length) * 100
+  const progress = (currentQ / poolLen) * 100
   const qBg = question.question_bg_image_url
   const gameBg = s.bg_image_url
   const bgStyle = getPageBg(qBg, gameBg, s.bg_color || '#f4f4ff')
@@ -190,7 +193,7 @@ export default function QuizPlayerPage({
           {s.show_progress !== 0 && (
             <div style={{ flexShrink:0,paddingTop:12,paddingBottom:10 }}>
               <div style={{ display:'flex',justifyContent:'space-between',marginBottom:5,fontSize:12,color:hasBgImage?'rgba(255,255,255,0.9)':'#888',fontWeight:600 }}>
-                <span>Question {currentQ+1} of {game.questions.length}</span>
+                <span>Question {currentQ+1} of {poolLen}</span>
                 <div style={{ display:'flex',gap:12,alignItems:'center' }}>
                   {timeLeft!==null&&!answered&&(
                     <span style={{ color:timeLeft<=5?'#ef4444':(hasBgImage?'rgba(255,255,255,0.9)':'#888'),fontWeight:700 }}>

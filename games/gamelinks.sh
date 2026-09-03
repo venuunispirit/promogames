@@ -7,7 +7,7 @@ BASE="$ROOT/mobile/lib/games/gamelinks"
 rm -rf "$BASE"
 mkdir -p "$BASE/shared_pkg/lib"
 cd "$BASE/shared_pkg/lib" && ln -sfn ../../../../../../games/shared_pkg/lib/engine.dart engine.dart
-for g in snake quiz math crossword memory wordsearch; do
+for g in snake nagaraja quiz math crossword memory wordsearch; do
   mkdir -p "$BASE/$g"
   ( cd "$BASE/$g"
     ln -sfn "../../../../../games/$g/logic.dart" logic.dart

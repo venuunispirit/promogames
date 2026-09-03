@@ -30,7 +30,7 @@ const EXPECTED_TABLES = [
   'math_settings', 'math_progress', 'maze_settings', 'maze_progress',
   'jigsaw_settings', 'wordsearch_settings', 'wordsearch_words',
   'pouring_settings', 'typer_settings', 'typer_words', 'screw_settings', 'tower_settings',
-  'snake_settings', 'catch_settings', 'reaction_settings', 'simon_settings',
+  'snake_settings', 'nagaraja_settings', 'catch_settings', 'reaction_settings', 'simon_settings',
   'connect4_settings', 'flappy_settings', 'game2048_settings', 'game2048_scores',
   'bounce_settings', 'bounce_levels', 'bounce_objects', 'bounce_progress',
   'space_settings', 'space_ships', 'space_weapons', 'space_enemies', 'space_levels', 'space_progress',
@@ -50,7 +50,7 @@ const EXPECTED_TABLES = [
 
 const GAME_TYPES = [
   'quiz', 'survey', 'poll', 'crossword', 'spin', 'memory', 'jigsaw', 'wordsearch',
-  'pouring', 'typer', 'math', 'maze', 'screw', 'tower', '2048', 'snake', 'catch', 'reaction',
+  'pouring', 'typer', 'math', 'maze', 'screw', 'tower', '2048', 'snake', 'nagaraja', 'catch', 'reaction',
   'simon', 'flappy', 'bounce', 'space', 'connect4', 'bejeweled', 'tetris', 'stack',
   'bowling', 'sudoku', 'minesweeper', 'wordscramble', 'rps', 'whackamole', 'hanoi',
   'breakout', 'bubbleshooter', 'carlaunch', 'frustration', 'stressbuster', 'soundify', 'tictactoe', 'arrowescape', 'snakeandladder', 'ludo', 'Carrom', 'tictactoemultiplayer'

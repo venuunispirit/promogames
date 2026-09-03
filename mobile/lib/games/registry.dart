@@ -4,6 +4,7 @@ import 'fallback_game.dart';
 import 'gamelinks/quiz/playerpage.dart';
 import 'gamelinks/memory/playerpage.dart';
 import 'gamelinks/snake/playerpage.dart';
+import 'gamelinks/nagaraja/playerpage.dart';
 import 'gamelinks/math/playerpage.dart';
 import 'gamelinks/crossword/playerpage.dart';
 import 'gamelinks/wordsearch/playerpage.dart';
@@ -55,6 +56,7 @@ final Map<String, GameBuilder> _builders = {
   'reaction': buildReactionPlayer,
   'whackamole': buildWhackamolePlayer,
   'snake': buildSnakePlayer,
+  'nagaraja': buildNagarajaPlayer,
   'crossword': buildCrosswordPlayer,
   'wordsearch': buildWordSearchPlayer,
   'wordscramble': buildWordScramblePlayer,

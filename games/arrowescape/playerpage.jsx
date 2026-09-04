@@ -27,6 +27,7 @@ export default function ArrowEscapePlayerPage({ gameData, sessionToken, onComple
   const [arrowPositions, setArrowPositions] = useState([])
   const animRef = useRef(null)
   const completedRef = useRef(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const currentLevel = levels[currentLevelIdx]
   const rows = currentLevel?.grid_rows || 8
@@ -155,7 +156,15 @@ export default function ArrowEscapePlayerPage({ gameData, sessionToken, onComple
         <div style={{ background:'#FEF3C7',borderRadius:12,padding:16,marginBottom:20 }}>
           <p style={{ fontSize:13,color:'#92400E',lineHeight:1.6 }}>➡️ Set arrow directions, then watch them move! Guide all arrows to the green exits.</p>
         </div>
-        <button onClick={startGame} style={{ background:settings?.start_button_bg_color||`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color:settings?.start_button_text_color||'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:ff,width:'100%',maxWidth:280 }}>{settings?.start_button_text||'Start Game →'}</button>
+        {settings?.terms_enabled && (
+          <div style={{ marginBottom: 16, textAlign: 'center' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />
+              {settings?.terms_url ? <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{settings.terms_text || 'Terms & Conditions'}</a> : <span>{settings?.terms_text || 'Terms & Conditions'}</span>}
+            </label>
+          </div>
+        )}
+        <button onClick={startGame} disabled={!!settings?.terms_enabled && !termsAgreed} style={{ background:settings?.start_button_bg_color||`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color:settings?.start_button_text_color||'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:(!!settings?.terms_enabled && !termsAgreed)?'not-allowed':'pointer',fontFamily:ff,width:'100%',maxWidth:280,opacity:(!!settings?.terms_enabled && !termsAgreed)?0.5:1 }}>{settings?.start_button_text||'Start Game →'}</button>
       </div>
     </div>
   )

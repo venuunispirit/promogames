@@ -133,16 +133,21 @@ export default function QuizPlayerPage({
   }
 
   const getOptionStyleLocal = (opt, question, currentSelectedOpt) => {
-    if (!answered) return { bg: opt.option_color || optionBgColor, text: opt.option_text_color || optionTextColor, border: `2px solid ${optionBorderColor}`, shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
+    const borderColor = opt.option_border_color && opt.option_border_color !== 'transparent' ? opt.option_border_color : optionBorderColor
+    const borderWidth = (opt.option_border_width ?? 0) > 0 ? opt.option_border_width : (borderColor && borderColor !== 'transparent' ? 2 : 0)
+    const radius = opt.option_border_radius != null ? opt.option_border_radius : 14
+    const gradient = opt.option_font_gradient
+    const base = { borderColor, borderWidth, radius, gradient }
+    if (!answered) return { bg: opt.option_color || optionBgColor, text: opt.option_text_color || optionTextColor, border: `${borderWidth}px solid ${borderColor||'transparent'}`, radius, gradient, shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
     const isRightWrong = question.question_type === 'right_wrong'
     const isSelected = currentSelectedOpt?.id === opt.id
     if (isRightWrong) {
-      if (opt.is_correct) return { bg: '#22c55e', text: '#fff', border: '2px solid #16a34a', shadow: '0 4px 20px rgba(34,197,94,0.45)', opacity: 1, scale: 'scale(1)' }
-      else if (isSelected) return { bg: '#ef4444', text: '#fff', border: '2px solid #dc2626', shadow: '0 4px 20px rgba(239,68,68,0.45)', opacity: 1, scale: 'scale(0.97)' }
-      else return { bg: '#ef4444', text: '#fff', border: '2px solid #dc2626', shadow: 'none', opacity: 0.45, scale: 'scale(0.97)' }
+      if (opt.is_correct) return { bg: '#22c55e', text: '#fff', border: `${borderWidth}px solid #16a34a`, radius, gradient, shadow: '0 4px 20px rgba(34,197,94,0.45)', opacity: 1, scale: 'scale(1)' }
+      else if (isSelected) return { bg: '#ef4444', text: '#fff', border: `${borderWidth}px solid #dc2626`, radius, gradient, shadow: '0 4px 20px rgba(239,68,68,0.45)', opacity: 1, scale: 'scale(0.97)' }
+      else return { bg: '#ef4444', text: '#fff', border: `${borderWidth}px solid #dc2626`, radius, gradient, shadow: 'none', opacity: 0.45, scale: 'scale(0.97)' }
     } else {
-      if (isSelected) return { bg: primaryColor, text: '#fff', border: `2px solid ${primaryColor}`, shadow: `0 4px 16px ${primaryColor}55`, opacity: 1, scale: 'scale(0.97)' }
-      return { bg: opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: '2px solid transparent', shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 0.5, scale: 'scale(1)' }
+      if (isSelected) return { bg: primaryColor, text: '#fff', border: `${borderWidth}px solid ${primaryColor}`, radius, gradient, shadow: `0 4px 16px ${primaryColor}55`, opacity: 1, scale: 'scale(0.97)' }
+      return { bg: opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: `${borderWidth}px solid ${borderColor||'transparent'}`, radius, gradient, shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 0.5, scale: 'scale(1)' }
     }
   }
 
@@ -333,7 +338,7 @@ export default function QuizPlayerPage({
                     return (
                       <button key={opt.id} onClick={()=>handleOptionSelect(opt,sessionToken)} disabled={answered}
                         style={{
-                          background:os.bg,border:os.border,borderRadius:14,flex:1,minHeight:48,
+                          background:os.bg,border:os.border,borderRadius:os.radius,flex:1,minHeight:48,
                           color:os.text,fontSize:'clamp(13px,3.5vw,15px)',fontWeight:600,
                           cursor:answered?'default':'pointer',textAlign:'center',lineHeight:1.3,
                           fontFamily:ff,transition:'all 0.25s ease',boxShadow:os.shadow,
@@ -344,7 +349,11 @@ export default function QuizPlayerPage({
                           padding:'0 14px',boxSizing:'border-box',
                         }}>
                         {opt.option_image_url&&renderMedia(opt.option_image_url,{width:'auto',height:32,objectFit:'contain',borderRadius:8,flexShrink:0})}
-                        <span style={{ flex:1,textAlign:'center' }}>{opt.option_text}</span>
+                        {os.gradient ? (
+                          <span style={{ flex:1,textAlign:'center',background:os.gradient,WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent',WebkitTextFillColor:'transparent' }}>{opt.option_text}</span>
+                        ) : (
+                          <span style={{ flex:1,textAlign:'center' }}>{opt.option_text}</span>
+                        )}
                       </button>
                     )
                   })

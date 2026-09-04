@@ -87,6 +87,7 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
   const { settings, soundMap } = gameData
   const soundMapRef = useRef(soundMap || {})
   const resolveSound = useCallback((id) => { if (!id) return null; const n = parseInt(id); return isNaN(n) ? id : (soundMapRef.current[n] || null) }, [])
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   let gifts = []
   try { gifts = Array.isArray(settings?.gifts_json) ? settings.gifts_json : (typeof settings?.gifts_json === 'string' ? JSON.parse(settings.gifts_json) : []); } catch { gifts = [] }
@@ -641,8 +642,8 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
             <div className="inst">
               <p>Steer your serpent toward the gifts to collect them and grow.<br />Use your <kbd>mouse</kbd> or <kbd>drag</kbd> to steer, and <kbd>hold click</kbd> / <kbd>space</kbd> to boost.{boostEnabled ? <><br />Avoid <b style={{ color: '#f87171' }}>AI snakes</b> — touch one and it's game over!</> : <><br />Avoid <b style={{ color: '#f87171' }}>AI snakes</b> — touch one and it's game over!</>}</p>
             </div>
-            {settings?.terms_enabled && <div style={{ marginBottom: 16 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', fontSize: 12, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}><input type="checkbox" style={{ width: 14, height: 14 }} onChange={(e) => { const b = e.target.closest('.card').querySelector('.sbtn'); if (b) b.disabled = !e.target.checked }} />{settings.terms_text || 'I agree to Terms & Conditions'}{settings.terms_url && <a href={settings.terms_url} target="_blank" rel="noreferrer" style={{ color: '#a78bfa', textDecoration: 'underline' }}>Link</a>}</label></div>}
-            <button className="sbtn" onClick={handleStart} disabled={!!settings?.terms_enabled}>{settings?.start_button_text || 'START SLITHERING'}</button>
+            {settings?.terms_enabled && <div style={{ marginBottom: 16 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', fontSize: 12, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}><input type="checkbox" checked={termsAgreed} onChange={(e) => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />{settings.terms_text || 'I agree to Terms & Conditions'}{settings.terms_url && <a href={settings.terms_url} target="_blank" rel="noreferrer" style={{ color: '#a78bfa', textDecoration: 'underline' }}>Link</a>}</label></div>}
+            <button className="sbtn" onClick={handleStart} disabled={!!settings?.terms_enabled && !termsAgreed} style={!!settings?.terms_enabled && !termsAgreed ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>{settings?.start_button_text || 'START SLITHERING'}</button>
           </div>
         </div>
       )}

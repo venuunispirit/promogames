@@ -174,7 +174,10 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
     const src = games[0];
 
     let newName = src.name;
-    const { location_name, business_owner_id } = req.body || {};
+    const { location_name, business_owner_id, client_id } = req.body || {};
+
+    // Target client: duplicate can be assigned to any client (admin chooses). Falls back to the source game's client.
+    const targetClientId = client_id || src.client_id;
 
     if (location_name) {
       // Location instances keep the original game name
@@ -190,7 +193,7 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
     }
 
     let slug = slugify(newName);
-    const [existing] = await db.query('SELECT id FROM games WHERE slug = ? AND client_id = ?', [slug, src.client_id]);
+    const [existing] = await db.query('SELECT id FROM games WHERE slug = ? AND client_id = ?', [slug, targetClientId]);
     if (existing.length > 0) slug = `${slug}-${Date.now()}`;
 
     // Prevent duplicate location instances for the same branch + template
@@ -207,7 +210,7 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
     const [result] = await db.query(
       `INSERT INTO games (client_id, name, slug, category, description, redirect_url, is_active, show_in_play_page, show_in_hero_page, meta_description, game_type, created_by, updated_by, parent_game_id, location_name, business_owner_id)
        VALUES (?, ?, ?, ?, ?, ?, 0, 0, 0, ?, ?, ?, ?, ?, ?, ?)`,
-      [src.client_id, newName, slug, src.category, src.description, src.redirect_url, src.meta_description, src.game_type || 'promogames', req.user.id, req.user.id, location_name ? gameId : null, location_name || null, business_owner_id || null]
+       [targetClientId, newName, slug, src.category, src.description, src.redirect_url, src.meta_description, src.game_type || 'promogames', req.user.id, req.user.id, location_name ? gameId : null, location_name || null, business_owner_id || null]
     );
     const newId = result.insertId;
 

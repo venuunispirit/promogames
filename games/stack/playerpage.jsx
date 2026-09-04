@@ -26,6 +26,7 @@ export default function StackPlayerPage({ gameData, sessionToken, onComplete }) 
   const [phase, setPhase] = useState('intro')
   const [score, setScore] = useState(0)
   const [gameOver, setGameOver] = useState(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const canvasRef = useRef(null)
   const animationRef = useRef(null)
@@ -220,9 +221,18 @@ export default function StackPlayerPage({ gameData, sessionToken, onComplete }) 
         {settings?.heading_3 && <p style={{ fontSize: 14, color: settings.heading_3_color || '#888', margin:0 }}>{settings.heading_3}</p>}
         {settings?.description_text && <p style={{ fontSize: 13, color: settings.description_color || '#aaa', maxWidth: 400, textAlign:'center' }}>{settings.description_text}</p>}
         {settings?.intro_text && <p style={{ fontSize: 14, color: settings.intro_text_color || '#fff' }}>{settings.intro_text}</p>}
+        {settings?.terms_enabled && (
+          <div style={{ marginBottom: 16, textAlign: 'center' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />
+              {settings?.terms_url ? <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{settings.terms_text || 'Terms & Conditions'}</a> : <span>{settings?.terms_text || 'Terms & Conditions'}</span>}
+            </label>
+          </div>
+        )}
         <button
           onClick={startGame}
-          style={{ padding:'10px 32px', fontSize:16, fontWeight:700, border:'none', borderRadius:8, cursor:'pointer', background:settings?.primary_color || '#6366f1', color:'#fff' }}
+          disabled={!!settings?.terms_enabled && !termsAgreed}
+          style={{ padding:'10px 32px', fontSize:16, fontWeight:700, border:'none', borderRadius:8, cursor:(!!settings?.terms_enabled && !termsAgreed)?'not-allowed':'pointer', background:settings?.primary_color || '#6366f1', color:'#fff', opacity:(!!settings?.terms_enabled && !termsAgreed)?0.5:1 }}
         >{settings?.start_button_text || 'Start Stacking'}</button>
       </div>
     )

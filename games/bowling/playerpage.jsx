@@ -24,6 +24,7 @@ export default function BowlingPlayerPage({ gameData, sessionToken, onComplete }
   const [resultMsg, setResultMsg] = useState('')
   const completedRef = useRef(false)
   const animRef = useRef(null)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const handleComplete = useCallback(async (score) => {
     if (completedRef.current) return; completedRef.current = true
@@ -113,7 +114,15 @@ export default function BowlingPlayerPage({ gameData, sessionToken, onComplete }
         <div style={{ background:'#FEF3C7',borderRadius:12,padding:16,marginBottom:20 }}>
           <p style={{ fontSize:13,color:'#92400E',lineHeight:1.6 }}>🎳 Aim and roll to knock down pins! Get strikes and spares for bonus points.</p>
         </div>
-        <button onClick={startGame} style={{ background: settings?.start_button_bg_color||`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color: settings?.start_button_text_color||'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:ff,width:'100%',maxWidth:280 }}>{settings?.start_button_text||'Start Game →'}</button>
+        {settings?.terms_enabled && (
+          <div style={{ marginBottom: 16, textAlign: 'center' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />
+              {settings?.terms_url ? <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{settings.terms_text || 'Terms & Conditions'}</a> : <span>{settings?.terms_text || 'Terms & Conditions'}</span>}
+            </label>
+          </div>
+        )}
+        <button onClick={startGame} disabled={!!settings?.terms_enabled && !termsAgreed} style={{ background: settings?.start_button_bg_color||`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color: settings?.start_button_text_color||'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:(!!settings?.terms_enabled && !termsAgreed)?'not-allowed':'pointer',fontFamily:ff,width:'100%',maxWidth:280,opacity:(!!settings?.terms_enabled && !termsAgreed)?0.5:1 }}>{settings?.start_button_text||'Start Game →'}</button>
       </div>
     </div>
   )

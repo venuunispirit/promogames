@@ -901,6 +901,7 @@ export default function TicTacToePlayerPage({ gameData, sessionToken: initToken,
   const [errorMsg, setErrorMsg] = useState(null)
   const [boardVer, setBoardVer] = useState(0)
   const [scores, setScores] = useState({ x: 0, o: 0 })
+  const [termsAgreed, setTermsAgreed] = useState(false)
   const gameResultRef = useRef({ score: 0, result: null })
 
   const resolveSound = (id) => {
@@ -1142,11 +1143,22 @@ export default function TicTacToePlayerPage({ gameData, sessionToken: initToken,
                 </div>
               )}
               <div style={{ textAlign: 'center', marginTop: '24px' }}>
+                {settings.terms_enabled && (
+                  <div style={{ marginBottom: 16, textAlign: 'left', background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '12px 16px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+                      <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />
+                      {settings.terms_url ? <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{settings.terms_text || 'Terms & Conditions'}</a> : <span>{settings.terms_text || 'Terms & Conditions'}</span>}
+                    </label>
+                  </div>
+                )}
                 <button onClick={handleStart} className="ttt-btn start"
+                  disabled={!!settings.terms_enabled && !termsAgreed}
                   style={{
                     color: settings.start_button_text_color || '#1a1a1a',
                     background: settings.start_button_bg_color || 'linear-gradient(135deg, #D9C046, #c4ad3a)',
-                    boxShadow: settings.start_button_bg_color ? `0 6px 20px ${settings.start_button_bg_color}66` : '0 6px 20px rgba(217, 192, 70, 0.4)'
+                    boxShadow: settings.start_button_bg_color ? `0 6px 20px ${settings.start_button_bg_color}66` : '0 6px 20px rgba(217, 192, 70, 0.4)',
+                    opacity: (!!settings.terms_enabled && !termsAgreed) ? 0.5 : 1,
+                    cursor: (!!settings.terms_enabled && !termsAgreed) ? 'not-allowed' : 'pointer'
                   }}>
                   {settings.start_button_text || 'Start Game'}
                 </button>

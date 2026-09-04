@@ -36,6 +36,7 @@ export default function BreakoutPlayerPage({ gameData, sessionToken, onComplete 
   const [lives, setLives] = useState(maxLives)
   const [gameOver, setGameOver] = useState(false)
   const [won, setWon] = useState(false)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const canvasRef = useRef(null)
   const animationRef = useRef(null)
@@ -350,9 +351,18 @@ export default function BreakoutPlayerPage({ gameData, sessionToken, onComplete 
           <div>🖱️ Move mouse to control the paddle</div>
           <div>💥 {maxLives} lives · {brickRows}x{brickCols} bricks</div>
         </div>
+        {settings?.terms_enabled && (
+          <div style={{ marginBottom: 16, textAlign: 'center' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+              <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />
+              {settings?.terms_url ? <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{settings.terms_text || 'Terms & Conditions'}</a> : <span>{settings?.terms_text || 'Terms & Conditions'}</span>}
+            </label>
+          </div>
+        )}
         <button
           onClick={startGame}
-          style={{ padding:'10px 32px', fontSize:16, fontWeight:700, border:'none', borderRadius:8, cursor:'pointer', background:settings?.primary_color || '#6366f1', color:'#fff' }}
+          disabled={!!settings?.terms_enabled && !termsAgreed}
+          style={{ padding:'10px 32px', fontSize:16, fontWeight:700, border:'none', borderRadius:8, cursor:(!!settings?.terms_enabled && !termsAgreed)?'not-allowed':'pointer', background:settings?.primary_color || '#6366f1', color:'#fff', opacity:(!!settings?.terms_enabled && !termsAgreed)?0.5:1 }}
         >{settings?.start_button_text || 'Start Game'}</button>
       </div>
     )

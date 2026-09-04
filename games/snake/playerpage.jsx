@@ -110,6 +110,7 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
   const { settings, soundMap } = gameData
   const soundMapRef = useRef(soundMap || {})
   const resolveSound = useCallback((id) => { if (!id) return null; const n = parseInt(id); return isNaN(n) ? id : (soundMapRef.current[n] || null) }, [])
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const snakeColor = settings?.snake_color || '#22c55e'
   const foodColor = settings?.food_color || '#ef4444'
@@ -347,8 +348,8 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
             {settings?.heading_3 && <p style={{ fontSize: 13, color: 'rgba(255,255,255,0.4)', marginBottom: 16 }}>{settings.heading_3}</p>}
             {settings?.intro_text && <div style={{ background: 'rgba(139,92,246,0.08)', border: '1px solid rgba(139,92,246,0.15)', borderRadius: 10, padding: '10px 14px', marginBottom: 16, fontSize: 13, color: 'rgba(255,255,255,0.5)', lineHeight: 1.6 }}>{settings.intro_text}</div>}
             <div className="inst"><p>Use <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> or <kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> to move.<br />On mobile, swipe or use the D-pad.<br />Eat food to grow. Borders wrap around!</p></div>
-            {settings?.terms_enabled && <div style={{ marginBottom: 16 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', fontSize: 12, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}><input type="checkbox" style={{ width: 14, height: 14 }} onChange={(e) => { const b = e.target.closest('.card').querySelector('.sbtn'); if (b) b.disabled = !e.target.checked }} />{settings.terms_text || 'I agree to Terms & Conditions'}{settings.terms_url && <a href={settings.terms_url} target="_blank" rel="noreferrer" style={{ color: '#a78bfa', textDecoration: 'underline' }}>Link</a>}</label></div>}
-            <button className="sbtn" onClick={handleStart} disabled={!!settings?.terms_enabled}>{settings?.start_button_text || 'START PLAYING'}</button>
+            {settings?.terms_enabled && <div style={{ marginBottom: 16 }}><label style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center', fontSize: 12, color: 'rgba(255,255,255,0.5)', cursor: 'pointer' }}><input type="checkbox" checked={termsAgreed} onChange={(e) => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />{settings.terms_text || 'I agree to Terms & Conditions'}{settings.terms_url && <a href={settings.terms_url} target="_blank" rel="noreferrer" style={{ color: '#a78bfa', textDecoration: 'underline' }}>Link</a>}</label></div>}
+            <button className="sbtn" onClick={handleStart} disabled={!!settings?.terms_enabled && !termsAgreed} style={!!settings?.terms_enabled && !termsAgreed ? { opacity: 0.5, cursor: 'not-allowed' } : undefined}>{settings?.start_button_text || 'START PLAYING'}</button>
           </div>
         </div>
       )}

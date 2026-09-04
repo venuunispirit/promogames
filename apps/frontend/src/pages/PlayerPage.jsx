@@ -337,7 +337,7 @@ function validateField(value, fieldType, isRequired) {
   if (isRequired && !value.trim()) return 'This field is required'
   if (!value.trim()) return ''
   if (fieldType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Enter a valid email address'
-  if (fieldType === 'phone' && !/^[\d\s+\-()\u0900-\u097F]{7,20}$/.test(value)) return 'Enter a valid phone number'
+  if (fieldType === 'phone') { const digits = value.replace(/[\s\-()]/g, '').replace(/^\+?91/, ''); if (!/^\d{10}$/.test(digits)) return 'Enter a valid 10-digit phone number' }
   return ''
 }
 
@@ -790,9 +790,10 @@ export default function PlayerPage() {
       errors[f.field_label] = err
       if (err) hasErrors = true
     }
+    if (!!s.terms_enabled && !termsAgreed) errors._terms = 'Accept terms & conditions'
     setFormErrors(errors)
     setFormTouched(Object.fromEntries((game.formFields || []).map(f => [f.field_label, true])))
-    if (hasErrors) return
+    if (hasErrors || errors._terms) return
     setSubmitting(true)
     try {
       const utmSource = searchParams.get('utm_source') || ''
@@ -1370,8 +1371,9 @@ export default function PlayerPage() {
                 </span>
               </div>
             )}
+            {formErrors._terms && <div style={{ fontSize: 12, color: '#ef4444', fontWeight: 600, marginBottom: 8 }}>⚠ {formErrors._terms}</div>}
 
-            <button type="submit" disabled={submitting} style={{ width: '100%', background: s.start_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: s.start_button_text_color || '#fff', border: 'none', borderRadius: 12, padding: '15px', fontSize: 16, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', marginTop: 8, opacity: submitting ? 0.6 : 1, fontFamily: ff, boxShadow: s.start_button_bg_color ? '0 6px 20px rgba(0,0,0,0.15)' : `0 6px 20px ${primaryColor}44`, transition: 'all 0.2s', touchAction: 'manipulation' }}>
+            <button type="submit" disabled={submitting || (!!s.terms_enabled && !termsAgreed)} style={{ width: '100%', background: s.start_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: s.start_button_text_color || '#fff', border: 'none', borderRadius: 12, padding: '15px', fontSize: 16, fontWeight: 700, cursor: submitting || (!!s.terms_enabled && !termsAgreed) ? 'not-allowed' : 'pointer', marginTop: 8, opacity: (submitting || (!!s.terms_enabled && !termsAgreed)) ? 0.5 : 1, fontFamily: ff, boxShadow: s.start_button_bg_color ? '0 6px 20px rgba(0,0,0,0.15)' : `0 6px 20px ${primaryColor}44`, transition: 'all 0.2s', touchAction: 'manipulation' }}>
               {submitting ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                   <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />Starting…

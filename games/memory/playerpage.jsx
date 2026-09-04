@@ -284,6 +284,8 @@ export default function MemoryPlayerPage({ gameData, sessionToken: initToken, on
     const errors = {}
     for (const f of formFields) {
       if (Number(f.is_required) === 1 && !formData[f.field_label]?.trim()) errors[f.field_label] = 'Required'
+      else if (formData[f.field_label]?.trim() && f.field_type === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData[f.field_label])) errors[f.field_label] = 'Enter a valid email'
+      else if (formData[f.field_label]?.trim() && f.field_type === 'phone') { const digits = formData[f.field_label].replace(/[\s\-()]/g, '').replace(/^\+?91/, ''); if (!/^\d{10}$/.test(digits)) errors[f.field_label] = 'Enter a valid 10-digit phone number' }
     }
     if (Number(settings.terms_enabled) === 1 && !termsAccepted) errors._terms = 'Accept terms'
     if (Object.keys(errors).length) { setFormErrors(errors); return }
@@ -554,8 +556,8 @@ export default function MemoryPlayerPage({ gameData, sessionToken: initToken, on
             )}
             {formErrors._terms && <p style={{ color:'#e74c3c', fontSize:11, margin:'3px 0 0' }}>{formErrors._terms}</p>}
 
-            <button onClick={handleStart} disabled={submitting} className="mem-overlay-btn"
-              style={{ background:'linear-gradient(135deg,#FFD700,#f39c12)', color:'#1a1a2e', marginTop:12 }}>
+            <button onClick={handleStart} disabled={submitting || (Number(settings.terms_enabled) === 1 && !termsAccepted)} className="mem-overlay-btn"
+              style={{ background:'linear-gradient(135deg,#FFD700,#f39c12)', color:'#1a1a2e', marginTop:12, opacity:(Number(settings.terms_enabled) === 1 && !termsAccepted) ? 0.5 : 1 }}>
               {submitting ? '⏳ Starting...' : (settings.start_button_text || '🎮 Start Game')}
             </button>
           </div>

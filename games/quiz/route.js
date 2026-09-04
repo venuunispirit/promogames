@@ -135,8 +135,8 @@ router.post('/questions/:id/duplicate', auth, async (req, res) => {
     const [options] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [q.id]);
     for (const o of options) {
       await db.query(
-        'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-        [newQId, o.option_text, o.option_image_url, o.option_overlay_image_url, o.option_color, o.option_text_color, o.is_correct, o.option_order]
+        'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, option_border_color, option_border_width, option_border_radius, option_font_gradient, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+        [newQId, o.option_text, o.option_image_url, o.option_overlay_image_url, o.option_color, o.option_text_color, o.option_border_color, o.option_border_width, o.option_border_radius, o.option_font_gradient, o.is_correct, o.option_order]
       );
     }
     const [newQ] = await db.query('SELECT * FROM questions WHERE id = ?', [newQId]);
@@ -159,14 +159,14 @@ router.post('/questions/:questionId/options', auth, upload.fields([
   { name: 'option_image', maxCount: 1 },
   { name: 'option_overlay_image', maxCount: 1 }
 ]), async (req, res) => {
-  const { option_text, option_color, option_text_color, is_correct, option_order } = req.body;
+  const { option_text, option_color, option_text_color, option_border_color, option_border_width, option_border_radius, option_font_gradient, is_correct, option_order } = req.body;
   try {
     const isCorrectBool = is_correct === 1 || is_correct === true || is_correct === '1' || is_correct === 'true';
     const img_url = req.files?.option_image ? `/uploads/images/${req.files.option_image[0].filename}` : null;
     const overlay_url = req.files?.option_overlay_image ? `/uploads/images/${req.files.option_overlay_image[0].filename}` : null;
     const [result] = await db.query(
-      'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.params.questionId, option_text, img_url, overlay_url, option_color || '#1a1a2e', option_text_color || '#ffffff', isCorrectBool ? 1 : 0, option_order || 0]
+      'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, option_border_color, option_border_width, option_border_radius, option_font_gradient, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.params.questionId, option_text, img_url, overlay_url, option_color || '#1a1a2e', option_text_color || '#ffffff', option_border_color || 'transparent', option_border_width || 0, option_border_radius || 12, option_font_gradient || '', isCorrectBool ? 1 : 0, option_order || 0]
     );
     const [opt] = await db.query('SELECT * FROM options WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, option: opt[0] });
@@ -177,7 +177,7 @@ router.put('/options/:id', auth, upload.fields([
   { name: 'option_image', maxCount: 1 },
   { name: 'option_overlay_image', maxCount: 1 }
 ]), async (req, res) => {
-  const { option_text, option_color, option_text_color, is_correct, option_order } = req.body;
+  const { option_text, option_color, option_text_color, option_border_color, option_border_width, option_border_radius, option_font_gradient, is_correct, option_order } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM options WHERE id = ?', [req.params.id]);
     if (existing.length === 0) return res.status(404).json({ success: false, message: 'Option not found' });
@@ -199,9 +199,10 @@ router.put('/options/:id', auth, upload.fields([
     } else {
       overlay_url = existing[0].option_overlay_image_url;
     }
+    const toInt = (v, d) => (v === '' || v === null || v === undefined) ? d : parseInt(v, 10);
     await db.query(
-      'UPDATE options SET option_text=?, option_image_url=?, option_overlay_image_url=?, option_color=?, option_text_color=?, is_correct=?, option_order=? WHERE id=?',
-      [option_text, img_url, overlay_url, option_color, option_text_color || existing[0].option_text_color || '#ffffff', isCorrectBool ? 1 : 0, option_order, req.params.id]
+      'UPDATE options SET option_text=?, option_image_url=?, option_overlay_image_url=?, option_color=?, option_text_color=?, option_border_color=?, option_border_width=?, option_border_radius=?, option_font_gradient=?, is_correct=?, option_order=? WHERE id=?',
+      [option_text, img_url, overlay_url, option_color, option_text_color || existing[0].option_text_color || '#ffffff', option_border_color || existing[0].option_border_color || 'transparent', toInt(option_border_width, existing[0].option_border_width ?? 0), toInt(option_border_radius, existing[0].option_border_radius ?? 12), option_font_gradient ?? existing[0].option_font_gradient ?? '', isCorrectBool ? 1 : 0, option_order, req.params.id]
     );
     const [updated] = await db.query('SELECT * FROM options WHERE id = ?', [req.params.id]);
     res.json({ success: true, option: updated[0] });

@@ -518,9 +518,28 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
                 style={{ border:'1.5px dashed var(--gb-border)', borderRadius:6, padding:'4px 8px', cursor:'pointer', background:'transparent', fontSize:14, lineHeight:1, flexShrink:0 }} title="Option image">📷</button>
             )}
           </div>
-          <div style={{ display:'flex', gap:12, alignItems:'center' }}>
+          <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
             <ColorPicker value={opt.option_text_color||'#ffffff'} onChange={v => onUpdate('option_text_color', v)} label="Text Color" />
             <ColorPicker value={opt.option_color} onChange={v => onUpdate('option_color', v)} label="BG Color" />
+            <ColorPicker value={opt.option_border_color||'transparent'} onChange={v => onUpdate('option_border_color', v)} label="Border Color" />
+            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+              <span className="gb-label" style={{ whiteSpace:'nowrap' }}>Border W</span>
+              <input type="number" min={0} max={20} value={opt.option_border_width??0}
+                onChange={e => onUpdate('option_border_width', parseInt(e.target.value)||0)}
+                style={{ width:56 }} />
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+              <span className="gb-label" style={{ whiteSpace:'nowrap' }}>Radius</span>
+              <input type="number" min={0} max={60} value={opt.option_border_radius??12}
+                onChange={e => onUpdate('option_border_radius', parseInt(e.target.value)||0)}
+                style={{ width:56 }} />
+            </div>
+            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
+              <span className="gb-label" style={{ whiteSpace:'nowrap' }}>Font Gradient</span>
+              <input value={opt.option_font_gradient||''} onChange={e => onUpdate('option_font_gradient', e.target.value)}
+                placeholder="linear-gradient(90deg,#f59e0b,#ef4444)"
+                style={{ width:200, fontFamily:'monospace', fontSize:11 }} />
+            </div>
             {showCorrect && (
               <div style={{ paddingTop:18 }}>
                 <button
@@ -531,6 +550,12 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
               </div>
             )}
           </div>
+          {/* gradient preview hint */}
+          {opt.option_font_gradient && (
+            <div style={{ marginTop:8, fontSize:12, color:'var(--gb-text3)' }}>
+              Preview: <span style={{ backgroundImage:opt.option_font_gradient, WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent', fontWeight:700 }}>{opt.option_text||'Sample text'}</span>
+            </div>
+          )}
         </div>
         {/* Col 2: overlay image */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', minWidth:100 }}>
@@ -562,7 +587,7 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
 }
 
 /* ─────────── QuestionCard ─────────── */
-function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown, onLiveChange }) {
+function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown, onLiveChange, optDefaults }) {
   const [q, setQ] = useState(question)
   const [saving, setSaving] = useState(false)
   const [imgPreview, setImgPreview] = useState(question.question_image_url||null)
@@ -583,8 +608,16 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
       const opts = [...(prev.options||[])]; opts[i] = { ...opts[i], [field]:val }; return { ...prev, options:opts }
     })
   }
-  const addOption = () => setQ({ ...q, options:[...(q.options||[]),
-    { option_text:'', option_color:'#6366f1', option_text_color:'#ffffff', is_correct:0, option_order:(q.options||[]).length }] })
+  // New options inherit styling from the GAME-WIDE default option styling (set once, applies to all questions/options)
+  const addOption = () => {
+    const opts = q.options || []
+    const d = optDefaults || {}
+    setQ({ ...q, options:[...opts,
+      { option_text:'', option_color:d.option_color||'#1a1a2e', option_text_color:d.option_text_color||'#ffffff',
+        option_border_color:d.option_border_color||'transparent', option_border_width:d.option_border_width!=null?d.option_border_width:0,
+        option_border_radius:d.option_border_radius!=null?d.option_border_radius:12, option_font_gradient:d.option_font_gradient||'',
+        is_correct:0, option_order:opts.length }] })
+  }
   const removeOption = i => { const opts=[...(q.options||[])]; opts.splice(i,1); setQ({ ...q, options:opts }) }
   const setCorrect = sel => setQ(prev => ({ ...prev,
     options: prev.options.map((o,idx) => ({ ...o, is_correct: idx===sel ? 1 : 0 })) }))
@@ -999,6 +1032,10 @@ const [nameInput,     setNameInput]     = useState('')
       ofd.append('option_text',       opt.option_text||'')
       ofd.append('option_color',      opt.option_color||'#6366f1')
       ofd.append('option_text_color', opt.option_text_color||'#ffffff')
+      ofd.append('option_border_color',   opt.option_border_color||'transparent')
+      ofd.append('option_border_width',   opt.option_border_width||0)
+      ofd.append('option_border_radius',  opt.option_border_radius||12)
+      ofd.append('option_font_gradient',  opt.option_font_gradient||'')
       ofd.append('is_correct',        opt.is_correct ? 1 : 0)
       ofd.append('option_order',      (q.options||[]).indexOf(opt))
       if (opt._optImageFile) ofd.append('option_image',         opt._optImageFile)
@@ -1137,9 +1174,11 @@ const [nameInput,     setNameInput]     = useState('')
         'continue_button_text_color','continue_button_bg_color',
         'next_button_text','next_button_text_color','next_button_bg_color',
         'randomize_questions','questions_per_session',
-        'enable_mascot','enable_speech','speech_language','speech_rate','speech_pitch']
+        'enable_mascot','enable_speech','speech_language','speech_rate','speech_pitch',
+        'default_option_color','default_option_text_color','default_option_border_color',
+        'default_option_border_width','default_option_border_radius','default_option_font_gradient']
       const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech']
-      const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time']
+      const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time','default_option_border_width','default_option_border_radius']
       for (const f of fields) {
         let v = settings[f]
         if (v === undefined || v === '') v = null
@@ -1231,6 +1270,7 @@ const [nameInput,     setNameInput]     = useState('')
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
   const isParentGame = !game?.parent_game_id
   const TABS = [
+    { id:'global',    label:'Global Styling' },
     { id:'form',      label:'Player Form' },
     { id:'questions', label:'Questions' },
     { id:'thankyou',  label:'Thankyou Page' },
@@ -1482,9 +1522,63 @@ const [nameInput,     setNameInput]     = useState('')
                       onMoveDown={i => moveQuestion(i, i+1)}
                       forceOpen={true}
                       onLiveChange={handleLiveChange}
+                      optDefaults={{
+                        option_color: settings.default_option_color || '#1a1a2e',
+                        option_text_color: settings.default_option_text_color || '#ffffff',
+                        option_border_color: settings.default_option_border_color || 'transparent',
+                        option_border_width: settings.default_option_border_width != null ? settings.default_option_border_width : 0,
+                        option_border_radius: settings.default_option_border_radius != null ? settings.default_option_border_radius : 12,
+                        option_font_gradient: settings.default_option_font_gradient || '',
+                      }}
                     />
                   )
                 })()}
+              </div>
+            </div>
+          )}
+
+          {/* ════ GLOBAL STYLING TAB ════ */}
+          {tab === 'global' && (
+            <div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🎨 Default Option Styling</div>
+                <p style={{ fontSize:12, color:'var(--gb-text3)', marginTop:4, marginBottom:14 }}>
+                  Set the default look for all answer options across every question in this game. New options inherit
+                  this styling automatically. Existing options keep whatever styling they were saved with, and you can
+                  still override any individual option in the Questions tab.
+                </p>
+                <div style={{ display:'flex', flexWrap:'wrap', gap:12, marginBottom:12 }}>
+                  <ColorPicker value={settings.default_option_color||'#1a1a2e'} onChange={v=>setSettings({...settings,default_option_color:v})} label="Option BG" />
+                  <ColorPicker value={settings.default_option_text_color||'#ffffff'} onChange={v=>setSettings({...settings,default_option_text_color:v})} label="Option Text" />
+                  <ColorPicker value={settings.default_option_border_color||'transparent'} onChange={v=>setSettings({...settings,default_option_border_color:v})} label="Border Color" />
+                </div>
+                <div style={{ display:'flex', gap:12, marginBottom:12 }}>
+                  <div className="gb-fg" style={{ marginBottom:0 }}>
+                    <span className="gb-label">Border Width (px)</span>
+                    <input type="number" min={0} max={20} value={settings.default_option_border_width!=null?settings.default_option_border_width:0}
+                      onChange={e=>setSettings({...settings,default_option_border_width:parseInt(e.target.value)||0})} />
+                  </div>
+                  <div className="gb-fg" style={{ marginBottom:0 }}>
+                    <span className="gb-label">Border Radius (px)</span>
+                    <input type="number" min={0} max={60} value={settings.default_option_border_radius!=null?settings.default_option_border_radius:12}
+                      onChange={e=>setSettings({...settings,default_option_border_radius:parseInt(e.target.value)||0})} />
+                  </div>
+                </div>
+                <div className="gb-fg" style={{ marginBottom:0, maxWidth:480 }}>
+                  <span className="gb-label">Font Gradient (CSS)</span>
+                  <input value={settings.default_option_font_gradient||''} onChange={e=>setSettings({...settings,default_option_font_gradient:e.target.value})}
+                    placeholder="linear-gradient(90deg,#f59e0b,#ef4444)" style={{ fontFamily:'monospace', fontSize:11 }} />
+                </div>
+                {settings.default_option_font_gradient && (
+                  <div style={{ marginTop:10, fontSize:12, color:'var(--gb-text3)' }}>
+                    Preview: <span style={{ backgroundImage:settings.default_option_font_gradient, WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent', fontWeight:700 }}>Gradient text</span>
+                  </div>
+                )}
+                <div style={{ marginTop:16 }}>
+                  <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                    {saving ? 'Saving…' : 'Save Global Styling'}
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -2074,6 +2168,51 @@ const [nameInput,     setNameInput]     = useState('')
           {/* ── Form preview ── */}
           {tab === 'form' && <FormPreview settings={settings} formFields={formFields} defaultButtonText="Start Quiz →" />}
 
+          {/* ── Global styling preview (sample option look) ── */}
+          {tab === 'global' && (() => {
+            const bg = settings.bg_image_url
+            const hasBg = !!bg
+            const optStyle = {
+              color: settings.default_option_color || '#1a1a2e',
+              textColor: settings.default_option_text_color || '#ffffff',
+              borderColor: settings.default_option_border_color || 'transparent',
+              borderWidth: settings.default_option_border_width != null ? settings.default_option_border_width : 0,
+              radius: settings.default_option_border_radius != null ? settings.default_option_border_radius : 12,
+              gradient: settings.default_option_font_gradient || '',
+            }
+            const optsText = ['Option 1', 'Option 2', 'Option 3', 'Option 4']
+            return (
+              <div style={{ flex:1, display:'flex', flexDirection:'column', padding:'8px 12px 14px', overflow:'auto' }}>
+                <div style={{
+                  flex:1, display:'flex', flexDirection:'column',
+                  background: hasBg ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.97)',
+                  backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
+                  borderRadius:18, border: hasBg ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
+                  boxShadow: hasBg ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
+                  overflow:'hidden', padding:16, gap:10,
+                }}>
+                  <div style={{ fontSize:13, fontWeight:700, color: hasBg ? '#fff' : '#1a1a2e', textAlign:'center', marginBottom:6 }}>
+                    Sample question — default option styling
+                  </div>
+                  {optsText.map((t, i) => (
+                    <div key={i} style={{
+                      padding:'13px 14px', borderRadius:optStyle.radius,
+                      background:optStyle.color,
+                      border:`${optStyle.borderWidth}px solid ${optStyle.borderColor}`,
+                      textAlign:'center',
+                    }}>
+                      {optStyle.gradient ? (
+                        <span style={{ backgroundImage:optStyle.gradient, WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent', WebkitTextFillColor:'transparent', fontWeight:700 }}>{t}</span>
+                      ) : (
+                        <span style={{ color:optStyle.textColor, fontWeight:700 }}>{t}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )
+          })()}
+
           {/* ── Questions preview (live edits via throttled state) ── */}
           {tab === 'questions' && questions.length > 0 && (() => {
             const previewQ = liveQ?.id === selectedQuestionId ? liveQ : (questions.find(q => q.id === selectedQuestionId) || questions[0])
@@ -2186,13 +2325,17 @@ const [nameInput,     setNameInput]     = useState('')
                       {previewQ.question_text || 'Untitled question'}
                     </h2>
                     <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                      {(previewQ.options||[]).slice(0,4).map((opt,i) => (
+                      {(previewQ.options||[]).slice(0,4).map((opt,i) => {
+                        const bw = (opt.option_border_width ?? 0) > 0 ? opt.option_border_width : (opt.option_border_color && opt.option_border_color !== 'transparent' ? 2 : 0)
+                        const bc = opt.option_border_color || 'transparent'
+                        return (
                         <div key={opt.id||i} onClick={() => handleOptionClick(opt)}
                           style={{
                             background: opt.option_color || '#1a1a2e',
                             color: opt.option_text_color || '#ffffff',
-                            borderRadius:12, padding: opt.option_image_url ? '0' : '8px 12px', fontSize:12, fontWeight:600,
-                            textAlign:'center', border:'2px solid transparent',
+                            borderRadius: opt.option_border_radius != null ? opt.option_border_radius : 12,
+                            padding: opt.option_image_url ? '0' : '8px 12px', fontSize:12, fontWeight:600,
+                            textAlign:'center', border:`${bw}px solid ${bc}`,
                             boxShadow:'0 2px 8px rgba(0,0,0,0.1)', cursor:'pointer',
                             overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', minHeight:36,
                           }}>
@@ -2200,10 +2343,13 @@ const [nameInput,     setNameInput]     = useState('')
                             ? (isVideoUrl(opt.option_image_url)
                                 ? <video src={opt.option_image_url} autoPlay muted loop playsInline style={{ maxWidth:'100%', maxHeight:72, objectFit:'contain', borderRadius:8 }} />
                                 : <img src={opt.option_image_url} alt="" style={{ maxWidth:'100%', maxHeight:72, objectFit:'contain', borderRadius:8 }} />)
-                            : (opt.option_text || `Option ${i+1}`)
+                            : opt.option_font_gradient
+                              ? <span style={{ flex:1,textAlign:'center',background:opt.option_font_gradient,WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent',WebkitTextFillColor:'transparent' }}>{opt.option_text || `Option ${i+1}`}</span>
+                              : (opt.option_text || `Option ${i+1}`)
                           }
                         </div>
-                      ))}
+                        )
+                      })}
                     </div>
                     {/* Next button — appears after overlay + idle */}
                     {previewStage === 'next' && (

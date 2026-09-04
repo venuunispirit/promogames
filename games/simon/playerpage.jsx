@@ -11,6 +11,9 @@ export default function SimonPlayerPage({ gameData, sessionToken, onComplete }) 
   const settings = gameData?.settings || {}
   const soundMapRef = useRef(gameData?.soundMap || {})
   const resolveSound = useCallback((id) => { if (!id) return null; const n = parseInt(id); return isNaN(n) ? id : (soundMapRef.current[n] || null) }, [])
+  const [formData, setFormData] = useState({})
+  const [formErrors, setFormErrors] = useState({})
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const numColors = Math.min(Math.max(parseInt(settings.num_colors) || 4, 3), 6)
   const colors = [settings.color_1, settings.color_2, settings.color_3, settings.color_4, settings.color_5, settings.color_6]
@@ -78,6 +81,24 @@ export default function SimonPlayerPage({ gameData, sessionToken, onComplete }) 
       }
     }, speed)
   }, [speed, resolveSound, settings])
+
+  const validateField = (value, fieldType, isRequired) => {
+    if (isRequired && !value.trim()) return 'This field is required'
+    if (!value.trim()) return ''
+    if (fieldType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Enter a valid email address'
+    if (fieldType === 'phone') { const digits = value.replace(/[\s\-()]/g, '').replace(/^\+?91/, ''); if (!/^\d{10}$/.test(digits)) return 'Enter a valid 10-digit phone number' }
+    return ''
+  }
+
+  const handleStartIntro = () => {
+    const errors = {}
+    for (const f of (gameData?.formFields || [])) {
+      errors[f.field_label] = validateField(formData[f.field_label] || '', f.field_type, f.is_required)
+    }
+    if (settings.terms_enabled === 1 && !termsAgreed) errors._terms = 'Accept terms & conditions'
+    if (Object.keys(errors).some(k => errors[k])) { setFormErrors(errors); return }
+    startGame()
+  }
 
   const startGame = () => {
     setPhase('playing')
@@ -176,16 +197,29 @@ export default function SimonPlayerPage({ gameData, sessionToken, onComplete }) 
           {gameData?.game_type !== 'promogames' && gameData?.formFields?.map((f,i) => (
             <div key={i} style={{ marginBottom:10, textAlign:'left' }}>
               <div style={{ fontSize:11, fontWeight:700, color:'rgba(255,255,255,0.7)', marginBottom:4, textTransform:'uppercase', letterSpacing:'0.05em' }}>{f.field_label}{f.is_required ? '*' : ''}</div>
-              <input type={f.field_type === 'email' ? 'email' : f.field_type === 'number' ? 'number' : 'text'} placeholder={f.field_label} style={{ width:'100%', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:8, padding:'10px 12px', fontSize:14, color:'#fff', outline:'none' }} />
+              <input type={f.field_type === 'email' ? 'email' : f.field_type === 'phone' ? 'tel' : f.field_type === 'number' ? 'number' : 'text'} placeholder={f.field_label} value={formData[f.field_label] || ''}
+                onChange={e => {
+                  const v = e.target.value
+                  let nv = v
+                  if (f.field_type === 'phone') nv = v.replace(/[^\d+\s\-()]/g, '')
+                  setFormData({ ...formData, [f.field_label]: nv })
+                  setFormErrors({ ...formErrors, [f.field_label]: validateField(nv, f.field_type, f.is_required) })
+                }}
+                onBlur={() => setFormErrors({ ...formErrors, [f.field_label]: validateField(formData[f.field_label] || '', f.field_type, f.is_required) })}
+                style={{ width:'100%', background:'rgba(255,255,255,0.08)', border:'1px solid rgba(255,255,255,0.2)', borderRadius:8, padding:'10px 12px', fontSize:14, color:'#fff', outline:'none' }} />
+              {formErrors[f.field_label] && <div style={{ fontSize:11, color:'#ef4444', marginTop:4 }}>{formErrors[f.field_label]}</div>}
             </div>
           ))}
           {settings.terms_enabled === 1 && (
-            <div style={{ display:'flex', alignItems:'center', gap:6, marginBottom:16, fontSize:12, color:'rgba(255,255,255,0.6)' }}>
-              <input type="checkbox" style={{ width:14, height:14 }} />
-              {settings.terms_text || 'Terms & Conditions'}
+            <div style={{ marginBottom:16 }}>
+              <label style={{ display:'flex', alignItems:'center', gap:6, fontSize:12, color:'rgba(255,255,255,0.6)', cursor:'pointer' }}>
+                <input type="checkbox" checked={termsAgreed} onChange={e => { setTermsAgreed(e.target.checked); setFormErrors({ ...formErrors, _terms:'' }) }} style={{ width:14, height:14 }} />
+                {settings.terms_url ? <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: settings.primary_color||'#6366f1', textDecoration:'underline' }}>{settings.terms_text || 'Terms & Conditions'}</a> : <span>{settings.terms_text || 'Terms & Conditions'}</span>}
+              </label>
+              {formErrors._terms && <div style={{ fontSize:11, color:'#ef4444', marginTop:4 }}>{formErrors._terms}</div>}
             </div>
           )}
-          <button onClick={startGame} style={{ width:'100%', padding:'14px', background: settings.start_button_bg_color || `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`, color: settings.start_button_text_color||'#fff', border:'none', borderRadius:12, fontSize:16, fontWeight:700, cursor:'pointer', boxShadow:`0 6px 24px ${(settings.primary_color||'#6366f1')}44` }}>
+          <button onClick={handleStartIntro} disabled={!!(settings.terms_enabled === 1 && !termsAgreed)} style={{ width:'100%', padding:'14px', background: settings.start_button_bg_color || `linear-gradient(135deg, ${settings.primary_color||'#6366f1'}, ${(settings.primary_color||'#6366f1')}cc)`, color: settings.start_button_text_color||'#fff', border:'none', borderRadius:12, fontSize:16, fontWeight:700, cursor:(settings.terms_enabled === 1 && !termsAgreed) ? 'not-allowed' : 'pointer', opacity:(settings.terms_enabled === 1 && !termsAgreed) ? 0.5 : 1, boxShadow:`0 6px 24px ${(settings.primary_color||'#6366f1')}44` }}>
             {settings.start_button_text || 'Start Game →'}
           </button>
         </div>

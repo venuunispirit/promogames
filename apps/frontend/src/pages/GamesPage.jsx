@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import api from '../api'
 import { useTheme } from './ThemeContext'
+import { useAuth } from '../context/AuthContext'
 
 const FONT_URL = `https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap`
 
@@ -708,7 +709,85 @@ const handleSubmit = async e => {
         @keyframes gpOrbFloat{0%,100%{transform:translate(0,0)}50%{transform:translate(30px,-20px)}}
         .gp-no-scrollbar::-webkit-scrollbar{display:none}
         .gp-no-scrollbar{-ms-overflow-style:none;scrollbar-width:none}
-      `}</style>
+      `}      </style>
+    </div>
+  )
+}
+
+/* ── Duplicate a game into any client (admin) ── */
+function DuplicateGameModal({ game, clients, onClose, onCreated, onError }) {
+  const { isDark } = useTheme()
+  const [targetClientId, setTargetClientId] = useState(game?.client_id ? String(game.client_id) : '')
+  const [duplicating, setDuplicating] = useState(false)
+
+  const srcClient = clients.find(c => c.id === game?.client_id)
+
+  const handleDuplicate = async () => {
+    if (!game) return
+    if (!targetClientId) return onError('Select a client to duplicate into')
+    setDuplicating(true)
+    try {
+      const res = await api.post(`/games/${game.id}/duplicate`, { client_id: Number(targetClientId) })
+      const target = clients.find(c=>c.id===Number(targetClientId))
+      onCreated(res.data.game, target?.company_name || 'client')
+    } catch (err) {
+      onError(err.response?.data?.message || 'Duplicate failed')
+    } finally {
+      setDuplicating(false)
+    }
+  }
+
+  return (
+    <div style={{position:'fixed',inset:0,zIndex:700,display:'flex',alignItems:'center',justifyContent:'center',padding:20,background:'rgba(8,8,18,.5)',backdropFilter:'blur(6px)',animation:'gpFadeIn .25s ease'}} onClick={onClose}>
+      <div style={{
+        width:440,maxWidth:'92vw',borderRadius:20,padding:24,
+        background: isDark ? 'rgba(26,26,26,0.95)' : '#fff',
+        border:'1px solid rgba(255,255,255,0.12)',
+        boxShadow:'0 24px 60px rgba(0,0,0,.3)',
+        fontFamily:"'DM Sans',sans-serif",
+      }} onClick={e=>e.stopPropagation()}>
+        <div style={{display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:16}}>
+           <h3 style={{margin:0,fontSize:18,fontWeight:800,color:'var(--text)'}}>Duplicate Game</h3>
+          <button onClick={onClose} style={{background:'none',border:'none',color:'var(--text3)',fontSize:20,cursor:'pointer',lineHeight:1}}>✕</button>
+        </div>
+
+        <div style={{fontSize:13,color:'var(--text2)',marginBottom:16}}>
+          Source: <strong style={{color:'var(--text)'}}>{game?.name}</strong>
+        </div>
+        <div style={{fontSize:12,color:'var(--text3)',marginBottom:6}}>Originally under: <strong style={{color:'var(--text)'}}>{srcClient?.company_name || '—'}</strong></div>
+        {!srcClient && <div style={{fontSize:11,color:'var(--text3)',marginBottom:10}}>This game isn't assigned to a client yet.</div>}
+
+        <label style={{display:'block',fontSize:12,fontWeight:700,color:'var(--text)',margin:'16px 0 6px',textTransform:'uppercase',letterSpacing:'.05em'}}>
+          Duplicate into client <span style={{color:'#EF4444'}}>*</span>
+        </label>
+        <div style={{position:'relative'}}>
+          <select value={targetClientId} onChange={e=>setTargetClientId(e.target.value)} style={{
+            width:'100%',padding:'10px 36px 10px 12px',borderRadius:10,
+            border:'1.5px solid rgba(0,0,0,0.1)',background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(255,255,255,0.7)',
+            fontSize:13,fontFamily:"'DM Sans',sans-serif",color:'var(--text)',outline:'none',appearance:'none',cursor:'pointer',
+          }}>
+            <option value="">Select a client…</option>
+            {clients.map(c => <option key={c.id} value={String(c.id)}>{c.company_name}</option>)}
+          </select>
+          <svg style={{position:'absolute',right:12,top:'50%',transform:'translateY(-50%)',pointerEvents:'none',color:'var(--text3)'}} width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+        </div>
+        <p style={{fontSize:11,color:'var(--text3)',marginTop:8}}>
+          Selecting the same client keeps the duplicate in the same client's workspace.
+        </p>
+
+        <div style={{display:'flex',gap:10,marginTop:18,justifyContent:'flex-end'}}>
+          <button onClick={onClose} style={{
+            padding:'10px 18px',borderRadius:10,border:'1px solid rgba(0,0,0,0.1)',
+            background: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+            color:'var(--text)',fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",
+          }}>Cancel</button>
+          <button onClick={handleDuplicate} disabled={!targetClientId || duplicating} style={{
+            padding:'10px 18px',borderRadius:10,border:'none',background:' #8B5CF6',color:'#fff',
+            fontSize:13,fontWeight:700,cursor: targetClientId && !duplicating ? 'pointer' : 'not-allowed',
+            opacity: targetClientId && !duplicating ? 1 : 0.5,fontFamily:"'DM Sans',sans-serif",
+          }}>{duplicating ? 'Duplicating…' : 'Duplicate'}</button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -1217,10 +1296,13 @@ export default function GamesPage() {
   const [sortDir, setSortDir] = useState('desc')
   const [viewMode, setViewMode] = useState('graph')
   const [selectedGame, setSelectedGame] = useState(null)
+  const [dupTarget, setDupTarget] = useState(null)
   const [selectedClient, setSelectedClient] = useState(null)
   const [expandedParents, setExpandedParents] = useState({})
   const [graphClient, setGraphClient] = useState('all')
   const navigate = useNavigate()
+  const { user } = useAuth()
+  const isAdmin = user?.role === 'admin'
 
   const load = () =>
     Promise.all([api.get('/games'), api.get('/clients')])
@@ -1258,6 +1340,20 @@ export default function GamesPage() {
       showToast('Game duplicated')
       load()
     } catch { showToast('Duplicate failed','error') }
+  }
+
+  // Admin: open a client picker for the duplicate. Others: quick-duplicate to the same client.
+  const handleDuplicateClick = (game) => {
+    const g = typeof game === 'object' ? game : games.find(x => x.id === game)
+    if (!g) return
+    if (isAdmin && clients.length > 0) { setDupTarget(g); return }
+    handleDuplicate(g.id)
+  }
+
+  const handleDupCreated = (newGame, targetName) => {
+    setDupTarget(null)
+    showToast(`Game duplicated to ${targetName}`)
+    load()
   }
 
   const STATUS_CYCLE = ['development', 'testing', 'live']
@@ -1558,7 +1654,7 @@ export default function GamesPage() {
                       <td className="center" style={{minWidth:100}} onClick={e => e.stopPropagation()}>
                         <div style={{display:'flex',flexDirection:'column',alignItems:'center',gap:5}}>
                           <div style={{display:'flex',alignItems:'center',gap:5}}>
-                            <button className="gp-icon-btn" onClick={e => { e.stopPropagation(); handleDuplicate(game.id) }} title="Duplicate">
+                            <button className="gp-icon-btn" onClick={e => { e.stopPropagation(); handleDuplicateClick(game) }} title="Duplicate">
                               <Ico.copy/>
                             </button>
                             <button className="gp-ghost-btn" style={{background:' var(--text)',color:' var(--surface)',borderColor:' var(--text)',padding:'4px 10px',justifyContent:'center',fontSize:10.5,gap:3}}
@@ -1759,8 +1855,19 @@ export default function GamesPage() {
           onToggle={toggleField}
           onStatusToggle={handleStatusToggle}
           onGameTypeToggle={handleGameTypeToggle}
-          onDuplicate={handleDuplicate}
+          onDuplicate={handleDuplicateClick}
           onDelete={handleDelete}
+        />
+      )}
+
+      {/* Duplicate into client modal (admin) */}
+      {dupTarget && (
+        <DuplicateGameModal
+          game={dupTarget}
+          clients={clients}
+          onClose={() => setDupTarget(null)}
+          onCreated={handleDupCreated}
+          onError={msg => showToast(msg,'error')}
         />
       )}
 

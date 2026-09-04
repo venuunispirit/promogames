@@ -318,6 +318,7 @@ export default function StressBusterPlayerPage({ gameData, sessionToken: initTok
   const [errorMsg, setErrorMsg] = useState(null)
   const [damages, setDamages] = useState([])
   const [hitKey, setHitKey] = useState(0)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const timerRef = useRef(null)
   const gameResultRef = useRef({ clicks: 0, time: 0 })
@@ -498,10 +499,21 @@ export default function StressBusterPlayerPage({ gameData, sessionToken: initTok
                 Click Tom {maxClicks} times to win!
                 {timerEnabled && ' Beat the clock!'}
               </p>
+              {settings.terms_enabled && (
+                <div style={{ marginBottom: 16, textAlign: 'left', background: 'rgba(255,255,255,0.05)', borderRadius: 12, padding: '12px 16px', border: '1px solid rgba(255,255,255,0.08)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+                    <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />
+                    {settings.terms_url ? <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{settings.terms_text || 'Terms & Conditions'}</a> : <span>{settings.terms_text || 'Terms & Conditions'}</span>}
+                  </label>
+                </div>
+              )}
               <button onClick={startGame} className="sb-start-btn sb-btn-start"
+                disabled={!!settings.terms_enabled && !termsAgreed}
                 style={{
                   color: settings.start_button_text_color || '#fff',
                   background: settings.start_button_bg_color || undefined,
+                  opacity: (!!settings.terms_enabled && !termsAgreed) ? 0.5 : 1,
+                  cursor: (!!settings.terms_enabled && !termsAgreed) ? 'not-allowed' : 'pointer',
                 }}>
                 {settings.start_button_text || 'Start Game'}
               </button>

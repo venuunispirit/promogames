@@ -23,6 +23,7 @@ export default function ReactionPlayerPage({ gameData, sessionToken, onComplete 
   const [resultMsg, setResultMsg] = useState('')
   const [avgTime, setAvgTime] = useState(0)
   const [bestTime, setBestTime] = useState(Infinity)
+  const [termsAgreed, setTermsAgreed] = useState(false)
   const timerRef = useRef(null)
   const completedRef = useRef(false)
 
@@ -106,7 +107,15 @@ export default function ReactionPlayerPage({ gameData, sessionToken, onComplete 
           <div style={{ background:'#fef2f2',borderRadius:12,padding:16,marginBottom:20 }}>
             <p style={{ fontSize:13,color:'#991b1b',lineHeight:1.6 }}>⚡ Wait for the screen to turn green, then tap as fast as you can! {totalRounds} rounds.</p>
           </div>
-          <button onClick={handleStart} style={{ background:`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color:'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:ff,boxShadow:`0 6px 20px ${primaryColor}44`,width:'100%',maxWidth:280 }}>{settings?.start_button_text||'Start Test →'}</button>
+          {settings?.terms_enabled && (
+            <div style={{ marginBottom: 16, textAlign: 'center' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(0,0,0,0.6)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />
+                {settings?.terms_url ? <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{settings.terms_text || 'Terms & Conditions'}</a> : <span>{settings?.terms_text || 'Terms & Conditions'}</span>}
+              </label>
+            </div>
+          )}
+          <button onClick={handleStart} disabled={!!settings?.terms_enabled && !termsAgreed} style={{ background:`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color:'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:(!!settings?.terms_enabled && !termsAgreed)?'not-allowed':'pointer',fontFamily:ff,boxShadow:`0 6px 20px ${primaryColor}44`,width:'100%',maxWidth:280,opacity:(!!settings?.terms_enabled && !termsAgreed)?0.5:1 }}>{settings?.start_button_text||'Start Test →'}</button>
         </div>
       </div>
     )

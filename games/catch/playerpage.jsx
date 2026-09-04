@@ -34,6 +34,7 @@ export default function CatchPlayerPage({ gameData, sessionToken, onComplete }) 
   const spawnRef = useRef(null)
   const completedRef = useRef(false)
   const basketXRef = useRef(50)
+  const [termsAgreed, setTermsAgreed] = useState(false)
 
   const handleComplete = useCallback(async () => {
     if (completedRef.current) return; completedRef.current = true
@@ -120,7 +121,15 @@ export default function CatchPlayerPage({ gameData, sessionToken, onComplete }) 
           <div style={{ background:'#f5f3ff',borderRadius:12,padding:16,marginBottom:20 }}>
             <p style={{ fontSize:13,color:'#6D28D9',lineHeight:1.6 }}>🧺 Move your basket left/right to catch falling items. Don't let them hit the ground!</p>
           </div>
-          <button onClick={handleStart} style={{ background:`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color:'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:'pointer',fontFamily:ff,boxShadow:`0 6px 20px ${primaryColor}44`,width:'100%',maxWidth:280 }}>{settings?.start_button_text||'Start Catching →'}</button>
+          {settings?.terms_enabled && (
+            <div style={{ marginBottom: 16, textAlign: 'center' }}>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 12, color: 'rgba(255,255,255,0.6)', cursor: 'pointer' }}>
+                <input type="checkbox" checked={termsAgreed} onChange={e => setTermsAgreed(e.target.checked)} style={{ width: 14, height: 14 }} />
+                {settings?.terms_url ? <a href={settings.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{settings.terms_text || 'Terms & Conditions'}</a> : <span>{settings?.terms_text || 'Terms & Conditions'}</span>}
+              </label>
+            </div>
+          )}
+          <button onClick={handleStart} disabled={!!settings?.terms_enabled && !termsAgreed} style={{ background:`linear-gradient(135deg,${primaryColor},${primaryColor}cc)`,color:'#fff',border:'none',borderRadius:12,padding:'15px 36px',fontSize:16,fontWeight:700,cursor:(!!settings?.terms_enabled && !termsAgreed)?'not-allowed':'pointer',fontFamily:ff,boxShadow:`0 6px 20px ${primaryColor}44`,width:'100%',maxWidth:280,opacity:(!!settings?.terms_enabled && !termsAgreed)?0.5:1 }}>{settings?.start_button_text||'Start Catching →'}</button>
         </div>
       </div>
     )

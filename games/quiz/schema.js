@@ -17,6 +17,8 @@ module.exports = {
     'start_button_text', 'submit_button_text', 'continue_button_text',
     'randomize_questions', 'questions_per_session',
     'enable_mascot', 'enable_speech', 'speech_language', 'speech_rate', 'speech_pitch',
+    'default_option_color', 'default_option_text_color', 'default_option_border_color',
+    'default_option_border_width', 'default_option_border_radius', 'default_option_font_gradient',
   ],
   uploads: ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url', 'win_sound_url'],
   defaults: {
@@ -45,5 +47,11 @@ module.exports = {
     speech_rate: 1,
     speech_pitch: 1,
     terms_enabled: 0,
+    default_option_color: '#1a1a2e',
+    default_option_text_color: '#ffffff',
+    default_option_border_color: 'transparent',
+    default_option_border_width: 0,
+    default_option_border_radius: 12,
+    default_option_font_gradient: '',
   },
 };

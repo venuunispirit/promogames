@@ -319,7 +319,7 @@ function validateField(value, fieldType, isRequired) {
   if (isRequired && !value.trim()) return 'This field is required'
   if (!value.trim()) return ''
   if (fieldType === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) return 'Enter a valid email address'
-  if (fieldType === 'phone' && !/^[\d\s+\-()\u0900-\u097F]{7,20}$/.test(value)) return 'Enter a valid phone number'
+  if (fieldType === 'phone' && !/^\d{10}$/.test(value)) return 'Enter a valid 10-digit phone number'
   return ''
 }
 
@@ -811,6 +811,12 @@ export default function PlayerPage() {
     setFormErrors(errors)
     setFormTouched(Object.fromEntries((game.formFields || []).map(f => [f.field_label, true])))
     if (hasErrors) return
+    const s = game?.settings || {}
+    if (s.terms_enabled && !termsAgreed) {
+      setFormErrors(prev => ({ ...prev, __terms: 'You must accept the terms and conditions' }))
+      return
+    }
+    setFormErrors(prev => { const e = { ...prev }; delete e.__terms; return e })
     setSubmitting(true)
     try {
       const utmSource = searchParams.get('utm_source') || ''
@@ -1371,6 +1377,9 @@ export default function PlayerPage() {
                   ) : (
                     <input id={fieldId} name={fieldId}
                       type={f.field_type === 'phone' ? 'tel' : f.field_type === 'email' ? 'email' : f.field_type === 'number' ? 'number' : 'text'}
+                      maxLength={f.field_type === 'phone' ? 10 : undefined}
+                      inputMode={f.field_type === 'phone' ? 'numeric' : undefined}
+                      pattern={f.field_type === 'phone' ? '[0-9]*' : undefined}
                       value={val}
                       disabled={fromProfile}
                       onChange={e => handleFieldChange(f.field_label, e.target.value, f.field_type, f.is_required)}
@@ -1385,18 +1394,21 @@ export default function PlayerPage() {
             })}
 
             {!!s.terms_enabled && (s.terms_text || s.terms_url) && (
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10, marginBottom: 16, marginTop: 4 }}>
-                <div onClick={() => setTermsAgreed(!termsAgreed)} style={{ width: 22, height: 22, flexShrink: 0, marginTop: 2, border: `2px solid ${termsAgreed ? primaryColor : '#ccc'}`, borderRadius: 5, background: termsAgreed ? primaryColor : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
-                  {termsAgreed && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
+              <div style={{ marginBottom: 16, marginTop: 4 }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+                  <div onClick={() => { setTermsAgreed(!termsAgreed); setFormErrors(prev => { const e = { ...prev }; delete e.__terms; return e }) }} style={{ width: 22, height: 22, flexShrink: 0, marginTop: 2, border: `2px solid ${termsAgreed ? primaryColor : (formErrors.__terms ? '#ef4444' : '#ccc')}`, borderRadius: 5, background: termsAgreed ? primaryColor : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                    {termsAgreed && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
+                  </div>
+                  <span style={{ fontSize: 13, color: hasBgImg ? 'rgba(255,255,255,0.85)' : '#555', lineHeight: 1.5 }}>
+                    I agree to the{' '}
+                    {s.terms_url ? <a href={s.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: primaryColor, fontWeight: 600, textDecoration: 'underline' }}>{s.terms_text || 'Terms & Conditions'}</a> : <span style={{ color: primaryColor, fontWeight: 600 }}>{s.terms_text || 'Terms & Conditions'}</span>}
+                  </span>
                 </div>
-                <span style={{ fontSize: 13, color: hasBgImg ? 'rgba(255,255,255,0.85)' : '#555', lineHeight: 1.5 }}>
-                  I agree to the{' '}
-                  {s.terms_url ? <a href={s.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: primaryColor, fontWeight: 600, textDecoration: 'underline' }}>{s.terms_text || 'Terms & Conditions'}</a> : <span style={{ color: primaryColor, fontWeight: 600 }}>{s.terms_text || 'Terms & Conditions'}</span>}
-                </span>
+                {formErrors.__terms && <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600, display: 'block', marginTop: 4, marginLeft: 32 }}>⚠ {formErrors.__terms}</span>}
               </div>
             )}
 
-            <button type="submit" disabled={submitting} style={{ width: '100%', background: s.start_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: s.start_button_text_color || '#fff', border: 'none', borderRadius: 12, padding: '15px', fontSize: 16, fontWeight: 700, cursor: submitting ? 'not-allowed' : 'pointer', marginTop: 8, opacity: submitting ? 0.6 : 1, fontFamily: ff, boxShadow: s.start_button_bg_color ? '0 6px 20px rgba(0,0,0,0.15)' : `0 6px 20px ${primaryColor}44`, transition: 'all 0.2s', touchAction: 'manipulation' }}>
+            <button type="submit" disabled={submitting || (!!s.terms_enabled && !termsAgreed)} style={{ width: '100%', background: s.start_button_bg_color || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: s.start_button_text_color || '#fff', border: 'none', borderRadius: 12, padding: '15px', fontSize: 16, fontWeight: 700, cursor: submitting || (!!s.terms_enabled && !termsAgreed) ? 'not-allowed' : 'pointer', marginTop: 8, opacity: submitting || (!!s.terms_enabled && !termsAgreed) ? 0.5 : 1, fontFamily: ff, boxShadow: s.start_button_bg_color ? '0 6px 20px rgba(0,0,0,0.15)' : `0 6px 20px ${primaryColor}44`, transition: 'all 0.2s', touchAction: 'manipulation' }}>
               {submitting ? (
                 <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10 }}>
                   <span style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.4)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.7s linear infinite', display: 'inline-block' }} />Starting…

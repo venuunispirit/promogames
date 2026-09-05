@@ -433,6 +433,231 @@ function ColorPicker({ value, onChange, label, noPresets }) {
   )
 }
 
+/* ─────────── Gradient helpers ─────────── */
+// Normalize a saved/loaded value into { colors:[{c,stop}], angle, start, end }
+const normGrad = (v) => {
+  if (!v || typeof v !== 'object') v = {}
+  const colorsRaw = Array.isArray(v.colors) ? v.colors : [{ c: v.c || '#6366f1' }]
+  const colors = colorsRaw.map(x => typeof x === 'string' ? { c: x } : { c: x.c || '#6366f1' })
+  return {
+    colors,
+    angle: v.angle != null ? v.angle : 90,
+    start: v.start != null ? v.start : 0,
+    end: v.end != null ? v.end : 100,
+  }
+}
+
+// Build a CSS linear-gradient string from a gradient state ('' if single color)
+const gradToCss = (g) => {
+  const g2 = normGrad(g)
+  if (g2.colors.length < 2) return ''
+  const n = g2.colors.length
+  const stops = g2.colors.map((_, i) => {
+    const pct = g2.start + ((g2.end - g2.start) * i) / (n - 1)
+    return `${g2.colors[i].c} ${Math.round(pct)}%`
+  })
+  return `linear-gradient(${g2.angle}deg, ${stops.join(', ')})`
+}
+
+// Parse a stored JSON gradient string, falling back to a solid color
+const parseGradJson = (s, fallbackColor) => {
+  if (s) {
+    try {
+      const o = JSON.parse(s)
+      if (o && (Array.isArray(o.colors) || o.c)) return normGrad(o)
+    } catch {}
+  }
+  return normGrad({ colors: [{ c: fallbackColor || '#6366f1' }] })
+}
+
+/* ─────────── MultiColorField ───────────
+   One row: base solid color + "+ Add color" squares; 2+ colors → gradient
+   with angle + start/end stop sliders; each color square gets a ✕ to remove. */
+function MultiColorField({ value, onChange, label, title }) {
+  const g = normGrad(value)
+  const isGrad = g.colors.length > 1
+
+  const setColor = (i, c) => {
+    const colors = g.colors.map((x, idx) => idx === i ? { c } : x)
+    onChange({ ...g, colors })
+  }
+  const addColor = () => {
+    const colors = [...g.colors, { c: g.colors[g.colors.length-1].c }]
+    onChange({ ...g, colors })
+  }
+  const removeColor = (i) => {
+    const colors = g.colors.filter((_, idx) => idx !== i)
+    onChange({ ...g, colors: colors.length ? colors : [{ c: '#6366f1' }] })
+  }
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+      <span className="gb-label">{label}</span>
+
+      {/* Squares row */}
+      <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+        {g.colors.map((x, i) => (
+          <div key={i} style={{ position:'relative' }}>
+            <input type="color" value={x.c} onChange={e => setColor(i, e.target.value)}
+              title={title || `${label} color ${i+1}`}
+              style={{ width:34, height:34, padding:0, border:`2px solid ${i===0 ? 'var(--gb-primary)' : 'transparent'}`, borderRadius:8, cursor:'pointer', background:'none' }} />
+            {isGrad && (
+              <button type="button" onClick={() => removeColor(i)}
+                style={{ position:'absolute', top:-5, right:-5, width:14, height:14, borderRadius:'50%',
+                  background:'#ef4444', color:'#fff', border:'none', fontSize:9, lineHeight:'14px',
+                  cursor:'pointer', padding:0, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+            )}
+          </div>
+        ))}
+        <button type="button" onClick={addColor}
+          title="Add color to create a gradient"
+          style={{ width:34, height:34, borderRadius:8, border:'1.5px dashed var(--gb-border)',
+            background:'transparent', color:'var(--gb-text3)', fontSize:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>
+          +
+        </button>
+      </div>
+
+      {/* Gradient controls (only when 2+ colors) */}
+      {isGrad && (
+        <div style={{ display:'flex', flexDirection:'column', gap:6, background:'var(--gb-bg)', borderRadius:8, padding:'8px 10px' }}>
+          {/* Live preview bar */}
+          <div style={{ height:14, borderRadius:6, background: gradToCss(g), border:'1px solid var(--gb-border)' }} />
+          <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
+            <span style={{ flex:'0 0 auto', fontWeight:600 }}>Angle</span>
+            <input type="range" min={0} max={360} step={1} value={g.angle}
+              onChange={e => onChange({ ...g, angle: parseInt(e.target.value) })}
+              style={{ flex:1, accentColor:'var(--gb-primary)' }} />
+            <span style={{ flex:'0 0 34px', textAlign:'right', fontFamily:'monospace' }}>{g.angle}°</span>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
+            <span style={{ flex:'0 0 auto', fontWeight:600 }}>Start</span>
+            <input type="range" min={0} max={100} step={1} value={g.start}
+              onChange={e => onChange({ ...g, start: Math.min(parseInt(e.target.value), g.end) })}
+              style={{ flex:1, accentColor:'var(--gb-primary)' }} />
+            <span style={{ flex:'0 0 34px', textAlign:'right', fontFamily:'monospace' }}>{g.start}%</span>
+          </div>
+          <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
+            <span style={{ flex:'0 0 auto', fontWeight:600 }}>End</span>
+            <input type="range" min={0} max={100} step={1} value={g.end}
+              onChange={e => onChange({ ...g, end: Math.max(parseInt(e.target.value), g.start) })}
+              style={{ flex:1, accentColor:'var(--gb-primary)' }} />
+            <span style={{ flex:'0 0 34px', textAlign:'right', fontFamily:'monospace' }}>{g.end}%</span>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+/* ─────────── Corner radius (per-corner) ───────────
+   Start with a single radius that applies everywhere; the "+" button
+   adds per-corner overrides (asking WHICH corner) once its data lives
+   in a chip; once all 4 corners are set the base radius field hides. */
+const CORNER_LABELS = [
+  { k:'tl', l:'Top Left' },
+  { k:'tr', l:'Top Right' },
+  { k:'br', l:'Bottom Right' },
+  { k:'bl', l:'Bottom Left' },
+]
+
+const parseCornersJson = (s) => {
+  if (!s) return {}
+  try { const o = JSON.parse(s); if (o && typeof o === 'object') return o } catch {}
+  return {}
+}
+
+// Build a CSS border-radius shorthand; corners w/o an override fall back to base
+const cornersToCss = (overrides, base) => {
+  const b = base != null ? Number(base) : 0
+  const tl = Number(overrides?.tl ?? b)
+  const tr = Number(overrides?.tr ?? b)
+  const br = Number(overrides?.br ?? b)
+  const bl = Number(overrides?.bl ?? b)
+  return `${tl}px ${tr}px ${br}px ${bl}px`
+}
+
+// Gradient border ring that follows border-radius (border-image cannot round corners).
+// Paints the option fill on padding-box and the gradient ring on border-box.
+const ringBorder = (fill, grad, width) => {
+  if (!grad || !width || width <= 0) return null
+  const f = String(fill || '#1a1a2e').startsWith('linear-gradient') ? fill : `linear-gradient(135deg, ${fill || '#1a1a2e'}, ${fill || '#1a1a2e'})`
+  return {
+    background: `${f} padding-box, ${grad} border-box`,
+    backgroundClip: 'padding-box, border-box',
+    border: `${width}px solid transparent`,
+  }
+}
+
+function CornerRadiusField({ value, base, onChange, onBaseChange }) {
+  const overrides = value || {}
+  const active = CORNER_LABELS.filter(c => overrides[c.k] != null)
+  const allUsed = active.length >= CORNER_LABELS.length
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const bVal = base != null ? base : 12
+
+  return (
+    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+      <span className="gb-label">Border Radius — per corner</span>
+
+      {!allUsed && (
+        <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
+          <span style={{ flex:'0 0 auto', fontWeight:600 }}>Radius (px)</span>
+          <input type="range" min={0} max={60} step={1} value={bVal}
+            onChange={e => onBaseChange(parseInt(e.target.value))}
+            style={{ flex:1, accentColor:'var(--gb-primary)' }} />
+          <span style={{ flex:'0 0 30px', textAlign:'right', fontFamily:'monospace' }}>{bVal}</span>
+        </div>
+      )}
+
+      {active.length > 0 && (
+        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
+          {active.map(c => (
+            <div key={c.k} style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
+              <span style={{ flex:'0 0 84px', fontWeight:600 }}>{c.l}</span>
+              <input type="range" min={0} max={60} step={1} value={overrides[c.k]}
+                onChange={e => onChange({ ...overrides, [c.k]: parseInt(e.target.value) })}
+                style={{ flex:1, accentColor:'var(--gb-primary)' }} />
+              <span style={{ flex:'0 0 30px', textAlign:'right', fontFamily:'monospace' }}>{overrides[c.k]}</span>
+              <button type="button" title="Reset this corner to the base radius"
+                onClick={() => { const n = { ...overrides }; delete n[c.k]; onChange(n) }}
+                style={{ width:18, height:18, borderRadius:'50%', background:'#ef4444', color:'#fff',
+                  border:'none', fontSize:10, lineHeight:'18px', cursor:'pointer', padding:0,
+                  display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {!allUsed && (
+        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
+          <button type="button" title="Add a corner to give it its own radius"
+            onClick={() => setPickerOpen(p => !p)}
+            style={{ width:30, height:30, borderRadius:8, border:'1.5px dashed var(--gb-border)',
+              background:'transparent', color:'var(--gb-text3)', fontSize:18, cursor:'pointer',
+              display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>
+            +
+          </button>
+          {pickerOpen && (
+            <>
+              <span style={{ fontSize:11, color:'var(--gb-text3)' }}>Which corner?</span>
+              {CORNER_LABELS.filter(c => overrides[c.k] == null).map(c => (
+                <button key={c.k} type="button" onClick={() => {
+                  onChange({ ...overrides, [c.k]: bVal })
+                  setPickerOpen(false)
+                }}
+                  style={{ fontSize:11, padding:'4px 10px', borderRadius:999, border:'1px solid var(--gb-primary)',
+                    background:'var(--gb-bg)', color:'var(--gb-primary)', cursor:'pointer' }}>
+                  {c.l}
+                </button>
+              ))}
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 /* ─────────── ImageUpload ─────────── */
 function ImageUpload({ label, url, onFile, onClear, error, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,video/mp4,video/webm" }) {
   const ref = useRef()
@@ -551,9 +776,28 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
             )}
           </div>
           {/* gradient preview hint */}
+          {opt.option_bg_gradient && (
+            <div style={{ marginTop:8, fontSize:12, color:'var(--gb-text3)', display:'flex', alignItems:'center', gap:8 }}>
+              BG gradient:
+              <span style={{ display:'inline-block', width:130, height:14, borderRadius:4,
+                background:opt.option_bg_gradient, border:'1px solid var(--gb-border)' }} />
+            </div>
+          )}
           {opt.option_font_gradient && (
             <div style={{ marginTop:8, fontSize:12, color:'var(--gb-text3)' }}>
               Preview: <span style={{ backgroundImage:opt.option_font_gradient, WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent', fontWeight:700 }}>{opt.option_text||'Sample text'}</span>
+            </div>
+          )}
+          {opt.option_border_gradient && (
+            <div style={{ marginTop:8, fontSize:12, color:'var(--gb-text3)', display:'flex', alignItems:'center', gap:8 }}>
+              Border gradient:
+              <span style={{ display:'inline-block', width:130, height:14, borderRadius:4,
+                background:opt.option_border_gradient, border:'1px solid var(--gb-border)' }} />
+            </div>
+          )}
+          {opt.option_corners_json && (
+            <div style={{ marginTop:8, fontSize:12, color:'var(--gb-text3)' }}>
+              Corner radius: {cornersToCss(parseCornersJson(opt.option_corners_json), opt.option_border_radius != null ? opt.option_border_radius : 12)}
             </div>
           )}
         </div>
@@ -616,6 +860,9 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
       { option_text:'', option_color:d.option_color||'#1a1a2e', option_text_color:d.option_text_color||'#ffffff',
         option_border_color:d.option_border_color||'transparent', option_border_width:d.option_border_width!=null?d.option_border_width:0,
         option_border_radius:d.option_border_radius!=null?d.option_border_radius:12, option_font_gradient:d.option_font_gradient||'',
+        option_bg_gradient:d.option_bg_gradient||'',
+        option_border_gradient:d.option_border_gradient||'',
+        option_corners_json:d.option_corners_json||'',
         is_correct:0, option_order:opts.length }] })
   }
   const removeOption = i => { const opts=[...(q.options||[])]; opts.splice(i,1); setQ({ ...q, options:opts }) }
@@ -1036,6 +1283,9 @@ const [nameInput,     setNameInput]     = useState('')
       ofd.append('option_border_width',   opt.option_border_width||0)
       ofd.append('option_border_radius',  opt.option_border_radius||12)
       ofd.append('option_font_gradient',  opt.option_font_gradient||'')
+      ofd.append('option_bg_gradient',    opt.option_bg_gradient||'')
+      ofd.append('option_border_gradient', opt.option_border_gradient||'')
+      ofd.append('option_corners_json',    opt.option_corners_json||'')
       ofd.append('is_correct',        opt.is_correct ? 1 : 0)
       ofd.append('option_order',      (q.options||[]).indexOf(opt))
       if (opt._optImageFile) ofd.append('option_image',         opt._optImageFile)
@@ -1176,7 +1426,9 @@ const [nameInput,     setNameInput]     = useState('')
         'randomize_questions','questions_per_session',
         'enable_mascot','enable_speech','speech_language','speech_rate','speech_pitch',
         'default_option_color','default_option_text_color','default_option_border_color',
-        'default_option_border_width','default_option_border_radius','default_option_font_gradient']
+        'default_option_border_width','default_option_border_radius','default_option_font_gradient',
+        'default_option_bg_json','default_option_font_json',
+        'default_option_border_json','default_option_corners_json']
       const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech']
       const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time','default_option_border_width','default_option_border_radius']
       for (const f of fields) {
@@ -1186,6 +1438,16 @@ const [nameInput,     setNameInput]     = useState('')
         else if (nums.includes(f) && v !== null) v = Number(v)
         fd.append(f, v ?? '')
       }
+      // Derive solid colors + CSS gradient strings from the multi-color state so
+      // the options/new options + player receive the computed look.
+      const bgG = parseGradJson(settings.default_option_bg_json, settings.default_option_color || '#1a1a2e')
+      const fG  = parseGradJson(settings.default_option_font_json, settings.default_option_text_color || '#ffffff')
+      const bG  = parseGradJson(settings.default_option_border_json, settings.default_option_border_color || 'transparent')
+      fd.set('default_option_color', bgG.colors[0].c)
+      fd.set('default_option_text_color', fG.colors[0].c)
+      fd.set('default_option_bg_gradient', gradToCss(bgG))
+      fd.set('default_option_font_gradient', gradToCss(fG))
+      fd.set('default_option_border_color', bG.colors[0].c)
       if (settings._bgImageFile)    fd.append('bg_image',           settings._bgImageFile)
       else if (settings.bg_image_url !== undefined) fd.append('bg_image_url',     settings.bg_image_url)
       if (settings._tyBgImageFile)  fd.append('thankyou_bg_image',  settings._tyBgImageFile)
@@ -1510,6 +1772,8 @@ const [nameInput,     setNameInput]     = useState('')
                     </div>
                   )
                   const idx = questions.indexOf(selQ)
+                  const defaultCorners = parseCornersJson(settings.default_option_corners_json)
+                  const defaultR = settings.default_option_border_radius != null ? settings.default_option_border_radius : 12
                   return (
                     <QuestionCard
                       key={selQ.id}
@@ -1528,7 +1792,15 @@ const [nameInput,     setNameInput]     = useState('')
                         option_border_color: settings.default_option_border_color || 'transparent',
                         option_border_width: settings.default_option_border_width != null ? settings.default_option_border_width : 0,
                         option_border_radius: settings.default_option_border_radius != null ? settings.default_option_border_radius : 12,
-                        option_font_gradient: settings.default_option_font_gradient || '',
+                        option_font_gradient: gradToCss(parseGradJson(settings.default_option_font_json, settings.default_option_text_color || '#ffffff')) || settings.default_option_font_gradient || '',
+                        option_bg_gradient: gradToCss(parseGradJson(settings.default_option_bg_json, settings.default_option_color || '#1a1a2e')) || '',
+                        option_border_gradient: gradToCss(parseGradJson(settings.default_option_border_json, settings.default_option_border_color || 'transparent')) || '',
+                        option_corners_json: JSON.stringify({
+                          tl: (defaultCorners.tl != null ? defaultCorners.tl : defaultR),
+                          tr: (defaultCorners.tr != null ? defaultCorners.tr : defaultR),
+                          br: (defaultCorners.br != null ? defaultCorners.br : defaultR),
+                          bl: (defaultCorners.bl != null ? defaultCorners.bl : defaultR),
+                        }),
                       }}
                     />
                   )
@@ -1547,35 +1819,47 @@ const [nameInput,     setNameInput]     = useState('')
                   this styling automatically. Existing options keep whatever styling they were saved with, and you can
                   still override any individual option in the Questions tab.
                 </p>
-                <div style={{ display:'flex', flexWrap:'wrap', gap:12, marginBottom:12 }}>
-                  <ColorPicker value={settings.default_option_color||'#1a1a2e'} onChange={v=>setSettings({...settings,default_option_color:v})} label="Option BG" />
-                  <ColorPicker value={settings.default_option_text_color||'#ffffff'} onChange={v=>setSettings({...settings,default_option_text_color:v})} label="Option Text" />
-                  <ColorPicker value={settings.default_option_border_color||'transparent'} onChange={v=>setSettings({...settings,default_option_border_color:v})} label="Border Color" />
+
+                {/* Row 1: Option BG + Option Font (multi-color gradient) */}
+                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:16 }}>
+                  <MultiColorField
+                    label="Option Background"
+                    value={parseGradJson(settings.default_option_bg_json, settings.default_option_color || '#1a1a2e')}
+                    onChange={g => setSettings({ ...settings, default_option_bg_json: JSON.stringify(g) })}
+                  />
+                  <MultiColorField
+                    label="Option Font"
+                    value={parseGradJson(settings.default_option_font_json, settings.default_option_text_color || '#ffffff')}
+                    onChange={g => setSettings({ ...settings, default_option_font_json: JSON.stringify(g) })}
+                  />
                 </div>
-                <div style={{ display:'flex', gap:12, marginBottom:12 }}>
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
+
+                {/* Border styling: Row 1 = per-corner radius + width, Row 2 = multi-color border */}
+                <div style={{ display:'grid', gridTemplateColumns:'1.4fr 0.6fr', gap:20, marginTop:4, marginBottom:16 }}>
+                  <CornerRadiusField
+                    value={parseCornersJson(settings.default_option_corners_json)}
+                    base={settings.default_option_border_radius != null ? settings.default_option_border_radius : 12}
+                    onChange={v => setSettings({ ...settings, default_option_corners_json: Object.keys(v).length ? JSON.stringify(v) : '' })}
+                    onBaseChange={b => setSettings({ ...settings, default_option_border_radius: b })}
+                  />
+                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
                     <span className="gb-label">Border Width (px)</span>
                     <input type="number" min={0} max={20} value={settings.default_option_border_width!=null?settings.default_option_border_width:0}
                       onChange={e=>setSettings({...settings,default_option_border_width:parseInt(e.target.value)||0})} />
-                  </div>
-                  <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <span className="gb-label">Border Radius (px)</span>
-                    <input type="number" min={0} max={60} value={settings.default_option_border_radius!=null?settings.default_option_border_radius:12}
-                      onChange={e=>setSettings({...settings,default_option_border_radius:parseInt(e.target.value)||0})} />
+                    <p style={{ fontSize:11, color:'var(--gb-text3)', margin:0, lineHeight:1.4 }}>
+                      Start with one radius for all corners, then press <b>+</b> to give a specific corner its own radius.
+                    </p>
                   </div>
                 </div>
-                <div className="gb-fg" style={{ marginBottom:0, maxWidth:480 }}>
-                  <span className="gb-label">Font Gradient (CSS)</span>
-                  <input value={settings.default_option_font_gradient||''} onChange={e=>setSettings({...settings,default_option_font_gradient:e.target.value})}
-                    placeholder="linear-gradient(90deg,#f59e0b,#ef4444)" style={{ fontFamily:'monospace', fontSize:11 }} />
-                </div>
-                {settings.default_option_font_gradient && (
-                  <div style={{ marginTop:10, fontSize:12, color:'var(--gb-text3)' }}>
-                    Preview: <span style={{ backgroundImage:settings.default_option_font_gradient, WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent', fontWeight:700 }}>Gradient text</span>
-                  </div>
-                )}
-                <div style={{ marginTop:16 }}>
-                  <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 28px' }}>
+                <MultiColorField
+                  label="Border Color"
+                  value={parseGradJson(settings.default_option_border_json, settings.default_option_border_color && settings.default_option_border_color !== 'transparent' ? settings.default_option_border_color : (settings.default_option_color || '#1a1a2e'))}
+                  onChange={g => setSettings({ ...settings, default_option_border_json: JSON.stringify(g) })}
+                  title="Border color"
+                />
+
+                <div style={{ marginTop:18, textAlign:'center' }}>
+                  <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 40px' }}>
                     {saving ? 'Saving…' : 'Save Global Styling'}
                   </button>
                 </div>
@@ -2172,13 +2456,18 @@ const [nameInput,     setNameInput]     = useState('')
           {tab === 'global' && (() => {
             const bg = settings.bg_image_url
             const hasBg = !!bg
+            const optBgGrad = gradToCss(parseGradJson(settings.default_option_bg_json, settings.default_option_color || '#1a1a2e'))
+            const optFontGrad = gradToCss(parseGradJson(settings.default_option_font_json, settings.default_option_text_color || '#ffffff'))
+            const optBorderGrad = gradToCss(parseGradJson(settings.default_option_border_json, settings.default_option_border_color || 'transparent'))
+            const defaultCorners = parseCornersJson(settings.default_option_corners_json)
+            const defaultR = settings.default_option_border_radius != null ? settings.default_option_border_radius : 12
             const optStyle = {
               color: settings.default_option_color || '#1a1a2e',
               textColor: settings.default_option_text_color || '#ffffff',
               borderColor: settings.default_option_border_color || 'transparent',
               borderWidth: settings.default_option_border_width != null ? settings.default_option_border_width : 0,
-              radius: settings.default_option_border_radius != null ? settings.default_option_border_radius : 12,
-              gradient: settings.default_option_font_gradient || '',
+              radius: cornersToCss(defaultCorners, defaultR),
+              gradient: optFontGrad || settings.default_option_font_gradient || '',
             }
             const optsText = ['Option 1', 'Option 2', 'Option 3', 'Option 4']
             return (
@@ -2194,11 +2483,12 @@ const [nameInput,     setNameInput]     = useState('')
                   <div style={{ fontSize:13, fontWeight:700, color: hasBg ? '#fff' : '#1a1a2e', textAlign:'center', marginBottom:6 }}>
                     Sample question — default option styling
                   </div>
-                  {optsText.map((t, i) => (
+                  {optsText.map((t, i) => {
+                    const ring = ringBorder(optBgGrad || optStyle.color, optBorderGrad, optStyle.borderWidth)
+                    return (
                     <div key={i} style={{
                       padding:'13px 14px', borderRadius:optStyle.radius,
-                      background:optStyle.color,
-                      border:`${optStyle.borderWidth}px solid ${optStyle.borderColor}`,
+                      ...(ring ? { background:ring.background, backgroundClip:ring.backgroundClip, border:ring.border } : { background: optBgGrad || optStyle.color, border:`${optStyle.borderWidth}px solid ${optStyle.borderColor}` }),
                       textAlign:'center',
                     }}>
                       {optStyle.gradient ? (
@@ -2207,7 +2497,7 @@ const [nameInput,     setNameInput]     = useState('')
                         <span style={{ color:optStyle.textColor, fontWeight:700 }}>{t}</span>
                       )}
                     </div>
-                  ))}
+                    )})}
                 </div>
               </div>
             )
@@ -2328,14 +2618,16 @@ const [nameInput,     setNameInput]     = useState('')
                       {(previewQ.options||[]).slice(0,4).map((opt,i) => {
                         const bw = (opt.option_border_width ?? 0) > 0 ? opt.option_border_width : (opt.option_border_color && opt.option_border_color !== 'transparent' ? 2 : 0)
                         const bc = opt.option_border_color || 'transparent'
+                        const oR = opt.option_border_radius != null ? opt.option_border_radius : 12
+                        const ring = ringBorder(opt.option_bg_gradient || opt.option_color || '#1a1a2e', opt.option_border_gradient, bw)
                         return (
                         <div key={opt.id||i} onClick={() => handleOptionClick(opt)}
                           style={{
-                            background: opt.option_color || '#1a1a2e',
+                            ...(ring ? { background:ring.background, backgroundClip:ring.backgroundClip, border:ring.border } : { background: opt.option_bg_gradient || opt.option_color || '#1a1a2e', border:`${bw}px solid ${bc}` }),
                             color: opt.option_text_color || '#ffffff',
-                            borderRadius: opt.option_border_radius != null ? opt.option_border_radius : 12,
+                            borderRadius: opt.option_corners_json ? cornersToCss(parseCornersJson(opt.option_corners_json), oR) : oR,
                             padding: opt.option_image_url ? '0' : '8px 12px', fontSize:12, fontWeight:600,
-                            textAlign:'center', border:`${bw}px solid ${bc}`,
+                            textAlign:'center',
                             boxShadow:'0 2px 8px rgba(0,0,0,0.1)', cursor:'pointer',
                             overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', minHeight:36,
                           }}>

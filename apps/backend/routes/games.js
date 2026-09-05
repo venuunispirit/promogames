@@ -706,7 +706,11 @@ router.put('/:id/settings', requireAdmin, upload.fields([
       continue_button_text, continue_button_text_color, continue_button_bg_color,
       next_button_text, next_button_text_color, next_button_bg_color,
       randomize_questions, questions_per_session,
-      enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch } = req.body;
+      enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch,
+      default_option_color, default_option_text_color, default_option_border_color,
+      default_option_border_width, default_option_border_radius, default_option_font_gradient,
+      default_option_bg_json, default_option_font_json, default_option_bg_gradient,
+      default_option_border_json, default_option_corners_json } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [req.params.id]);
     const bgImg   = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           !== undefined ? bg_image_url           : (existing[0]?.bg_image_url           || null));
@@ -740,7 +744,18 @@ router.put('/:id/settings', requireAdmin, upload.fields([
       enable_speech !== undefined ? (enable_speech === 1 || enable_speech === true || enable_speech === '1' || enable_speech === 'true' ? 1 : 0) : 0,
       speech_language || 'en',
       parseFloat(speech_rate) || 1,
-      parseFloat(speech_pitch) || 1
+      parseFloat(speech_pitch) || 1,
+      default_option_color || '#1a1a2e',
+      default_option_text_color || '#ffffff',
+      default_option_border_color || 'transparent',
+      default_option_border_width ?? 0,
+      default_option_border_radius ?? 12,
+      default_option_font_gradient || '',
+      default_option_bg_json || null,
+      default_option_font_json || null,
+      default_option_bg_gradient || '',
+      default_option_border_json || null,
+      default_option_corners_json || null
     ];
 
     const [upd] = await db.query(
@@ -755,15 +770,19 @@ router.put('/:id/settings', requireAdmin, upload.fields([
        submit_button_text=?, submit_button_text_color=?, submit_button_bg_color=?,
        continue_button_text=?, continue_button_text_color=?, continue_button_bg_color=?,
        next_button_text=?, next_button_text_color=?, next_button_bg_color=?,
-        randomize_questions=?, questions_per_session=?,
-        enable_mascot=?, enable_speech=?, speech_language=?, speech_rate=?, speech_pitch=? WHERE game_id=?`,
+randomize_questions=?, questions_per_session=?,
+         enable_mascot=?, enable_speech=?, speech_language=?, speech_rate=?, speech_pitch=?,
+         default_option_color=?, default_option_text_color=?, default_option_border_color=?,
+         default_option_border_width=?, default_option_border_radius=?, default_option_font_gradient=?,
+         default_option_bg_json=?, default_option_font_json=?, default_option_bg_gradient=?,
+         default_option_border_json=?, default_option_corners_json=? WHERE game_id=?`,
       [...vals.slice(1), req.params.id]
     );
 
     if (upd.affectedRows === 0) {
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch, default_option_color, default_option_text_color, default_option_border_color, default_option_border_width, default_option_border_radius, default_option_font_gradient, default_option_bg_json, default_option_font_json, default_option_bg_gradient, default_option_border_json, default_option_corners_json)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         vals
       );
     }

@@ -1252,6 +1252,9 @@ async function initDB() {
   await addColumn(connection, 'options', 'option_border_width', 'INT DEFAULT 0');
   await addColumn(connection, 'options', 'option_border_radius', 'INT DEFAULT 12');
   await addColumn(connection, 'options', 'option_font_gradient', 'VARCHAR(500)');
+  await addColumn(connection, 'options', 'option_bg_gradient', 'VARCHAR(500)');
+  await addColumn(connection, 'options', 'option_border_gradient', 'VARCHAR(500)');
+  await addColumn(connection, 'options', 'option_corners_json', 'VARCHAR(500)');
 
   /* QUIZ SETTINGS — global default option styling (applies to all options in this game) */
   await addColumn(connection, 'quiz_settings', 'default_option_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
@@ -1260,6 +1263,11 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'default_option_border_width', 'INT DEFAULT 0');
   await addColumn(connection, 'quiz_settings', 'default_option_border_radius', 'INT DEFAULT 12');
   await addColumn(connection, 'quiz_settings', 'default_option_font_gradient', 'VARCHAR(500)');
+  await addColumn(connection, 'quiz_settings', 'default_option_bg_json', 'VARCHAR(2000)');
+  await addColumn(connection, 'quiz_settings', 'default_option_font_json', 'VARCHAR(2000)');
+  await addColumn(connection, 'quiz_settings', 'default_option_bg_gradient', 'VARCHAR(500)');
+  await addColumn(connection, 'quiz_settings', 'default_option_border_json', 'VARCHAR(2000)');
+  await addColumn(connection, 'quiz_settings', 'default_option_corners_json', 'VARCHAR(500)');
 
   /* QUESTIONS — open-ended / math question fields */
   await addColumn(connection, 'questions', 'expected_answer', 'VARCHAR(500) DEFAULT NULL');

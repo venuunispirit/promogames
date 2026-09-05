@@ -50,6 +50,30 @@ const OVERLAY_STYLES = `
   @keyframes qImgJello      { 0%,100% { transform: skewX(0deg) skewY(0deg) } 25% { transform: skewX(-5deg) skewY(3deg) } 50% { transform: skewX(5deg) skewY(-3deg) } 75% { transform: skewX(-3deg) skewY(2deg) } }
 `
 
+const parseCornersJson = (s) => {
+  if (!s) return {}
+  try { const o = JSON.parse(s); if (o && typeof o === 'object') return o } catch {}
+  return {}
+}
+const cornersToCss = (overrides, base) => {
+  const b = base != null ? Number(base) : 0
+  const tl = Number(overrides?.tl ?? b)
+  const tr = Number(overrides?.tr ?? b)
+  const br = Number(overrides?.br ?? b)
+  const bl = Number(overrides?.bl ?? b)
+  return `${tl}px ${tr}px ${br}px ${bl}px`
+}
+// Gradient border ring that follows border-radius (border-image cannot round corners).
+const ringBorder = (fill, grad, width) => {
+  if (!grad || !width || width <= 0) return null
+  const f = String(fill || '#1a1a2e').startsWith('linear-gradient') ? fill : `linear-gradient(135deg, ${fill || '#1a1a2e'}, ${fill || '#1a1a2e'})`
+  return {
+    background: `${f} padding-box, ${grad} border-box`,
+    backgroundClip: 'padding-box, border-box',
+    border: `${width}px solid transparent`,
+  }
+}
+
 function SubmittingPopup({ primaryColor, ff }) {
   return (
     <div style={{
@@ -135,10 +159,13 @@ export default function QuizPlayerPage({
   const getOptionStyleLocal = (opt, question, currentSelectedOpt) => {
     const borderColor = opt.option_border_color && opt.option_border_color !== 'transparent' ? opt.option_border_color : optionBorderColor
     const borderWidth = (opt.option_border_width ?? 0) > 0 ? opt.option_border_width : (borderColor && borderColor !== 'transparent' ? 2 : 0)
-    const radius = opt.option_border_radius != null ? opt.option_border_radius : 14
+    const radius = opt.option_corners_json ? cornersToCss(parseCornersJson(opt.option_corners_json), opt.option_border_radius != null ? opt.option_border_radius : 14) : (opt.option_border_radius != null ? opt.option_border_radius : 14)
     const gradient = opt.option_font_gradient
     const base = { borderColor, borderWidth, radius, gradient }
-    if (!answered) return { bg: opt.option_color || optionBgColor, text: opt.option_text_color || optionTextColor, border: `${borderWidth}px solid ${borderColor||'transparent'}`, radius, gradient, shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
+    if (!answered) {
+      const ring = ringBorder(opt.option_bg_gradient || opt.option_color || optionBgColor, opt.option_border_gradient, borderWidth)
+      return { ring, bg: opt.option_bg_gradient || opt.option_color || optionBgColor, text: opt.option_text_color || optionTextColor, border: `${borderWidth}px solid ${borderColor||'transparent'}`, radius, gradient, shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 1, scale: 'scale(1)' }
+    }
     const isRightWrong = question.question_type === 'right_wrong'
     const isSelected = currentSelectedOpt?.id === opt.id
     if (isRightWrong) {
@@ -147,7 +174,7 @@ export default function QuizPlayerPage({
       else return { bg: '#ef4444', text: '#fff', border: `${borderWidth}px solid #dc2626`, radius, gradient, shadow: 'none', opacity: 0.45, scale: 'scale(0.97)' }
     } else {
       if (isSelected) return { bg: primaryColor, text: '#fff', border: `${borderWidth}px solid ${primaryColor}`, radius, gradient, shadow: `0 4px 16px ${primaryColor}55`, opacity: 1, scale: 'scale(0.97)' }
-      return { bg: opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: `${borderWidth}px solid ${borderColor||'transparent'}`, radius, gradient, shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 0.5, scale: 'scale(1)' }
+      return { bg: opt.option_bg_gradient || opt.option_color || '#1a1a2e', text: opt.option_text_color || '#ffffff', border: `${borderWidth}px solid ${borderColor||'transparent'}`, radius, gradient, shadow: '0 2px 8px rgba(0,0,0,0.1)', opacity: 0.5, scale: 'scale(1)' }
     }
   }
 
@@ -338,7 +365,8 @@ export default function QuizPlayerPage({
                     return (
                       <button key={opt.id} onClick={()=>handleOptionSelect(opt,sessionToken)} disabled={answered}
                         style={{
-                          background:os.bg,border:os.border,borderRadius:os.radius,flex:1,minHeight:48,
+                          ...(os.ring ? { background:os.ring.background, backgroundClip:os.ring.backgroundClip, border:os.ring.border } : { background:os.bg, border:os.border }),
+                          borderRadius:os.radius,flex:1,minHeight:48,
                           color:os.text,fontSize:'clamp(13px,3.5vw,15px)',fontWeight:600,
                           cursor:answered?'default':'pointer',textAlign:'center',lineHeight:1.3,
                           fontFamily:ff,transition:'all 0.25s ease',boxShadow:os.shadow,

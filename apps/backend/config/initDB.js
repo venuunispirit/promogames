@@ -2628,6 +2628,18 @@ await safeQuery(connection, `
      )
    `, 'chess_rooms table');
 
+   /* CHESS ROOMS — rematch state (additive migration) */
+   await addColumn(connection, 'chess_rooms', 'rematch_status', "ENUM('none','requested','accepted','declined','expired') DEFAULT 'none'");
+   await addColumn(connection, 'chess_rooms', 'rematch_requested_by', "VARCHAR(100) DEFAULT NULL");
+   await addColumn(connection, 'chess_rooms', 'rematch_requested_by_id', "INT DEFAULT NULL");
+   await addColumn(connection, 'chess_rooms', 'rematch_requested_at', "TIMESTAMP NULL DEFAULT NULL");
+   await addColumn(connection, 'chess_rooms', 'rematch_new_room_code', "VARCHAR(6) DEFAULT NULL");
+   await addColumn(connection, 'chess_rooms', 'rematch_of_id', "INT DEFAULT NULL");
+
+   /* CHESS ROOMS — server-side clock tracking */
+   await addColumn(connection, 'chess_rooms', 'active_clock_color', "ENUM('white','black') DEFAULT 'white'");
+   await addColumn(connection, 'chess_rooms', 'clock_started_at', "TIMESTAMP NULL DEFAULT NULL");
+
    /* CHESS MOVES */
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS chess_moves (
@@ -2644,6 +2656,18 @@ await safeQuery(connection, `
        INDEX idx_moves_room (room_id)
      )
    `, 'chess_moves table');
+
+   /* CHESS MESSAGES (in-game chat) */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS chess_messages (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       room_id INT NOT NULL,
+       sender_name VARCHAR(100) NOT NULL,
+       message TEXT NOT NULL,
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       INDEX idx_msg_room (room_id)
+     )
+   `, 'chess_messages table');
 
    console.log('👤 Creating admin user...');
 

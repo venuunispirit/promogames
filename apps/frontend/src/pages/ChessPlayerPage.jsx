@@ -12,6 +12,18 @@ import { AvatarDisplay } from "../components/AvatarData";
 import { selectBotForDifficulty, calculateThinkTime, evaluatePosition, scoreMoveWithPersonality, getThinkingBubble, selectHumanLikeMove } from "../lib/botBrain";
 import { loadPlayerModel, updatePlayerModel, createLiveTracker, recordMove, getAdaptiveStrategy } from "../lib/playerModel";
 
+let moveAudio = null;
+function playMoveSound() {
+  try {
+    if (!moveAudio) {
+      moveAudio = new Audio("/move-sound.mp3");
+      moveAudio.volume = 0.6;
+    }
+    moveAudio.currentTime = 0;
+    moveAudio.play().catch(() => {});
+  } catch (e) { /* audio unavailable */ }
+}
+
 /* ============================================================================
    CHESSVERSE — "Play. Learn. Conquer."
    The board engine below is untouched. Everything about the *player* — rating,
@@ -137,6 +149,38 @@ function fenToEnPassant(fen) {
   const row = 8 - parseInt(ep[1]);
   if (inBounds(row, col)) return { r: row, c: col };
   return null;
+}
+
+function diffMoveSquares(oldBoard, newBoard) {
+  const appeared = [];
+  const disappeared = [];
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const o = oldBoard[r][c];
+      const n = newBoard[r][c];
+      if (o && !n) disappeared.push({ r, c, p: o });
+      if (!o && n) appeared.push({ r, c, p: n });
+    }
+  }
+  if (appeared.length === 0) return null;
+  // Castling: it animates better when the king leads the way
+  const king = appeared.find((t) => t.p.type === "k");
+  if (king) {
+    const kFrom = disappeared.find((d) => d.p.type === "k");
+    if (kFrom) return { from: { r: kFrom.r, c: kFrom.c }, to: { r: king.r, c: king.c } };
+  }
+  // Normal moves, captures, en passant, promotion
+  for (const t of appeared) {
+    const f = disappeared.find((d) => d.p.color === t.p.color && d.p.type === t.p.type);
+    if (f) return { from: { r: f.r, c: f.c }, to: { r: t.r, c: t.c } };
+  }
+  for (const t of appeared) {
+    const f = disappeared.find((d) => d.p.color === t.p.color);
+    if (f) return { from: { r: f.r, c: f.c }, to: { r: t.r, c: t.c } };
+  }
+  const to = appeared[0];
+  const from = disappeared[0];
+  return from ? { from: { r: from.r, c: from.c }, to: { r: to.r, c: to.c } } : { from: null, to: { r: to.r, c: to.c } };
 }
 
 const SLIDING = {
@@ -388,6 +432,57 @@ function materialScore(board, color) {
       if (p) score += (p.color === color ? 1 : -1) * pieceValue(p.type);
     }
   return score;
+}
+
+/* ── Insufficient mating material (used for timeout draw handling) ─────────
+   Standard rule: if a player runs out of time, the opponent wins — UNLESS the
+   opponent has no possible mating material, in which case the game is a draw.
+   This helper reports whether `color` still has the material to deliver
+   checkmate by any possible series of legal moves. */
+function hasMatingMaterial(board, color) {
+  let minors = 0;
+  let bishopSquares = [];
+  let hasMajor = false;
+  for (let r = 0; r < 8; r++) {
+    for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      if (!p || p.color !== color || p.type === "k") continue;
+      const t = p.type;
+      if (t === "p" || t === "r" || t === "q") { hasMajor = true; break; }
+      if (t === "n") { minors += 1; }
+      if (t === "b") { bishopSquares.push((r + c) % 2 === 0 ? "light" : "dark"); minors += 1; }
+    }
+    if (hasMajor) break;
+  }
+  if (hasMajor) return true;
+
+  // Count the opponent's remaining non-king material.
+  let oppMaterial = 0;
+  for (let r = 0; r < 8; r++)
+    for (let c = 0; c < 8; c++) {
+      const p = board[r][c];
+      if (p && p.color !== color && p.type !== "k") oppMaterial++;
+    }
+  // If the opponent still has material, the side in question can in principle mate.
+  if (oppMaterial > 0) return true;
+
+  // Bare-king opponent: can this side mate a lone king?
+  if (minors === 0) return false;                                            // K vs K
+  if (minors === 1) return false;                                            // K + single minor vs K
+  if (minors === 2 && bishopSquares.length === 2 && bishopSquares[0] === bishopSquares[1]) return false; // same-colour bishops
+  return true;                                                               // K+N+N, K+N+B, opposite-colour bishops, etc.
+}
+
+/* ── Unified chess clock engine (timestamp-based) ──────────────────────────
+   Time is tracked in milliseconds internally. A tick loop only refreshes the
+   displayed seconds; the authoritative remaining time is computed from real
+   elapsed wall-clock time stored when a clock is started. This avoids drift,
+   throttling and duplicate-interval inaccuracies. */
+function freezeClock(clockMs, activePlayer, startTs) {
+  if (!activePlayer || !startTs) return clockMs;
+  const now = performance.now();
+  const remaining = clockMs[activePlayer] - (now - startTs);
+  return { ...clockMs, [activePlayer]: Math.max(0, remaining) };
 }
 
 function sanFor(board, state, move) {
@@ -774,6 +869,44 @@ const QUICK_MESSAGES = [
   "One moment please",
 ];
 
+const BOT_CHAT_CATEGORIES = [
+  {
+    label: "Reactions",
+    msgs: [
+      "Nice move.",
+      "Good one.",
+      "Solid.",
+      "Interesting...",
+      "Okay, I see you 👀",
+      "Not bad.",
+      "Sharp play.",
+      "Bold.",
+    ],
+  },
+  {
+    label: "Captures",
+    msgs: [
+      "Ouch.",
+      "Good capture.",
+      "You took my rook.",
+      "That was free.",
+      "A pawn?",
+      "I'll remember that.",
+    ],
+  },
+  {
+    label: "Chat",
+    msgs: [
+      "GG.",
+      "Well played.",
+      "You got me.",
+      "Rematch?",
+      "Let's go.",
+      "Thanks.",
+    ],
+  },
+];
+
 const NAV_ITEMS = [
   { id: "play", label: "Play", icon: Swords },
   { id: "puzzles", label: "Puzzles", icon: Puzzle },
@@ -1099,6 +1232,18 @@ const Style = () => (
       max-width: 1240px;
       width: 100%;
       margin: 0 auto;
+    }
+    .search-screen {
+      position: fixed;
+      inset: 0 0 0 200px;
+      z-index: 90;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      background: var(--ink);
+      padding: 20px;
     }
 
     /* ---- Typography ---- */
@@ -1456,15 +1601,15 @@ const Style = () => (
       border-color: var(--line);
       background: var(--surface-raised);
     }
-    .mode-card.mode-friend {
+    .mode-card.mode-computer {
       grid-column: 1 / -1;
     }
-    .mode-card.mode-friend .mode-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
+    .mode-card.mode-computer .mode-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
     }
-    .mode-card.mode-friend .mode-icon svg { width: 19px; height: 19px; }
+    .mode-card.mode-computer .mode-icon svg { width: 22px; height: 22px; }
     .mode-icon {
       width: 40px;
       height: 40px;
@@ -1615,20 +1760,18 @@ const Style = () => (
     .square .coord.rank { top: 2px; left: 3px; }
     .square.light .coord { color: #8a6238; }
     .square.dark .coord { color: #f2ddb8; }
-    @keyframes piece-land {
-      0% { opacity: 0.5; transform: scale(0.7) translateY(6px); }
-      50% { opacity: 1; transform: scale(1.1) translateY(-2px); }
-      100% { opacity: 1; transform: scale(1) translateY(0); }
+    @keyframes piece-slide {
+      from { transform: translate(var(--slide-x), var(--slide-y)); }
+      to { transform: translate(0, 0); }
     }
-    .piece-glyph { font-family: 'Noto Sans Symbols 2', 'Segoe UI Symbol', 'DejaVu Sans', 'Apple Symbols', serif; font-size: calc(var(--sqsize) * 0.8); line-height: 1; font-weight: 400; transition: transform 0.1s ease; filter: drop-shadow(0 3px 2px rgba(35,20,5,0.4)); }
-    .piece-glyph.piece-landed { animation: piece-land 0.25s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+    .piece-glyph { position: relative; z-index: 1; font-family: 'Noto Sans Symbols 2', 'Segoe UI Symbol', 'DejaVu Sans', 'Apple Symbols', serif; font-size: calc(var(--sqsize) * 0.8); line-height: 1; font-weight: 400; transition: transform 0.1s ease; filter: drop-shadow(0 3px 2px rgba(35,20,5,0.4)); }
+    .piece-glyph.piece-moved { animation: piece-slide 0.4s cubic-bezier(0.22, 1, 0.36, 1); z-index: 5; }
     .piece-glyph.white { color: #fffdf6; -webkit-text-fill-color: #fffdf6; -webkit-text-stroke: 0.6px #5c3a1e; paint-order: stroke fill; }
     .piece-glyph.black { color: #1a0f04; -webkit-text-fill-color: #1a0f04; -webkit-text-stroke: 0.6px #2a1608; paint-order: stroke fill; }
     .square:hover .piece-glyph { transform: scale(1.06); }
     .move-dot { width: 30%; height: 30%; border-radius: 50%; background: rgba(124,92,252,0.55); position: absolute; }
     .square.dark .move-dot { background: rgba(155,134,255,0.65); }
-    .capture-ring { position: absolute; inset: 6%; border-radius: 50%; border: 4px solid rgba(124,92,252,0.65); }
-    .square.dark .capture-ring { border-color: rgba(155,134,255,0.75); }
+    .capture-square { position: absolute; inset: 0; background: rgba(220, 38, 38, 0.55); }
 
     /* ---- Game HUD ---- */
     .game-layout {
@@ -1685,6 +1828,16 @@ const Style = () => (
       text-overflow: ellipsis;
     }
     .game-pmeta { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 5px; }
+    .bot-thinking-pill {
+      flex-shrink: 0;
+      white-space: nowrap;
+      display: inline-flex;
+      align-items: center;
+    }
+    .bot-thinking-pill .dot {
+      width: 4px;
+      height: 4px;
+    }
     .game-timer {
       font-family: var(--font-mono);
       font-weight: 700;
@@ -1739,6 +1892,18 @@ const Style = () => (
     @keyframes bubbleOut {
       from { opacity: 1; }
       to { opacity: 0; }
+    }
+    .bot-reaction-bubble.bot-typing {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 400;
+      animation: bubbleIn 0.25s ease-out both;
+    }
+    .bot-typing-label {
+      font-size: 11px;
+      color: var(--muted);
+      font-style: italic;
     }
     .below-board-row {
       display: flex;
@@ -2525,6 +2690,7 @@ const Style = () => (
         text-align: center;
       }
       .main-col { padding-bottom: 52px; }
+      .search-screen { left: 0; bottom: 0; }
       .content { padding: 8px; max-width: 100%; display: flex; flex-direction: column; }
       .game-layout { min-height: calc(100vh - 78px); align-items: flex-start; flex: 1; overflow-y: auto; }
       .game-main { width: 100%; }
@@ -2557,6 +2723,11 @@ const Style = () => (
       .grid-3 { grid-template-columns: 1fr; }
       .ov-grid { grid-template-columns: 1fr; }
       #cv-play-options .h2 { display: none; }
+      .cv-play-options { padding: 8px 14px !important; display: flex; flex-direction: column; max-height: calc(100vh - 88px); overflow-y: auto; }
+      .cv-play-options .card { margin-top: 10px !important; }
+      .cv-play-options .h3 { font-size: 13px; }
+      .cv-play-options .btn-brass { margin-top: 10px !important; }
+      .friend-action-row .btn { margin-top: 0 !important; }
       .toast { bottom: 88px; }
       .board-wrap { border-radius: 6px; }
     }
@@ -2652,11 +2823,17 @@ function ChessBoard({ board, legalTargets, selected, onSquareClick, lastMove, or
             const piece = board[r][c];
             const isSelected = selected && selected.r === r && selected.c === c;
             const isLast = lastMove && ((lastMove.from.r === r && lastMove.from.c === c) || (lastMove.to.r === r && lastMove.to.c === c));
-            const isMoveTarget = lastMove && lastMove.to.r === r && lastMove.to.c === c;
             const isCheck = checkSquare && checkSquare.r === r && checkSquare.c === c;
             const isPremoveFrom = premoveFrom && premoveFrom.r === r && premoveFrom.c === c;
             const isPremoveTo = premoveTo && premoveTo.r === r && premoveTo.c === c;
             const target = legalTargets.find((m) => m.to.r === r && m.to.c === c);
+            const slideStyle =
+              piece && lastMove && lastMove.from && lastMove.to && lastMove.to.r === r && lastMove.to.c === c
+                ? {
+                    "--slide-x": `calc(var(--sqsize) * ${(orientation === "w" ? -1 : 1) * (c - lastMove.from.c)})`,
+                    "--slide-y": `calc(var(--sqsize) * ${(orientation === "w" ? -1 : 1) * (r - lastMove.from.r)})`,
+                  }
+                : null;
             const showFile = r === (orientation === "w" ? 7 : 0);
             const showRank = c === (orientation === "w" ? 0 : 7);
             return (
@@ -2675,11 +2852,14 @@ function ChessBoard({ board, legalTargets, selected, onSquareClick, lastMove, or
                 {showFile && <span className="coord file">{FILES[c]}</span>}
                 {showRank && <span className="coord rank">{8 - r}</span>}
                 {piece && (
-                  <span className={`piece-glyph ${piece.color === "w" ? "white" : "black"} ${isMoveTarget ? "piece-landed" : ""}`}>
+                  <span
+                    className={`piece-glyph ${piece.color === "w" ? "white" : "black"} ${slideStyle ? "piece-moved" : ""}`}
+                    style={slideStyle}
+                  >
                     {GLYPHS[piece.color][piece.type]}
                   </span>
                 )}
-                {target && (piece ? <span className="capture-ring" /> : <span className="move-dot" />)}
+                {target && (piece ? <span className="capture-square" /> : <span className="move-dot" />)}
               </div>
             );
           })
@@ -2719,7 +2899,12 @@ function PromotionDialog({ color, onChoose }) {
 /* ---------------------------------------------------------------------------
    GAME OVER MODAL
 --------------------------------------------------------------------------- */
-function GameOverModal({ result, onRematch, onExit, isComputer }) {
+function GameOverModal({ result, onRematch, onExit, isComputer, rematchStatus, rematchReady, onCancelRematch, rematchError }) {
+  const isWaiting = rematchStatus === "requested";
+  const isAccepted = rematchStatus === "accepted";
+  let btnLabel = "Rematch";
+  if (isWaiting) btnLabel = "Waiting for opponent...";
+  else if (isAccepted) btnLabel = "Rematch accepted...";
   return (
     <div className="modal-backdrop">
       <div className="modal-card fade-in">
@@ -2734,8 +2919,15 @@ function GameOverModal({ result, onRematch, onExit, isComputer }) {
           </div>
         )}
         <div className="divider" />
+        {rematchError && <div className="muted" style={{ fontSize: 12.5, color: "var(--danger-bright)", marginBottom: 12 }}>{rematchError}</div>}
         <div style={{ display: "flex", gap: 10, justifyContent: "center" }}>
-          {!isComputer && <button className="btn btn-brass" onClick={onRematch}><Repeat size={15} /> Rematch</button>}
+          {!isComputer && (
+            isWaiting ? (
+              <button className="btn btn-ghost" onClick={onCancelRematch}><X size={15} /> Cancel request</button>
+            ) : (
+              <button className="btn btn-brass" onClick={onRematch} disabled={!rematchReady}><Repeat size={15} /> {btnLabel}</button>
+            )
+          )}
           <button className="btn btn-ghost" onClick={onExit}>Back to Play</button>
         </div>
       </div>
@@ -2887,6 +3079,7 @@ function PlayView({ onStart, profile, notify }) {
   const [friendStatus, setFriendStatus] = useState(null); // null | "waiting" | "active" | "notfound" | "full"
   const [friendAction, setFriendAction] = useState(null); // null | "create" | "join"
   const [createdRoomCode, setCreatedRoomCode] = useState(null);
+  const [friendOpponentName, setFriendOpponentName] = useState("");
   
   const [searchPollTimer, setSearchPollTimer] = useState(null);
   const [friendPollTimer, setFriendPollTimer] = useState(null);
@@ -2942,6 +3135,7 @@ function PlayView({ onStart, profile, notify }) {
       const rating = profile.ratings[category] || 0;
       const res = await api.post("/chess/queue/join", {
         player_name: profile.name || "Player",
+        player_id: PLAYER_ID,
         rating: rating,
         time_control: tc.base,
       });
@@ -3033,6 +3227,37 @@ function PlayView({ onStart, profile, notify }) {
   };
 
   // Create a room for Play a Friend (host)
+  const startFriendRoomPoll = (code) => {
+    if (friendPollTimer) clearInterval(friendPollTimer);
+    const pollInterval = setInterval(async () => {
+      try {
+        const checkRes = await api.get(`/chess/room/${code}`);
+        const room = checkRes.data.room;
+        if (!room) {
+          sessionStorage.removeItem("chess:createdRoom");
+          clearInterval(pollInterval);
+          setFriendStatus("notfound");
+          setCreatedRoomCode(null);
+          return;
+        }
+        if (room.status === "active") {
+          clearInterval(pollInterval);
+          sessionStorage.removeItem("chess:createdRoom");
+          const opponentName = room.player2_name;
+          setFriendOpponentName(opponentName);
+          setFriendStatus("active");
+          setTimeout(() => startOnlineGame(code, "w", opponentName), 1500);
+        } else if (room.status === "finished") {
+          clearInterval(pollInterval);
+          sessionStorage.removeItem("chess:createdRoom");
+          setFriendStatus("notfound");
+          setCreatedRoomCode(null);
+        }
+      } catch (e) { /* keep polling */ }
+    }, 1000);
+    setFriendPollTimer(pollInterval);
+  };
+
   const createFriendRoom = async () => {
     setFriendStatus("waiting");
     
@@ -3040,24 +3265,16 @@ function PlayView({ onStart, profile, notify }) {
       const res = await api.post("/chess/room", {
         game_id: 0,
         player_name: profile.name || "Player",
+        player_id: PLAYER_ID,
         time_control: tc.base * 60,
       });
       
       if (res.data.success) {
         const code = res.data.room.room_code;
         setCreatedRoomCode(code);
-        // Poll for opponent joining
-        const pollInterval = setInterval(async () => {
-          try {
-            const checkRes = await api.get(`/chess/room/${code}`);
-            if (checkRes.data.room?.status === "active") {
-              clearInterval(pollInterval);
-              setFriendStatus("active");
-              setTimeout(() => startOnlineGame(code, "w", checkRes.data.room.player2_name), 1500);
-            }
-          } catch (e) { /* keep polling */ }
-        }, 1000);
-        setFriendPollTimer(pollInterval);
+        // Persist the invite so the room survives backgrounding/reload (e.g. sharing to WhatsApp)
+        sessionStorage.setItem("chess:createdRoom", JSON.stringify({ code, action: "create" }));
+        startFriendRoomPoll(code);
       }
     } catch (e) {
       notify("Failed to create room");
@@ -3092,9 +3309,11 @@ function PlayView({ onStart, profile, notify }) {
       
       const joinRes = await api.post(`/chess/room/${code}/join`, {
         player_name: profile.name || "Player",
+        player_id: PLAYER_ID,
       });
       
       if (joinRes.data.success) {
+        setFriendOpponentName(room.player1_name);
         setFriendStatus("active");
         // Start game as black
         setTimeout(() => startOnlineGame(code, "b", room.player1_name), 1500);
@@ -3108,6 +3327,26 @@ function PlayView({ onStart, profile, notify }) {
     setFriendJoining(false);
   };
 
+  // Restore a persisted room invite so returning from WhatsApp (or a tab reload)
+  // does not discard the room / bounce the host back to the home page.
+  useEffect(() => {
+    if (!profile) return;
+    const saved = sessionStorage.getItem("chess:createdRoom");
+    if (!saved) return;
+    try {
+      const { code } = JSON.parse(saved);
+      const c = String(code || "").toUpperCase();
+      if (!c) return;
+      setFriendAction("create");
+      setMode("friend");
+      setStep("options");
+      setFriendStatus("waiting");
+      setCreatedRoomCode(c);
+      startFriendRoomPoll(c);
+    } catch (e) { /* ignore malformed */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [profile]);
+
   const startOnlineGame = (roomCode, color, opponentName) => {
     // Backend speaks in "white"/"black"; the game engine uses "w"/"b"
     color = color === "white" ? "w" : color === "black" ? "b" : color;
@@ -3118,7 +3357,8 @@ function PlayView({ onStart, profile, notify }) {
     setFriendStatus(null);
     setFriendAction(null);
     setCreatedRoomCode(null);
-    
+    sessionStorage.removeItem("chess:createdRoom");
+
     const category = controlCategory(tc);
     onStart({
       mode: "online",
@@ -3126,6 +3366,10 @@ function PlayView({ onStart, profile, notify }) {
       color,
       category,
       roomCode,
+      // playerName is the name this client sent when creating/joining the room;
+      // playerId is the stable per-browser identity used for authoritative rematch checks.
+      playerName: profile.name || "Player",
+      playerId: PLAYER_ID,
       opponent: { name: opponentName, rating: 0, flag: null, title: null },
       preGameCountdown: 3,
     });
@@ -3152,8 +3396,8 @@ function PlayView({ onStart, profile, notify }) {
 
   const modes = [
     { id: "quick", title: "Quick Match", desc: "Find a real player instantly, or face a tough opponent.", icon: Play },
-    { id: "computer", title: "Play the Computer", desc: "Practice against the ChessVerse engine.", icon: Bot },
     { id: "friend", title: "Play a Friend", desc: "Create or join a room with a code.", icon: Link2 },
+    { id: "computer", title: "Play the Computer", desc: "Practice against the ChessVerse engine.", icon: Bot },
   ];
 
   const pickMode = (id) => {
@@ -3164,7 +3408,7 @@ function PlayView({ onStart, profile, notify }) {
   // Render searching UI
   if (searching) {
     return (
-      <div className="fade-in" style={{ maxWidth: 460, margin: "60px auto 0", textAlign: "center" }}>
+      <div className="fade-in search-screen">
         {searchPhase === "searching" && (
           <>
             <div className="mm-ring">
@@ -3188,6 +3432,9 @@ function PlayView({ onStart, profile, notify }) {
             <div className="h3" style={{ marginTop: 26, color: "var(--malachite)" }}>
               {matchData.isBot ? "Opponent found!" : "Player found!"}
             </div>
+            {matchData.opponentName && (
+              <div style={{ fontSize: 16, fontWeight: 700, marginTop: 8, color: "var(--ivory)" }}>{matchData.opponentName}</div>
+            )}
             <div className="muted" style={{ fontSize: 13, marginTop: 10 }}>Starting match…</div>
           </div>
         )}
@@ -3213,7 +3460,7 @@ function PlayView({ onStart, profile, notify }) {
           {modes.map((m) => (
             <div
               key={m.id}
-              className={`mode-card ${m.id === "friend" ? "mode-friend" : ""}`}
+              className={`mode-card ${m.id === "computer" ? "mode-computer" : ""}`}
               onClick={() => pickMode(m.id)}
             >
               <div className="mode-icon"><m.icon size={19} /></div>
@@ -3228,12 +3475,221 @@ function PlayView({ onStart, profile, notify }) {
 
   // Step 3: Options (time control, difficulty, friend room)
   if (step === "options") {
+    // ── Play a Friend: dedicated create/join flow ──
+    if (mode === "friend") {
+      return (
+        <div id="cv-play-options" className="fade-in cv-play-options" style={{ maxWidth: 520, width: "100%", margin: "0 auto", padding: "32px 20px" }}>
+          <button className="btn btn-sm" style={{ marginBottom: 18, alignSelf: 'flex-start' }} onClick={() => { setMode(null); setStep("mode"); setFriendAction(null); setCreatedRoomCode(null); setFriendStatus(null); setFriendCode(""); setFriendJoining(false); }}>
+            <ChevronLeft size={13} /> Back
+          </button>
+          <div className="eyebrow">Play a Friend</div>
+
+          {/* Step A: choose create or join */}
+          {!friendAction && !createdRoomCode && (
+            <>
+              <div className="h2" style={{ marginTop: 6 }}>Play with a friend</div>
+              <div className="card fade-in" style={{ marginTop: 20 }}>
+                <div className="h3">Start a game</div>
+                <div className="friend-action-row" style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 12, width: "100%", marginTop: 16 }}>
+                  <button
+                    className="btn btn-brass"
+                    style={{ height: 48, padding: "0 20px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flex: "1 1 0%", minWidth: 0, whiteSpace: "nowrap" }}
+                    onClick={() => setFriendAction("create")}
+                  >
+                    <Link2 size={15} /> Create a Room
+                  </button>
+                  <button
+                    className="btn btn-ghost"
+                    style={{ height: 48, padding: "0 20px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: 8, flex: "1 1 0%", minWidth: 0, whiteSpace: "nowrap" }}
+                    onClick={() => setFriendAction("join")}
+                  >
+                    <Play size={15} /> Join a Room
+                  </button>
+                </div>
+                <div className="muted" style={{ fontSize: 12, marginTop: 14 }}>
+                  Create a room to invite a friend with a code, or join a room using your friend's code.
+                </div>
+              </div>
+            </>
+          )}
+
+          {/* Step B1: create → pick time control, then create */}
+          {friendAction === "create" && !createdRoomCode && (
+            <>
+              <div className="h2" style={{ marginTop: 6 }}>Time control</div>
+              <div className="card fade-in" style={{ marginTop: 20 }}>
+                <div className="h3">Choose time control</div>
+                <div className="tc-grid" style={{ marginTop: 14 }}>
+                  {TIME_CONTROLS.map((t) => (
+                    <div
+                      key={t.label}
+                      className={`tc-chip ${tc.label === t.label ? "active" : ""}`}
+                      onClick={() => setTc(t)}
+                    >
+                      <div className="tc-label">{t.label}</div>
+                      <div className="tc-sub">{t.sub}</div>
+                    </div>
+                  ))}
+                </div>
+                <button
+                  className="btn btn-brass"
+                  style={{ width: "100%", justifyContent: "center", marginTop: 18 }}
+                  onClick={() => createFriendRoom()}
+                >
+                  <Link2 size={15} /> Create Room
+                </button>
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: "100%", justifyContent: "center", marginTop: 10 }}
+                  onClick={() => setFriendAction(null)}
+                >
+                  <ChevronLeft size={12} /> Back to options
+                </button>
+                {friendStatus === "waiting" && !createdRoomCode && (
+                  <div className="muted" style={{ fontSize: 13, textAlign: "center", padding: "14px 0 0" }}>
+                    Creating room…
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Created room: show room code + share link */}
+          {createdRoomCode && (
+            <div className="card fade-in" style={{ marginTop: 20 }}>
+              <div className="h3" style={{ textAlign: "center" }}>Play a Friend</div>
+              <div style={{ textAlign: "center", padding: "16px 0 4px" }}>
+                <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>Share this code with your friend</div>
+                <div style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: 32,
+                  fontWeight: 800,
+                  letterSpacing: "0.12em",
+                  color: "var(--brass-bright)",
+                }}>
+                  {createdRoomCode}
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: 8 }}>
+                <button
+                  className="btn btn-ghost"
+                  style={{ flex: 1, justifyContent: "center" }}
+                  onClick={() => { navigator.clipboard.writeText(createdRoomCode); notify("Code copied!"); }}
+                >
+                  <Copy size={13} /> Copy Code
+                </button>
+                <button
+                  className="btn btn-brass"
+                  style={{ flex: 1, justifyContent: "center" }}
+                  onClick={() => {
+                    const link = `${window.location.origin}/play/chess?join=${createdRoomCode}`;
+                    navigator.clipboard.writeText(link).then(() => notify("Link copied!")).catch(() => notify(link));
+                  }}
+                >
+                  <Share2 size={13} /> Copy Link
+                </button>
+              </div>
+              {window.location.hostname === "localhost" && (
+                <div style={{ color: "var(--warning)", fontSize: 11, marginTop: 6, textAlign: "center" }}>
+                  On another device? Replace "localhost" in the link with your IP address.
+                </div>
+              )}
+              {friendStatus === "waiting" && (
+                <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 0" }}>
+                  <span className="thinking-dots" style={{ fontSize: 10 }}>
+                    <span className="dot" /><span className="dot" /><span className="dot" />
+                  </span>
+                  <span className="muted" style={{ fontSize: 12 }}>Waiting for opponent to join…</span>
+                </div>
+              )}
+              <button
+                className="btn btn-ghost btn-sm"
+                style={{ marginTop: 14, width: "100%", justifyContent: "center" }}
+                onClick={() => {
+                  if (friendPollTimer) clearInterval(friendPollTimer);
+                  setFriendAction(null);
+                  setCreatedRoomCode(null);
+                  setFriendStatus(null);
+                  sessionStorage.removeItem("chess:createdRoom");
+                }}
+              >
+                <X size={12} /> Cancel
+              </button>
+            </div>
+          )}
+
+          {/* Step C: join → only the code field */}
+          {friendAction === "join" && (
+            <>
+              <div className="h2" style={{ marginTop: 6 }}>Join a room</div>
+              <div className="card fade-in" style={{ marginTop: 20 }}>
+                <input
+                  type="text"
+                  placeholder="Enter room code"
+                  value={friendCode}
+                  onChange={(e) => setFriendCode(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => { if (e.key === "Enter") joinFriendRoom(); }}
+                  autoFocus
+                  style={{
+                    width: "100%",
+                    boxSizing: "border-box",
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    border: "1px solid var(--line-soft)",
+                    background: "var(--surface)",
+                    color: "#fff",
+                    fontFamily: "var(--font-mono)",
+                    letterSpacing: "0.1em",
+                    fontSize: 16,
+                    textTransform: "uppercase",
+                    textAlign: "center",
+                  }}
+                />
+                <button
+                  className="btn btn-brass"
+                  style={{ width: "100%", justifyContent: "center", marginTop: 12 }}
+                  onClick={() => joinFriendRoom()}
+                  disabled={friendJoining}
+                >
+                  {friendJoining ? "Joining…" : "Join Room"}
+                </button>
+                {friendStatus === "waiting" && (
+                  <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 8, textAlign: "center" }}>Joining room…</div>
+                )}
+                {friendStatus === "notfound" && (
+                  <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 8, textAlign: "center" }}>Room not found — double-check the code</div>
+                )}
+                {friendStatus === "full" && (
+                  <div style={{ color: "var(--warning)", fontSize: 12, marginTop: 8, textAlign: "center" }}>Room is full</div>
+                )}
+                {friendStatus === "error" && (
+                  <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 8, textAlign: "center" }}>Connection error — try again</div>
+                )}
+                {friendStatus === "active" && (
+                  <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 8, textAlign: "center" }}>
+                    {friendOpponentName ? `Opponent found: ${friendOpponentName}! Starting…` : "Opponent found! Starting…"}
+                  </div>
+                )}
+                <button
+                  className="btn btn-ghost btn-sm"
+                  style={{ width: "100%", justifyContent: "center", marginTop: 10 }}
+                  onClick={() => { setFriendAction(null); setFriendCode(""); setFriendStatus(null); setFriendJoining(false); }}
+                >
+                  <ChevronLeft size={12} /> Back to options
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      );
+    }
+
     return (
-      <div className="fade-in" style={{ maxWidth: 520, width: "100%", margin: "0 auto", padding: "40px 20px" }}>
-        <button className="btn btn-sm" style={{ marginBottom: 24 }} onClick={() => { setMode(null); setStep("mode"); setFriendAction(null); setCreatedRoomCode(null); setFriendStatus(null); }}>
+      <div id="cv-play-options" className="fade-in cv-play-options" style={{ maxWidth: 520, width: "100%", margin: "0 auto", padding: "40px 20px" }}>
+        <button className="btn btn-sm" style={{ marginBottom: 24, alignSelf: 'flex-start' }} onClick={() => { setMode(null); setStep("mode"); setFriendAction(null); setCreatedRoomCode(null); setFriendStatus(null); }}>
           <ChevronLeft size={13} /> Back
         </button>
-        <div className="eyebrow">{mode === "quick" ? "Quick Match" : mode === "computer" ? "Play the Computer" : "Play a Friend"}</div>
+        <div className="eyebrow">Quick Match</div>
         <div className="h2" style={{ marginTop: 6 }}>Game settings</div>
 
         {mode === "computer" && (
@@ -3269,169 +3725,13 @@ function PlayView({ onStart, profile, notify }) {
           </div>
         </div>
 
-        {mode === "friend" && (
-          <div className="card fade-in" style={{ marginTop: 16 }}>
-            <div className="h3">Play a Friend</div>
-
-            {/* Two buttons: Create / Join */}
-            {!friendAction && !createdRoomCode && (
-              <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
-                <button
-                  className="btn btn-brass"
-                  style={{ flex: 1, justifyContent: "center" }}
-                  onClick={() => { setFriendAction("create"); createFriendRoom(); }}
-                >
-                  <Link2 size={15} /> Create a Room
-                </button>
-                <button
-                  className="btn btn-ghost"
-                  style={{ flex: 1, justifyContent: "center" }}
-                  onClick={() => setFriendAction("join")}
-                >
-                  <Play size={15} /> Join a Room
-                </button>
-              </div>
-            )}
-
-            {/* Create room: show room code + share link */}
-            {friendAction === "create" && (
-              <div className="fade-in" style={{ marginTop: 16 }}>
-                {friendStatus === "waiting" && !createdRoomCode && (
-                  <div className="muted" style={{ fontSize: 13, textAlign: "center", padding: "20px 0" }}>
-                    Creating room…
-                  </div>
-                )}
-                {createdRoomCode && (
-                  <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                    <div style={{ textAlign: "center", padding: "16px 0 4px" }}>
-                      <div className="muted" style={{ fontSize: 12, marginBottom: 10 }}>Share this code with your friend</div>
-                      <div style={{
-                        fontFamily: "var(--font-mono)",
-                        fontSize: 32,
-                        fontWeight: 800,
-                        letterSpacing: "0.12em",
-                        color: "var(--brass-bright)",
-                      }}>
-                        {createdRoomCode}
-                      </div>
-                    </div>
-                    <div style={{ display: "flex", gap: 8 }}>
-                      <button
-                        className="btn btn-ghost"
-                        style={{ flex: 1, justifyContent: "center" }}
-                        onClick={() => { navigator.clipboard.writeText(createdRoomCode); notify("Code copied!"); }}
-                      >
-                        <Copy size={13} /> Copy Code
-                      </button>
-                      <button
-                        className="btn btn-brass"
-                        style={{ flex: 1, justifyContent: "center" }}
-                        onClick={() => {
-                          const link = `${window.location.origin}/play/chess?join=${createdRoomCode}`;
-                          navigator.clipboard.writeText(link).then(() => notify("Link copied!")).catch(() => notify(link));
-                        }}
-                      >
-                        <Share2 size={13} /> Copy Link
-                      </button>
-                    </div>
-                    {window.location.hostname === "localhost" && (
-                      <div style={{ color: "var(--warning)", fontSize: 11, marginTop: 6, textAlign: "center" }}>
-                        On another device? Replace "localhost" in the link with your IP address.
-                      </div>
-                    )}
-                    {friendStatus === "waiting" && (
-                      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: 8, padding: "12px 0" }}>
-                        <span className="thinking-dots" style={{ fontSize: 10 }}>
-                          <span className="dot" /><span className="dot" /><span className="dot" />
-                        </span>
-                        <span className="muted" style={{ fontSize: 12 }}>Waiting for opponent to join…</span>
-                      </div>
-                    )}
-                  </div>
-                )}
-                <button
-                  className="btn btn-ghost btn-sm"
-                  style={{ marginTop: 14, width: "100%", justifyContent: "center" }}
-                  onClick={() => {
-                    if (friendPollTimer) clearInterval(friendPollTimer);
-                    setFriendAction(null);
-                    setCreatedRoomCode(null);
-                    setFriendStatus(null);
-                  }}
-                >
-                  <X size={12} /> Cancel
-                </button>
-              </div>
-            )}
-
-            {/* Join room: enter code */}
-            {friendAction === "join" && (
-              <div className="fade-in" style={{ marginTop: 16 }}>
-                <div style={{ display: "flex", gap: 8 }}>
-                  <input
-                    type="text"
-                    placeholder="Enter room code"
-                    value={friendCode}
-                    onChange={(e) => setFriendCode(e.target.value.toUpperCase())}
-                    onKeyDown={(e) => { if (e.key === "Enter") joinFriendRoom(); }}
-                    autoFocus
-                    style={{
-                      flex: 1,
-                      padding: "10px 12px",
-                      borderRadius: 8,
-                      border: "1px solid var(--line-soft)",
-                      background: "var(--surface)",
-                      color: "#fff",
-                      fontFamily: "var(--font-mono)",
-                      letterSpacing: "0.1em",
-                      fontSize: 16,
-                      textTransform: "uppercase",
-                    }}
-                  />
-                  <button
-                    className="btn btn-brass"
-                    onClick={() => joinFriendRoom()}
-                    disabled={friendJoining}
-                  >
-                    {friendJoining ? "…" : "Join"}
-                  </button>
-                </div>
-                {friendStatus === "waiting" && (
-                  <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 8 }}>Joining room…</div>
-                )}
-                {friendStatus === "notfound" && (
-                  <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>Room not found — double-check the code</div>
-                )}
-                {friendStatus === "full" && (
-                  <div style={{ color: "var(--warning)", fontSize: 12, marginTop: 8 }}>Room is full</div>
-                )}
-                {friendStatus === "error" && (
-                  <div style={{ color: "var(--danger)", fontSize: 12, marginTop: 8 }}>Connection error — try again</div>
-                )}
-                {friendStatus === "active" && (
-                  <div style={{ color: "var(--accent)", fontSize: 12, marginTop: 8 }}>Opponent found! Starting…</div>
-                )}
-                <button
-                  className="btn btn-ghost btn-sm"
-                  style={{ marginTop: 14, width: "100%", justifyContent: "center" }}
-                  onClick={() => { setFriendAction(null); setFriendCode(""); setFriendStatus(null); setFriendJoining(false); }}
-                >
-                  <X size={12} /> Back
-                </button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {mode !== "friend" && (
-          <button
-            className="btn btn-brass"
-            style={{ width: "100%", justifyContent: "center", marginTop: 20 }}
-            onClick={mode === "computer" ? startBotGame : startQuickMatch}
-          >
-            {mode === "computer" ? <>Start Game <Bot size={15} /></> : <>Find Match <Play size={15} /></>}
-          </button>
-        )}
+        <button
+          className="btn btn-brass"
+          style={{ width: "100%", justifyContent: "center", marginTop: 20 }}
+          onClick={mode === "computer" ? startBotGame : startQuickMatch}
+        >
+          {mode === "computer" ? <>Start Game <Bot size={15} /></> : <>Find Match <Play size={15} /></>}
+        </button>
       </div>
     );
   }
@@ -3465,6 +3765,23 @@ function PlayView({ onStart, profile, notify }) {
 /* ---------------------------------------------------------------------------
    GAME VIEW
 --------------------------------------------------------------------------- */
+// Stable per-browser player id used as the authoritative identity for shared
+// online rooms. Rooms/indexed by numeric ids (player1_id/player2_id below) so
+// rematches are correctly attributed even when two players share a name.
+function getOrCreatePlayerId() {
+  try {
+    const KEY = "chessVerse:playerId";
+    const existing = localStorage.getItem(KEY);
+    if (existing && /^\d+$/.test(existing)) return Number(existing);
+    const id = Math.floor(10000 + Math.random() * 900000000);
+    localStorage.setItem(KEY, String(id));
+    return id;
+  } catch (e) {
+    return Math.floor(10000 + Math.random() * 900000000);
+  }
+}
+const PLAYER_ID = getOrCreatePlayerId();
+
 function initGameState(playerColor) {
   return {
     board: initialBoard(),
@@ -3479,10 +3796,11 @@ function initGameState(playerColor) {
     status: "playing",
     playerColor,
     outcomeBias: rollOutcomeBias(),
+    checkCount: { w: 0, b: 0 },
   };
 }
 
-function GameView({ session, onExit, onGameEnd, notify, profile }) {
+function GameView({ session, onExit, onGameEnd, onRematchStart, notify, profile, rematchStartedRef }) {
   const [gs, setGs] = useState(() => initGameState(session.color));
   const [panelTab, setPanelTab] = useState("analysis");
   const [selected, setSelected] = useState(null);
@@ -3490,6 +3808,12 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
   const [pendingPromotion, setPendingPromotion] = useState(null);
   const [clocks, setClocks] = useState({ w: session.tc.base * 60, b: session.tc.base * 60 });
   const [gameOver, setGameOver] = useState(null);
+  // ── Clock engine (milliseconds) ──────────────────────────────────────────
+  const clockMsRef = useRef({ w: session.tc.base * 60 * 1000, b: session.tc.base * 60 * 1000 });
+  const clockActiveRef = useRef(null);   // color whose clock is currently running ("w"/"b"/null)
+  const clockStartRef = useRef(0);       // performance.now() when the active clock started
+  const incrementMsRef = useRef((session.tc.inc || 0) * 1000);
+  const clockStartedRef = useRef(false); // guards the one-time game-start clock boot
   const [chatMessages, setChatMessages] = useState(() => [
     { from: "opponent", text: "Good luck!", time: new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" }) },
   ]);
@@ -3506,10 +3830,28 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
   const [preGameCountdown, setPreGameCountdown] = useState(() => session.preGameCountdown || 0);
   const preGameCountdownRef = useRef(null);
   const [botReaction, setBotReaction] = useState(null);
+  const [playerMessage, setPlayerMessage] = useState(null);
+  const [opponentMessage, setOpponentMessage] = useState(null);
+  const [botTyping, setBotTyping] = useState(false);
   const timerRef = useRef(null);
   const gameEndedRef = useRef(false);
   const recentReactionsRef = useRef([]);
   const reactionTimerRef = useRef(null);
+  const botTypingTimerRef = useRef(null);
+  const lastReactionMoveRef = useRef(null);
+
+  // ── Online rematch (request → opponent popup → accept/decline → new match) ─
+  const [rematchStatus, setRematchStatus] = useState("idle"); // idle|requested|accepted|declined|expired
+  const [incomingRematch, setIncomingRematch] = useState(null); // incoming request popup payload
+  const [rematchError, setRematchError] = useState(null);
+  const rematchPollRef = useRef(null);
+  const rematchSentRef = useRef(null); // room_code of pending/processed request on this screen
+  const rematchHandledRoomRef = useRef(null); // prevents re-processing the same accept/decline
+  const rematchExpireRef = useRef(null);
+  const rematchEndRetryRef = useRef(0);
+  const lastEndResultRef = useRef(null);
+  const myName = session.playerName || session.opponent?.selfName || profile?.name || "Player";
+  const myId = session.playerId ?? PLAYER_ID;
 
   // Pre-game countdown timer
   useEffect(() => {
@@ -3555,14 +3897,35 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
   const triggerBotReaction = useCallback((text) => {
     if (!text) return;
     if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
-    setBotReaction({ text, id: Date.now() });
-    recentReactionsRef.current = [...recentReactionsRef.current.slice(-9), text];
-    reactionTimerRef.current = setTimeout(() => setBotReaction(null), 3500);
-  }, []);
+    if (botTypingTimerRef.current) clearTimeout(botTypingTimerRef.current);
+    // Human-like typing delay before the message appears
+    const typingDelay = 1200 + Math.random() * 1600;
+    setBotTyping(true);
+    botTypingTimerRef.current = setTimeout(() => {
+      setBotTyping(false);
+      setBotReaction({ text, id: Date.now() });
+      recentReactionsRef.current = [...recentReactionsRef.current.slice(-9), text];
+      // In computer mode, also persist the bot message in the chat log
+      if (isComputer) {
+        const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+        setChatMessages((prev) => [...prev, { from: "bot", text, time }]);
+      }
+      reactionTimerRef.current = setTimeout(() => setBotReaction(null), 4000);
+    }, typingDelay);
+  }, [isComputer]);
 
   const analyzePlayerMove = useCallback((analysis) => {
     if (!isComputer) return;
     const moveQuality = classifyMove(analysis.prevEval, analysis.newEval, analysis.move, session.color);
+    // Only react to notable moments — never to routine quiet moves.
+    const significantPieceCapture = analysis.capturedPiece && ["q", "r", "b", "n"].includes(analysis.capturedPiece);
+    const notable =
+      analysis.isCheckmate ||
+      analysis.isPromotion ||
+      significantPieceCapture ||
+      analysis.inCheck ||
+      ["brilliant", "inaccuracy", "mistake", "blunder"].includes(moveQuality);
+    if (!notable) return;
     const reaction = getBotReaction({
       moveQuality,
       isCheck: analysis.inCheck,
@@ -3574,8 +3937,16 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
       playerResigned: false,
       recentMessages: recentReactionsRef.current,
     });
-    if (reaction) triggerBotReaction(reaction);
-  }, [isComputer, session.color, triggerBotReaction]);
+    if (!reaction) return;
+    // Hard throttle so we never react every move (checkmate bypasses the gap).
+    const moveNum = gs.history.length;
+    const sinceLast = lastReactionMoveRef.current == null ? Infinity : moveNum - lastReactionMoveRef.current;
+    const minGap = analysis.isCheckmate ? 0 : 4;
+    if (sinceLast >= minGap && Math.random() < 0.6) {
+      lastReactionMoveRef.current = moveNum;
+      triggerBotReaction(reaction);
+    }
+  }, [isComputer, session.color, triggerBotReaction, gs.history.length]);
 
   const triggerGameEndReaction = useCallback((outcome, title) => {
     if (!isComputer) return;
@@ -3598,12 +3969,33 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
     (modalResult, outcome) => {
       if (gameEndedRef.current) return;
       gameEndedRef.current = true;
+      // Immediately stop both clocks so no timer callback can touch them after
+      // the game ends (checkmate, stalemate, resign, draw, timeout, etc.).
+      if (clockActiveRef.current) {
+        const active = clockActiveRef.current;
+        clockMsRef.current = {
+          ...clockMsRef.current,
+          [active]: Math.max(0, clockMsRef.current[active] - (performance.now() - clockStartRef.current)),
+        };
+        clockActiveRef.current = null;
+        clockStartRef.current = 0;
+      }
       const opponentRating = session.opponent?.rating ?? 0;
       const control = `${session.tc.sub} · ${session.tc.label}`;
       const category = session.category;
       const delta = eloDelta(0, 0, 0); // placeholder unused; real delta computed by App via profile
       setGameOver({ ...modalResult });
       onGameEnd({ category, result: outcome, opponentName, opponentRating, control });
+
+      // For online games, always reflect the finished state on the server so the
+      // opponent (and the rematch flow) knows the match has ended. Weigh-checks:
+      // "win" => I won (my colour), "loss" => opponent won, "draw" => draw.
+      if (session.mode === "online" && session.roomCode) {
+        const myC = session.color === "w" ? "white" : "black";
+        const result = outcome === "draw" ? "draw" : outcome === "win" ? myC : (myC === "white" ? "black" : "white");
+        lastEndResultRef.current = result;
+        api.post(`/chess/room/${session.roomCode}/end`, { result, player_color: myC }).catch(() => {});
+      }
       triggerGameEndReaction(outcome, modalResult?.title);
     },
     [onGameEnd, session, opponentName, triggerGameEndReaction]
@@ -3611,6 +4003,7 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
 
   const pendingMoveAnalysisRef = useRef(null);
   const turnStartClockRef = useRef(session.tc.base * 60);
+  const moverElapsedMsRef = useRef(0);
   const clocksRef = useRef(clocks);
   const gsRef = useRef(gs);
   useEffect(() => {
@@ -3618,8 +4011,89 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
     gsRef.current = gs;
   }, [clocks, gs]);
 
+  /* ── Clock engine helpers ─────────────────────────────────────────────────
+     - clockMsRef: authoritative remaining time in ms.
+     - clockActiveRef/clockStartRef: which clock is running and since when.
+     - The tick loop below only mirrors ms -> displayed seconds. */
+  const clockDisplay = useCallback(() => {
+    const curMs = clockActiveRef.current ? freezeClock(clockMsRef.current, clockActiveRef.current, clockStartRef.current) : clockMsRef.current;
+    setClocks({
+      w: curMs.w / 1000,
+      b: curMs.b / 1000,
+    });
+    return curMs;
+  }, []);
+
+  const stopClock = useCallback(() => {
+    if (!clockActiveRef.current) return;
+    const now = performance.now();
+    const ch = clockActiveRef.current;
+    clockMsRef.current = {
+      ...clockMsRef.current,
+      [ch]: Math.max(0, clockMsRef.current[ch] - (now - clockStartRef.current)),
+    };
+    clockActiveRef.current = null;
+    clockStartRef.current = 0;
+  }, []);
+
+  const startClock = useCallback((color) => {
+    if (!color || gameEndedRef.current) return;
+    stopClock();
+    clockActiveRef.current = color;
+    clockStartRef.current = performance.now();
+    // Record this clock's value at the moment its turn began (in seconds) so the
+    // online time_spent can be computed accurately from real elapsed movement.
+    turnStartClockRef.current = clockMsRef.current[color] / 1000;
+  }, [stopClock]);
+
+  // Apply increment to the player who just completed a move. Only applied
+  // locally in computer mode; online relies on the server's authoritative clock.
+  const addIncrement = useCallback((color) => {
+    if (isOnline) return;
+    const inc = incrementMsRef.current;
+    if (inc <= 0) return;
+    clockMsRef.current = { ...clockMsRef.current, [color]: clockMsRef.current[color] + inc };
+  }, [isOnline]);
+
+  const resetClockEngine = useCallback(() => {
+    const initialMs = session.tc.base * 60 * 1000;
+    clockMsRef.current = { w: initialMs, b: initialMs };
+    clockActiveRef.current = null;
+    clockStartRef.current = 0;
+    incrementMsRef.current = (session.tc.inc || 0) * 1000;
+    turnStartClockRef.current = session.tc.base * 60;
+    setClocks({ w: session.tc.base * 60, b: session.tc.base * 60 });
+  }, [session.tc.base, session.tc.inc]);
+
+  // Online mode: the server is authoritative. Mirror server clock values (in
+  // seconds) back into the local ms engine and re-start the running clock with a
+  // fresh timestamp so the local mirror stays accurate between polls.
+  const syncClockFromServer = useCallback((seconds, activePlayer) => {
+    clockMsRef.current = {
+      w: Math.max(0, (seconds.w ?? 0) * 1000),
+      b: Math.max(0, (seconds.b ?? 0) * 1000),
+    };
+    turnStartClockRef.current = activePlayer === "b" ? (seconds.b || 0) : (seconds.w || 0);
+    clockActiveRef.current = activePlayer;
+    clockStartRef.current = performance.now();
+    setClocks({ w: clockMsRef.current.w / 1000, b: clockMsRef.current.b / 1000 });
+  }, []);
+
+  // Start the appropriate player's clock the moment the game actually begins
+  // (once the pre-game countdown finishes). White always moves first, so white's
+  // clock is the first one running once the game is live.
+  useEffect(() => {
+    if (clockStartedRef.current || gameEndedRef.current || preGameCounting) return;
+    clockStartedRef.current = true;
+    startClock("w");
+    clockDisplay();
+  }, [preGameCounting, startClock, clockDisplay]);
+
   const commitMove = useCallback(
     (move) => {
+      // Never mutate board or clocks once the game has ended — this also stops a
+      // queued bot/committed move from running after a timeout or checkmate.
+      if (gameEndedRef.current) return;
       // Compute everything from gsRef.current (always up-to-date)
       // instead of inside setGs updater (React 18 batches updaters)
       const prev = gsRef.current;
@@ -3659,6 +4133,40 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
         finishGame({ title: "Draw by stalemate", subtitle: "No legal moves remain." }, "draw");
       }
 
+      // 3-Check win: only CONSECUTIVE checks count. A move that does not give
+      // check resets the mover's streak, so 3 checks must come in a row.
+      const checkCount = { ...prev.checkCount };
+      if (inCheck && status !== "checkmate") {
+        checkCount[prev.turn] = (checkCount[prev.turn] || 0) + 1;
+      } else {
+        checkCount[prev.turn] = 0; // move gave no check -> break the streak
+      }
+      if (checkCount[prev.turn] >= 3 && status === "playing") {
+        status = "3check";
+        const outcome = prev.turn === session.color ? "win" : "loss";
+        finishGame(
+          {
+            title: outcome === "win" ? "You win by 3 checks" : `${opponentName} wins by 3 checks`,
+            subtitle: `${prev.turn === "w" ? "White" : "Black"} delivered 3 checks.`,
+          },
+          outcome
+        );
+      }
+
+      // Advance the clock ONLY for a successfully committed, non-game-ending move.
+      if (status === "playing") {
+        // Capture the mover's real elapsed time (for online time_spent) BEFORE we
+        // switch clocks and overwrite turnStartClockRef.
+        moverElapsedMsRef.current = clockActiveRef.current === prev.turn
+          ? Math.max(0, performance.now() - clockStartRef.current)
+          : Math.max(0, turnStartClockRef.current * 1000 - clockMsRef.current[prev.turn]);
+        // Stop mover's clock and apply their increment; start the opponent's clock.
+        addIncrement(prev.turn);
+        stopClock();
+        startClock(nextTurn);
+        clockDisplay();
+      }
+
       // Analysis
       if (prev.turn === session.color) {
         analyzePlayerMove({
@@ -3684,54 +4192,101 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
         captured,
         lastMove: move,
         status,
+        checkCount,
       }));
 
       setSelected(null);
       setLegalTargets([]);
       setViewIndex(null);
+      playMoveSound();
 
       // Online POST — computed directly, not from a ref inside setGs
       if (session.mode === "online" && prev.turn === session.color && session.roomCode) {
         const fen = boardToFen(result.board, nextTurn, result.castling, result.enPassant);
         const colorMap = { w: "white", b: "black" };
-        const timeSpent = Math.round(Math.max(0, turnStartClockRef.current - clocksRef.current[prev.turn]));
-        turnStartClockRef.current = clocksRef.current[nextTurn];
+        const timeSpent = Math.round(moverElapsedMsRef.current / 1000);
         const onlineData = {
           notation: sanFinal,
           fen_after: fen,
           player_color: colorMap[prev.turn] || "white",
           time_spent: timeSpent,
+          increment: session.tc.inc || 0,
         };
-        api.post(`/chess/room/${session.roomCode}/move`, onlineData).then(() => {
+        api.post(`/chess/room/${session.roomCode}/move`, onlineData).then((res) => {
           console.log("[CHESS] Move posted:", onlineData.notation, "→", session.roomCode);
+          // Server may report flag fall (timeout) even though the move was accepted locally.
+          if (res.data.flag_fell) {
+            const myColor = session.color === "w" ? "white" : "black";
+            const outcome = res.data.winner === myColor ? "win" : "loss";
+            finishGame(
+              { title: outcome === "win" ? "You win on time" : "Opponent wins on time",
+                subtitle: "The flag has fallen." },
+              outcome
+            );
+          }
         }).catch((e) => {
           console.error("[CHESS] Move sync failed:", e?.response?.data || e.message);
           notify("Move failed to sync — check connection");
         });
       }
     },
-    [finishGame, session.color, session.mode, session.roomCode, opponentName, analyzePlayerMove]
+    [finishGame, session.color, session.mode, session.roomCode, opponentName, analyzePlayerMove,
+     addIncrement, stopClock, startClock, clockDisplay]
   );
 
   useEffect(() => {
     if (gameOver || preGameCounting) return;
+    // The authoritative time lives in clockMsRef; this loop only refreshes the
+    // displayed seconds from real elapsed wall-clock time. It never mutates the
+    // authoritative values — it only mirrors them, so throttling can't cause
+    // drift, and once gameOver is true nothing here can change a clock.
     timerRef.current = setInterval(() => {
-      setClocks((prev) => {
-        const nextVal = Math.max(0, prev[gs.turn] - 0.1);
-        const next = { ...prev, [gs.turn]: nextVal };
-        if (nextVal <= 0) {
-          clearInterval(timerRef.current);
-          const outcome = gs.turn === session.color ? "loss" : "win";
-          finishGame(
-            { title: gs.turn === session.color ? `${opponentName} wins on time` : "You win on time", subtitle: "The flag has fallen." },
-            outcome
-          );
+      if (gameEndedRef.current || !clockActiveRef.current) {
+        const cur = clockMsRef.current;
+        setClocks({ w: cur.w / 1000, b: cur.b / 1000 });
+        return;
+      }
+      const active = clockActiveRef.current;
+      const elapsed = performance.now() - clockStartRef.current;
+      const remainingMs = clockMsRef.current[active] - elapsed;
+      if (remainingMs <= 0) {
+        // Flag reaches zero. Clamp it at 0 immediately.
+        stopClock();
+        clockMsRef.current = { ...clockMsRef.current, [active]: 0 };
+        setClocks({ w: clockMsRef.current.w / 1000, b: clockMsRef.current.b / 1000 });
+        if (!gameEndedRef.current) {
+          // Online: the server is authoritative for timeouts — the local mirror
+          // must NOT declare a winner on its own (the opponent's true clock is
+          // governed server-side). Just freeze the display and wait for the next
+          // poll/opponent move to resync.
+          if (isOnline) return;
+          const flagged = active;
+          const winner = flagged === "w" ? "b" : "w";
+          // Respect proper chess timeout rules: if the opponent has no possible
+          // mating material, the game is a draw rather than a loss.
+          const flagBoard = gsRef.current.board;
+          if (!hasMatingMaterial(flagBoard, winner)) {
+            finishGame(
+              { title: "Draw on time", subtitle: "Timeout — your opponent ran out of time, but has no mating material." },
+              "draw"
+            );
+          } else {
+            const outcome = flagged === session.color ? "loss" : "win";
+            finishGame(
+              { title: flagged === session.color ? `${opponentName} wins on time` : "You win on time", subtitle: "The flag has fallen." },
+              outcome
+            );
+          }
         }
-        return next;
+        return;
+      }
+      setClocks({
+        w: (active === "w" ? remainingMs : clockMsRef.current.w) / 1000,
+        b: (active === "b" ? remainingMs : clockMsRef.current.b) / 1000,
       });
     }, 100);
     return () => clearInterval(timerRef.current);
-  }, [gs.turn, gameOver, finishGame, session.color, opponentName, preGameCounting]);
+  }, [gameOver, preGameCounting, stopClock, finishGame, session.color, opponentName, session.mode, session.roomCode, isOnline]);
 
   // ── Online mode: Poll opponent's moves ────────────────────────────────────────
   const lastFenRef = useRef("");
@@ -3783,8 +4338,10 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
             const currentFen = boardToFen(cur.board, cur.turn, cur.castling, cur.enPassant);
             if (currentFen === room.fen) {
               lastFenRef.current = room.fen;
-              setClocks({ w: room.white_time_left, b: room.black_time_left });
-              turnStartClockRef.current = cur.turn === "w" ? room.white_time_left : room.black_time_left;
+              syncClockFromServer(
+                { w: room.white_time_left, b: room.black_time_left },
+                cur.turn
+              );
               return;
             }
 
@@ -3813,7 +4370,7 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
               }
 
               const san = latestMove.notation || `Move ${prev.history.length + 1}`;
-              const lastMoveObj = null;
+              const lastMoveObj = diffMoveSquares(oldBoard, newBoard) || null;
 
               return {
                 ...prev,
@@ -3830,15 +4387,25 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
               };
             });
 
-            setClocks({ w: room.white_time_left, b: room.black_time_left });
-            turnStartClockRef.current = newTurn === "w" ? room.white_time_left : room.black_time_left;
+            playMoveSound();
+            syncClockFromServer(
+              { w: room.white_time_left, b: room.black_time_left },
+              newTurn
+            );
           } else {
             // FEN didn't change but we got moves — just sync clocks
-            setClocks({ w: room.white_time_left, b: room.black_time_left });
+            const cur = gsRef.current;
+            syncClockFromServer(
+              { w: room.white_time_left, b: room.black_time_left },
+              cur.turn
+            );
           }
         } else if (!initialSyncRef.current) {
           initialSyncRef.current = true;
-          setClocks({ w: room.white_time_left, b: room.black_time_left });
+          syncClockFromServer(
+            { w: room.white_time_left, b: room.black_time_left },
+            room.current_turn === "black" ? "b" : "w"
+          );
         }
 
       } catch (e) {
@@ -3851,7 +4418,207 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [isOnline, session.roomCode, gameOver, finishGame, session.color]);
+  }, [isOnline, session.roomCode, gameOver, finishGame, session.color, syncClockFromServer]);
+
+  // ── Online rematch workflow ────────────────────────────────────────────────
+  // A rematch is server-authoritative. Clicking Rematch only *requests* one;
+  // when the opponent accepts, the backend creates a brand-new room (new id +
+  // new room_code) and both clients bootstrap that exact session via the same
+  // `new_room_code`. The rematch button never resets the board directly.
+
+  const [rematchReady, setRematchReady] = useState(false);
+
+  const startRematchSession = useCallback((newRoomCode) => {
+    if (!newRoomCode) return;
+    // Colors swap in a rematch: whichever side I played becomes the opponent's
+    // side in the new game, exactly as the backend's createRematchRoom does.
+    const newColor = session.color === "w" ? "b" : "w";
+    const nextSession = {
+      mode: "online",
+      tc: session.tc,
+      color: newColor,
+      category: session.category,
+      roomCode: newRoomCode,
+      playerName: session.playerName || session.opponent?.selfName || profile?.name || "Player",
+      playerId: session.playerId ?? myId,
+      opponent: { ...session.opponent, name: session.opponent?.name || opponentName },
+      preGameCountdown: 3,
+    };
+    onRematchStart(nextSession);
+  }, [session, opponentName, onRematchStart, myId]);
+
+  const requestRematch = useCallback(async () => {
+    if (!isOnline || !session.roomCode) return;
+    if (rematchStatus === "requested" || rematchStatus === "accepted") return;
+    try {
+      setRematchError(null);
+      const res = await api.post(`/chess/room/${session.roomCode}/rematch`, { player_name: myName, player_id: myId });
+      const info = res.data.rematch || {};
+      setRematchStatus(info.status || "requested");
+      if (info.status === "accepted" && info.new_room_code) {
+        rematchSentRef.current = session.roomCode;
+        startRematchSession(info.new_room_code);
+        return;
+      }
+      if (info.status === "requested") {
+        rematchSentRef.current = session.roomCode;
+        notify("Rematch request sent. Waiting for opponent...");
+        // Auto-expire the pending request after 30s if unanswered.
+        clearTimeout(rematchExpireRef.current);
+        rematchExpireRef.current = setTimeout(async () => {
+          rematchHandledRoomRef.current = session.roomCode;
+          setRematchStatus((cur) => {
+            if (cur === "requested") {
+              setIncomingRematch(null);
+              notify("Rematch request expired.");
+              return "expired";
+            }
+            return cur;
+          });
+        }, 30000);
+      }
+    } catch (e) {
+      // "Match not finished" is transient — the server reflects our /end post a
+      // moment later and the poll re-enables the button; don't surface an error.
+      const errMsg = String(e?.response?.data?.error || e?.message || "");
+      if (!/not finished/i.test(errMsg)) setRematchError("Unable to request a rematch.");
+    }
+  }, [isOnline, session.roomCode, session.tc, session.category, myName, myId, rematchStatus, startRematchSession, notify]);
+
+  const acceptRematch = useCallback(async () => {
+    if (!isOnline || !session.roomCode) return;
+    try {
+      setRematchError(null);
+      const res = await api.post(`/chess/room/${session.roomCode}/rematch/respond`, { player_name: myName, player_id: myId, action: "accept" });
+      setIncomingRematch(null);
+      setRematchStatus("accepted");
+      clearTimeout(rematchExpireRef.current);
+      rematchHandledRoomRef.current = session.roomCode;
+      const code = res.data.new_room_code || res.data.rematch?.new_room_code;
+      if (code) startRematchSession(code);
+    } catch (e) {
+      setRematchError("Could not accept the rematch request.");
+      setIncomingRematch(null);
+    }
+  }, [isOnline, session.roomCode, myName, myId, startRematchSession]);
+
+  const declineRematch = useCallback(async () => {
+    if (!isOnline || !session.roomCode) return;
+    try {
+      clearTimeout(rematchExpireRef.current);
+      rematchHandledRoomRef.current = session.roomCode;
+      setIncomingRematch(null);
+      setRematchStatus("declined");
+      await api.post(`/chess/room/${session.roomCode}/rematch/respond`, { player_name: myName, player_id: myId, action: "decline" });
+      notify("You declined the rematch.");
+    } catch (e) { /* best-effort decline */ }
+  }, [isOnline, session.roomCode, myName, myId, notify]);
+
+  const cancelRematch = useCallback(async () => {
+    if (!isOnline || !session.roomCode) return;
+    try {
+      clearTimeout(rematchExpireRef.current);
+      setRematchStatus("idle");
+      rematchSentRef.current = null;
+      await api.post(`/chess/room/${session.roomCode}/rematch/cancel`, { player_name: myName, player_id: myId });
+    } catch (e) { /* best-effort cancel */ }
+  }, [isOnline, session.roomCode, myName, myId]);
+
+  const handleExit = useCallback(() => {
+    // Leaving cancels any pending rematch request so the opponent isn't left
+    // waiting forever ("Opponent left the game. Rematch request cancelled.").
+    if (isOnline && session.roomCode) {
+      clearTimeout(rematchExpireRef.current);
+      rematchSentRef.current = null;
+      api.post(`/chess/room/${session.roomCode}/rematch/cancel`, { player_name: myName, player_id: myId }).catch(() => {});
+    }
+    onExit();
+  }, [isOnline, session.roomCode, myName, onExit]);
+
+  // Poll room rematch state after the game ends so requests/accepts from the
+  // opponent (including simultaneous requests) are observed and reconciled.
+  useEffect(() => {
+    if (!isOnline || !session.roomCode || !gameOver) {
+      if (rematchPollRef.current) clearInterval(rematchPollRef.current);
+      return;
+    }
+    const reconcile = async () => {
+      try {
+        const res = await api.get(`/chess/room/${session.roomCode}`);
+        const room = res.data.room;
+        if (!room) return;
+        if (room.status === "finished") setRematchReady(true);
+        const r = room.rematch || { status: "none" };
+
+        // An accept observed on the server starts the rematch for us too.
+        if (r.status === "accepted" && r.new_room_code) {
+          // If the shell WS handler already started this room, skip to avoid
+          // double-starting (which causes a double color-swap → both white).
+          if (rematchStartedRef && rematchStartedRef.current === r.new_room_code) return;
+          if (rematchHandledRoomRef.current !== session.roomCode) {
+            rematchHandledRoomRef.current = session.roomCode; // mark handled to prevent re-fire
+            clearTimeout(rematchExpireRef.current);
+            setIncomingRematch(null);
+            setRematchStatus("accepted");
+            startRematchSession(r.new_room_code);
+          }
+          return;
+        }
+
+        const reqKey = r.requested_at || null;
+        // If the local game is over but the server room hasn't reflected it yet
+        // (e.g. our /end post raced or failed), re-post it (idempotent) so the
+        // rematch flow can proceed. Capped retries.
+        if (room.status !== "finished" && rematchEndRetryRef.current < 3 && lastEndResultRef.current) {
+          rematchEndRetryRef.current += 1;
+          api.post(`/chess/room/${session.roomCode}/end`, { result: lastEndResultRef.current, player_color: session.color === "w" ? "white" : "black" }).catch(() => {});
+        }
+        if (room.status === "finished") setRematchReady(true);
+        // The opponent requested a rematch. Identity is id-based so two players
+        // sharing the same name are never mis-attributed; falls back to name for
+        // legacy rooms created before player ids existed.
+        const isFromOpponent =
+          (r.requested_by_id != null && r.requested_by_id !== myId) ||
+          (r.requested_by_id == null && r.requested_by && r.requested_by !== myName);
+        if (r.status === "requested" && isFromOpponent) {
+          // Only surface a request we haven't already shown/answered for this
+          // specific pending request (keyed by its requested_at timestamp, so a
+          // brand-new request after a decline is surfaced again).
+          if (rematchHandledRoomRef.current !== reqKey) {
+            rematchHandledRoomRef.current = reqKey;
+            setIncomingRematch({ requestedBy: r.requested_by });
+            clearTimeout(rematchExpireRef.current);
+            rematchExpireRef.current = setTimeout(() => {
+              setIncomingRematch((cur) => (cur ? { ...cur, expired: true } : cur));
+            }, 30000);
+          }
+          return;
+        }
+
+        if (r.status === "expired" || r.status === "declined") {
+          if (rematchHandledRoomRef.current !== reqKey && rematchHandledRoomRef.current !== session.roomCode) {
+            clearTimeout(rematchExpireRef.current);
+            setIncomingRematch(null);
+            if (rematchStatus === "requested") setRematchStatus(r.status);
+            if (r.status === "declined") notify("Opponent declined the rematch.");
+            else notify("Rematch request expired.");
+          }
+          // Clear the request-specific guard so a future request can be surfaced.
+          if (r.status === "expired") rematchHandledRoomRef.current = null;
+        }
+      } catch (e) {
+        // If the old room becomes unreachable the opponent likely left the match.
+        setIncomingRematch(null);
+        setRematchStatus((cur) => (cur === "requested" ? "expired" : cur));
+      }
+    };
+    reconcile();
+    rematchPollRef.current = setInterval(reconcile, 1000);
+    return () => {
+      if (rematchPollRef.current) clearInterval(rematchPollRef.current);
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOnline, session.roomCode, gameOver, myName, myId, startRematchSession, rematchStatus]);
 
   // ── Bot move (computer mode + fallback from quick match) ────────────────────
   useEffect(() => {
@@ -3925,7 +4692,8 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
     !pendingPromotion &&
     gs.status === "playing" &&
     gs.turn !== session.color &&
-    clocks[session.color] <= premoveThreshold;
+    clocks[session.color] <= premoveThreshold &&
+    !isOnline;
 
   const handleSquareClick = (r, c) => {
     if (gameOver || pendingPromotion || isViewingHistory || preGameCounting) return;
@@ -4000,19 +4768,62 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
     );
   };
 
+  const playerMessageTimerRef = useRef(null);
+  const opponentMessageTimerRef = useRef(null);
+  const lastChatMsgIdRef = useRef(0);
+
+  // Poll for incoming chat messages in online mode
+  useEffect(() => {
+    if (!isOnline || !session.roomCode) return;
+    const pollChat = async () => {
+      try {
+        const res = await api.get(`/chess/room/${session.roomCode}/chat?after=${lastChatMsgIdRef.current}`);
+        if (res.data.success && res.data.messages.length > 0) {
+          for (const msg of res.data.messages) {
+            if (msg.sender_name === session.color) continue; // skip own messages
+            lastChatMsgIdRef.current = Math.max(lastChatMsgIdRef.current, msg.id);
+            const time = new Date(msg.created_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+            setChatMessages((prev) => [...prev, { from: "opponent", text: msg.message, time }]);
+            // Show as bubble below opponent card
+            if (opponentMessageTimerRef.current) clearTimeout(opponentMessageTimerRef.current);
+            setOpponentMessage({ text: msg.message, id: Date.now() });
+            opponentMessageTimerRef.current = setTimeout(() => setOpponentMessage(null), 3500);
+          }
+        }
+      } catch (e) { /* poll error — ignore */ }
+    };
+    const interval = setInterval(pollChat, 2000);
+    return () => clearInterval(interval);
+  }, [isOnline, session.roomCode]);
+
   const sendChatMessage = (text) => {
     const trimmed = text.trim();
     if (!trimmed) return;
+    // Show as bubble below player card
+    if (playerMessageTimerRef.current) clearTimeout(playerMessageTimerRef.current);
+    setPlayerMessage({ text: trimmed, id: Date.now() });
+    playerMessageTimerRef.current = setTimeout(() => setPlayerMessage(null), 3500);
+    // Also store in chatMessages
     const time = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
     setChatMessages((prev) => [...prev, { from: "you", text: trimmed, time }]);
     setChatInput("");
-    if (!isComputer && Math.random() < 0.55) {
-      const delay = 900 + Math.random() * 1600;
-      setTimeout(() => {
-        const reply = QUICK_MESSAGES[Math.floor(Math.random() * QUICK_MESSAGES.length)];
-        const replyTime = new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
-        setChatMessages((prev) => [...prev, { from: "opponent", text: reply, time: replyTime }]);
-      }, delay);
+    setSheetOpen(false);
+    if (isComputer) {
+      // Bot auto-reply in computer mode only
+      if (Math.random() < 0.55) {
+        const delay = 900 + Math.random() * 1600;
+        setTimeout(() => {
+          const allQuickMsgs = BOT_CHAT_CATEGORIES.flatMap((c) => c.msgs);
+          const reply = allQuickMsgs[Math.floor(Math.random() * allQuickMsgs.length)];
+          triggerBotReaction(reply);
+        }, delay);
+      }
+    } else if (isOnline && session.roomCode) {
+      // Send to opponent via API — no auto-reply for real humans
+      api.post(`/chess/room/${session.roomCode}/chat`, {
+        sender_name: session.color,
+        message: trimmed,
+      }).catch(() => {});
     }
   };
 
@@ -4070,7 +4881,7 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
   const boardOrientation = flipped ? (orientation === "w" ? "b" : "w") : orientation;
   const evalScore = materialScore(gs.board, "w");
 
-  const you = { name: "You" };
+  const you = { name: profile?.name || "You" };
   const diffLabel = session.difficulty ? session.difficulty[0].toUpperCase() + session.difficulty.slice(1) : "—";
   const opp = { name: opponentName, rating: isComputer ? diffLabel : session.opponent?.rating };
 
@@ -4090,17 +4901,9 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
                 {opponentTitle && <span className="title-badge" style={{ fontSize: 10, padding: "3px 8px" }}>{opponentTitle}</span>}
                 <span className="game-pname">{opp.name}</span>
                 {opponentFlag && <span style={{ fontSize: 13 }}>{opponentFlag}</span>}
-                {botThinking && (
-                  typeof botThinking === "string" ? (
-                    <span style={{ fontSize: 10, padding: "2px 8px", color: "var(--ivory-dim)", fontStyle: "italic" }}>
-                      {botThinking}
-                    </span>
-                  ) : (
-                    <span className="thinking-dots" style={{ fontSize: 9, padding: "2px 8px" }}>
-                      <span className="dot" /><span className="dot" /><span className="dot" />
-                    </span>
-                  )
-                )}
+                {(() => { const oppColor = orientation === "w" ? "b" : "w"; const count = gs.checkCount?.[oppColor] || 0; return count > 0 ? (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: count >= 2 ? "var(--danger-bright)" : "var(--ivory-dim)", background: count >= 2 ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.08)", padding: "1px 6px", borderRadius: 6, lineHeight: "16px" }}>♛ {count}/3</span>
+                ) : null; })()}
               </div>
               <div className="game-pmeta">
                 <Trophy size={10} />
@@ -4114,9 +4917,22 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
 
           {/* Bot reaction bubble — always reserves space */}
           <div className="bot-reaction-bubble-wrap">
-            {botReaction && (
+            {botTyping && (
+              <div className="bot-reaction-bubble bot-typing">
+                <span className="thinking-dots" style={{ fontSize: 9 }}>
+                  <span className="dot" /><span className="dot" /><span className="dot" />
+                </span>
+                <span className="bot-typing-label">typing…</span>
+              </div>
+            )}
+            {!botTyping && botReaction && (
               <div key={botReaction.id} className="bot-reaction-bubble">
                 {botReaction.text}
+              </div>
+            )}
+            {opponentMessage && (
+              <div key={opponentMessage.id} className="bot-reaction-bubble" style={{ background: "var(--surface-raised)", color: "var(--ivory-dim)" }}>
+                {opponentMessage.text}
               </div>
             )}
           </div>
@@ -4159,6 +4975,9 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
             <div className="game-pinfo">
               <div className="game-pname-row">
                 <span className="game-pname">{you.name}</span>
+                {(() => { const count = gs.checkCount?.[orientation] || 0; return count > 0 ? (
+                  <span style={{ fontSize: 10, fontWeight: 700, color: count >= 2 ? "var(--danger-bright)" : "var(--ivory-dim)", background: count >= 2 ? "rgba(239,68,68,0.15)" : "rgba(255,255,255,0.08)", padding: "1px 6px", borderRadius: 6, lineHeight: "16px" }}>♛ {count}/3</span>
+                ) : null; })()}
               </div>
               <div className="game-pmeta">
                 <span className={`piece-glyph ${orientation === "w" ? "white" : "black"}`} style={{ fontSize: 12 }}>{GLYPHS[orientation === "w" ? "w" : "b"].k}</span>
@@ -4168,6 +4987,15 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
             <span className={`game-timer ${gs.turn === orientation ? "active-timer" : ""}`}>
               {fmtClock(clocks[orientation])}
             </span>
+          </div>
+
+          {/* Player message bubble */}
+          <div className="bot-reaction-bubble-wrap">
+            {playerMessage && (
+              <div key={playerMessage.id} className="bot-reaction-bubble" style={{ marginLeft: "auto", background: "var(--brass-dim)", color: "var(--ivory)" }}>
+                {playerMessage.text}
+              </div>
+            )}
           </div>
 
           {/* Viewing history banner */}
@@ -4200,8 +5028,6 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
               <button className="btn-icon" onClick={stepBack} disabled={displayIndex === 0} title="Step back"><ChevronLeft size={14} /></button>
               <button className="btn-icon" onClick={stepForward} disabled={!isViewingHistory} title="Step forward"><ChevronRight size={14} /></button>
               <button className="btn-icon" onClick={() => { setSheetTab("chat"); setSheetOpen(true); }} title="Quick message"><MessageSquare size={14} /></button>
-              <button className="btn-icon" onClick={() => setShowLeaveConfirm(true)} title="Home"><Home size={14} /></button>
-              <button className="btn-icon" onClick={() => { setSheetTab("moves"); setSheetOpen(true); }} title="All moves"><Menu size={14} /></button>
             </div>
           </div>
 
@@ -4295,38 +5121,39 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
 
           {panelTab === "chat" && (
             <div className="card fade-in" style={{ marginTop: 12 }}>
+              <div className="chat-log" style={{ marginBottom: 8 }}>
+                {chatMessages.map((m, i) => (
+                  <div key={i} className={`chat-msg ${m.from === "you" ? "you" : ""}`} style={{ alignSelf: m.from === "you" ? "flex-end" : "flex-start", maxWidth: "85%" }}>
+                    <div className="chat-bubble">{m.text}</div>
+                    <div className="chat-time">{m.time}</div>
+                  </div>
+                ))}
+              </div>
               {isComputer ? (
-                <div className="muted" style={{ fontSize: 12.5, textAlign: "center", padding: "18px 0" }}>Chat is unavailable against the engine.</div>
+                <>
+                  {BOT_CHAT_CATEGORIES.map((cat) => (
+                    <div key={cat.label} style={{ marginBottom: 12 }}>
+                      <div className="eyebrow" style={{ marginBottom: 6 }}>{cat.label}</div>
+                      <div className="quick-msg-row" style={{ flexWrap: "wrap" }}>
+                        {cat.msgs.map((msg) => (
+                          <button key={msg} className="quick-msg-chip" onClick={() => sendChatMessage(msg)}>{msg}</button>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </>
               ) : (
                 <>
-                  <div className="chat-log">
-                    {chatMessages.map((m, i) => (
-                      <div className="chat-msg" key={i} style={m.from === "you" ? { flexDirection: "row-reverse" } : {}}>
-                        <Avatar name={m.from === "you" ? you.name : opponentName} size={26} />
-                        <div className="chat-bubble">{m.text}<span className="chat-time">{m.time}</span></div>
+                  {BOT_CHAT_CATEGORIES.map((cat) => (
+                    <div key={cat.label} style={{ marginBottom: 12 }}>
+                      <div className="eyebrow" style={{ marginBottom: 6 }}>{cat.label}</div>
+                      <div className="quick-msg-row" style={{ flexWrap: "wrap" }}>
+                        {cat.msgs.map((msg) => (
+                          <button key={msg} className="quick-msg-chip" onClick={() => sendChatMessage(msg)}>{msg}</button>
+                        ))}
                       </div>
-                    ))}
-                  </div>
-                  <div className="divider" />
-                  <div className="eyebrow" style={{ marginBottom: 8 }}>Quick messages</div>
-                  <div className="quick-msg-row" style={{ marginBottom: 12 }}>
-                    {QUICK_MESSAGES.map((q) => (
-                      <button key={q} className="quick-msg-chip" onClick={() => sendChatMessage(q)}>{q}</button>
-                    ))}
-                  </div>
-                  <div className="chat-input-row">
-                    <input
-                      placeholder="Type a message…"
-                      value={chatInput}
-                      onChange={(e) => setChatInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") sendChatMessage(chatInput);
-                      }}
-                    />
-                    <button className="chat-send-btn" disabled={!chatInput.trim()} onClick={() => sendChatMessage(chatInput)}>
-                      <Send size={14} />
-                    </button>
-                  </div>
+                    </div>
+                  ))}
                 </>
               )}
             </div>
@@ -4386,37 +5213,43 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
             </>
           )}
           {sheetTab === "chat" && (
-            isComputer ? (
-              <div className="muted" style={{ fontSize: 12.5, textAlign: "center", padding: "18px 0" }}>Chat is unavailable against the engine.</div>
-            ) : (
-              <>
-                <div className="chat-log" style={{ maxHeight: "none" }}>
-                  {chatMessages.map((m, i) => (
-                    <div className="chat-msg" key={i} style={m.from === "you" ? { flexDirection: "row-reverse" } : {}}>
-                      <Avatar name={m.from === "you" ? you.name : opponentName} size={26} />
-                      <div className="chat-bubble">{m.text}<span className="chat-time">{m.time}</span></div>
+            <>
+              <div className="chat-log" style={{ marginBottom: 8, maxHeight: 200 }}>
+                {chatMessages.map((m, i) => (
+                  <div key={i} className={`chat-msg ${m.from === "you" ? "you" : ""}`} style={{ alignSelf: m.from === "you" ? "flex-end" : "flex-start", maxWidth: "85%" }}>
+                    <div className="chat-bubble">{m.text}</div>
+                    <div className="chat-time">{m.time}</div>
+                  </div>
+                ))}
+              </div>
+              {isComputer ? (
+                <>
+                  {BOT_CHAT_CATEGORIES.map((cat) => (
+                    <div key={cat.label} style={{ marginBottom: 12 }}>
+                      <div className="eyebrow" style={{ marginBottom: 6 }}>{cat.label}</div>
+                      <div className="quick-msg-row" style={{ flexWrap: "wrap" }}>
+                        {cat.msgs.map((msg) => (
+                          <button key={msg} className="quick-msg-chip" onClick={() => { sendChatMessage(msg); setSheetOpen(false); }}>{msg}</button>
+                        ))}
+                      </div>
                     </div>
                   ))}
-                </div>
-                <div className="divider" />
-                <div className="quick-msg-row" style={{ marginBottom: 10 }}>
-                  {QUICK_MESSAGES.map((q) => (
-                    <button key={q} className="quick-msg-chip" onClick={() => sendChatMessage(q)}>{q}</button>
+                </>
+              ) : (
+                <>
+                  {BOT_CHAT_CATEGORIES.map((cat) => (
+                    <div key={cat.label} style={{ marginBottom: 10 }}>
+                      <div className="eyebrow" style={{ marginBottom: 6 }}>{cat.label}</div>
+                      <div className="quick-msg-row" style={{ flexWrap: "wrap" }}>
+                        {cat.msgs.map((msg) => (
+                          <button key={msg} className="quick-msg-chip" onClick={() => sendChatMessage(msg)}>{msg}</button>
+                        ))}
+                      </div>
+                    </div>
                   ))}
-                </div>
-                <div className="chat-input-row">
-                  <input
-                    placeholder="Type a message…"
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") sendChatMessage(chatInput); }}
-                  />
-                  <button className="chat-send-btn" disabled={!chatInput.trim()} onClick={() => sendChatMessage(chatInput)}>
-                    <Send size={14} />
-                  </button>
-                </div>
-              </>
-            )
+                </>
+              )}
+            </>
           )}
           {sheetTab === "info" && (
             <div style={{ display: "flex", flexDirection: "column", gap: 10, fontSize: 12.5 }}>
@@ -4444,8 +5277,27 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
             <div className="muted" style={{ fontSize: 13, marginBottom: 20 }}>Your current game progress will be lost.</div>
             <div style={{ display: "flex", gap: 10 }}>
               <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={() => setShowLeaveConfirm(false)}>Stay</button>
-              <button className="btn btn-brass" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setShowLeaveConfirm(false); onExit(); }}>Leave</button>
+              <button className="btn btn-brass" style={{ flex: 1, justifyContent: "center" }} onClick={() => { setShowLeaveConfirm(false); handleExit(); }}>Leave</button>
             </div>
+          </div>
+        </div>
+      )}
+      {incomingRematch && isOnline && (
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 9999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => { if (incomingRematch.expired) setIncomingRematch(null); }}>
+          <div className="card" style={{ maxWidth: 360, width: "90%", padding: 28, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <Repeat size={30} style={{ color: "var(--brass-bright)", marginBottom: 12, margin: "0 auto 12px" }} />
+            <div className="h3" style={{ marginBottom: 6 }}>Rematch Request</div>
+            <div className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
+              {incomingRematch.expired ? "This rematch request has expired." : "Your opponent wants to play again."}
+            </div>
+            {!incomingRematch.expired ? (
+              <div style={{ display: "flex", gap: 10 }}>
+                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={declineRematch}>Decline</button>
+                <button className="btn btn-brass" style={{ flex: 1, justifyContent: "center" }} onClick={acceptRematch}>Accept Rematch</button>
+              </div>
+            ) : (
+              <button className="btn btn-ghost" style={{ justifyContent: "center" }} onClick={() => setIncomingRematch(null)}>Close</button>
+            )}
           </div>
         </div>
       )}
@@ -4453,11 +5305,26 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
         <GameOverModal
           result={gameOver}
           isComputer={isComputer}
+          rematchStatus={isOnline ? rematchStatus : "idle"}
+          rematchReady={rematchReady}
+          onCancelRematch={cancelRematch}
+          rematchError={isOnline ? rematchError : null}
           onRematch={() => {
+            if (isOnline) {
+              // Online: rematch is a *request* to the opponent, never a direct reset.
+              requestRematch();
+              return;
+            }
+            // Computer / local: restart immediately.
             setGameOver(null);
             gameEndedRef.current = false;
             setGs(initGameState(session.color));
-            setClocks({ w: session.tc.base * 60, b: session.tc.base * 60 });
+            // Fully reset the clock engine: clear any in-flight tick, restore the
+            // selected mode's start time + increment, and restart white's clock.
+            resetClockEngine();
+            clockStartedRef.current = true;
+            startClock("w");
+            clockDisplay();
             setPremove(null);
             setPremoveSelected(null);
             setBotThinking(false);
@@ -4466,7 +5333,7 @@ function GameView({ session, onExit, onGameEnd, notify, profile }) {
             recentReactionsRef.current = [];
             if (reactionTimerRef.current) clearTimeout(reactionTimerRef.current);
           }}
-          onExit={onExit}
+          onExit={handleExit}
         />
       )}
     </div>
@@ -5040,6 +5907,20 @@ export default function ChessVerse() {
   const [toast, setToast] = useState(null);
   const toastTimeoutRef = useRef(null);
 
+  // ── Global forced rematch popup ────────────────────────────────────────────
+  // The rematch popup normally lives inside GameView, which unmounts when the
+  // player exits a match. To let an opponent *force* an incoming rematch request
+  // onto this screen even after we've left the game (or are browsing elsewhere),
+  // the shell keeps track of the most recent online room and polls it here.
+  // Identifies the requesting player by the stable numeric playerId (see the
+  // backend player1_id/player2_id/rematch_requested_by_id), so even two players
+  // sharing the name "Player" are never mis-attributed.
+  const lastRoomRef = useRef(null); // { roomCode, myId, myName, session }
+  const [forcedRematch, setForcedRematch] = useState(null);
+  const forcedPopupHandledRef = useRef(null); // requested_at guard
+  const forcedPopupExpireRef = useRef(null);
+  const rematchStartedRef = useRef(null); // Prevents WS push + reconcile double-start race
+
   useEffect(() => {
     (async () => {
       const storedProfile = (await storageGet("profile", null)) || defaultProfile();
@@ -5071,6 +5952,26 @@ export default function ChessVerse() {
     })();
   }, []);
 
+  // Resume a persisted online game after a background reload (e.g. returning from WhatsApp).
+  useEffect(() => {
+    if (!loaded) return;
+    const raw = sessionStorage.getItem("chess:activeSession");
+    if (!raw) return;
+    try {
+      const saved = JSON.parse(raw);
+      if (saved && saved.mode === "online" && saved.roomCode) {
+        setSession({ ...saved, id: `${Date.now()}-resumed` });
+        setView("game");
+        lastRoomRef.current = {
+          roomCode: saved.roomCode,
+          myId: saved.playerId ?? PLAYER_ID,
+          myName: saved.playerName || "Player",
+          session: saved,
+        };
+      }
+    } catch (e) { /* ignore malformed */ }
+  }, [loaded]);
+
   const notify = useCallback((message) => {
     setToast(message);
     clearTimeout(toastTimeoutRef.current);
@@ -5087,6 +5988,7 @@ export default function ChessVerse() {
   }, []);
 
   const onGameEnd = useCallback((payload) => {
+    sessionStorage.removeItem("chess:activeSession");
     updateProfile((prev) => applyGameResult(prev, payload));
   }, [updateProfile]);
 
@@ -5099,9 +6001,189 @@ export default function ChessVerse() {
   }, [updateProfile]);
 
   const startGame = (sessionCfg) => {
-    setSession(sessionCfg);
+    // A fresh id guarantees GameView remounts (brand-new board + clocks) for
+    // every match — critically important for synchronized online rematches so we
+    // never reuse stale state or the previous match's id.
+    setSession({ ...sessionCfg, id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
     setView("game");
+    // Persist online sessions so a background reload (e.g. returning from WhatsApp)
+    // resumes the match instead of discarding it.
+    if (sessionCfg.mode === "online" && sessionCfg.roomCode) {
+      sessionStorage.setItem("chess:activeSession", JSON.stringify(sessionCfg));
+      // Track this room at the shell so an incoming rematch popup can be forced
+      // even after the player leaves the game screen.
+      lastRoomRef.current = {
+        roomCode: sessionCfg.roomCode,
+        myId: sessionCfg.playerId ?? PLAYER_ID,
+        myName: sessionCfg.playerName || sessionCfg.opponent?.selfName || "Player",
+        session: sessionCfg,
+      };
+      setForcedRematch(null);
+      clearTimeout(forcedPopupExpireRef.current);
+      forcedPopupHandledRef.current = null;
+      rematchStartedRef.current = null; // clear so next rematch can proceed
+    } else {
+      sessionStorage.removeItem("chess:activeSession");
+    }
   };
+
+  // Accept an incoming (forced) rematch popup at the shell level.
+  const rematchAccept = useCallback(async () => {
+    const track = lastRoomRef.current;
+    const fc = forcedRematch;
+    if (!track || !fc) return;
+    try {
+      const res = await api.post(`/chess/room/${fc.roomCode}/rematch/respond`, {
+        player_name: track.myName, player_id: track.myId, action: "accept",
+      });
+      clearTimeout(forcedPopupExpireRef.current);
+      forcedPopupHandledRef.current = null;
+      setForcedRematch(null);
+      const code = res.data.new_room_code || res.data.rematch?.new_room_code;
+      if (code) {
+        // If GameView reconcile already started this room, skip to prevent
+        // double color-swap (same race as handleForcedAccepted).
+        if (lastRoomRef.current?.roomCode === code) return;
+        const prev = track.session || {};
+        // Rematch swaps colors; everything else (tc, opponent, id) is preserved.
+        startGame({ ...prev, roomCode: code, color: prev.color === "w" ? "b" : "w", id: undefined });
+      } else {
+        notify("Rematch accepted.");
+      }
+    } catch (e) {
+      notify("Could not accept the rematch request.");
+      setForcedRematch(null);
+    }
+  }, [forcedRematch, notify, startGame]);
+
+  const rematchDecline = useCallback(async () => {
+    const track = lastRoomRef.current;
+    const fc = forcedRematch;
+    if (!track || !fc) return;
+    setForcedRematch(null);
+    clearTimeout(forcedPopupExpireRef.current);
+    forcedPopupHandledRef.current = null;
+    try {
+      await api.post(`/chess/room/${fc.roomCode}/rematch/respond`, {
+        player_name: track.myName, player_id: track.myId, action: "decline",
+      });
+    } catch (e) { /* best-effort decline */ }
+  }, [forcedRematch]);
+
+  // Shared handling of an incoming rematch request so the poll fallback and the
+  // WebSocket push both surface the identical forced popup.
+  const showForcedRequest = useCallback((roomCode, requested_by, requested_by_id) => {
+    const track = lastRoomRef.current;
+    const incomingToMe =
+      requested_by_id != null
+        ? requested_by_id !== track?.myId
+        : (requested_by != null && requested_by !== track?.myName);
+    if (!incomingToMe) return;
+    const reqKey = JSON.stringify([requested_by, requested_by_id, roomCode]);
+    if (forcedPopupHandledRef.current === reqKey) return;
+    forcedPopupHandledRef.current = reqKey;
+    setForcedRematch({ roomCode, requested_by });
+    clearTimeout(forcedPopupExpireRef.current);
+    forcedPopupExpireRef.current = setTimeout(() => {
+      setForcedRematch((cur) => (cur && cur.roomCode === roomCode ? { ...cur, expired: true } : cur));
+    }, 30000);
+  }, []);
+
+  // Shared handling of "your request was accepted" so any screen boots the new match.
+  const handleForcedAccepted = useCallback((newRoomCode) => {
+    forcedPopupHandledRef.current = null;
+    setForcedRematch(null);
+    clearTimeout(forcedPopupExpireRef.current);
+    if (!newRoomCode) return;
+    // If the GameView reconcile already started this room, don't double-start
+    // (prevents a race where reconcile swaps color then WS swaps it back).
+    if (lastRoomRef.current?.roomCode === newRoomCode) return;
+    rematchStartedRef.current = newRoomCode;
+    const prev = lastRoomRef.current?.session || {};
+    setView("game");
+    startGame({ ...prev, roomCode: newRoomCode, color: prev.color === "w" ? "b" : "w", id: undefined });
+  }, [startGame]);
+
+  // Force an incoming rematch popup onto ANY screen (including after leaving the
+  // game) by watching the most recent online room. While the player is on the
+  // game screen for that exact room, GameView already surfaces the popup, so the
+  // shell defers to it there to avoid duplicating the UI.
+  useEffect(() => {
+    if (!loaded) return;
+    const track = lastRoomRef.current;
+    if (!track || !track.roomCode) return;
+    const roomCode = track.roomCode;
+    // Defer to the in-game GameView popup when it's showing this room.
+    if (view === "game" && session?.roomCode === roomCode) return;
+
+    let timer;
+    const check = async () => {
+      try {
+        const { data } = await api.get(`/chess/room/${roomCode}`);
+        const r = (data.room && data.room.rematch) || {};
+        if (r.status === "requested" && r.requested_by) {
+          showForcedRequest(roomCode, r.requested_by, r.requested_by_id);
+        } else if (r.status === "accepted" && r.new_room_code) {
+          handleForcedAccepted(r.new_room_code);
+        }
+      } catch (e) { /* room unreachable; opponent likely left */ }
+    };
+    check();
+    timer = setInterval(check, 1500);
+    return () => clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, view, session?.id, session?.roomCode, handleForcedAccepted, showForcedRequest]);
+
+  // WebSocket push: registers this browser's player_id once and reacts to
+  // rematch events instantly (no need to wait for the poll). Reconnects with a
+  // simple backoff and re-registers on every (re)connect.
+  useEffect(() => {
+    if (!loaded) return;
+    let ws = null;
+    let closed = false;
+    let retry = 0; // just to vary the reconnect delay
+    let reconnectTimer = null;
+
+    const connect = () => {
+      if (closed) return;
+      const proto = window.location.protocol === "https:" ? "wss" : "ws";
+      let socket;
+      try {
+        socket = new WebSocket(`${proto}://${window.location.host}/ws/chess`);
+      } catch (e) { return; }
+      ws = socket;
+      socket.onopen = () => {
+        retry = 0;
+        socket.send(JSON.stringify({ type: "hello", player_id: PLAYER_ID }));
+      };
+      socket.onmessage = (ev) => {
+        let msg;
+        try { msg = JSON.parse(ev.data); } catch (e) { return; }
+        if (!msg || msg.type !== "rematch") return;
+        if (msg.action === "requested" && msg.room_code) {
+          // Only the opponent of the tracked room needs to act; showForcedRequest
+          // already guards by player id.
+          showForcedRequest(msg.room_code, msg.requested_by, msg.requested_by_id);
+        } else if (msg.action === "accepted" && msg.new_room_code) {
+          handleForcedAccepted(msg.new_room_code);
+        }
+      };
+      socket.onclose = () => {
+        if (closed) return;
+        const delay = Math.min(1000 * Math.pow(2, retry++), 15000);
+        reconnectTimer = setTimeout(connect, delay);
+      };
+      socket.onerror = () => { try { socket.close(); } catch (e) {} };
+    };
+
+    connect();
+    return () => {
+      closed = true;
+      clearTimeout(reconnectTimer);
+      try { if (ws) ws.close(); } catch (e) {}
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loaded, handleForcedAccepted, showForcedRequest]);
   if (!loaded || !profile) {
     return (
       <div className="cv">
@@ -5125,7 +6207,7 @@ export default function ChessVerse() {
           <div className="content">
             {view === "play" && <PlayView onStart={startGame} profile={profile} notify={notify} />}
             {view === "game" && session && (
-              <GameView session={session} onExit={() => setView("play")} onGameEnd={onGameEnd} notify={notify} profile={profile} />
+              <GameView key={session.id} session={session} onExit={() => { sessionStorage.removeItem("chess:activeSession"); setView("play"); }} onGameEnd={onGameEnd} onRematchStart={startGame} notify={notify} profile={profile} rematchStartedRef={rematchStartedRef} />
             )}
             {view === "puzzles" && <PuzzlesView profile={profile} onPuzzleResult={onPuzzleResult} onRushEnd={onRushEnd} />}
             {view === "profile" && <ProfileView profile={profile} />}
@@ -5133,6 +6215,27 @@ export default function ChessVerse() {
         </div>
       </div>
       <Toast message={toast} />
+      {forcedRematch && (
+        <div className="modal-overlay" style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.6)", zIndex: 99999, display: "flex", alignItems: "center", justifyContent: "center" }} onClick={() => { if (forcedRematch.expired) { setForcedRematch(null); forcedPopupHandledRef.current = null; } }}>
+          <div className="card" style={{ maxWidth: 360, width: "90%", padding: 28, textAlign: "center" }} onClick={(e) => e.stopPropagation()}>
+            <Repeat size={30} style={{ color: "var(--brass-bright)", margin: "0 auto 12px" }} />
+            <div className="h3" style={{ marginBottom: 6 }}>Rematch Request</div>
+            <div className="muted" style={{ fontSize: 13, marginBottom: 20 }}>
+              {forcedRematch.expired
+                ? "This rematch request has expired."
+                : `${forcedRematch.requested_by || "Your opponent"} wants to play again.`}
+            </div>
+            {!forcedRematch.expired ? (
+              <div style={{ display: "flex", gap: 10 }}>
+                <button className="btn btn-ghost" style={{ flex: 1, justifyContent: "center" }} onClick={rematchDecline}>Decline</button>
+                <button className="btn btn-brass" style={{ flex: 1, justifyContent: "center" }} onClick={rematchAccept}>Accept Rematch</button>
+              </div>
+            ) : (
+              <button className="btn btn-ghost" style={{ justifyContent: "center" }} onClick={() => { setForcedRematch(null); forcedPopupHandledRef.current = null; }}>Close</button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

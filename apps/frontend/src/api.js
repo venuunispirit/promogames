@@ -33,15 +33,7 @@ api.interceptors.request.use((config) => {
 
 // Handle 401 & 403 globally
 api.interceptors.response.use(
-  (res) => {
-    // Universal "game finished" signal — every mini-game funnels through this
-    // endpoint, so the post-game login prompt can never miss a completion,
-    // even for games that render their own result screens.
-    if (res.config?.url?.includes('/play/session/complete') && res.data?.success) {
-      window.dispatchEvent(new CustomEvent('pg:session-complete'))
-    }
-    return res;
-  },
+  (res) => res,
   (err) => {
     const status = err.response?.status;
     const isAuthError = status === 401 || status === 403;

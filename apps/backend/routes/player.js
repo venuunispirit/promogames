@@ -1792,8 +1792,6 @@ router.get('/play-page-games', async (req, res) => {
     `);
 
     const allGames = [...branded, ...promoGames];
-    // Play counts change constantly but slowly — let repeat visits skip the network
-    res.set('Cache-Control', 'public, max-age=30');
     res.json({ success: true, games: allGames, featured: branded, promogames: promoGames });
   } catch (err) {
     sendError(res, err);

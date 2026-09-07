@@ -247,7 +247,7 @@ export default function ArcadePage() {
   const loadGames = useCallback(async (signal) => {
     setError(false)
     try {
-      const r = await fetch('/api/play/play-page-games', { signal })
+      const r = await fetch('/api/play/play-page-games', { signal, cache: 'no-store' })
       const d = await r.json()
       if (!d.success) throw new Error('bad payload')
       gamesCache = { featured: d.featured || [], promogames: d.promogames || [] }
@@ -300,6 +300,13 @@ export default function ArcadePage() {
   // so the "N plays" shown reflects the latest play.
   const handleSwitch = useCallback((game) => { setActiveGame(game); loadGames() }, [loadGames])
   const handleClose = useCallback(() => { setActiveGame(null); loadGames() }, [loadGames])
+
+  // Keep arcade grid fresh while a game modal is open
+  useEffect(() => {
+    if (!activeGame) return
+    const interval = setInterval(() => loadGames(), 15000)
+    return () => clearInterval(interval)
+  }, [activeGame, loadGames])
 
   const allGames = [...featured, ...promogames]
 

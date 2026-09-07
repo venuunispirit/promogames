@@ -14,7 +14,7 @@ class LocalDbService {
     final dir = await getDatabasesPath();
     _db = await openDatabase(
       join(dir, 'promogames.db'),
-      version: 2,
+      version: 3,
       onCreate: _create,
       onUpgrade: _upgrade,
     );
@@ -82,7 +82,8 @@ class LocalDbService {
         completed_at TEXT,
         synced INTEGER DEFAULT 0,
         sync_attempts INTEGER DEFAULT 0,
-        last_error TEXT
+        last_error TEXT,
+        promo_player_id INTEGER
       )
     ''');
     await db.execute('''
@@ -145,6 +146,11 @@ class LocalDbService {
           synced INTEGER DEFAULT 0
         )
       ''');
+    }
+    if (oldVersion < 3) {
+      try {
+        await db.execute('ALTER TABLE pending_sessions ADD COLUMN promo_player_id INTEGER');
+      } catch (_) {}
     }
   }
 
@@ -319,6 +325,7 @@ class LocalDbService {
       'completed_at': DateTime.now().toIso8601String(),
       'synced': 0,
       'sync_attempts': 0,
+      'promo_player_id': session['promo_player_id'],
     });
   }
 

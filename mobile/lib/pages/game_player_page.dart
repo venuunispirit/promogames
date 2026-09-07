@@ -8,7 +8,6 @@ import '../services/auth_service.dart';
 import '../services/player_provider.dart';
 import '../services/sync_service.dart';
 import '../services/game_data_service.dart';
-import '../services/notification_service.dart';
 import '../widgets/spinning_logo.dart';
 import '../games/registry.dart';
 
@@ -81,11 +80,8 @@ class _GamePlayerPageState extends State<GamePlayerPage> {
     if (_finished) return;
     _finished = true;
 
-    // Report score (offline-first)
+    // Report score (offline-first) — PC is awarded server-side on completion
     _reportScore(score, maxScore);
-
-    // Award PC locally (instant feedback)
-    _awardPcLocally(score, maxScore);
 
     if (!mounted) return;
     showDialog(
@@ -150,32 +146,6 @@ class _GamePlayerPageState extends State<GamePlayerPage> {
     );
   }
 
-  void _awardPcLocally(int score, int maxScore) {
-    final auth = context.read<AuthService>();
-    final playerId = auth.user?.id;
-    if (playerId == null || playerId == 0) return;
-
-    // Determine PC amount — check from the game data if available
-    int pcAmount = 10; // default for promogames
-    if (_config?.gameType == 'branded') {
-      pcAmount = 50;
-    }
-
-    // Only award if player completed the game (score > 0 or maxScore == 0 meaning no scoreable)
-    if (score > 0 || maxScore == 0) {
-      context.read<PlayerProvider>().addLocalPcTransaction(
-        playerId: playerId,
-        type: 'earn',
-        points: pcAmount,
-        gameId: widget.game.id,
-        note: 'Completed: ${widget.game.name}',
-      );
-
-      // Show local notification
-      NotificationService.instance.showPcEarned(pcAmount, widget.game.name);
-    }
-  }
-
   Future<void> _reportScore(int score, int maxScore) async {
     if (SyncService.instance.isOnline && _sessionToken != null) {
       try {
@@ -185,17 +155,24 @@ class _GamePlayerPageState extends State<GamePlayerPage> {
           'total_scoreable': maxScore,
           'player_data': {},
         });
+        // Refresh profile to get updated PC balance from server
+        if (mounted) {
+          await context.read<PlayerProvider>().refreshProfile();
+        }
         return;
       } catch (_) {}
     }
     // Offline — queue locally for later sync
     if (mounted) {
+      final auth = context.read<AuthService>();
+      final playerId = auth.user?.id;
       await context.read<PlayerProvider>().queueOfflineSession({
         'game_id': widget.game.id,
         'score': score,
         'max_score': maxScore,
         'utm_source': widget.utmSource ?? '',
         'player_data': '{}',
+        if (playerId != null) 'promo_player_id': playerId,
       });
     }
   }

@@ -58,11 +58,13 @@ class SyncService {
 
         try {
           final utmSource = s['utm_source'] as String?;
+          final promoPlayerId = s['promo_player_id'] as int?;
 
           // Step 1: Start session on backend
           final startBody = jsonEncode({
             'game_id': s['game_id'],
             'source_type': 'link',
+            if (promoPlayerId != null) 'promo_player_id': promoPlayerId,
             if (utmSource != null && utmSource.isNotEmpty)
               'utm_source': utmSource,
           });

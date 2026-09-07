@@ -13,6 +13,8 @@ const SpacePlayerPage = () => {
   const [weapons, setWeapons] = useState([]);
   const [enemies, setEnemies] = useState([]);
   const [levels, setLevels] = useState([]);
+  const [sessionToken, setSessionToken] = useState(null);
+  const [playerProfile, setPlayerProfile] = useState(null);
   const [selectedShip, setSelectedShip] = useState(null);
   const [selectedWeapon, setSelectedWeapon] = useState(null);
   const [currentLevel, setCurrentLevel] = useState(null);
@@ -54,10 +56,26 @@ const SpacePlayerPage = () => {
     try { const a = new Audio(url); a.play().catch(() => {}); } catch {}
   };
   
-  // Load game data
+  // Load game data + profile + start session
   useEffect(() => {
-    api.get(`/api/space/${gameName}/${companyName}`)
-      .then(res => {
+    let cancelled = false;
+    (async () => {
+      // Load profile from JWT
+      let profile = null;
+      const storedToken = localStorage.getItem('playerToken') || sessionStorage.getItem('playerToken');
+      if (storedToken) {
+        try {
+          const r = await fetch('/api/pauth/me', { headers: { Authorization: `Bearer ${storedToken}` } });
+          const d = await r.json();
+          profile = d.success ? d.player : null;
+        } catch {}
+      }
+      if (!cancelled) setPlayerProfile(profile);
+
+      // Load game data
+      try {
+        const res = await api.get(`/api/space/${gameName}/${companyName}`);
+        if (cancelled) return;
         setGame(res.data.game);
         setSettings(res.data.settings);
         setSoundMap(res.data.game.soundMap || {});
@@ -65,18 +83,32 @@ const SpacePlayerPage = () => {
         setWeapons(res.data.weapons);
         setEnemies(res.data.enemies);
         setLevels(res.data.levels);
-        // Set default ship as selected
         const defaultShip = res.data.ships.find(s => s.is_default);
         if (defaultShip) setSelectedShip(defaultShip);
-      })
-      .catch(err => {
+
+        // Start session on backend
+        try {
+          const payload = {
+            game_id: res.data.game.id,
+            player_data: {},
+            source_type: profile ? 'player' : 'link',
+          };
+          if (profile) payload.promo_player_id = profile.id;
+          const sessRes = await api.post('/play/session/start', payload);
+          if (!cancelled) setSessionToken(sessRes.data.session_token);
+        } catch (sessErr) {
+          console.error('Session start error:', sessErr);
+        }
+      } catch (err) {
         console.error('Error loading game:', err);
-      });
+      }
+    })();
+    return () => { cancelled = true; };
   }, [gameName, companyName, navigate]);
   
   // Load progress for current level
   useEffect(() => {
-    if (currentLevelIndex >= 0 && levels.length > 0) {
+    if (currentLevelIndex >= 0 && levels.length > 0 && sessionToken) {
       const level = levels[currentLevelIndex];
       setCurrentLevel(level);
       
@@ -84,7 +116,7 @@ const SpacePlayerPage = () => {
         params: {
           game_id: game?.id,
           level_id: level.id,
-          session_token: localStorage.getItem('playerToken')
+          session_token: sessionToken
         }
       })
       .then(res => {
@@ -102,7 +134,7 @@ const SpacePlayerPage = () => {
         console.log('No existing progress, starting fresh');
       });
     }
-  }, [currentLevelIndex, levels, game?.id]);
+  }, [currentLevelIndex, levels, game?.id, sessionToken]);
   
   // Game loop
   useEffect(() => {
@@ -563,8 +595,9 @@ const SpacePlayerPage = () => {
   };
   
   const saveProgress = () => {
+    if (!sessionToken) return;
     const progress = {
-      session_token: localStorage.getItem('playerToken'),
+      session_token: sessionToken,
       game_id: game?.id,
       level_id: currentLevel?.id,
       score,

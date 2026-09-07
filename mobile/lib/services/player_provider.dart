@@ -112,6 +112,12 @@ class PlayerProvider extends ChangeNotifier {
     _pendingCount = _db.pendingCount;
   }
 
+  /// Public method to refresh profile from server (e.g. after session complete)
+  Future<void> refreshProfile() async {
+    await _fetchProfile();
+    notifyListeners();
+  }
+
   void _onOnlineChanged(bool online) {
     _offline = !online;
     notifyListeners();

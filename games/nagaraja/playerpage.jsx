@@ -129,10 +129,9 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
     const segs = []
     const startX = W / 2, startY = H / 2
     for (let i = 0; i < 12; i++) segs.push({ x: startX - i * 8, y: startY })
-    // gifts spawn in a dense disc around the player start so food is always on screen
-    const giftsSpawned = seedGifts(1, giftsRef.current, giftCount)
+    const giftsSpawned = seedGifts(1, giftsRef.current, Math.max(giftCount, 60))
     for (const gt of giftsSpawned) {
-      const a = Math.random() * Math.PI * 2, r = 120 + Math.random() * 1300
+      const a = Math.random() * Math.PI * 2, r = 40 + Math.random() * 350
       gt.x = startX + Math.cos(a) * r; gt.y = startY + Math.sin(a) * r
     }
     const ai = Array.from({ length: aiCount }, (_, i) => buildAI(i, startX, startY))
@@ -231,19 +230,44 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
       const st = stateRef.current
       if (!st) return
       if (st.alive && ctx) {
+        // magnetic pull: find nearest non-shed gift within range and apply attraction
+        const headPos0 = st.segs[0]
+        const MAGNET_RANGE = 280
+        const MAGNET_STRENGTH = 0.09
+        let nearestGift = null, nearestDist = MAGNET_RANGE
+        for (const gift of st.gifts) {
+          if (gift.shed) continue
+          const gd = Math.hypot(gift.x - headPos0.x, gift.y - headPos0.y)
+          if (gd < nearestDist) { nearestGift = gift; nearestDist = gd }
+        }
         // steering angle toward pointer (in view coords -> world offset)
         const p = pointerRef.current
         if (p) {
           const dx = lastWorldXRef.current - camX + (p.x - viewW / 2)
           const dy = lastWorldYRef.current - camY + (p.y - viewH / 2)
           if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
-            const target = Math.atan2(dy, dx)
+            let target = Math.atan2(dy, dx)
+            // apply magnetic pull toward nearest gift
+            if (nearestGift && nearestDist < MAGNET_RANGE) {
+              const giftAngle = Math.atan2(nearestGift.y - headPos0.y, nearestGift.x - headPos0.x)
+              const pullFactor = MAGNET_STRENGTH * (1 - nearestDist / MAGNET_RANGE)
+              let gdiff = giftAngle - target
+              while (gdiff > Math.PI) gdiff -= Math.PI * 2
+              while (gdiff < -Math.PI) gdiff += Math.PI * 2
+              target += gdiff * pullFactor
+            }
             let diff = target - st.dirAngle
             while (diff > Math.PI) diff -= Math.PI * 2
             while (diff < -Math.PI) diff += Math.PI * 2
-            // responsive but smooth steering: strong turn toward cursor, capped per frame
             const turn = Math.sign(diff) * Math.min(Math.abs(diff), 0.16)
             st.dirAngle += turn
+          } else if (nearestGift && nearestDist < MAGNET_RANGE) {
+            // no pointer movement but gift nearby — still pull gently
+            const giftAngle = Math.atan2(nearestGift.y - headPos0.y, nearestGift.x - headPos0.x)
+            let diff = giftAngle - st.dirAngle
+            while (diff > Math.PI) diff -= Math.PI * 2
+            while (diff < -Math.PI) diff += Math.PI * 2
+            st.dirAngle += Math.sign(diff) * Math.min(Math.abs(diff), MAGNET_STRENGTH * (1 - nearestDist / MAGNET_RANGE))
           }
         }
         const boost = boostRef.current ? 1.8 : 1
@@ -274,14 +298,14 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
           if (cut > 1) st.segs.splice(cut)
         }
 
-        // eat gifts
+        // eat gifts (magnetic pickup radius)
         const headPos = st.segs[0]
         const headR = 7
         for (let gi = st.gifts.length - 1; gi >= 0; gi--) {
           const gift = st.gifts[gi]
-          const radius = gift.g.points >= 5 ? 9 : gift.g.points >= 3 ? 7 : 5.5
+          const radius = gift.g.points >= 5 ? 16 : gift.g.points >= 3 ? 12 : 10
           const d = Math.hypot(gift.x - headPos.x, gift.y - headPos.y) + 1e-6
-          if (d < headR + radius) {
+          if (d < headR + radius + 14) {
             const pts = gift.g.points || 1
             scoreRef.current += pts
             setScore(scoreRef.current)
@@ -366,6 +390,20 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
           return
         }
 
+        // keep gifts plentiful across the whole world — auto-respawn if below threshold
+        const nonShedGifts = st.gifts.filter(g => !g.shed).length
+        if (nonShedGifts < 40) {
+          // spawn in random world positions, not just near player
+          for (let n = 0; n < 5; n++) {
+            const cx = Math.random() * WORLD_W
+            const cy = Math.random() * WORLD_H
+            st.gifts.push(spawnGiftAt(st))  // spawnGiftAt now uses world coords
+            // override position
+            st.gifts[st.gifts.length - 1].x = cx
+            st.gifts[st.gifts.length - 1].y = cy
+          }
+        }
+
         // camera — follows head in infinite arena (+ screen shake on kill)
         lastWorldXRef.current = headPos.x
         lastWorldYRef.current = headPos.y
@@ -392,10 +430,11 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
   }, [gameActive, gameOver, snakeColor, resolveSound, settings, exitFullscreen])
 
   function spawnGiftAt(st) {
-    const g = giftsRef.current[Math.floor(Math.random() * giftsRef.current.length)] || { name: 'Gift', emoji: '✨', color: '#22c55e', points: 1, size: 1 }
-    const cx = st.segs[0]?.x ?? 0, cy = st.segs[0]?.y ?? 0
-    const a = Math.random() * Math.PI * 2, r = 120 + Math.random() * 900
-    return { g, x: cx + Math.cos(a) * r, y: cy + Math.sin(a) * r }
+    const g = giftsRef.current[Math.floor(Math.random() * giftsRef.current.length)] || { name: 'Gift', emoji: '🎁', color: '#f59e0b', points: 1, size: 1 }
+    // spread gifts across the full canvas viewport, not just near player
+    const cx = (Math.random() - 0.5) * (WORLD_W - viewW) + viewW / 2
+    const cy = (Math.random() - 0.5) * (WORLD_H - viewH) + viewH / 2
+    return { g, x: cx, y: cy }
   }
 
   // When an AI snake dies, shed everything it "ate" as loot gifts along its body.
@@ -436,7 +475,7 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
     for (const gift of st.gifts) {
       const sx = gift.x - camX + viewW / 2, sy = gift.y - camY + viewH / 2
       if (sx < -20 || sx > viewW + 20 || sy < -20 || sy > viewH + 20) continue
-      const radius = gift.g.points >= 5 ? 9 : gift.g.points >= 3 ? 7 : 5.5
+      const radius = gift.g.points >= 5 ? 16 : gift.g.points >= 3 ? 12 : 10
       if (gift.shed) {
         if (gift.loot) {
           // shed loot from a killed snake — big glowing reward
@@ -455,20 +494,29 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
         } else {
           // tiny boost shed pellet
           ctx.fillStyle = gift.g.color
-          ctx.beginPath(); ctx.arc(sx, sy, 3, 0, Math.PI * 2); ctx.fill()
+          ctx.beginPath(); ctx.arc(sx, sy, 4, 0, Math.PI * 2); ctx.fill()
         }
         continue
       }
-      // glow
+// ── GIFT — simple colored circle with emoji, clearly collectable ──
+      const giftRadius = gift.g.points >= 5 ? 14 : gift.g.points >= 3 ? 10 : 8
+      // outer glow
       ctx.fillStyle = gift.g.color + '22'
-      ctx.beginPath(); ctx.arc(sx, sy, radius * 2, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath(); ctx.arc(sx, sy, giftRadius * 2.5, 0, Math.PI * 2); ctx.fill()
+      // inner glow
+      ctx.fillStyle = gift.g.color + '44'
+      ctx.beginPath(); ctx.arc(sx, sy, giftRadius * 1.6, 0, Math.PI * 2); ctx.fill()
+      // main circle
       ctx.fillStyle = gift.g.color
-      ctx.beginPath(); ctx.arc(sx, sy, radius, 0, Math.PI * 2); ctx.fill()
-      if (gift.g.emoji) {
-        ctx.font = `${radius * 2}px sans-serif`
-        ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
-        ctx.fillText(gift.g.emoji, sx, sy)
-      }
+      ctx.beginPath(); ctx.arc(sx, sy, giftRadius, 0, Math.PI * 2); ctx.fill()
+      // bright center dot
+      ctx.fillStyle = '#fff'
+      ctx.beginPath(); ctx.arc(sx - giftRadius * 0.25, sy - giftRadius * 0.25, giftRadius * 0.3, 0, Math.PI * 2); ctx.fill()
+      // emoji — large and prominent
+      ctx.font = `${giftRadius * 2.5}px sans-serif`
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'
+      ctx.fillStyle = '#fff'
+      ctx.fillText(gift.g.emoji, sx, sy)
     }
 
     // AI snakes
@@ -582,6 +630,40 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
       ctx.fillText(p.text, ppx, ppy)
       ctx.globalAlpha = 1
     }
+    // ── minimap ──
+    const mmW = 140, mmH = 100, mmPad = 10
+    const mmX = viewW - mmW - mmPad, mmY = viewH - mmH - mmPad
+    const headMm = st.segs[0]
+    const mmRange = 2400
+    ctx.globalAlpha = 0.7
+    ctx.fillStyle = 'rgba(13,10,26,0.8)'
+    ctx.strokeStyle = 'rgba(139,92,246,0.4)'
+    ctx.lineWidth = 1
+    ctx.beginPath(); ctx.roundRect(mmX, mmY, mmW, mmH, 6); ctx.fill(); ctx.stroke()
+    ctx.globalAlpha = 1
+    // draw gifts as green dots
+    for (const gift of st.gifts) {
+      if (gift.shed) continue
+      const gx = mmX + mmW / 2 + ((gift.x - headMm.x) / mmRange) * mmW
+      const gy = mmY + mmH / 2 + ((gift.y - headMm.y) / mmRange) * mmH
+      if (gx < mmX || gx > mmX + mmW || gy < mmY || gy > mmY + mmH) continue
+      ctx.fillStyle = '#22c55e'
+      ctx.beginPath(); ctx.arc(gx, gy, 2, 0, Math.PI * 2); ctx.fill()
+    }
+    // draw AI snake heads as red dots
+    for (const ai of st.ai) {
+      if (!ai.alive) continue
+      const ah = ai.segs[0]
+      const ax = mmX + mmW / 2 + ((ah.x - headMm.x) / mmRange) * mmW
+      const ay = mmY + mmH / 2 + ((ah.y - headMm.y) / mmRange) * mmH
+      if (ax < mmX || ax > mmX + mmW || ay < mmY || ay > mmY + mmH) continue
+      ctx.fillStyle = '#ef4444'
+      ctx.beginPath(); ctx.arc(ax, ay, 2.5, 0, Math.PI * 2); ctx.fill()
+    }
+    // draw player as white dot
+    const px = mmX + mmW / 2, py = mmY + mmH / 2
+    ctx.fillStyle = '#fff'
+    ctx.beginPath(); ctx.arc(px, py, 3.5, 0, Math.PI * 2); ctx.fill()
     ctx.globalAlpha = 1
   }
 

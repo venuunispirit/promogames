@@ -213,7 +213,7 @@ router.get('/status', async (req, res) => {
   // ── 2. File System Checks ──
   const routeFiles = fs.readdirSync(path.join(__dirname)).filter(f => f.endsWith('.js'));
   addResult('File System', {
-    name: 'Route files count', status: 'pass', message: `${routeFiles.length} route files found in routes/`, expected: 'Should have 50+ route files'
+    name: 'Route files count', status: 'pass', message: `${routeFiles.length} core route files found in routes/`, expected: 'Core platform routes (per-game routes live in games/<name>/route.js)'
   });
 
   const initDBPath = path.join(BACKEND_DIR, 'config', 'initDB.js');

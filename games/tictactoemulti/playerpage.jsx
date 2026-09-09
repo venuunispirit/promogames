@@ -41,7 +41,7 @@ const EMPTY_BOARD = () => Array(9).fill(null);
 /* ============================================================
    Component
    ============================================================ */
-export default function TicTacToeMultiplayerPlayerPage() {
+export default function TicTacToeMultiplayerPlayerPage({ sessionToken, onComplete }) {
   // 'home' | 'offline' | 'online-menu' | 'online-waiting' | 'online-playing'
   const [page, setPage] = useState("home");
 
@@ -154,6 +154,25 @@ export default function TicTacToeMultiplayerPlayerPage() {
   const gameOver = !!winnerInfo || isDraw;
   const opponentPresent = players.X && players.O;
   const socketRef = useRef(null);
+
+  const completedRef = useRef(false);
+  const handleComplete = useCallback(async () => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    try {
+      if (sessionToken) {
+        await fetch('/api/play/session/complete', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_token: sessionToken, score: 0, player_data: { result: 'finished' } })
+        });
+      }
+    } catch {}
+    onComplete?.();
+  }, [sessionToken, onComplete]);
+
+  useEffect(() => {
+    if (gameOver) handleComplete();
+  }, [gameOver, handleComplete]);
 
   function getSocket() {
     if (socketRef.current?.connected) return socketRef.current;

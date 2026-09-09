@@ -23,33 +23,53 @@ const diskStorage = multer.diskStorage({
   },
 });
 
-// ── Upload-time image optimization ───────────────────────────────────────────
-// Every png/jpg upload gets a compressed WebP sibling (≤1200px, q80, EXIF
-// stripped). server.js serves the sibling transparently for the original URL.
-// The original stays on disk as a fallback.
-async function optimizeImage(absPath) {
+// ── Upload-time image conversion ────────────────────────────────────────────
+// Every png/jpg upload is converted to a single WebP (≤1600px; lossless when
+// the source has an alpha channel, otherwise q80) and the original is deleted
+// before the upload responds. The returned filename/URL then points at the
+// final .webp, so stored URLs reference the optimized file directly.
+// On any failure the original is kept and stored as-is — uploads never break.
+async function convertToWebP(absPath) {
+  let tmpPath = null;
   try {
     const sharp = require('sharp');
     const webpPath = absPath.replace(/\.(png|jpe?g)$/i, '.webp');
-    if (webpPath === absPath) return;
+    if (webpPath === absPath || !fs.existsSync(absPath)) return null;
+    const meta = await sharp(absPath).metadata();
+    const opts = meta.hasAlpha ? { lossless: true } : { quality: 80 };
+    tmpPath = webpPath + '.tmp';
     await sharp(absPath)
       .rotate()
-      .resize({ width: 1200, height: 1200, fit: 'inside', withoutEnlargement: true })
-      .webp({ quality: 80 })
-      .toFile(webpPath);
+      .resize({ width: 1600, height: 1600, fit: 'inside', withoutEnlargement: true })
+      .webp(opts)
+      .toFile(tmpPath);
+    fs.renameSync(tmpPath, webpPath);
+    tmpPath = null;
+    fs.unlinkSync(absPath);
+    return webpPath;
   } catch (err) {
-    console.error('⚠️  Image optimization failed:', err.message);
+    if (tmpPath && fs.existsSync(tmpPath)) {
+      try { fs.unlinkSync(tmpPath); } catch {}
+    }
+    console.error('⚠️  Image conversion failed, keeping original:', err.message);
+    return null;
   }
 }
 
-// Wrap diskStorage so optimization kicks in right after each saved png/jpg
+// Wrap diskStorage so conversion runs (and completes) right after each saved
+// png/jpg, before the upload responds.
 const storage = {
   _handleFile(req, file, cb) {
-    diskStorage._handleFile(req, file, (err, info) => {
+    diskStorage._handleFile(req, file, async (err, info) => {
       if (err) return cb(err);
       try {
         if (/^image\/(png|jpe?g)$/.test(file.mimetype) && info.path) {
-          optimizeImage(info.path);
+          const webpPath = await convertToWebP(info.path);
+          if (webpPath) {
+            info.filename = path.basename(webpPath);
+            info.path = webpPath;
+            info.size = fs.statSync(webpPath).size;
+          }
         }
       } catch {}
       cb(null, info);

@@ -51,6 +51,7 @@ const LudoPlayerPage = lazy(() => import('@games/ludo/playerpage.jsx'))
 const CarromPlayerPage = lazy(() => import('@games/carrom/playerpage.jsx'))
 const TicTacToeMultiplayerPlayerPage = lazy(() => import('@games/tictactoemulti/playerpage.jsx'))
 const ChessPlayerPage = lazy(() => import('@games/chess/playerpage.jsx'))
+const CandyBlastPlayerPage = lazy(() => import('@games/candyblast/playerpage.jsx'))
 const QuizPlayerPage = lazy(() => import('@games/quiz/playerpage.jsx'))
 
 import screwPlayerHtml from '@games/screw/ScrewPlayerPage.html?raw'
@@ -896,6 +897,8 @@ export default function PlayerPage() {
         setPhase('Carrom')
       } else if (game.category === 'tictactoemultiplayer') {
         setPhase('tictactoemultiplayer')
+      } else if (game.category === 'candyblast') {
+        setPhase('candyblast')
       } else if (game.category === 'chess') {
         setPhase('chess')
       } else if (game.category === 'tower') {
@@ -1736,7 +1739,7 @@ const handleModalClose = () => {
   const gameFallback = <PageLoader primaryColor={primaryColor} />
 
   if (phase === 'chess') {
-    return <Suspense fallback={gameFallback}><ChessPlayerPage /></Suspense>
+    return <Suspense fallback={gameFallback}><ChessPlayerPage gameData={game} /></Suspense>
   }
 
   if (phase === 'spin') {
@@ -1842,7 +1845,7 @@ const handleModalClose = () => {
   }
 
   if (phase === 'ludo') {
-    return <Suspense fallback={gameFallback}><LudoPlayerPage /></Suspense>
+    return <Suspense fallback={gameFallback}><LudoPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (['Carrom', 'carrom'].includes(phase)) {
@@ -2060,7 +2063,11 @@ const handleModalClose = () => {
   }
 
   if (phase === 'tictactoemultiplayer') {
-    return <Suspense fallback={gameFallback}><TicTacToeMultiplayerPlayerPage /></Suspense>
+    return <Suspense fallback={gameFallback}><TicTacToeMultiplayerPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
+  }
+
+  if (phase === 'candyblast') {
+    return <Suspense fallback={gameFallback}><CandyBlastPlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   return null

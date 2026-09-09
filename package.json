@@ -5,8 +5,7 @@
   "description": "PromoGames — quiz, crossword, spin wheel platform",
   "workspaces": [
     "apps/*",
-    "packages/*",
-    "features/*"
+    "packages/*"
   ],
   "scripts": {
     "dev:backend": "npm run dev -w apps/backend",

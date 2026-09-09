@@ -887,7 +887,7 @@ function drawLudoBoard(canvas, gs) {
 /* ============================================================
    Component
    ============================================================ */
-export default function LudoPlayerPage() {
+export default function LudoPlayerPage({ sessionToken, onComplete }) {
   const stateRef = useRef(null);
   const [tick, bump] = useReducer((x) => x + 1, 0);
   const rerender = () => bump();
@@ -898,6 +898,24 @@ export default function LudoPlayerPage() {
   const [selectedCompCount, setSelectedCompCount] = useState(4);
   const [botDifficulty, setBotDifficulty] = useState("normal"); // 'easy' | 'normal' | 'hard'
   const [showWin, setShowWin] = useState(false);
+  const completedRef = useRef(false);
+  const handleComplete = useCallback(async () => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    try {
+      if (sessionToken) {
+        await fetch('/api/play/session/complete', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_token: sessionToken, score: 0, player_data: { result: 'finished' } })
+        });
+      }
+    } catch {}
+    onComplete?.();
+  }, [sessionToken, onComplete]);
+
+  useEffect(() => {
+    if (showWin) handleComplete();
+  }, [showWin, handleComplete]);
   const [isRolling, setIsRolling] = useState(false);
   const [movingToken, setMovingToken] = useState(null);   // "pIdx-tIdx" currently hopping
   const [flashTokens, setFlashTokens] = useState([]);     // token keys briefly flashing after capture

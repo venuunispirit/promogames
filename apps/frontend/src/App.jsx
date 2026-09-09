@@ -54,7 +54,6 @@ const ReactionBuilderPage      = lazy(() => import('@games/reaction/builderpage.
 const SimonBuilderPage         = lazy(() => import('@games/simon/builderpage.jsx'))
 const FlappyBuilderPage        = lazy(() => import('@games/flappy/builderpage.jsx'))
 const BejeweledBuilderPage     = lazy(() => import('@games/bejeweled/builderpage.jsx'))
-const BejeweledPlayerPage      = lazy(() => import('@games/bejeweled/playerpage.jsx'))
 const TetrisBuilderPage        = lazy(() => import('@games/tetris/builderpage.jsx'))
 const StackBuilderPage         = lazy(() => import('@games/stack/builderpage.jsx'))
 const WhackAMoleBuilderPage    = lazy(() => import('@games/whackamole/builderpage.jsx'))
@@ -66,7 +65,6 @@ const StressBusterBuilderPage  = lazy(() => import('@games/stressbuster/builderp
 const SoundifyBuilderPage      = lazy(() => import('@games/soundify/builderpage.jsx'))
 const TicTacToeBuilderPage     = lazy(() => import('@games/tictactoe/builderpage.jsx'))
 const ChessBuilderPage         = lazy(() => import('@games/chess/builderpage.jsx'))
-const ChessPlayerPage          = lazy(() => import('@games/chess/playerpage.jsx'))
 const BlockBlasterBuilderPage  = lazy(() => import('./pages/BlockBlasterBuilderPage.jsx'))
 const CandyBlastBuilderPage    = lazy(() => import('@games/candyblast/builderpage.jsx'))
 const CarromBuilderPage        = lazy(() => import('@games/carrom/builderpage.jsx'))
@@ -155,9 +153,7 @@ function AppRoutes() {
       {/* Player game routes */}
       <Route path="/play/:gameName/:companyName" element={<PlayerPageWrapper />} />
       <Route path="/play/:gameName" element={<PlayerPageWrapper />} />
-      <Route path="/play/bejeweled/:id" element={<BejeweledPlayerPage />} />
-      <Route path="/play/chess" element={<ChessPlayerPage />} />
-      <Route path="/play/chess/:gameName/:companyName" element={<ChessPlayerPage />} />
+      <Route path="/play/bejeweled/:id" element={<Navigate to="/play/bejeweled" replace />} />
 
       {/* Player dashboard */}
       <Route path="/player" element={<PlayerRoute><PlayerLayout /></PlayerRoute>}>

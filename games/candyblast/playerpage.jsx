@@ -247,7 +247,7 @@ const CSS = `
 .cb-panel .finalScore { font-size:36px; font-weight:800; color:#ffd23f; margin:4px 0; }
 `;
 
-export default function CandyBlast() {
+export default function CandyBlast({ sessionToken, onComplete }) {
   const idRef = useRef(1);
   const wrapRef = useRef(null);
   const dragRef = useRef(null);
@@ -313,6 +313,25 @@ export default function CandyBlast() {
   }, [startLevel]);
 
   useEffect(() => { startLevel(0, 0); }, [startLevel]);
+
+  const completedRef = useRef(false);
+  const handleComplete = useCallback(async () => {
+    if (completedRef.current) return;
+    completedRef.current = true;
+    try {
+      if (sessionToken) {
+        await fetch('/api/play/session/complete', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_token: sessionToken, score: 0, player_data: { result: status === 'gameWon' ? 'win' : 'over' } })
+        });
+      }
+    } catch {}
+    onComplete?.();
+  }, [sessionToken, onComplete, status]);
+
+  useEffect(() => {
+    if (status === 'gameWon' || status === 'gameOver') handleComplete();
+  }, [status, handleComplete]);
 
   useEffect(() => {
     function computeCellSize() {

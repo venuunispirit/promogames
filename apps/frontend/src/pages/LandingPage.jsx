@@ -57,6 +57,46 @@ const SvgIcon = ({ name, size = 24, className = "", style = {} }) => (
 );
 
 /* ─── DATA ─────────────────────────────────────────── */
+const useSiteSettings = () => {
+  const [settings, setSettings] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/stack')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.settings) {
+          setSettings(d.settings);
+          // Dynamically update meta tags
+          if (d.settings.meta_description) {
+            const metaDesc = document.querySelector('meta[name="description"]');
+            if (metaDesc) metaDesc.setAttribute('content', d.settings.meta_description);
+          }
+          if (d.settings.meta_description) {
+            const ogDesc = document.querySelector('meta[property="og:description"]');
+            if (ogDesc) ogDesc.setAttribute('content', d.settings.meta_description);
+          }
+          if (d.settings.meta_description) {
+            const twitterDesc = document.querySelector('meta[name="twitter:description"]');
+            if (twitterDesc) twitterDesc.setAttribute('content', d.settings.meta_description);
+          }
+          // Update title
+          const title = document.querySelector('title');
+          if (title) {
+            const baseTitle = 'PromoGames — Quick Games. Real Rewards. | No-Code Gamification Platform';
+            title.textContent = d.settings.meta_title 
+              ? d.settings.meta_title + ' | ' + baseTitle.split('|')[1].trim()
+              : baseTitle;
+          }
+        }
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  return { settings, loading };
+};
+
 const MARQUEE_TEXTS = [
   "Play Fast. Win Big.",
   "Every Game Is A Chance To Win.",
@@ -960,6 +1000,8 @@ function AnimateBar({ pct, threshold = 0.3 }) {
 export default function PromoGamesHome() {
   const [leaderboardEntries] = useState(DUMMY_LEADERBOARD);
   const [leaderboardLoading] = useState(false);
+
+  useSiteSettings();
 
   const testimonialIdxRef = useRef(0);
 

@@ -12,6 +12,13 @@ router.get('/:gameId/settings', async (req, res) => {
   } catch (err) { sendError(res, err); }
 });
 
+router.get('/', async (req, res) => {
+  try {
+    const [rows] = await db.query('SELECT * FROM stack_settings');
+    res.json({ success: true, settings: rows[0] || null });
+  } catch (err) { sendError(res, err); }
+});
+
 router.put('/:gameId/settings', auth, upload.fields([
   { name: 'bg_image', maxCount: 1 }, { name: 'thankyou_bg_image', maxCount: 1 },
   { name: 'game_logo', maxCount: 1 }, { name: 'submit_confirm_gif', maxCount: 1 },

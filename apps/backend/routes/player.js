@@ -1444,7 +1444,7 @@ router.post('/session/complete', async (req, res) => {
               </td></tr>
               <tr><td style="padding:32px 40px;">
                 <p style="font-size:18px;color:#1a1a2e;margin:0 0 16px;">Hi <strong>${playerName}</strong>,</p>
-                ${scoreText ? `<p style="font-size:16px;color:#333;">${scoreText}</p>` : ''}
+                ${scoreText ? `` : ''}
                 <p style="font-size:16px;color:#333;">You have completed the game!</p>
                 ${bodyContent ? `<div style="margin-top:16px;color:#555;">${bodyContent}</div>` : ''}
               </td></tr>

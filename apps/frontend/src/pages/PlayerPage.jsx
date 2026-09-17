@@ -2155,7 +2155,7 @@ const handleModalClose = () => {
               display: 'inline-flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ color: '#FFD700', fontSize: 12 }}>&#9733;</span>
-              GAME COMPLETED!
+              COMPLETED!
               <span style={{ color: '#FFD700', fontSize: 12 }}>&#9733;</span>
             </div>
           </div>

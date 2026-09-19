@@ -1150,7 +1150,7 @@ const [nameInput,     setNameInput]     = useState('')
         'show_completion_modal','completion_heading_text','completion_subtext',
         'completion_show_confetti','completion_show_progress_bar',
         'completion_progress_bar_color','close_button_text','close_button_text_color','completion_redirect_url',
-        'code_generation_enabled','code_from','code_to','code_show_on_thank_you','code_send_in_email','code_label']
+        'code_generation_enabled','code_from','code_to','code_show_on_thank_you','code_send_in_email','code_label','meta_description']
       const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech','code_generation_enabled','code_show_on_thank_you','code_send_in_email']
       const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time']
       for (const f of fields) {

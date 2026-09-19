@@ -694,7 +694,7 @@ router.put('/:id/settings', requireAdmin, upload.fields([
       show_completion_modal, completion_heading_text, completion_subtext,
       completion_show_confetti, completion_show_progress_bar, completion_progress_bar_color,
       close_button_text, close_button_text_color, completion_redirect_url,
-      code_generation_enabled, code_from, code_to, code_show_on_thank_you, code_send_in_email, code_label } = req.body;
+      code_generation_enabled, code_from, code_to, code_show_on_thank_you, code_send_in_email, code_label, meta_description } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [req.params.id]);
     const bgImg   = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           !== undefined ? bg_image_url           : (existing[0]?.bg_image_url           || null));
@@ -743,7 +743,8 @@ close_button_text || null,
       code_to !== undefined ? code_to : (existing[0]?.code_to || null),
       code_show_on_thank_you !== undefined ? coerceBool(code_show_on_thank_you) : (existing[0]?.code_show_on_thank_you || 0),
       code_send_in_email !== undefined ? coerceBool(code_send_in_email) : (existing[0]?.code_send_in_email || 0),
-      code_label !== undefined ? (code_label === null || String(code_label).trim() === '' ? null : String(code_label).trim()) : (existing[0]?.code_label ?? null)
+      code_label !== undefined ? (code_label === null || String(code_label).trim() === '' ? null : String(code_label).trim()) : (existing[0]?.code_label ?? null),
+      meta_description !== undefined ? (meta_description || null) : (existing[0]?.meta_description ?? null)
     ];
 
     // Validation — only enforced while code generation is enabled
@@ -772,14 +773,14 @@ close_button_text || null,
         show_completion_modal=?, completion_heading_text=?, completion_subtext=?,
         completion_show_confetti=?, completion_show_progress_bar=?, completion_progress_bar_color=?,
         close_button_text=?, close_button_text_color=?, completion_redirect_url=?,
-        code_generation_enabled=?, code_from=?, code_to=?, code_show_on_thank_you=?, code_send_in_email=?, code_label=? WHERE game_id=?`,
+        code_generation_enabled=?, code_from=?, code_to=?, code_show_on_thank_you=?, code_send_in_email=?, code_label=?, meta_description=? WHERE game_id=?`,
       [...vals.slice(1), req.params.id]
     );
 
     if (upd.affectedRows === 0) {
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch, show_completion_modal, completion_heading_text, completion_subtext, completion_show_confetti, completion_show_progress_bar, completion_progress_bar_color, close_button_text, close_button_text_color, completion_redirect_url, code_generation_enabled, code_from, code_to, code_show_on_thank_you, code_send_in_email, code_label)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch, show_completion_modal, completion_heading_text, completion_subtext, completion_show_confetti, completion_show_progress_bar, completion_progress_bar_color, close_button_text, close_button_text_color, completion_redirect_url, code_generation_enabled, code_from, code_to, code_show_on_thank_you, code_send_in_email, code_label, meta_description)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         vals
       );
     }
@@ -877,7 +878,9 @@ router.get('/:id/traffic-sources', requireAdmin, async (req, res) => {
 router.get('/:id/responses', requireAdmin, async (req, res) => {
   try {
     const [sessions] = await db.query(
-      `SELECT * FROM player_sessions WHERE game_id = ? AND completed = 1 ORDER BY completed_at DESC`,
+      `SELECT ps.*, qgc.generated_code FROM player_sessions ps
+       LEFT JOIN quiz_generated_codes qgc ON qgc.submission_id = ps.id
+       WHERE ps.game_id = ? AND ps.completed = 1 ORDER BY ps.completed_at DESC`,
       [req.params.id]
     );
 

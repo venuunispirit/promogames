@@ -5,6 +5,7 @@ const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const { sendError } = require('../lib/apiError');
 const jwt = require('jsonwebtoken');
+const { allocateNextCode, getExistingCode, getCodeForSession, applyEmailPlaceholder } = require('../lib/quizCodes');
 
 // ── Player engagement helpers ────────────────────────────────────────────────
 // Resolve the promo player from an optional Authorization: Bearer <playerToken>.
@@ -1408,6 +1409,27 @@ router.post('/session/complete', async (req, res) => {
       }
     } catch {}
 
+    // ── Allocate generated code BEFORE email so it can be included ──
+    let generatedCode = null;
+    try {
+      if (gameSettings.code_generation_enabled) {
+        let existing = await getExistingCode(session.game_id, session.id);
+        if (existing) {
+          generatedCode = existing.generated_code;
+        } else {
+          const result = await allocateNextCode(session.game_id, {
+            submission_id: session.id,
+            user_id: session.promo_player_id || null,
+          });
+          if (result.code) generatedCode = result.code;
+          else if (result.error) console.error('Code allocation error:', result.error);
+          else if (result.exhausted) console.warn('Code range exhausted for game', session.game_id);
+        }
+      }
+    } catch (codeErr) {
+      console.error('Code generation error:', codeErr.message);
+    }
+
     if (emailEnabled && templateOk && playerEmail) {
       const template = emailTemplates[0];
       const scoreText = session.total_scoreable > 0
@@ -1431,7 +1453,8 @@ router.post('/session/complete', async (req, res) => {
         .replace(/\{\{performance_message\}\}/g, perfMsg)
         .replace(/\{\{website_link\}\}/g, 'https://www.thirdwavecoffeeroasters.com/')
         .replace(/\{\{code\}\}/g, isGuestPlayer ? (redemptionCode || '') : '')
-        .replace(/\{\{redemption_code\}\}/g, isGuestPlayer ? (redemptionCode || '') : '');
+        .replace(/\{\{redemption_code\}\}/g, isGuestPlayer ? (redemptionCode || '') : '')
+        .replace(/\{\{generated_code\}\}/g, generatedCode || '');
 
       const htmlEmail = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
         <body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
@@ -1443,10 +1466,7 @@ router.post('/session/complete', async (req, res) => {
                 <h1 style="margin:0;color:#fff;font-size:24px;">${template.header_text||'🎉 Congratulations!'}</h1>
               </td></tr>
               <tr><td style="padding:32px 40px;">
-                <p style="font-size:18px;color:#1a1a2e;margin:0 0 16px;">Hi <strong>${playerName}</strong>,</p>
-                ${scoreText ? `` : ''}
-                <p style="font-size:16px;color:#333;">You have completed the game!</p>
-                ${bodyContent ? `<div style="margin-top:16px;color:#555;">${bodyContent}</div>` : ''}
+                ${bodyContent ? `<div style="color:#555;">${bodyContent}</div>` : `<p style="font-size:16px;color:#333;">Hi <strong>${playerName}</strong>, You have completed the game!</p>`}
               </td></tr>
               ${template.footer_text ? `<tr><td style="background:#f8f8f8;padding:20px 40px;text-align:center;color:#888;font-size:14px;">${template.footer_text}</td></tr>` : ''}
             </table>
@@ -1639,6 +1659,7 @@ router.post('/session/complete', async (req, res) => {
       email_sent: emailSent,
       score_info: scoreInfo,
       redirect_url: game?.redirect_url || null,
+      generated_code: generatedCode,
     });
   } catch (err) {
     console.error('Complete session error:', err);

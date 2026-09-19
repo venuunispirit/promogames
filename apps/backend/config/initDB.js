@@ -1298,6 +1298,7 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'code_label', "VARCHAR(100) DEFAULT 'YOUR UNIQUE CODE'");
   await addColumn(connection, 'quiz_settings', 'code_shuffle_k', 'INT DEFAULT NULL');
   await addColumn(connection, 'quiz_settings', 'code_shuffle_salt', 'INT DEFAULT NULL');
+  await addColumn(connection, 'quiz_settings', 'meta_description', 'TEXT');
 
   /* QUIZ GENERATED CODES — tracks allocated codes per game */
   await connection.query(`

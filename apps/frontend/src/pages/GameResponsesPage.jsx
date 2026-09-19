@@ -171,7 +171,8 @@ export default function GameResponsesPage() {
       ...questions.map((q, i) => `Q${i + 1} Correct?`),
       'Completed At',
       'Source',
-      'Email Sent'
+      'Email Sent',
+      'Code'
     ]
 
     const csvRows = sorted.map((r, idx) => {
@@ -196,7 +197,8 @@ export default function GameResponsesPage() {
         ...qCorrect,
         r.session.completed_at ? new Date(r.session.completed_at).toLocaleString() : '',
         r.session.source_type === 'direct' ? 'Website' : 'Link',
-        r.session.email_sent ? 'Yes' : 'No'
+        r.session.email_sent ? 'Yes' : 'No',
+        r.session.generated_code || ''
       ]
     })
 
@@ -535,6 +537,18 @@ export default function GameResponsesPage() {
                     }}>
                       Email
                     </th>
+                    <th style={{
+                      padding:'14px 16px',
+                      textAlign:'center',
+                      fontSize:11,
+                      fontWeight:700,
+                      color:'var(--text2)',
+                      textTransform:'uppercase',
+                      letterSpacing:'.08em',
+                      whiteSpace:'nowrap'
+                    }}>
+                      Code
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -667,6 +681,16 @@ export default function GameResponsesPage() {
                           ) : (
                             <span style={{color:'var(--border-light)'}}>—</span>
                           )}
+                        </td>
+                        <td style={{
+                          padding:'12px 16px',
+                          fontSize:13,
+                          fontWeight:600,
+                          fontFamily:'monospace',
+                          textAlign:'center',
+                          color: r.session.generated_code ? 'var(--primary)' : 'var(--border-light)'
+                        }}>
+                          {r.session.generated_code || '—'}
                         </td>
                       </tr>
                     )

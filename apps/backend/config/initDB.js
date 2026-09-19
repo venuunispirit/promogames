@@ -1299,6 +1299,22 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'code_shuffle_k', 'INT DEFAULT NULL');
   await addColumn(connection, 'quiz_settings', 'code_shuffle_salt', 'INT DEFAULT NULL');
 
+  /* QUIZ GENERATED CODES — tracks allocated codes per game */
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS quiz_generated_codes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      submission_id INT DEFAULT NULL,
+      user_id INT DEFAULT NULL,
+      generated_code VARCHAR(50) NOT NULL,
+      seq_number INT NOT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY uniq_game_code (game_id, generated_code),
+      INDEX idx_game_id (game_id),
+      INDEX idx_seq_number (seq_number)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
+  `);
+
   /* GAMES */
   // Widen the category ENUM to every known game type PLUS whatever values
   // already exist in the table. A single legacy row with an unlisted value

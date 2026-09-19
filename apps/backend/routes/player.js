@@ -1418,6 +1418,8 @@ router.post('/session/complete', async (req, res) => {
           generatedCode = existing.generated_code;
         } else {
           const result = await allocateNextCode(session.game_id, {
+            code_from: gameSettings.code_from,
+            code_to: gameSettings.code_to,
             submission_id: session.id,
             user_id: session.promo_player_id || null,
           });

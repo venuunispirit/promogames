@@ -2336,6 +2336,30 @@ const handleModalClose = () => {
               </svg>
             </span>
           </button>
+
+          {/* Standalone close button — shown on the thank-you page directly
+              when the completion modal is disabled, since the modal's own
+              close button (close_button_text) never gets a chance to render. */}
+          {isQuiz && !completionModalEnabled && (
+            <button
+              onClick={handleModalClose}
+              style={{
+                width: '100%',
+                marginTop: 10,
+                background: 'transparent',
+                color: ss.close_button_text_color || '#6b7280',
+                border: 'none',
+                padding: '10px 20px',
+                borderRadius: 14,
+                fontSize: 15,
+                fontWeight: 600,
+                cursor: 'pointer',
+                fontFamily: ff,
+                touchAction: 'manipulation',
+              }}>
+              {ss.close_button_text || 'Close'}
+            </button>
+          )}
         </div>
         <style>{OVERLAY_STYLES}</style>
       </div>

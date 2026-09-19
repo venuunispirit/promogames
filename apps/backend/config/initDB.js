@@ -1277,6 +1277,28 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'speech_rate', 'FLOAT DEFAULT 1');
   await addColumn(connection, 'quiz_settings', 'speech_pitch', 'FLOAT DEFAULT 1');
 
+  /* QUIZ SETTINGS — Completion modal */
+  await addColumn(connection, 'quiz_settings', 'show_completion_modal', 'TINYINT(1) DEFAULT 1');
+  await addColumn(connection, 'quiz_settings', 'completion_heading_text', 'VARCHAR(500)');
+  await addColumn(connection, 'quiz_settings', 'completion_subtext', 'TEXT');
+  await addColumn(connection, 'quiz_settings', 'completion_show_confetti', 'TINYINT(1) DEFAULT 1');
+  await addColumn(connection, 'quiz_settings', 'completion_show_progress_bar', 'TINYINT(1) DEFAULT 1');
+  await addColumn(connection, 'quiz_settings', 'completion_progress_bar_color', "VARCHAR(20) DEFAULT '#8076F5'");
+  await addColumn(connection, 'quiz_settings', 'close_button_text', 'VARCHAR(100)');
+  await addColumn(connection, 'quiz_settings', 'close_button_text_color', "VARCHAR(20) DEFAULT '#888888'");
+  await addColumn(connection, 'quiz_settings', 'completion_redirect_url', 'VARCHAR(500)');
+
+  /* QUIZ SETTINGS — Sequential unique code generation */
+  await addColumn(connection, 'quiz_settings', 'code_generation_enabled', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'code_from', 'VARCHAR(50)');
+  await addColumn(connection, 'quiz_settings', 'code_to', 'VARCHAR(50)');
+  await addColumn(connection, 'quiz_settings', 'code_current_number', 'INT DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'code_show_on_thank_you', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'code_send_in_email', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'code_label', "VARCHAR(100) DEFAULT 'YOUR UNIQUE CODE'");
+  await addColumn(connection, 'quiz_settings', 'code_shuffle_k', 'INT DEFAULT NULL');
+  await addColumn(connection, 'quiz_settings', 'code_shuffle_salt', 'INT DEFAULT NULL');
+
   /* GAMES */
   // Widen the category ENUM to every known game type PLUS whatever values
   // already exist in the table. A single legacy row with an unlisted value

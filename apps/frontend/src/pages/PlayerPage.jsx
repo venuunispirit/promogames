@@ -270,7 +270,7 @@ function SubmittingPopup({ primaryColor, ff }) {
   )
 }
 
-function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm, onClose, gameCategory, continueButtonText, continueButtonTextColor, continueButtonBgColor }) {
+function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm, onClose, gameCategory, continueButtonText, continueButtonTextColor, continueButtonBgColor, completionModalEnabled, completionHeadingText, completionSubtext, completionShowConfetti, completionShowProgressBar, completionProgressBarColor, closeButtonText, closeButtonTextColor }) {
   return (
     <div style={{
       position: 'fixed', inset: 0, zIndex: 2000,
@@ -291,22 +291,26 @@ function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm, onClose, game
           <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
             <img src={confirmGifUrl} alt="Quiz submitted!" style={{ maxWidth: '100%', maxHeight: 380, width: 'auto', height: 'auto', borderRadius: 16, objectFit: 'contain' }} />
           </div>
+        ) : (completionShowConfetti !== 0 && completionShowConfetti !== false ? (
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 16, animation: 'bounce 0.6s ease both' }}>🎉</div>
         ) : (
-          <div style={{ fontSize: 68, marginBottom: 16, animation: 'bounce 0.6s ease both' }}>🎉</div>
+          <div style={{ width: 56, height: 56, borderRadius: '50%', background: `${primaryColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontFamily: ff, fontSize: 28 }}>✓</div>
+        ))}
+        <h2 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.25 }}>{completionHeadingText || (gameCategory === 'quiz' ? 'Quiz' : gameCategory === 'registration' ? 'Registration' : 'Game') + ' Completed!'}</h2>
+        <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>{completionSubtext || 'Your responses have been recorded.<br />Redirecting you now…'}</p>
+        {completionShowProgressBar !== 0 && completionShowProgressBar !== false && (
+          <div style={{ height: 5, background: `${completionProgressBarColor || primaryColor}22`, borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
+            <div style={{ height: '100%', background: `linear-gradient(90deg, ${completionProgressBarColor || primaryColor}, ${(completionProgressBarColor || primaryColor)}bb)`, borderRadius: 10, animation: 'redirectBar 3s linear forwards' }} />
+          </div>
         )}
-        <h2 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.25 }}>{gameCategory === 'quiz' ? 'Quiz' : gameCategory === 'registration' ? 'Registration' : 'Game'} Completed!</h2>
-        <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>Your responses have been recorded.<br />Redirecting you now…</p>
-        <div style={{ height: 5, background: `${primaryColor}22`, borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
-          <div style={{ height: '100%', background: `linear-gradient(90deg, ${primaryColor}, ${primaryColor}bb)`, borderRadius: 10, animation: 'redirectBar 3s linear forwards' }} />
-        </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           <button onClick={onConfirm} style={{ background: continueButtonBgColor || `linear-gradient(135deg, ${primaryColor}, ${primaryColor}cc)`, color: continueButtonTextColor || '#fff', border: 'none', borderRadius: 50, padding: '14px 36px', fontSize: 16, fontWeight: 700, cursor: 'pointer', fontFamily: ff, boxShadow: continueButtonBgColor ? '0 8px 28px rgba(0,0,0,0.2)' : `0 8px 28px ${primaryColor}55`, touchAction: 'manipulation' }}>
             {continueButtonText || 'Continue Now →'}
           </button>
-          <button onClick={onClose} style={{ background: 'transparent', color: '#888', border: '1.5px solid #ddd', borderRadius: 50, padding: '12px 36px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: ff, touchAction: 'manipulation', transition: 'border-color 0.2s, color 0.2s' }}
+          <button onClick={onClose} style={{ background: 'transparent', color: closeButtonTextColor || '#888', border: '1.5px solid ' + (closeButtonTextColor || '#ddd'), borderRadius: 50, padding: '12px 36px', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: ff, touchAction: 'manipulation', transition: 'border-color 0.2s, color 0.2s' }}
             onMouseEnter={e => { e.target.style.borderColor = primaryColor; e.target.style.color = primaryColor; }}
-            onMouseLeave={e => { e.target.style.borderColor = '#ddd'; e.target.style.color = '#888'; }}>
-            Close
+            onMouseLeave={e => { e.target.style.borderColor = closeButtonTextColor || '#ddd'; e.target.style.color = closeButtonTextColor || '#888'; }}>
+            {closeButtonText || 'Close'}
           </button>
         </div>
         <style>{`@keyframes redirectBar { from { width: 0% } to { width: 100% } }`}</style>
@@ -346,6 +350,7 @@ export default function PlayerPage() {
   const [totalScoreable, setTotalScoreable] = useState(0)
   const [submitting, setSubmitting] = useState(false)
   const [redirectUrl, setRedirectUrl] = useState(null)
+  const [generatedCode, setGeneratedCode] = useState(null)
   const [completing, setCompleting] = useState(false)
   const [termsAgreed, setTermsAgreed] = useState(false)
   const [questionKey, setQuestionKey] = useState(0)
@@ -494,6 +499,15 @@ export default function PlayerPage() {
   // Submit modal
   const [showSubmitModal, setShowSubmitModal] = useState(false)
 
+  const handleSubmitModalConfirm = () => {
+    setShowSubmitModal(false)
+    if (redirectUrl) window.location.href = redirectUrl
+  }
+
+  const handleSubmitModalClose = () => {
+    setShowSubmitModal(false)
+  }
+
   // Post-game "save your progress" prompt for guests
   const [showSaveAuth, setShowSaveAuth] = useState(false)
   const [saveClaim, setSaveClaim] = useState(null) // { pc_awarded, score_info }
@@ -504,6 +518,10 @@ export default function PlayerPage() {
   const advanceRef = useRef(null)
   const qImgWrapRef = useRef(null)
   const tyWrapRef = useRef(null)
+
+  const s = game?.settings || {}
+  const isQuiz = game?.category === 'quiz'
+  const completionModalEnabled = isQuiz && s?.show_completion_modal !== 0 && s?.show_completion_modal !== false
 
   // ── Known field mapping from player profile ──────────────────────────────
   const KNOWN_FIELD_MAP = {
@@ -549,6 +567,7 @@ export default function PlayerPage() {
         const res = await api.get(playUrl)
         let g = res.data.game
         setGame(g)
+        if (g.redirect_url) setRedirectUrl(g.redirect_url)
         if (g.settings?.font_family) loadFont(g.settings.font_family)
 
         // Chess is a self-contained game (no question bank) — open the chess player directly.
@@ -946,6 +965,7 @@ export default function PlayerPage() {
     try {
       const res = await api.post('/play/session/complete', { session_token: token })
       setRedirectUrl(res.data.redirect_url)
+      setGeneratedCode(res.data.generated_code || null)
       const sess = res.data.session
       if (sess) {
         setScore(sess.score || 0)
@@ -986,6 +1006,7 @@ export default function PlayerPage() {
       setTotalScoreable(data.session.total_scoreable || 0)
     }
     setRedirectUrl(data?.redirect_url || null)
+    setGeneratedCode(data?.generated_code || null)
     setPhase('thankyou')
   }, [game, playerProfile])
 
@@ -1222,13 +1243,11 @@ export default function PlayerPage() {
       })
     } catch {}
 
-    setTimeout(() => doAdvance(isLastQ, sessionToken), 1200)
-  }
+    setTimeout(() => doAdvance(isLastQ, sessionToken), 1200)    }
 
-  const s = game?.settings || {}
-  const tpl = s.templateConfig || {}
-  const primaryColor = s.primary_color || tpl.primary_color || '#7c6ff7'
-  const fontFamily = s.font_family || tpl.font_family || 'DM Sans'
+    const tpl = s.templateConfig || {}
+    const primaryColor = s.primary_color || tpl.primary_color || '#7c6ff7'
+    const fontFamily = s.font_family || tpl.font_family || 'DM Sans'
   const optionTextColor = tpl.option_text_color || '#ffffff'
   const optionBgColor = tpl.option_color || '#1a1a2e'
   const optionBorderColor = tpl.border_color || 'transparent'
@@ -1272,6 +1291,7 @@ export default function PlayerPage() {
   if (continueTimerRef.current) clearTimeout(continueTimerRef.current)
 }, [])
 
+  if (!game) return <PageLoader primaryColor={primaryColor} />
   if (phase === 'loading') return <PageLoader primaryColor={primaryColor} />
 
   if (phase === 'already_played') {
@@ -1288,6 +1308,8 @@ export default function PlayerPage() {
       </div>
     )
   }
+
+  if (phase === 'loading') return <PageLoader primaryColor={primaryColor} />
 
   if (phase === 'error') return (
     <div style={{ minHeight: '100dvh', background: '#fff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, textAlign: 'center', padding: 32, fontFamily: ff }}>
@@ -1995,13 +2017,6 @@ export default function PlayerPage() {
             </svg>
           </div>
 
-          <h1 style={{
-            fontFamily: ff, fontSize: 'clamp(22px,6vw,28px)', fontWeight: 800,
-            color: '#1a1a2e', margin: '0 0 8px', lineHeight: 1.2,
-          }}>
-            Game Completed!
-          </h1>
-
           {totalScoreable > 0 && (
             <p style={{
               color: '#6b7280', fontSize: '0.9rem', fontWeight: 600, margin: '0 0 6px',
@@ -2050,22 +2065,35 @@ export default function PlayerPage() {
 
   /* ── THANK YOU ── */
   if (phase === 'thankyou') {
-    const tyBg = s.thankyou_bg_image_url
-    const gameBg = s.bg_image_url
-    const bgStyle = getPageBg(tyBg, gameBg, s.bg_color || '#f4f4ff')
+    const ss = s || {}
+    const tyBg = ss.thankyou_bg_image_url
+    const gameBg = ss.bg_image_url
+    const bgStyle = getPageBg(tyBg, gameBg, ss.bg_color || '#f4f4ff')
     const hasScore = totalScoreable > 0
     const hasBgImage = !!(tyBg || gameBg)
-    const confirmGifUrl = s.submit_confirm_gif_url || null
+    const confirmGifUrl = ss.submit_confirm_gif_url || null
 
 const handleSubmitExplore = () => {
-  setShowSubmitModal(true)
-  // Removed auto-redirect - now only redirects on button click
+  if (isQuiz && completionModalEnabled) {
+    setShowSubmitModal(true)
+    return
+  }
+  if (isQuiz) {
+    const targetUrl = redirectUrl || game?.redirect_url
+    if (targetUrl) {
+      window.top.location.href = targetUrl
+      return
+    }
+  }
+  if (playerProfile) window.top.location.href = '/player/dashboard'
+  else window.location.href = `/play/${gameName}/${companyName}`
 }
 
 const handleModalConfirm = () => {
   setShowSubmitModal(false)
-  if (redirectUrl) {
-    window.top.location.href = redirectUrl
+  const targetUrl = s?.completion_redirect_url
+  if (targetUrl) {
+    window.top.location.href = targetUrl
   } else if (playerProfile) {
     window.top.location.href = '/player/dashboard'
   } else {
@@ -2105,8 +2133,25 @@ const handleModalClose = () => {
           <PlayerAuthModal onClose={() => setShowSaveAuth(false)} onSuccess={handleSaveAuthSuccess} onFinished={handleAuthFinished} />
         )}
 
-        {showSubmitModal && (
-          <SubmitModal primaryColor={primaryColor} ff={ff} confirmGifUrl={confirmGifUrl} onConfirm={handleModalConfirm} onClose={handleModalClose} gameCategory={game.category} continueButtonText={s.continue_button_text} continueButtonTextColor={s.continue_button_text_color} continueButtonBgColor={s.continue_button_bg_color} />
+        {showSubmitModal && completionModalEnabled && (
+          <SubmitModal
+            primaryColor={s.primary_color || '#7c6ff7'}
+            ff={s.font_family || 'DM Sans'}
+            confirmGifUrl={s.submit_confirm_gif_url}
+            onConfirm={handleModalConfirm}
+            onClose={handleModalClose}
+            gameCategory={game?.category}
+            continueButtonText={s.continue_button_text || undefined}
+            continueButtonTextColor={s.continue_button_text_color || undefined}
+            continueButtonBgColor={s.continue_button_bg_color || undefined}
+            completionHeadingText={s.completion_heading_text || undefined}
+            completionSubtext={s.completion_subtext || undefined}
+            completionShowConfetti={s.completion_show_confetti}
+            completionShowProgressBar={s.completion_show_progress_bar}
+            completionProgressBarColor={s.completion_progress_bar_color || undefined}
+            closeButtonText={s.close_button_text || undefined}
+            closeButtonTextColor={s.close_button_text_color || undefined}
+          />
         )}
 
         {/* Animated confetti dots */}
@@ -2155,7 +2200,7 @@ const handleModalClose = () => {
               display: 'inline-flex', alignItems: 'center', gap: 8,
             }}>
               <span style={{ color: '#FFD700', fontSize: 12 }}>&#9733;</span>
-              GAME COMPLETED!
+              COMPLETED!
               <span style={{ color: '#FFD700', fontSize: 12 }}>&#9733;</span>
             </div>
           </div>
@@ -2163,18 +2208,18 @@ const handleModalClose = () => {
           {/* Title */}
           <h1 style={{
             fontFamily: ff, fontSize: 'clamp(22px,6vw,30px)', fontWeight: 800,
-            color: s.outro_text_color || '#1a1a2e', margin: '0 0 6px', lineHeight: 1.2,
+            color: ss.outro_text_color || '#1a1a2e', margin: '0 0 6px', lineHeight: 1.2,
             textShadow: hasBgImage ? '0 2px 8px rgba(0,0,0,0.3)' : 'none',
           }}>
-            {s.outro_text || 'Congratulations!'}
+            {ss.outro_text || 'Congratulations!'}
           </h1>
           <p style={{
-            color: s.thankyou_subtitle_color || '#6b7280', fontSize: '0.85rem',
+            color: ss.thankyou_subtitle_color || '#6b7280', fontSize: '0.85rem',
             fontWeight: 600, margin: '0 0 16px',
           }}>
             {hasScore
               ? <>You scored <strong style={{ color: primaryColor || '#7c3aed' }}>{score}</strong> out of <strong>{totalScoreable}</strong></>
-              : (s.thankyou_subtitle || 'Thank you for completing!')}
+              : (ss.thankyou_subtitle || 'Thank you for completing!')}
           </p>
 
           {/* Progress Card */}
@@ -2224,23 +2269,67 @@ const handleModalClose = () => {
             </div>
           )}
 
+          {/* Sequential Code — only when enabled + shown on thank-you AND the code is a real prefixed code */}
+          {Number(ss.code_generation_enabled) === 1 && Number(ss.code_show_on_thank_you) === 1 && /^[A-Za-z]+\d+$/.test(String(generatedCode || '')) && (
+            <div style={{
+              background: 'linear-gradient(135deg, #ffffff, #f6f5ff)',
+              borderRadius: 20, padding: '14px 18px', margin: '0 auto 14px',
+              width: '100%', maxWidth: 280,
+              border: `1.5px solid ${primaryColor || '#7c3aed'}55`,
+              boxShadow: '0 8px 30px rgba(0,0,0,0.08)',
+            }}>
+              <p style={{
+                margin: '0 0 8px', fontSize: '0.7rem', fontWeight: 700,
+                color: ss.thankyou_subtitle_color || '#6b7280',
+                textTransform: 'uppercase', letterSpacing: '0.08em',
+              }}>{ss.code_label || 'Your Unique Code'}</p>
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+              }}>
+                <span style={{
+                  fontFamily: "'DM Mono', monospace, sans-serif", fontSize: '1.35rem', fontWeight: 800,
+                  letterSpacing: '0.14em', color: '#1a1a2e',
+                  background: '#fff', border: `1.5px dashed ${primaryColor || '#7c3aed'}55`,
+                  borderRadius: 10, padding: '8px 14px', flex: 1,
+                }}>
+                  {generatedCode}
+                </span>
+                <button
+                  onClick={() => { navigator.clipboard?.writeText(generatedCode).catch(() => {}) }}
+                  title="Copy code"
+                  style={{
+                    width: 38, height: 38, borderRadius: 10, border: 'none', cursor: 'pointer',
+                    background: `linear-gradient(135deg, ${primaryColor || '#7c3aed'}, ${primaryColor ? primaryColor + 'cc' : '#6d28d9'})`,
+                    color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                    boxShadow: `0 4px 12px ${primaryColor || '#7c3aed'}44`,
+                    touchAction: 'manipulation',
+                  }}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
+                    <rect x="9" y="9" width="13" height="13" rx="2" />
+                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          )}
+
           {/* Submit Button */}
           <button
             onClick={handleSubmitExplore}
             style={{
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
               width: '100%',
-              background: s.submit_button_bg_color || `linear-gradient(135deg, ${primaryColor || '#7c3aed'}, ${primaryColor ? primaryColor + 'cc' : '#6d28d9'})`,
-              color: s.submit_button_text_color || '#fff', border: 'none',
+              background: ss.submit_button_bg_color || `linear-gradient(135deg, ${primaryColor || '#7c3aed'}, ${primaryColor ? primaryColor + 'cc' : '#6d28d9'})`,
+              color: ss.submit_button_text_color || '#fff', border: 'none',
               padding: '14px 20px', borderRadius: 14,
               fontSize: 17, fontWeight: 700,
               cursor: 'pointer', fontFamily: ff,
-              boxShadow: s.submit_button_bg_color ? '0 6px 24px rgba(0,0,0,0.15)' : `0 6px 24px ${primaryColor || '#7c3aed'}55`,
+              boxShadow: ss.submit_button_bg_color ? '0 6px 24px rgba(0,0,0,0.15)' : `0 6px 24px ${primaryColor || '#7c3aed'}55`,
               touchAction: 'manipulation',
               letterSpacing: '0.02em',
               minHeight: 52,
             }}>
-            <span>{s.submit_button_text || 'Submit & Explore'}</span>
+            <span>{ss.submit_button_text || 'Submit & Explore'}</span>
             <span style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.2)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
                 <path d="M4 12h15M13 6l6 6-6 6" />

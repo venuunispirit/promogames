@@ -7,6 +7,7 @@ const upload = require('../config/upload');
 const path = require('path');
 const fs = require('fs');
 const { sendError } = require('../lib/apiError');
+const { parseCodeRange, countCodesInRange, chooseSeed } = require('../lib/quizCodes');
 
 // Helper: delete a file stored as a /uploads/... URL from disk
 function deleteUploadFile(urlPath) {
@@ -216,9 +217,9 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
     if (settings[0]) {
       const s = settings[0];
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.heading_1, s.heading_2, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email, s.heading_1_color, s.heading_2_color, s.intro_text_color, s.thankyou_subtitle, s.outro_text_color, s.thankyou_subtitle_color, s.start_button_text, s.start_button_text_color, s.start_button_bg_color, s.submit_button_text, s.submit_button_text_color, s.submit_button_bg_color, s.continue_button_text, s.continue_button_text_color, s.continue_button_bg_color, s.next_button_text, s.next_button_text_color, s.next_button_bg_color, s.randomize_questions, s.questions_per_session || 0]
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, show_completion_modal, completion_heading_text, completion_subtext, completion_show_confetti, completion_show_progress_bar, completion_progress_bar_color, close_button_text, close_button_text_color, completion_redirect_url)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.heading_1, s.heading_2, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email, s.heading_1_color, s.heading_2_color, s.intro_text_color, s.thankyou_subtitle, s.outro_text_color, s.thankyou_subtitle_color, s.start_button_text, s.start_button_text_color, s.start_button_bg_color, s.submit_button_text, s.submit_button_text_color, s.submit_button_bg_color, s.continue_button_text, s.continue_button_text_color, s.continue_button_bg_color, s.next_button_text, s.next_button_text_color, s.next_button_bg_color, s.randomize_questions, s.questions_per_session || 0, s.show_completion_modal ?? 1, s.completion_heading_text, s.completion_subtext, s.completion_show_confetti ?? 1, s.completion_show_progress_bar ?? 1, s.completion_progress_bar_color, s.close_button_text, s.close_button_text_color, s.completion_redirect_url || null]
       );
     } else {
       await db.query('INSERT INTO quiz_settings (game_id) VALUES (?)', [newId]);
@@ -641,10 +642,10 @@ router.delete('/:id', requireAdmin, async (req, res) => {
 // PUT settings/field - quick single-field update (JSON, no multer needed)
 router.put('/:id/settings/field', requireAdmin, async (req, res) => {
   try {
-    const boolFields = ['randomize_questions', 'show_progress', 'allow_back', 'terms_enabled', 'send_email', 'enable_mascot', 'enable_speech'];
+    const boolFields = ['randomize_questions', 'show_progress', 'allow_back', 'terms_enabled', 'send_email', 'enable_mascot', 'enable_speech', 'show_completion_modal', 'completion_show_confetti', 'completion_show_progress_bar', 'code_generation_enabled', 'code_show_on_thank_you', 'code_send_in_email'];
     const intFields = ['questions_per_session'];
     const floatFields = ['speech_rate', 'speech_pitch'];
-    const strFields = ['speech_language'];
+    const strFields = ['speech_language', 'code_from', 'code_to'];
     const allowed = [...boolFields, ...intFields, ...floatFields, ...strFields];
     const updates = [];
     const vals = [];
@@ -689,7 +690,11 @@ router.put('/:id/settings', requireAdmin, upload.fields([
       continue_button_text, continue_button_text_color, continue_button_bg_color,
       next_button_text, next_button_text_color, next_button_bg_color,
       randomize_questions, questions_per_session,
-      enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch } = req.body;
+      enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch,
+      show_completion_modal, completion_heading_text, completion_subtext,
+      completion_show_confetti, completion_show_progress_bar, completion_progress_bar_color,
+      close_button_text, close_button_text_color, completion_redirect_url,
+      code_generation_enabled, code_from, code_to, code_show_on_thank_you, code_send_in_email, code_label } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [req.params.id]);
     const bgImg   = req.files?.bg_image           ? `/uploads/images/${req.files.bg_image[0].filename}`           : (bg_image_url           !== undefined ? bg_image_url           : (existing[0]?.bg_image_url           || null));
@@ -723,8 +728,32 @@ router.put('/:id/settings', requireAdmin, upload.fields([
       enable_speech !== undefined ? (enable_speech === 1 || enable_speech === true || enable_speech === '1' || enable_speech === 'true' ? 1 : 0) : 0,
       speech_language || 'en',
       parseFloat(speech_rate) || 1,
-      parseFloat(speech_pitch) || 1
+      parseFloat(speech_pitch) || 1,
+      show_completion_modal === '' || show_completion_modal === undefined || show_completion_modal === null ? 1 : coerceBool(show_completion_modal),
+      completion_heading_text || null,
+      completion_subtext || null,
+      completion_show_confetti === '' || completion_show_confetti === undefined || completion_show_confetti === null ? 1 : coerceBool(completion_show_confetti),
+      completion_show_progress_bar === '' || completion_show_progress_bar === undefined || completion_show_progress_bar === null ? 1 : coerceBool(completion_show_progress_bar),
+      completion_progress_bar_color || null,
+close_button_text || null,
+      close_button_text_color || null,
+      completion_redirect_url || null,
+      code_generation_enabled !== undefined ? coerceBool(code_generation_enabled) : (existing[0]?.code_generation_enabled || 0),
+      code_from !== undefined ? code_from : (existing[0]?.code_from || null),
+      code_to !== undefined ? code_to : (existing[0]?.code_to || null),
+      code_show_on_thank_you !== undefined ? coerceBool(code_show_on_thank_you) : (existing[0]?.code_show_on_thank_you || 0),
+      code_send_in_email !== undefined ? coerceBool(code_send_in_email) : (existing[0]?.code_send_in_email || 0),
+      code_label !== undefined ? (code_label === null || String(code_label).trim() === '' ? null : String(code_label).trim()) : (existing[0]?.code_label ?? null)
     ];
+
+    // Validation — only enforced while code generation is enabled
+    const effEnabled = code_generation_enabled !== undefined ? coerceBool(code_generation_enabled) : (existing[0]?.code_generation_enabled || 0);
+    const effFrom = code_from !== undefined ? code_from : existing[0]?.code_from ?? null;
+    const effTo = code_to !== undefined ? code_to : existing[0]?.code_to ?? null;
+    if (effEnabled) {
+      const parsed = parseCodeRange(effFrom, effTo);
+      if (parsed.error) return res.status(400).json({ success: false, message: parsed.error });
+    }
 
     const [upd] = await db.query(
       `UPDATE quiz_settings SET bg_color=?, primary_color=?, show_progress=?, allow_back=?, time_per_question=?,
@@ -739,14 +768,18 @@ router.put('/:id/settings', requireAdmin, upload.fields([
        continue_button_text=?, continue_button_text_color=?, continue_button_bg_color=?,
        next_button_text=?, next_button_text_color=?, next_button_bg_color=?,
         randomize_questions=?, questions_per_session=?,
-        enable_mascot=?, enable_speech=?, speech_language=?, speech_rate=?, speech_pitch=? WHERE game_id=?`,
+        enable_mascot=?, enable_speech=?, speech_language=?, speech_rate=?, speech_pitch=?,
+        show_completion_modal=?, completion_heading_text=?, completion_subtext=?,
+        completion_show_confetti=?, completion_show_progress_bar=?, completion_progress_bar_color=?,
+        close_button_text=?, close_button_text_color=?, completion_redirect_url=?,
+        code_generation_enabled=?, code_from=?, code_to=?, code_show_on_thank_you=?, code_send_in_email=?, code_label=? WHERE game_id=?`,
       [...vals.slice(1), req.params.id]
     );
 
     if (upd.affectedRows === 0) {
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, win_sound_url, bg_image_url, thankyou_bg_image_url, terms_enabled, terms_text, terms_url, send_email, win_sound_id, lose_sound_id, sound_correct_id, sound_wrong_id, game_logo_url, font_family, submit_confirm_gif_url, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, enable_mascot, enable_speech, speech_language, speech_rate, speech_pitch, show_completion_modal, completion_heading_text, completion_subtext, completion_show_confetti, completion_show_progress_bar, completion_progress_bar_color, close_button_text, close_button_text_color, completion_redirect_url, code_generation_enabled, code_from, code_to, code_show_on_thank_you, code_send_in_email)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
         vals
       );
     }
@@ -757,6 +790,25 @@ router.put('/:id/settings', requireAdmin, upload.fields([
        INNER JOIN quiz_settings t2
        ON t1.game_id = t2.game_id AND t1.id < t2.id`
     );
+
+    // Re-anchor the allocation counter to codes actually allocated within the new range
+    if (effEnabled && effFrom && effTo) {
+      const parsed = parseCodeRange(effFrom, effTo);
+      if (!parsed.error) {
+        const n = await countCodesInRange(req.params.id, parsed);
+        await db.query('UPDATE quiz_settings SET code_current_number = ? WHERE game_id = ?', [n, req.params.id]);
+        // Persist a shuffle seed when generation is first enabled or the range changed —
+        // codes stay scrambled and stable per quiz.
+        const prevFrom = existing[0]?.code_from ?? null;
+        const prevTo = existing[0]?.code_to ?? null;
+        const hasSeed = existing[0]?.code_shuffle_k !== null && existing[0]?.code_shuffle_k !== undefined;
+        const rangeChanged = prevFrom !== effFrom || prevTo !== effTo;
+        if (!hasSeed || rangeChanged) {
+          const s = chooseSeed(parsed.total);
+          await db.query('UPDATE quiz_settings SET code_shuffle_k = ?, code_shuffle_salt = ? WHERE game_id = ?', [s.k, s.salt, req.params.id]);
+        }
+      }
+    }
 
     res.json({ success: true, message: 'Settings saved' });
   } catch (err) { console.error(err); sendError(res, err); }
@@ -848,7 +900,53 @@ router.get('/:id/responses', requireAdmin, async (req, res) => {
   } catch (err) { console.error(err); sendError(res, err); }
 });
 
-// PUT /api/games/:id/status — change game status (development/testing/live)
+// GET all generated codes for a game (admin: code generation management)
+router.get('/:id/codes', requireAdmin, async (req, res) => {
+  try {
+    const { limit = 200, offset = 0, search = '' } = req.query;
+    const where = ['qc.game_id = ?'];
+    const params = [req.params.id];
+    if (search) {
+      where.push('qc.generated_code LIKE ?');
+      params.push(`%${search}%`);
+    }
+    const [rows] = await db.query(
+      `SELECT qc.*, ps.player_data, ps.completed_at
+       FROM quiz_generated_codes qc
+       LEFT JOIN player_sessions ps ON qc.submission_id = ps.id
+       WHERE ${where.join(' AND ')}
+       ORDER BY qc.created_at DESC, qc.id DESC
+       LIMIT ? OFFSET ?`,
+      [...params, parseInt(limit) || 200, parseInt(offset) || 0]
+    );
+    const [[countRows]] = await db.query(
+      `SELECT COUNT(*) AS c FROM quiz_generated_codes qc WHERE ${where.join(' AND ')}`,
+      params
+    );
+    const [aggr] = await db.query(
+      `SELECT COUNT(*) AS total, MAX(seq_number) AS max_seq
+       FROM quiz_generated_codes WHERE game_id = ?`,
+      [req.params.id]
+    );
+    rows.forEach(r => {
+      r.player_data = (() => {
+        try { return typeof r.player_data === 'string' ? JSON.parse(r.player_data) : (r.player_data || null) } catch { return null }
+      })();
+    });
+    res.json({ success: true, codes: rows, total: parseInt(countRows?.c || 0, 10), aggregate: aggr[0] || { total: 0, max_seq: null } });
+  } catch (err) { console.error(err); sendError(res, err); }
+});
+
+// DELETE a single generated code (admin: revoke a misallocated code)
+router.delete('/:id/codes/:codeId', requireAdmin, async (req, res) => {
+  try {
+    await db.query(
+      'DELETE FROM quiz_generated_codes WHERE id = ? AND game_id = ?',
+      [req.params.codeId, req.params.id]
+    );
+    res.json({ success: true, message: 'Code removed' });
+  } catch (err) { console.error(err); sendError(res, err); }
+});
 router.put('/:id/status', requireAdmin, async (req, res) => {
   const { status } = req.body;
   const allowed = ['development','testing','live'];

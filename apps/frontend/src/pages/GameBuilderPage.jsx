@@ -783,12 +783,10 @@ export default function GameBuilderPage() {
 </head>
 <body>
 <div class="wrap">
-<div class="header"><h1>You earned an offer! 🎉</h1></div>
+<div class="header"><h1>Congratulations! 🎉</h1></div>
 <div class="body">
 <p>Hi {{name}},</p>
-<p>Congratulations on playing <strong>{{game_name}}</strong>! You've earned a special offer.</p>
-<p style="text-align:center;margin:28px 0;font-size:24px;font-weight:800;letter-spacing:8px;background:#f4f4f6;padding:12px 24px;border-radius:8px;display:inline-block;font-family:monospace">{{code}}</p>
-<p>Show this 6-digit code to the staff to redeem your reward.</p>
+<p>You have completed <strong>{{game_name}}</strong>. Thank you for playing!</p>
 </div>
 <div class="footer"><p>© PromoGames · Enjoy your reward!</p></div>
 </div>
@@ -1124,6 +1122,17 @@ const [nameInput,     setNameInput]     = useState('')
     setSaving(true)
     upload.clearAll()
     try {
+      // Client-side validation for sequential code generation
+      if (settings.code_generation_enabled) {
+        const from = (settings.code_from || '').trim()
+        const to = (settings.code_to || '').trim()
+        const fromM = from.match(/^([A-Za-z]+)(\d+)$/)
+        const toM = to.match(/^([A-Za-z]+)(\d+)$/)
+        if (!from || !to) { showToast('Code From and Code To are required', 'error'); setSaving(false); return }
+        if (!fromM || !toM) { showToast('Codes must use a prefix followed by a number (e.g. FL0001)', 'error'); setSaving(false); return }
+        if (fromM[1].toLowerCase() !== toM[1].toLowerCase()) { showToast('Code From and Code To must share the same prefix', 'error'); setSaving(false); return }
+        if (parseInt(fromM[2], 10) > parseInt(toM[2], 10)) { showToast('Code From must not be greater than Code To', 'error'); setSaving(false); return }
+      }
       const fd = new FormData()
       const fields = ['bg_color','primary_color','show_progress','time_per_question',
         'heading_1','heading_2','intro_text','outro_text','win_sound_id','lose_sound_id',
@@ -1137,8 +1146,12 @@ const [nameInput,     setNameInput]     = useState('')
         'continue_button_text_color','continue_button_bg_color',
         'next_button_text','next_button_text_color','next_button_bg_color',
         'randomize_questions','questions_per_session',
-        'enable_mascot','enable_speech','speech_language','speech_rate','speech_pitch']
-      const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech']
+        'enable_mascot','enable_speech','speech_language','speech_rate','speech_pitch',
+        'show_completion_modal','completion_heading_text','completion_subtext',
+        'completion_show_confetti','completion_show_progress_bar',
+        'completion_progress_bar_color','close_button_text','close_button_text_color','completion_redirect_url',
+        'code_generation_enabled','code_from','code_to','code_show_on_thank_you','code_send_in_email','code_label']
+      const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech','code_generation_enabled','code_show_on_thank_you','code_send_in_email']
       const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time']
       for (const f of fields) {
         let v = settings[f]
@@ -1694,6 +1707,11 @@ const [nameInput,     setNameInput]     = useState('')
                   <div className="gb-section" style={{ marginBottom:16, background:'#fffbeb', borderColor:'#fde68a' }}>
                     💡 Use <code>{'{{name}}'}</code>, <code>{'{{score}}'}</code>, <code>{'{{total}}'}</code>, <code>{'{{game_name}}'}</code> as placeholders.
                   </div>
+                  {!!settings.code_generation_enabled && (
+                    <div className="gb-section" style={{ marginBottom:16, background:'#eef2ff', borderColor:'#c7d2fe' }}>
+                      🔢 Code generation is on — use <code>{'{{generated_code}}'}</code> to inject each player's unique code. It is only filled when <b>Include the code in the completion email</b> is enabled in Settings.
+                    </div>
+                  )}
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
                     <div className="gb-fg"><span className="gb-label">Sender Name</span><input value={emailTemplate.sender_name||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_name:e.target.value })} placeholder="Quiz Platform" /></div>
                     <div className="gb-fg"><span className="gb-label">Sender Email</span><input value={emailTemplate.sender_email||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_email:e.target.value })} placeholder="noreply@yourdomain.com" /></div>
@@ -1837,6 +1855,10 @@ const [nameInput,     setNameInput]     = useState('')
                   <ColorPicker value={settings.submit_button_text_color||'#ffffff'} onChange={v => setSettings({...settings,submit_button_text_color:v})} noPresets label="Text" />
                   <ColorPicker value={settings.submit_button_bg_color||''} onChange={v => setSettings({...settings,submit_button_bg_color:v})} noPresets label="Background" />
                 </div>
+                <div className="gb-fg" style={{ marginBottom:0, marginTop:14 }}>
+                  <span className="gb-label">Redirect URL (opens when the button is clicked)</span>
+                  <input value={redirectUrl} onChange={e => setRedirectUrl(e.target.value)} placeholder="https://yourwebsite.com/thankyou" type="url" />
+                </div>
               </div>
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
@@ -1858,17 +1880,18 @@ const [nameInput,     setNameInput]     = useState('')
                     {upload.hasError('submit_confirm_gif_url') && <div className="gb-img-error-msg">⚠️ {upload.errors['submit_confirm_gif_url']}</div>}
                   </div>
                 </div>
+                {settings.show_completion_modal && (
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
                   <div className="gb-section-title">🔗 Post-Game Redirect URL</div>
                   <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>
-                    Where should players be sent after completing? Leave blank to show default.
+                    URL used by the <b>Continue button</b> in the completion popup. Leave blank to fall back to the Submit &amp; Explore URL.
                   </p>
                   <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <input value={redirectUrl} onChange={e => setRedirectUrl(e.target.value)} placeholder="https://yourwebsite.com/thankyou" type="url" />
+                    <input value={settings.completion_redirect_url||''} onChange={e => setSettings({...settings,completion_redirect_url:e.target.value})} placeholder="https://yourwebsite.com/promo" type="url" />
                   </div>
-                  {redirectUrl && (
+                  {settings.completion_redirect_url && (
                     <div style={{ marginTop:10, marginBottom:16, background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'8px 12px', fontSize:12, color:'#15803d', wordBreak:'break-all' }}>
-                      ✅ {redirectUrl}
+                      ✅ {settings.completion_redirect_url}
                     </div>
                   )}
                   <div style={{ borderTop:'1px solid var(--gb-border)', paddingTop:16 }}>
@@ -1882,6 +1905,41 @@ const [nameInput,     setNameInput]     = useState('')
                     </div>
                   </div>
                 </div>
+                )}
+              </div>
+
+              {/* ─── Completion Modal Toggle & Customization ─── */}
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🎯 Completion Modal</div>
+                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16, padding:'10px 14px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:10 }}>
+                  <input type="checkbox" id="completionModalToggle" checked={!!settings.show_completion_modal}
+                    onChange={e => setSettings({...settings, show_completion_modal: e.target.checked ? 1 : 0})}
+                    style={{ width:18, height:18 }} />
+                  <label htmlFor="completionModalToggle" style={{ fontSize:13, fontWeight:600, color:'#166534', cursor:'pointer' }}>Show completion modal after quiz/game ends</label>
+                  <span style={{ marginLeft:'auto', fontSize:11, color:'#16a34a', fontWeight:600 }}>{settings.show_completion_modal ? 'ON' : 'OFF'}</span>
+                </div>
+                {settings.show_completion_modal && (
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 16px', paddingTop:4 }}>
+                    <div className="gb-fg" style={{ gridColumn:'1 / -1' }}><span className="gb-label">Completion Heading Text</span><input value={settings.completion_heading_text||''} onChange={e => setSettings({...settings, completion_heading_text:e.target.value})} placeholder="Quiz Completed!" /></div>
+                    <div className="gb-fg" style={{ gridColumn:'1 / -1' }}><span className="gb-label">Completion Subtext (supports <code>&lt;br /&gt;</code>)</span><textarea rows={2} value={settings.completion_subtext||''} onChange={e => setSettings({...settings, completion_subtext:e.target.value})} placeholder="Your responses have been recorded.<br />Redirecting you now…" style={{ resize:'vertical' }} /></div>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, padding:8, background:'#fef9c3', borderRadius:8 }}>
+                      <input type="checkbox" id="completionConfetti" checked={!!settings.completion_show_confetti} onChange={e => setSettings({...settings, completion_show_confetti:e.target.checked?1:0})} style={{ width:16, height:16 }} />
+                      <label htmlFor="completionConfetti" style={{ fontSize:12, color:'var(--gb-text2)', cursor:'pointer', flex:1 }}>Show confetti/celebration icon</label>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, padding:8, background:'#fef9c3', borderRadius:8 }}>
+                      <input type="checkbox" id="completionProgressBar" checked={!!settings.completion_show_progress_bar} onChange={e => setSettings({...settings, completion_show_progress_bar:e.target.checked?1:0})} style={{ width:16, height:16 }} />
+                      <label htmlFor="completionProgressBar" style={{ fontSize:12, color:'var(--gb-text2)', cursor:'pointer', flex:1 }}>Show progress bar</label>
+                    </div>
+                    <ColorPicker value={settings.completion_progress_bar_color||'#8076F5'} onChange={v => setSettings({...settings, completion_progress_bar_color:v})} label="Progress Bar Color" />
+                    <div className="gb-fg"><span className="gb-label">Continue Button Text</span><input value={settings.continue_button_text||''} onChange={e => setSettings({...settings, continue_button_text:e.target.value})} placeholder="Continue Now →" /></div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                      <ColorPicker value={settings.continue_button_text_color||'#ffffff'} onChange={v => setSettings({...settings, continue_button_text_color:v})} noPresets label="Continue Text" />
+                      <ColorPicker value={settings.continue_button_bg_color||''} onChange={v => setSettings({...settings, continue_button_bg_color:v})} noPresets label="Continue Bg" />
+                    </div>
+                    <div className="gb-fg"><span className="gb-label">Close Button Text</span><input value={settings.close_button_text||''} onChange={e => setSettings({...settings, close_button_text:e.target.value})} placeholder="Close" /></div>
+                    <ColorPicker value={settings.close_button_text_color||'#888888'} onChange={v => setSettings({...settings, close_button_text_color:v})} label="Close Button Text Color" />
+                  </div>
+                )}
               </div>
 
               <div style={{ display:'flex', justifyContent:'flex-end' }}>
@@ -1955,6 +2013,86 @@ const [nameInput,     setNameInput]     = useState('')
                     </div>
                   </div>
                 </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🔢 Code Generation</div>
+                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:14 }}>
+                  Generate a unique code for every player who completes the quiz. Codes are drawn from the range in a scrambled order (e.g. FL0412, FL9087, …) — so no two players ever see the same pattern — and each code is used only once, safe under concurrent submissions.
+                </p>
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:14 }}>
+                  <input type="checkbox" checked={!!settings.code_generation_enabled} onChange={e => setSettings({...settings, code_generation_enabled: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                  Enable code generation on quiz completion
+                </label>
+                {settings.code_generation_enabled ? (
+                  <>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:14 }}>
+                      <div className="gb-fg" style={{ marginBottom:0 }}>
+                        <span className="gb-label">Code From</span>
+                        <input
+                          value={settings.code_from || ''}
+                          onChange={e => setSettings({...settings, code_from: e.target.value})}
+                          placeholder="FL0001"
+                          style={{ fontFamily:'monospace', letterSpacing:'0.02em' }}
+                        />
+                        <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>Prefix + number, e.g. <b>FL</b>0001 or 001.</span>
+                      </div>
+                      <div className="gb-fg" style={{ marginBottom:0 }}>
+                        <span className="gb-label">Code To</span>
+                        <input
+                          value={settings.code_to || ''}
+                          onChange={e => setSettings({...settings, code_to: e.target.value})}
+                          placeholder="FL10000"
+                          style={{ fontFamily:'monospace', letterSpacing:'0.02em' }}
+                        />
+                        <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>Last code in the range, e.g. <b>FL</b>10000.</span>
+                      </div>
+                    </div>
+                    <div style={{
+                      background:'var(--gb-primary-bg)', border:'1px solid var(--gb-primary)',
+                      borderRadius:10, padding:'10px 14px', marginBottom:14, fontSize:12.5, color:'var(--gb-text)'
+                    }}>
+                      {(() => {
+                        const from = String(settings.code_from || '').trim()
+                        const to = String(settings.code_to || '').trim()
+                        const fromM = from.match(/^([A-Za-z]+)(\d+)$/)
+                        const toM = to.match(/^([A-Za-z]+)(\d+)$/)
+                        if (!fromM || !toM) return '⚠️ Enter a valid From / To range, e.g. FL0001 → FL10000.'
+                        if (fromM[1].toLowerCase() !== toM[1].toLowerCase()) return '⚠️ Both codes must share the same prefix.'
+                        const fromN = parseInt(fromM[2], 10); const toN = parseInt(toM[2], 10)
+                        if (fromN > toN) return '⚠️ Code From must not be greater than Code To.'
+                        const width = fromM[2].length
+                        const first = fromM[1] + String(fromN).padStart(width, '0')
+                        const last = toM[1] + String(toN).padStart(width, '0')
+                        return `✓ Up to ${(toN - fromN + 1).toLocaleString()} codes · drawn in scrambled order between ${first} – ${last}`
+                      })()}
+                    </div>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:8 }}>
+                      <input type="checkbox" checked={!!settings.code_show_on_thank_you} onChange={e => setSettings({...settings, code_show_on_thank_you: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                      Show the code on the Thank You page
+                    </label>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:8 }}>
+                      <input type="checkbox" checked={!!settings.code_send_in_email} onChange={e => setSettings({...settings, code_send_in_email: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                      Include the code in the completion email
+                    </label>
+                    <div className="gb-fg" style={{ marginBottom:10 }}>
+                      <span className="gb-label">Code box label (Thank You page)</span>
+                      <input
+                        value={settings.code_label || ''}
+                        onChange={e => setSettings({...settings, code_label: e.target.value})}
+                        placeholder="YOUR UNIQUE CODE"
+                        maxLength={100}
+                      />
+                    </div>
+                    <p style={{ color:'var(--gb-text3)', fontSize:11, lineHeight:1.5 }}>
+                      Add the <code style={{ background:'var(--gb-border)', padding:'1px 6px', borderRadius:6, fontSize:11 }}>{'{{generated_code}}'}</code> placeholder anywhere in your Email template to inject the code. When this is off, the placeholder (and its wrapper) is removed from the email.
+                    </p>
+                  </>
+                ) : (
+                  <div className="gb-empty" style={{ padding:'18px' }}>
+                    <div style={{ color:'var(--gb-text3)', fontSize:12 }}>🔒 Code generation is currently disabled.</div>
+                    <div style={{ color:'var(--gb-text3)', fontSize:12, marginTop:4 }}>Enable it above to configure a sequential code range and delivery options.</div>
+                  </div>
+                )}
               </div>
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">🗣️ Mascot &amp; Voice (Text-to-Speech)</div>

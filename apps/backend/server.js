@@ -7,6 +7,7 @@ require("dotenv").config();
 require("./config/env"); // Validates all required env vars — exits if missing
 
 const app = express();
+app.set('trust proxy', 1); // needed so req.protocol reflects the original HTTPS request behind nginx
 
 // ── Layer 1+2: CORS lockdown + security headers ─────────────────────────────
 // The frontend calls the API same-origin (baseURL '/api'), so we only allow

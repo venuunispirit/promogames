@@ -174,7 +174,7 @@ router.get('/game-data/:gameId', async (req, res) => {
     }
 
     let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [gameId]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
     const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [gameId]);
     const soundMap = {};
     for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -643,7 +643,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === '2048') {
       const [gameSettings] = await db.query('SELECT * FROM game2048_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -680,7 +680,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'snake') {
       const [gameSettings] = await db.query('SELECT * FROM snake_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -714,7 +714,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'snakeandladder') {
       const [gameSettings] = await db.query('SELECT * FROM snake_ladder_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -741,7 +741,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'ludo') {
       const [gameSettings] = await db.query('SELECT * FROM ludo_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -768,7 +768,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (['Carrom', 'carrom'].includes(game.category)) {
       const [gameSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -795,7 +795,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'tictactoemultiplayer') {
       const [gameSettings] = await db.query('SELECT * FROM tictactoe_multi_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -822,7 +822,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'catch') {
       const [gameSettings] = await db.query('SELECT * FROM catch_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -856,7 +856,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'reaction') {
       const [gameSettings] = await db.query('SELECT * FROM reaction_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -890,7 +890,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'simon') {
       const [gameSettings] = await db.query('SELECT * FROM simon_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -961,7 +961,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (settingsTable) {
       const [gameSettings] = await db.query(`SELECT * FROM ${settingsTable} WHERE game_id = ?`, [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
@@ -1001,7 +1001,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'snakeandladder') {
       const [gameSettings] = await db.query('SELECT * FROM snake_ladder_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -1025,7 +1025,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'ludo') {
       const [gameSettings] = await db.query('SELECT * FROM ludo_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -1049,7 +1049,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (['Carrom', 'carrom'].includes(game.category)) {
       const [gameSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -1073,7 +1073,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (game.category === 'tictactoemultiplayer') {
       const [gameSettings] = await db.query('SELECT * FROM tictactoe_multi_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -1096,7 +1096,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     // ── QUIZ / SURVEY branch ─────────────────────────────────────────────────
     const [settings]   = await db.query('SELECT * FROM quiz_settings WHERE game_id = ?', [game.id]);
     let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
     const [questions]  = await db.query('SELECT * FROM questions WHERE game_id = ? ORDER BY question_order', [game.id]);
     const [sounds]     = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
@@ -1838,7 +1838,7 @@ router.get('/:gameName', async (req, res) => {
       const [spinSettings] = await db.query('SELECT * FROM spin_settings WHERE game_id = ?', [game.id]);
       const [spinSegments] = await db.query('SELECT * FROM spin_segments WHERE game_id = ? ORDER BY segment_order', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -1866,7 +1866,7 @@ router.get('/:gameName', async (req, res) => {
     if (game.category === 'snakeandladder') {
       const [gameSettings] = await db.query('SELECT * FROM snake_ladder_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -1890,7 +1890,7 @@ router.get('/:gameName', async (req, res) => {
     if (game.category === 'ludo') {
       const [gameSettings] = await db.query('SELECT * FROM ludo_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -1914,7 +1914,7 @@ router.get('/:gameName', async (req, res) => {
     if (['Carrom', 'carrom'].includes(game.category)) {
       const [gameSettings] = await db.query('SELECT * FROM Carrom_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);
@@ -1938,7 +1938,7 @@ router.get('/:gameName', async (req, res) => {
     if (game.category === 'tictactoemultiplayer') {
       const [gameSettings] = await db.query('SELECT * FROM tictactoe_multi_settings WHERE game_id = ?', [game.id]);
       let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
-    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
       for (const s of sounds) soundMap[s.id] = toAbs(s.url);

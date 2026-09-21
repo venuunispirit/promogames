@@ -1586,6 +1586,38 @@ const [nameInput,     setNameInput]     = useState('')
                     </label>
                     <button className="gb-btn gb-btn-danger gb-btn-sm" onClick={() => removeFormField(i)}>✕</button>
                   </div>
+
+                  {f.field_type === 'select' && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed #e5e7eb' }}>
+                      <span className="gb-label" style={{ display: 'block', marginBottom: 6 }}>Dropdown Options</span>
+                      {(f.field_options || []).map((opt, oi) => (
+                        <div key={oi} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                          <input
+                            value={opt}
+                            onChange={e => {
+                              const opts = [...(f.field_options || [])]
+                              opts[oi] = e.target.value
+                              updateFormField(i, 'field_options', opts)
+                            }}
+                            placeholder={`Option ${oi + 1}`}
+                            style={{ flex: 1 }}
+                          />
+                          <button
+                            className="gb-btn gb-btn-danger gb-btn-sm"
+                            onClick={() => {
+                              const opts = [...(f.field_options || [])]
+                              opts.splice(oi, 1)
+                              updateFormField(i, 'field_options', opts)
+                            }}
+                          >✕</button>
+                        </div>
+                      ))}
+                      <button
+                        className="gb-btn gb-btn-ghost gb-btn-sm"
+                        onClick={() => updateFormField(i, 'field_options', [...(f.field_options || []), ''])}
+                      >+ Add Option</button>
+                    </div>
+                  )}
                 </div>
               ))}
               <div style={{ display:'flex', gap:10, marginTop:16, justifyContent:'center' }}>

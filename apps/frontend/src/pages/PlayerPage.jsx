@@ -1391,7 +1391,17 @@ export default function PlayerPage() {
                     {f.field_label} {f.is_required ? <span style={{ color: '#ef4444' }}>*</span> : ''}
                     {fromProfile && <span style={{ marginLeft: 6, fontSize: 10, color: '#22c55e', fontWeight: 600 }}>✓ from profile</span>}
                   </label>
-                  {f.field_type === 'textarea' ? (
+                  {f.field_type === 'select' ? (
+                    <select id={fieldId} name={fieldId} value={val}
+                      disabled={fromProfile}
+                      onChange={e => { handleFieldChange(f.field_label, e.target.value, f.field_type, f.is_required); handleFieldBlur(f.field_label, e.target.value, f.field_type, f.is_required) }}
+                      style={{ ...inputStyle, opacity: fromProfile ? 0.7 : 1 }}>
+                      <option value="">Select…</option>
+                      {(f.field_options || []).map((opt, oi) => (
+                        <option key={oi} value={opt}>{opt}</option>
+                      ))}
+                    </select>
+                  ) : f.field_type === 'textarea' ? (
                     <textarea id={fieldId} name={fieldId} rows={3} value={val}
                       onChange={e => handleFieldChange(f.field_label, e.target.value, f.field_type, f.is_required)}
                       onBlur={e => handleFieldBlur(f.field_label, e.target.value, f.field_type, f.is_required)}

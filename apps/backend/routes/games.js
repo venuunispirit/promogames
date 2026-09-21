@@ -54,7 +54,8 @@ router.get('/:id', requireAdmin, async (req, res) => {
     const game = games[0];
     const [settings] = await db.query('SELECT * FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [game.id]);
     const [emailTemplate] = await db.query('SELECT * FROM email_templates WHERE game_id = ?', [game.id]);
-    const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+    let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
     const [questions] = await db.query('SELECT * FROM questions WHERE game_id = ? ORDER BY question_order', [game.id]);
     const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ? ORDER BY created_at DESC', [game.id]);
     for (let q of questions) {
@@ -237,7 +238,8 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
     }
 
     // Clone form_fields
-    const [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [gameId]);
+    let [formFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [gameId]);
+    formFields = formFields.map(f => ({ ...f, field_options: (() => { try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
     for (const f of formFields) {
       await db.query(
         'INSERT INTO form_fields (game_id, field_label, field_type, field_options, is_required, field_order) VALUES (?, ?, ?, ?, ?, ?)',

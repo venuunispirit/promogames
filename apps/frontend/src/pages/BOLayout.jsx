@@ -22,23 +22,33 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
   position: fixed; top: 0; left: 0; bottom: 0; z-index: 200;
   transition: transform 0.3s cubic-bezier(.4,0,.2,1);
 }
-.bo-sidebar-logo { padding: 24px 24px 0; display: flex; align-items: center; gap: 10px; }
+.bo-sidebar-logo { padding: 24px 24px 0; display: flex; align-items: center; gap: 10px; min-width: 0; }
 .bo-sidebar-logo-icon {
-  width: 36px; height: 36px; border-radius: 10px;
+  width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
   background: rgba(146,16,246,0.2);
   display: flex; align-items: center; justify-content: center;
   color: #fff; font-size: 16px; font-weight: 900;
   border: 1px solid rgba(146,16,246,0.3);
 }
-.bo-sidebar-logo-text { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff; }
-.bo-sidebar-greeting { padding: 20px 24px 0; font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500; }
-.bo-sidebar-nav { flex: 1; padding: 16px 12px 0; display: flex; flex-direction: column; gap: 4px; }
+.bo-sidebar-logo-text {
+  font-size: 22px; font-weight: 900; letter-spacing: -0.5px; color: #ffffff;
+  min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.bo-sidebar-close {
+  display: none; margin-left: auto; flex-shrink: 0;
+  width: 40px; height: 40px; border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.15); background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.75); align-items: center; justify-content: center; cursor: pointer;
+}
+.bo-sidebar-greeting { padding: 20px 24px 0; font-size: 13px; color: rgba(255,255,255,0.6); font-weight: 500; overflow-wrap: anywhere; }
+.bo-sidebar-nav { flex: 1; padding: 16px 12px 0; display: flex; flex-direction: column; gap: 4px; overflow-y: auto; }
 .bo-sidebar-link {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 16px; border-radius: 12px; font-size: 14px; font-weight: 600;
   color: rgba(255,255,255,0.65); text-decoration: none;
-  transition: all 0.2s cubic-bezier(.4,0,.2,1); position: relative;
+  transition: all 0.2s cubic-bezier(.4,0,.2,1); position: relative; min-height: 46px;
 }
+.bo-sidebar-link > span:not(.badge) { min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bo-sidebar-link:hover { background: rgba(146,16,246,0.1); color: #ffffff; }
 .bo-sidebar-link.active {
   background: rgba(146,16,246,0.18);
@@ -65,7 +75,67 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 .bo-sidebar-footer { padding:16px 24px; border-top:1px solid rgba(146,16,246,0.15); font-size:11px; color:rgba(255,255,255,0.45); }
 
 /* ── Main ── */
-.bo-main { flex:1; margin-left:260px; display:flex; flex-direction:column; min-height:100vh; }
+.bo-main { flex:1; min-width:0; margin-left:260px; display:flex; flex-direction:column; min-height:100vh; }
+.bo-content { padding:32px; min-width:0; animation:boSlideUp 0.4s cubic-bezier(.4,0,.2,1); }
+
+/* ── Mobile header ── */
+.bo-mobile-header {
+  display:none; position:sticky; top:0; z-index:180;
+  align-items:center; gap:10px;
+  padding:10px 14px;
+  padding-top:calc(10px + env(safe-area-inset-top));
+  background:rgba(255,255,255,0.94);
+  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+  border-bottom:1px solid #f0eef5;
+}
+.bo-header-btn {
+  width:44px; height:44px; border-radius:13px; flex-shrink:0;
+  border:1px solid #f0eef5; background:#fff;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; color:#64748b; transition:all 0.2s;
+}
+.bo-header-btn:hover { border-color:#e0d9f5; color:#9210f6; }
+.bo-header-btn:active { transform:scale(0.96); }
+.bo-header-titles { flex:1; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.bo-header-title {
+  font-size:15px; font-weight:800; color:#1e1b4b; letter-spacing:-0.2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.bo-header-sub {
+  font-size:11px; font-weight:500; color:#94a3b8;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.bo-profile-wrap { position:relative; flex-shrink:0; }
+.bo-header-avatar {
+  width:42px; height:42px; border-radius:13px; border:none; cursor:pointer;
+  background:linear-gradient(135deg,#9210f6,#6E11D8); color:#fff;
+  font-family:inherit; font-weight:800; font-size:14px;
+  display:flex; align-items:center; justify-content:center;
+  box-shadow:0 4px 12px rgba(146,16,246,0.3);
+}
+.bo-header-avatar:active { transform:scale(0.96); }
+.bo-profile-menu {
+  position:absolute; top:calc(100% + 8px); right:0;
+  min-width:230px; max-width:calc(100vw - 28px);
+  background:#fff; border:1px solid #f0eef5; border-radius:16px;
+  box-shadow:0 16px 48px rgba(0,0,0,0.14); padding:8px;
+  z-index:190; animation:boFadeDown .15s ease;
+}
+.bo-profile-name {
+  font-size:14px; font-weight:700; color:#1e1b4b;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.bo-profile-email {
+  font-size:12px; font-weight:500; color:#94a3b8; margin-top:2px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.bo-profile-item {
+  display:flex; align-items:center; gap:10px; width:100%;
+  min-height:44px; padding:10px 12px; border:none; background:none;
+  border-radius:10px; font-family:inherit; font-size:13px; font-weight:600;
+  color:#374151; cursor:pointer; text-align:left; transition:all 0.15s;
+}
+.bo-profile-item:hover { background:#f8f7ff; color:#9210f6; }
 
 /* ── Toast ── */
 .bo-toast {
@@ -74,6 +144,7 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
   background:#fff; box-shadow:0 8px 32px rgba(0,0,0,0.12);
   animation:boFadeDown .3s ease;
   border:1px solid #ece8ff;
+  max-width:calc(100vw - 48px);
 }
 
 /* ── Force Popup ── */
@@ -81,33 +152,49 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
   position:fixed; inset:0; background:rgba(17,24,39,0.6); backdrop-filter:blur(8px);
   z-index:10000; display:flex; align-items:center; justify-content:center;
   animation:boFadeDown .25s ease;
+  padding:16px; padding-top:calc(16px + env(safe-area-inset-top));
+  padding-bottom:calc(16px + env(safe-area-inset-bottom));
 }
 .bo-force-card {
-  background:#fff; border-radius:24; max-width:440px; width:calc(100% - 32px);
+  background:#fff; border-radius:24px; max-width:440px; width:100%;
+  max-height:min(88dvh, 760px);
+  display:flex; flex-direction:column;
   box-shadow:0 32px 80px rgba(143,44,255,0.35); animation:boSlideUp .3s cubic-bezier(.4,0,.2,1);
   overflow:hidden;
 }
 .bo-force-header {
-  background:linear-gradient(135deg,#9210f6,#6E11D8); padding:20px 24px 16px; position:relative;
+  background:linear-gradient(135deg,#9210f6,#6E11D8); padding:20px 24px 16px; position:relative; flex-shrink:0;
 }
-.bo-force-body { padding:24px; }
+.bo-force-body { padding:24px; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.bo-force-actions { display:flex; gap:10px; flex-wrap:wrap; }
+.bo-force-actions > button { min-height:44px; }
 
-/* Mobile hamburger */
-.bo-hamburger {
-  display:none; position:fixed; top:16px; left:16px; z-index:210;
-  width:42px; height:42px; border-radius:12px; border:1px solid #f0eef5;
-  background:#fff; align-items:center; justify-content:center; cursor:pointer;
-  color:#64748b; transition:all 0.2s; box-shadow:0 2px 8px rgba(0,0,0,0.06);
-}
-.bo-hamburger:hover { border-color:#e0d9f5; color:#9210f6; }
-.bo-mobile-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.3); z-index:199; backdrop-filter:blur(2px); }
+/* Mobile drawer overlay */
+.bo-mobile-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:199; backdrop-filter:blur(2px); animation:boFadeDown .2s ease; }
 
 @media (max-width:1024px) {
-  .bo-sidebar { transform:translateX(-100%); }
-  .bo-sidebar.open { transform:translateX(0); }
+  .bo-sidebar {
+    transform:translateX(-100%);
+    width:min(310px, 86vw);
+  }
+  .bo-sidebar.open { transform:translateX(0); box-shadow:0 0 60px rgba(0,0,0,0.45); }
+  .bo-sidebar-close { display:flex; }
   .bo-main { margin-left:0; }
-  .bo-hamburger { display:flex; }
+  .bo-mobile-header { display:flex; }
   .bo-mobile-overlay.open { display:block; }
+  .bo-content { padding:24px; padding-bottom:calc(28px + env(safe-area-inset-bottom)); }
+}
+@media (max-width:640px) {
+  .bo-content { padding:16px 16px calc(24px + env(safe-area-inset-bottom)); }
+  .bo-toast {
+    top:calc(74px + env(safe-area-inset-top));
+    right:16px; left:16px; max-width:none; text-align:center;
+  }
+  .bo-force-card { border-radius:20px; max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom)); }
+  .bo-force-header { padding:18px 18px 14px; }
+  .bo-force-body { padding:18px; }
+  .bo-sidebar-logo { padding:20px 16px 0; }
+  .bo-sidebar-greeting { padding:16px 16px 0; }
 }
 `
 
@@ -141,6 +228,7 @@ export default function BOLayout() {
   const navigate = useNavigate()
   const [bo, setBo] = useState(null)
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [profileOpen, setProfileOpen] = useState(false)
 
   // ── Notification polling ──
   const [pendingCount, setPendingCount] = useState(0)
@@ -262,7 +350,52 @@ export default function BOLayout() {
     }
   }, [])
 
-  useEffect(() => { setSidebarOpen(false) }, [location.pathname])
+  useEffect(() => { setSidebarOpen(false); setProfileOpen(false) }, [location.pathname])
+
+  // If the viewport grows back to desktop width, release the drawer lock
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width:1025px)')
+    const onChange = (e) => { if (e.matches) { setSidebarOpen(false); setProfileOpen(false) } }
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  // Lock body scroll while the drawer or force popup is open
+  useEffect(() => {
+    const lock = sidebarOpen || !!forcePopup
+    if (lock) {
+      document.body.style.overflow = 'hidden'
+    } else {
+      document.body.style.overflow = ''
+    }
+    return () => { document.body.style.overflow = '' }
+  }, [sidebarOpen, forcePopup])
+
+  // Escape closes drawer / profile menu / force popup
+  useEffect(() => {
+    const onKey = (e) => {
+      if (e.key !== 'Escape') return
+      if (profileOpen) setProfileOpen(false)
+      else if (sidebarOpen) setSidebarOpen(false)
+      else if (forcePopup) closeForcePopup()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [sidebarOpen, profileOpen, forcePopup, closeForcePopup])
+
+  // Close profile menu on outside click / tap
+  useEffect(() => {
+    if (!profileOpen) return
+    const onDown = (e) => {
+      if (!e.target.closest || !e.target.closest('.bo-profile-wrap')) setProfileOpen(false)
+    }
+    document.addEventListener('mousedown', onDown)
+    document.addEventListener('touchstart', onDown)
+    return () => {
+      document.removeEventListener('mousedown', onDown)
+      document.removeEventListener('touchstart', onDown)
+    }
+  }, [profileOpen])
 
   const handleLogout = () => {
     localStorage.removeItem('businessToken')
@@ -287,6 +420,13 @@ export default function BOLayout() {
     { to: '/bo/redemptions', icon: Trophy, label: 'Redemptions' },
   ]
 
+  const sectionTitle = (() => {
+    if (location.pathname.startsWith('/bo/redemptions')) return 'Redemptions'
+    if (location.pathname.startsWith('/bo/games')) return 'My Games'
+    if (location.pathname.startsWith('/bo/my-page')) return 'Franchise Overview'
+    return 'Dashboard'
+  })()
+
   const getInitials = (name) => {
     if (!name) return '?'
     const parts = name.trim().split(/\s+/)
@@ -306,21 +446,21 @@ export default function BOLayout() {
           <div className="bo-force-card" onClick={e => e.stopPropagation()}>
             {/* Header */}
             <div className="bo-force-header">
-              <button onClick={closeForcePopup} style={{ position:'absolute', top:12, right:12, width:32, height:32, borderRadius:10, border:'none', background:'rgba(255,255,255,0.15)', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                <X size={16} />
+              <button onClick={closeForcePopup} aria-label="Close notification" style={{ position:'absolute', top:12, right:12, width:40, height:40, borderRadius:12, border:'none', background:'rgba(255,255,255,0.15)', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                <X size={18} />
               </button>
-              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-                <div>
-                  <div style={{ color:'#fff', fontSize:20, fontWeight:800 }}>New Player Submission!</div>
+              <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', paddingRight:36 }}>
+                <div style={{ minWidth:0 }}>
+                  <div style={{ color:'#fff', fontSize:20, fontWeight:800, overflowWrap:'anywhere' }}>New Player Submission!</div>
                   <div style={{ color:'rgba(255,255,255,0.7)', fontSize:13, marginTop:4 }}>Action required within {forceCountdown}s</div>
                 </div>
-                <button onClick={() => setSoundOn(!soundOn)} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.6)', cursor:'pointer', padding:4 }}>
+                <button onClick={() => setSoundOn(!soundOn)} aria-label={soundOn ? 'Mute sound' : 'Unmute sound'} style={{ background:'none', border:'none', color:'rgba(255,255,255,0.6)', cursor:'pointer', padding:6, flexShrink:0, display:'flex' }}>
                   {soundOn ? <Volume2 size={18} /> : <VolumeX size={18} />}
                 </button>
               </div>
               {/* Countdown bar */}
               <div style={{ display:'flex', alignItems:'center', gap:8, padding:'10px 0 0', marginTop:12 }}>
-                <div style={{ flex:1, height:4, borderRadius:2, background:'rgba(255,255,255,0.15)', overflow:'hidden' }}>
+                <div style={{ flex:1, minWidth:0, height:4, borderRadius:2, background:'rgba(255,255,255,0.15)', overflow:'hidden' }}>
                   <div style={{ height:'100%', width:`${(forceCountdown / 5) * 100}%`, borderRadius:2, background:'linear-gradient(90deg,#c040ff,#fff)', transition:'width 1s linear' }} />
                 </div>
                 <span style={{ fontSize:12, fontWeight:700, color:'rgba(255,255,255,0.8)', minWidth:20, textAlign:'center' }}>{forceCountdown}s</span>
@@ -335,37 +475,30 @@ export default function BOLayout() {
                   {getInitials(forcePopup.player_name)}
                 </div>
                 <div style={{ flex:1, minWidth:0 }}>
-                  <div style={{ fontWeight:700, fontSize:15 }}>{forcePopup.player_name}</div>
-                  <div style={{ fontSize:12, color:'#94a3b8', marginTop:2, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{forcePopup.game_name}</div>
+                  <div style={{ fontWeight:700, fontSize:15, overflowWrap:'anywhere' }}>{forcePopup.player_name}</div>
+                  <div style={{ fontSize:12, color:'#94a3b8', marginTop:2, overflowWrap:'anywhere' }}>{forcePopup.game_name}</div>
                 </div>
               </div>
-
-              {/* Player's redemption code */}
-              {forcePopup.code && (
-                <div style={{ marginBottom:16, padding:'12px 16px', borderRadius:12, background:'#f5f3ff', border:'1px dashed #c4b5fd' }}>
-                  <div style={{ fontSize:10, fontWeight:700, letterSpacing:1, textTransform:'uppercase', color:'#7c3aed', marginBottom:4 }}>Redemption code</div>
-                  <div style={{ fontSize:20, fontWeight:800, letterSpacing:3, color:'#5b21b6', fontFamily:'Inter, monospace', wordBreak:'break-all' }}>{forcePopup.code}</div>
-                </div>
-              )}
 
               {/* Code verification input */}
               {acceptMode === 'code' && (
                 <div style={{ marginBottom:16 }}>
-                  <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#64748b', marginBottom:6 }}>Code (optional)</label>
+                  <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#64748b', marginBottom:6 }}>6-digit code (optional)</label>
                   <input
                     type="text"
-                    maxLength={50}
+                    inputMode="numeric"
+                    maxLength={6}
                     value={codeInput}
-                    onChange={e => { setCodeInput(e.target.value); setCodeError('') }}
+                    onChange={e => { setCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6)); setCodeError('') }}
                     autoFocus
-                    placeholder="FLPMC0001"
+                    placeholder="000000"
                     style={{
-                      width:'100%', padding:'12px 16px', fontSize:16, fontWeight:600, letterSpacing:1,
+                      width:'100%', padding:'12px 16px', fontSize:20, fontWeight:700, letterSpacing:8,
                       textAlign:'center', border: codeError ? '2px solid #ef4444' : '2px solid #e5e7eb',
                       borderRadius:12, outline:'none', fontFamily:'Inter, monospace', color:'#1e1b4b',
                       background: codeError ? '#fef2f2' : '#f9fafb',
                       animation: codeError ? 'boShake .4s ease' : 'none',
-                      textTransform:'uppercase',
+                      boxSizing:'border-box',
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') handleAcceptWithCode() }}
                   />
@@ -377,10 +510,10 @@ export default function BOLayout() {
               {/* Buttons */}
               {!acceptMode ? (
                 /* Initial state: accept with code or reject */
-                <div style={{ display:'flex', gap:10 }}>
+                <div className="bo-force-actions">
                   <button
                     onClick={() => setAcceptMode('code')}
-                    style={{ flex:1, padding:13, borderRadius:12, border:'2px solid #e5e7eb', background:'#f9fafb', color:'#374151', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit', transition:'all 0.2s' }}
+                    style={{ flex:1, minWidth:120, padding:13, borderRadius:12, border:'2px solid #e5e7eb', background:'#f9fafb', color:'#374151', fontWeight:700, fontSize:13, cursor:'pointer', fontFamily:'inherit', transition:'all 0.2s' }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = '#9210f6'; e.currentTarget.style.color = '#9210f6' }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = '#e5e7eb'; e.currentTarget.style.color = '#374151' }}
                   >
@@ -389,31 +522,31 @@ export default function BOLayout() {
                   <button
                     onClick={handleReject}
                     disabled={processing}
-                    style={{ flex:1, padding:13, borderRadius:12, border:'2px solid #fecaca', background:'#fff', color:'#ef4444', fontWeight:700, fontSize:13, cursor: processing ? 'not-allowed' : 'pointer', fontFamily:'inherit', opacity: processing ? 0.6 : 1, transition:'all 0.2s' }}
+                    style={{ flex:1, minWidth:120, padding:13, borderRadius:12, border:'2px solid #fecaca', background:'#fff', color:'#ef4444', fontWeight:700, fontSize:13, cursor: processing ? 'not-allowed' : 'pointer', fontFamily:'inherit', opacity: processing ? 0.6 : 1, transition:'all 0.2s' }}
                   >
                     Reject
                   </button>
                 </div>
               ) : (
                 /* Accept mode (code optional) */
-                <div style={{ display:'flex', gap:10 }}>
+                <div className="bo-force-actions">
                   <button
                     onClick={() => { setAcceptMode(null); setCodeInput(''); setCodeError('') }}
-                    style={{ padding:13, borderRadius:12, border:'1px solid #e5e7eb', background:'#fff', color:'#64748b', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}
+                    style={{ padding:'13px 18px', borderRadius:12, border:'1px solid #e5e7eb', background:'#fff', color:'#64748b', fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit' }}
                   >
                     ← Back
                   </button>
                   <button
                     onClick={handleAcceptWithCode}
                     disabled={processing}
-                    style={{ flex:1, padding:13, borderRadius:12, border:'none', background:'linear-gradient(135deg,#10b981,#059669)', color:'#fff', fontWeight:700, fontSize:13, cursor: processing ? 'not-allowed' : 'pointer', fontFamily:'inherit', boxShadow:'0 4px 16px rgba(16,185,129,0.3)', transition:'all 0.2s', opacity: processing ? 0.6 : 1 }}
+                    style={{ flex:1, minWidth:120, padding:13, borderRadius:12, border:'none', background:'linear-gradient(135deg,#10b981,#059669)', color:'#fff', fontWeight:700, fontSize:13, cursor: processing ? 'not-allowed' : 'pointer', fontFamily:'inherit', boxShadow:'0 4px 16px rgba(16,185,129,0.3)', transition:'all 0.2s', opacity: processing ? 0.6 : 1 }}
                   >
                     {processing ? 'Accepting...' : 'Accept'}
                   </button>
                   <button
                     onClick={handleReject}
                     disabled={processing}
-                    style={{ padding:13, borderRadius:12, border:'2px solid #fecaca', background:'#fff', color:'#ef4444', fontWeight:700, fontSize:13, cursor: processing ? 'not-allowed' : 'pointer', fontFamily:'inherit', opacity: processing ? 0.6 : 1, transition:'all 0.2s' }}
+                    style={{ padding:'13px 18px', borderRadius:12, border:'2px solid #fecaca', background:'#fff', color:'#ef4444', fontWeight:700, fontSize:13, cursor: processing ? 'not-allowed' : 'pointer', fontFamily:'inherit', opacity: processing ? 0.6 : 1, transition:'all 0.2s' }}
                   >
                     Reject
                   </button>
@@ -424,19 +557,17 @@ export default function BOLayout() {
         </div>
       )}
 
-      {/* Mobile overlay */}
+      {/* Mobile drawer backdrop */}
       <div className={`bo-mobile-overlay ${sidebarOpen ? 'open' : ''}`} onClick={() => setSidebarOpen(false)} />
-
-      {/* Mobile hamburger */}
-      <button className="bo-hamburger" onClick={() => setSidebarOpen(true)}>
-        <Menu size={20} />
-      </button>
 
       {/* Sidebar */}
       <aside className={`bo-sidebar${sidebarOpen ? ' open' : ''}`}>
         <div className="bo-sidebar-logo">
           <div className="bo-sidebar-logo-icon">{(bo?.business_name?.[0] || 'B').toUpperCase()}</div>
           <span className="bo-sidebar-logo-text">{bo?.business_name || 'Business'}</span>
+          <button className="bo-sidebar-close" onClick={() => setSidebarOpen(false)} aria-label="Close menu">
+            <X size={18} />
+          </button>
         </div>
 
         <div className="bo-sidebar-greeting">
@@ -446,7 +577,7 @@ export default function BOLayout() {
         <nav className="bo-sidebar-nav">
           {navItems.map(item => (
             <Link key={item.to} to={item.to} className={`bo-sidebar-link ${isActive(item.to) ? 'active' : ''}`}>
-              <item.icon size={20} />
+              <item.icon size={20} style={{ flexShrink:0 }} />
               <span>{item.label}</span>
               {item.to === '/bo/redemptions' && pendingCount > 0 && (
                 <span className="badge">{pendingCount}</span>
@@ -464,7 +595,7 @@ export default function BOLayout() {
 
         <div style={{ padding:'0 12px 16px' }}>
           <button onClick={handleLogout} style={{
-            display:'flex', alignItems:'center', gap:10, width:'100%', padding:'12px 16px',
+            display:'flex', alignItems:'center', justifyContent:'center', gap:10, width:'100%', minHeight:44, padding:'12px 16px',
             borderRadius:12, border:'1px solid rgba(255,255,255,0.15)', background:'rgba(255,255,255,0.08)',
             color:'rgba(255,255,255,0.75)', fontSize:13, fontWeight:600, cursor:'pointer',
             fontFamily:'inherit', transition:'all 0.2s',
@@ -482,7 +613,39 @@ export default function BOLayout() {
 
       {/* Main */}
       <div className="bo-main">
-        <div className="bo-content" style={{ padding:32, animation:'boSlideUp 0.4s cubic-bezier(.4,0,.2,1)' }}>
+        {/* Mobile / tablet header */}
+        <header className="bo-mobile-header">
+          <button className="bo-header-btn" onClick={() => setSidebarOpen(true)} aria-label="Open navigation menu">
+            <Menu size={20} />
+          </button>
+          <div className="bo-header-titles">
+            <span className="bo-header-title">{sectionTitle}</span>
+            <span className="bo-header-sub">{bo?.business_name || 'Business'}</span>
+          </div>
+          <div className="bo-profile-wrap">
+            <button
+              className="bo-header-avatar"
+              onClick={() => setProfileOpen(o => !o)}
+              aria-label="Open profile menu"
+              aria-expanded={profileOpen}
+            >
+              {getInitials(bo?.business_name)}
+            </button>
+            {profileOpen && (
+              <div className="bo-profile-menu">
+                <div style={{ padding:'10px 12px 8px', borderBottom:'1px solid #f6f4fc', marginBottom:6 }}>
+                  <div className="bo-profile-name">{bo?.business_name || 'Business'}</div>
+                  {bo?.email && <div className="bo-profile-email">{bo.email}</div>}
+                </div>
+                <button className="bo-profile-item" onClick={handleLogout}>
+                  <LogOut size={16} /> Sign Out
+                </button>
+              </div>
+            )}
+          </div>
+        </header>
+
+        <div className="bo-content">
           <Outlet />
         </div>
       </div>

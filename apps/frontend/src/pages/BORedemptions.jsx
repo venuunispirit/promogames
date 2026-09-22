@@ -73,7 +73,8 @@ const REDEMPTION_CSS = `
 .redemption-dropdown-menu {
   position:absolute; top:calc(100% + 6px); left:0; background:#fff;
   border:1px solid #f0eef5; border-radius:14px; padding:6px;
-  min-width:180px; box-shadow:0 12px 40px rgba(0,0,0,0.1);
+  min-width:180px; max-width:min(260px, calc(100vw - 24px));
+  box-shadow:0 12px 40px rgba(0,0,0,0.1);
   animation:fadeIn .15s ease; z-index:50;
 }
 .redemption-dropdown-item {
@@ -117,7 +118,7 @@ const REDEMPTION_CSS = `
   font-size:16px; font-weight:800; color:#fff;
   background:linear-gradient(135deg,#8F2CFF,#6E11D8);
 }
-.redemption-card-name { font-size:15px; font-weight:700; color:#1e1b4b; line-height:1.3; }
+.redemption-card-name { font-size:15px; font-weight:700; color:#1e1b4b; line-height:1.3; overflow-wrap:anywhere; }
 .redemption-card-badge {
   display:inline-flex; align-items:center; gap:5px; padding:4px 12px;
   border-radius:100px; font-size:11px; font-weight:700; white-space:nowrap;
@@ -127,9 +128,9 @@ const REDEMPTION_CSS = `
 .redemption-card-info {
   display:flex; flex-direction:column; gap:6px; font-size:12px; color:#64748b;
 }
-.redemption-card-info-row { display:flex; align-items:center; gap:8px; }
-.redemption-card-info-row svg { color:#c4b5fd; flex-shrink:0; }
-.redemption-card-info-row span { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.redemption-card-info-row { display:flex; align-items:flex-start; gap:8px; }
+.redemption-card-info-row svg { color:#c4b5fd; flex-shrink:0; margin-top:1px; }
+.redemption-card-info-row span { min-width:0; overflow-wrap:anywhere; }
 .redemption-card-gift {
   width:44px; height:44px; border-radius:12px; flex-shrink:0;
   background:linear-gradient(135deg,#f5f3ff,#ede9fe);
@@ -139,6 +140,7 @@ const REDEMPTION_CSS = `
 .redemption-card-footer {
   padding:14px 20px; border-top:1px solid #f8f7ff;
   display:flex; align-items:center; justify-content:space-between;
+  gap:10px; flex-wrap:wrap;
 }
 .redemption-card-date { font-size:11px; color:#94a3b8; font-weight:500; display:flex; align-items:center; gap:5px; }
 .redemption-card-action {
@@ -185,16 +187,52 @@ const REDEMPTION_CSS = `
 .bo-toast.error{border-left:4px solid #ef4444}
 
 /* Modal */
-.bo-modal-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.4);backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease}
-.bo-modal{background:#fff;border-radius:24px;padding:32px;max-width:440px;width:calc(100% - 32px);box-shadow:0 24px 64px rgba(0,0,0,0.15);animation:boCardIn .3s cubic-bezier(.4,0,.2,1)}
+.bo-modal-overlay{position:fixed;inset:0;background:rgba(17,24,39,0.4);backdrop-filter:blur(6px);z-index:9998;display:flex;align-items:center;justify-content:center;animation:fadeIn .15s ease;padding:16px;padding-top:calc(16px + env(safe-area-inset-top));padding-bottom:calc(16px + env(safe-area-inset-bottom))}
+.bo-modal{background:#fff;border-radius:24px;padding:32px;max-width:440px;width:100%;max-height:min(88dvh,760px);overflow-y:auto;-webkit-overflow-scrolling:touch;box-shadow:0 24px 64px rgba(0,0,0,0.15);animation:boCardIn .3s cubic-bezier(.4,0,.2,1)}
+.bo-modal-actions{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+.bo-modal-actions > button{min-height:44px}
+
+/* Page header */
+.redemption-page-header{margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px}
+.redemption-page-title{font-size:28px;font-weight:800;margin:0;letter-spacing:-0.5px;line-height:1.2}
+.redemption-page-sub{color:#94a3b8;font-size:14px;margin:6px 0 0;font-weight:500;overflow-wrap:anywhere}
+
+/* Compact pagination indicator */
+.redemption-page-status{display:none;align-items:center;font-size:12px;font-weight:600;color:#64748b;padding:0 4px;white-space:nowrap}
 
 /* Responsive */
 @media(max-width:1200px){.redemption-grid{grid-template-columns:repeat(2,1fr) !important}}
 @media(max-width:768px){.redemption-grid{grid-template-columns:1fr !important}}
 @media(max-width:640px){
+  .redemption-page-header{margin-bottom:20px}
+  .redemption-page-title{font-size:22px}
   .redemption-stats-grid{grid-template-columns:repeat(2,1fr) !important}
-  .redemption-search-bar{flex-wrap:wrap}
-  .redemption-card-header{flex-wrap:wrap}
+  .redemption-search-bar{flex-wrap:wrap;min-width:0 !important;flex:1 1 100% !important;padding:8px 8px 8px 14px;gap:8px;border-radius:14px}
+  .redemption-filter-btn{min-height:44px;justify-content:center}
+  .redemption-card-header{flex-wrap:wrap;padding:16px 16px 0}
+  .redemption-card-body{padding:12px 16px}
+  .redemption-card-footer{padding:12px 16px}
+  .redemption-card-footer > div{flex-wrap:wrap;gap:8px}
+  .redemption-card-footer button{min-height:44px}
+  .redemption-stat{padding:16px}
+  .redemption-stat-value{font-size:26px;letter-spacing:-0.5px}
+  .redemption-stat-icon{width:42px;height:42px;border-radius:12px}
+  .redemption-page-btn{width:44px;height:44px}
+  .redemption-chips{margin-top:12px}
+  .redemption-chip{min-height:40px}
+  .redemption-dropdown-menu{max-width:calc(100vw - 24px)}
+  .bo-modal{padding:22px 18px;width:100%;max-height:calc(100dvh - 32px - env(safe-area-inset-top) - env(safe-area-inset-bottom));border-radius:20px}
+  .bo-modal-actions{flex-wrap:wrap}
+  .bo-modal-actions > button{flex:1 1 auto}
+  .bo-toast{top:calc(74px + env(safe-area-inset-top));right:16px;left:16px;width:auto;max-width:none}
+}
+@media(max-width:520px){
+  .redemption-page-num{display:none}
+  .redemption-page-status{display:flex}
+  .redemption-pagination{margin-top:14px}
+}
+@media(max-width:420px){
+  .bo-code-input{font-size:20px !important;letter-spacing:6px !important}
 }
 @media(max-width:400px){.redemption-stats-grid{grid-template-columns:1fr !important}}
 `
@@ -344,12 +382,12 @@ export default function BORedemptions() {
     setAcceptError('')
     try {
       const payload = { redemption_id: verifyModal.id }
-      if (acceptCode.trim()) payload.code = acceptCode.trim()
+      if (acceptCode.length === 6) payload.code = acceptCode
       const { data } = await api.post('/business/accept-with-code', payload)
       if (data.success) {
         setVerifyModal(null)
         setAcceptCode('')
-        showToast(acceptCode.trim() ? 'Code verified & accepted' : 'Redemption accepted')
+        showToast(acceptCode.length === 6 ? 'Code verified & accepted' : 'Redemption accepted')
         fetchRedemptions()
       }
     } catch (err) {
@@ -437,29 +475,30 @@ export default function BORedemptions() {
               </button>
             </div>
             <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#64748b', marginBottom:8 }}>
-              Code (optional)
+              6-digit code (optional)
             </label>
             <input
+              className="bo-code-input"
               style={{
-                width:'100%', padding:'14px', fontSize:24, fontWeight:700, letterSpacing:6, textAlign:'center',
+                width:'100%', padding:'14px', fontSize:24, fontWeight:700, letterSpacing:10, textAlign:'center',
                 background:'#f8f7ff', border:'2px solid #f0eef5', borderRadius:14,
                 color:'#8F2CFF', outline:'none', fontFamily:'inherit', boxSizing:'border-box',
-                transition:'border-color 0.2s', textTransform:'uppercase',
+                transition:'border-color 0.2s',
               }}
-              type="text" maxLength={50} value={acceptCode}
-              onChange={e => setAcceptCode(e.target.value.toUpperCase())}
+              type="text" maxLength={6} value={acceptCode}
+              onChange={e => setAcceptCode(e.target.value.replace(/\D/g,''))}
               onKeyDown={e => e.key === 'Enter' && submitVerify()}
-              placeholder="FLPMC0001" autoComplete="off"
+              placeholder="000000" autoComplete="off"
               onFocus={e => e.target.style.borderColor = '#8F2CFF'}
               onBlur={e => e.target.style.borderColor = '#f0eef5'}
-              autoFocus aria-label="redemption verification code" />
+              autoFocus aria-label="6-digit verification code" />
             <p style={{ margin:'8px 0 0', fontSize:11, color:'#94a3b8' }}>
               Leave blank to accept without code verification.
             </p>
             {acceptError && (
               <div style={{ marginTop:10, padding:'10px 14px', borderRadius:12, fontSize:12, fontWeight:600, color:'#ef4444', background:'#fef2f2', border:'1px solid #fecaca' }}>{acceptError}</div>
             )}
-            <div style={{ display:'flex', gap:10, marginTop:20, justifyContent:'flex-end' }}>
+            <div className="bo-modal-actions">
               <button onClick={() => setVerifyModal(null)}
                 style={{
                   padding:'10px 24px', borderRadius:12, border:'1px solid #f0eef5',
@@ -519,7 +558,7 @@ export default function BORedemptions() {
               onFocus={e => e.target.style.borderColor = '#8F2CFF'}
               onBlur={e => e.target.style.borderColor = '#f0eef5'}
             />
-            <div style={{ display:'flex', gap:10, marginTop:20, justifyContent:'flex-end' }}>
+            <div className="bo-modal-actions">
               <button onClick={() => setRejectModal(null)}
                 style={{
                   padding:'10px 24px', borderRadius:12, border:'1px solid #f0eef5',
@@ -539,10 +578,10 @@ export default function BORedemptions() {
       )}
 
       {/* Page Header */}
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:32, flexWrap:'wrap', gap:16 }}>
-        <div>
-          <h1 style={{ fontSize:28, fontWeight:800, margin:0, letterSpacing:'-0.5px' }}>Redemptions</h1>
-          <p style={{ color:'#94a3b8', fontSize:14, margin:'6px 0 0', fontWeight:500 }}>
+      <div className="redemption-page-header">
+        <div style={{ minWidth:0 }}>
+          <h1 className="redemption-page-title">Redemptions</h1>
+          <p className="redemption-page-sub">
             Manage participant rewards and redemption requests.
           </p>
         </div>
@@ -550,7 +589,7 @@ export default function BORedemptions() {
           display:'flex', alignItems:'center', gap:8, padding:'10px 20px', borderRadius:12,
           border:'1.5px solid #f0eef5', background:'#fff', color:'#64748b',
           fontWeight:600, fontSize:13, cursor:'pointer', fontFamily:'inherit', transition:'all 0.2s',
-          position:'relative',
+          position:'relative', flexShrink:0, minHeight:44,
         }}
         onMouseEnter={e => { e.currentTarget.style.borderColor='#8F2CFF'; e.currentTarget.style.color='#8F2CFF' }}
         onMouseLeave={e => { e.currentTarget.style.borderColor='#f0eef5'; e.currentTarget.style.color='#64748b' }}>
@@ -619,7 +658,7 @@ export default function BORedemptions() {
             <ChevronDown size={14} />
           </button>
           {showSortDrop && (
-            <div className="redemption-dropdown-menu">
+            <div className="redemption-dropdown-menu" style={{ left:'auto', right:0 }}>
               {[{ key:'newest', label:'Newest First' }, { key:'oldest', label:'Oldest First' }, { key:'name', label:'Name A-Z' }].map(s => (
                 <button key={s.key} className="redemption-dropdown-item"
                   onClick={() => { setSortBy(s.key); setShowSortDrop(false) }}>
@@ -689,12 +728,6 @@ export default function BORedemptions() {
                   <div className="redemption-card-body">
                     <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
                       <div className="redemption-card-info" style={{ flex:1, minWidth:0 }}>
-                        {n.code && (
-                          <div className="redemption-card-info-row">
-                            <Gift size={13} />
-                            <span style={{ fontWeight:700, color:'#6E11D8', letterSpacing:1, fontFamily:'Inter, monospace' }}>{n.code}</span>
-                          </div>
-                        )}
                         {(() => {
                           const pd = parsePlayerData(n.player_data)
                           const phone = n.player_phone || pd.phone || pd['Phone Number'] || pd['phone number'] || pd['Phone'] || pd['mobile'] || ''
@@ -751,9 +784,10 @@ export default function BORedemptions() {
               </span>
             </div>
             <div className="redemption-pagination">
-              <button className="redemption-page-btn" disabled={page <= 1} onClick={() => setPage(p => p-1)}>
+              <button className="redemption-page-btn" disabled={page <= 1} onClick={() => setPage(p => p-1)} aria-label="Previous page">
                 <ChevronLeft size={16} />
               </button>
+              <span className="redemption-page-status">Page {page} of {Math.max(totalPages, 1)}</span>
               {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
                 let pageNum
                 if (totalPages <= 5) pageNum = i + 1
@@ -762,13 +796,13 @@ export default function BORedemptions() {
                 else pageNum = page - 2 + i
                 return (
                   <button key={pageNum}
-                    className={`redemption-page-btn ${page === pageNum ? 'active' : ''}`}
+                    className={`redemption-page-btn redemption-page-num ${page === pageNum ? 'active' : ''}`}
                     onClick={() => setPage(pageNum)}>
                     {pageNum}
                   </button>
                 )
               })}
-              <button className="redemption-page-btn" disabled={page >= totalPages} onClick={() => setPage(p => p+1)}>
+              <button className="redemption-page-btn" disabled={page >= totalPages} onClick={() => setPage(p => p+1)} aria-label="Next page">
                 <ChevronRight size={16} />
               </button>
             </div>

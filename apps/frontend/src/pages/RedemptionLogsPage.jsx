@@ -62,9 +62,9 @@ export default function RedemptionLogsPage() {
 
   return (
     <div style={{ fontFamily: "'DM Sans',sans-serif", padding: '24px 0' }}>
-      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24 }}>
-        <div>
-          <h1 style={{ fontFamily:"'Fraunces',serif", fontSize:28, fontWeight:600, color:'var(--text)', margin:0 }}>Redemption Logs</h1>
+      <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24, flexWrap:'wrap', gap:12 }}>
+        <div style={{ minWidth:0 }}>
+          <h1 style={{ fontFamily:"'Fraunces',serif", fontSize:28, fontWeight:600, color:'var(--text)', margin:0, overflowWrap:'anywhere' }}>Redemption Logs</h1>
           <p style={{ fontSize:13.5, color:'var(--text3)', marginTop:4 }}>Audit all redemptions including accepted and rejected</p>
         </div>
         <button onClick={exportCSV}

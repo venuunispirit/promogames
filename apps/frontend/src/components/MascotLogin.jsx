@@ -243,7 +243,7 @@ export default function MascotLogin({ children, isTyping: isTypingProp, showPass
       )}
 
       {/* ── Left: Characters ── */}
-        <div style={{
+        <div className="ml-mascots" style={{
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           position: 'relative', minHeight: isFullHeight ? '100vh' : 'auto', paddingBottom: isFullHeight ? 40 : 0,
           opacity: hasEntered ? 1 : 0, transform: hasEntered ? 'translateY(0)' : 'translateY(40px)',
@@ -410,6 +410,7 @@ export default function MascotLogin({ children, isTyping: isTypingProp, showPass
           0% { transform: translateY(0) rotate(0deg); opacity: 1; }
           100% { transform: translateY(100vh) rotate(720deg); opacity: 0; }
         }
+        @media (max-width: 767px) { .ml-mascots { display: none !important; } }
       `}</style>
     </div>
   )

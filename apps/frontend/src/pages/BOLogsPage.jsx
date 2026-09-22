@@ -94,9 +94,9 @@ export default function BOLogsPage() {
         .bol-head { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
         .bol-title { font-family:'Fraunces',serif; font-size:30px; font-weight:700; margin:0; letter-spacing:-.01em; }
         .bol-sub { color:var(--muted); font-size:14px; margin:6px 0 0; }
-        .bol-search { position:relative; }
+        .bol-search { position:relative; max-width:100%; }
         .bol-search input { padding:11px 14px 11px 38px; border-radius:12px; border:1.5px solid #e2e8f0; font-size:13px;
-          font-family:inherit; width:260px; background:var(--surface); outline:none; transition:border-color .15s, box-shadow .15s; }
+          font-family:inherit; width:260px; max-width:100%; box-sizing:border-box; background:var(--surface); outline:none; transition:border-color .15s, box-shadow .15s; }
         .bol-search input:focus { border-color:var(--primary); box-shadow:0 0 0 4px rgba(99,102,241,.12); }
         .bol-search svg { position:absolute; left:12px; top:50%; transform:translateY(-50%); color:var(--muted); }
         .bol-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:18px; }
@@ -120,6 +120,7 @@ export default function BOLogsPage() {
         .bol-name { font-weight:700; font-size:16px; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .bol-mail { font-size:12px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
         .bol-stats { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-top:18px; }
+        @media (max-width: 380px) { .bol-stats { grid-template-columns:repeat(2,1fr); } }
         .bol-stat { background:#f8fafc; border:1px solid #f1f5f9; border-radius:12px; padding:10px 6px; text-align:center; }
         .bol-stat-v { font-size:20px; font-weight:800; line-height:1; }
         .bol-stat-l { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; color:var(--muted); margin-top:5px; }
@@ -136,7 +137,7 @@ export default function BOLogsPage() {
         @keyframes bolpop { from { transform:translateY(12px) scale(.98); opacity:0; } to { transform:none; opacity:1; } }
         .bol-modal-head { padding:22px 26px; background:linear-gradient(135deg,#6366f1,#8b5cf6); color:#fff;
           display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
-        .bol-modal-head h2 { margin:0; font-family:'Fraunces',serif; font-size:22px; }
+        .bol-modal-head h2 { margin:0; font-family:'Fraunces',serif; font-size:22px; overflow-wrap:anywhere; }
         .bol-modal-head p { margin:4px 0 0; font-size:13px; opacity:.85; }
         .bol-modal-actions { display:flex; gap:10px; align-items:center; }
         .bol-btn { padding:9px 16px; border-radius:10px; font-size:12.5px; font-weight:700; cursor:pointer; font-family:inherit; border:none; transition:filter .15s, background .15s; }
@@ -159,6 +160,13 @@ export default function BOLogsPage() {
         .bol-pmeta { font-size:11px; color:var(--muted); margin-top:2px; }
         .bol-badge { display:inline-block; padding:3px 9px; border-radius:999px; font-size:10.5px; font-weight:700; white-space:nowrap; }
         .bol-foot-note { padding:12px 26px; font-size:11px; color:var(--muted); border-top:1px solid #f1f5f9; }
+        @media (max-width: 640px) {
+          .bol-page { padding:16px; }
+          .bol-modal-bg { padding:16px 8px; align-items:stretch; }
+          .bol-modal-head { padding:18px; }
+          .bol-filters { padding:16px 18px; }
+          .bol-foot-note { padding:12px 18px; }
+        }
       `}</style>
 
       <div className="bol-head">

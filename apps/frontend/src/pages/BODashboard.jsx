@@ -155,15 +155,76 @@ const DASH_CSS = `
 .bo-toast.success{border-left:4px solid #10b981}
 .bo-toast.error{border-left:4px solid #ef4444}
 
+/* Page title */
+.dash-page-header { margin-bottom:32px; }
+.dash-page-title { font-size:28px; font-weight:800; margin:0; letter-spacing:-0.5px; line-height:1.2; }
+.dash-page-sub { color:#94a3b8; font-size:14px; margin:6px 0 0; font-weight:500; overflow-wrap:anywhere; }
+
+/* Toolbar actions wrapper */
+.dash-toolbar-actions { display:flex; gap:8px; flex-shrink:0; }
+
+/* Table cells */
+.dash-table-row > div { min-width:0; }
+.dash-player-cell { display:flex; align-items:center; gap:10px; min-width:0; }
+.dash-player-name {
+  font-weight:600; font-size:13px; color:#1e1b4b;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dash-player-sub {
+  font-size:11px; color:#94a3b8; margin-top:1px;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dash-game-cell {
+  font-size:13px; font-weight:500; color:#475569;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.dash-time-cell { font-size:12px; color:#94a3b8; font-weight:500; white-space:nowrap; }
+.dash-activity-text { font-size:13px; color:#475569; line-height:1.5; overflow-wrap:anywhere; }
+.dash-error-banner { flex-wrap:wrap; gap:10px; }
+
 @media(max-width:1200px){
   .dash-main-grid{grid-template-columns:1fr !important}
   .dash-bottom-grid{grid-template-columns:1fr !important}
 }
-@media(max-width:768px){
+@media(max-width:1024px){
   .dash-stats-grid{grid-template-columns:repeat(2,1fr) !important}
-  .dash-table-row,.dash-table-head{grid-template-columns:1fr;gap:8px}
+  .dash-search-wrap{flex-wrap:wrap}
+  .dash-search-input{flex:1 1 calc(100% - 40px)}
+  .dash-toolbar-actions{flex:1 1 100%; flex-wrap:wrap; flex-shrink:1}
+  .dash-toolbar-actions .dash-filter-btn{flex:1 1 auto; justify-content:center; min-height:42px; max-width:100%; overflow:hidden}
 }
-@media(max-width:480px){.dash-stats-grid{grid-template-columns:1fr !important}}
+@media(max-width:768px){
+  .dash-table-head{display:none}
+  .dash-table-row{
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:6px 12px; padding:14px 16px; align-items:center;
+  }
+  .dash-c-player{grid-column:1; grid-row:1}
+  .dash-c-status{grid-column:2; grid-row:1; justify-self:end}
+  .dash-c-game{grid-column:1; grid-row:2}
+  .dash-c-time{grid-column:2; grid-row:2; justify-self:end}
+  .dash-table-header{padding:16px}
+  .dash-activity{padding:18px}
+  .dash-chart-card{padding:18px}
+  .dash-player-name,.dash-game-cell{white-space:normal; overflow:visible; overflow-wrap:anywhere}
+  .dash-player-sub{white-space:normal; overflow:visible; overflow-wrap:anywhere}
+}
+@media(max-width:640px){
+  .dash-page-header{margin-bottom:20px}
+  .dash-page-title{font-size:22px}
+  .dash-stat{padding:18px}
+  .dash-stat-value{font-size:30px; letter-spacing:-1px}
+  .dash-stat-icon{width:42px; height:42px; border-radius:12px; margin-bottom:12px}
+  .dash-search-wrap{padding:6px; border-radius:14px}
+  .dash-icon-btn{width:44px; height:44px}
+  .dash-table-card{border-radius:16px}
+  .dash-activity{border-radius:16px}
+  .bo-toast{top:calc(74px + env(safe-area-inset-top)); right:16px; left:16px; max-width:none; width:auto}
+}
+@media(max-width:360px){
+  .dash-stats-grid{grid-template-columns:1fr !important}
+  .dash-toolbar-actions .dash-filter-btn{flex:1 1 100%}
+}
 `
 
 const GAME_COLORS = ['#7c3aed','#2563eb','#059669','#f59e0b','#ef4444','#8b5cf6','#0ea5e9']
@@ -336,16 +397,16 @@ export default function BODashboard() {
       <style>{DASH_CSS}</style>
 
       {/* Header */}
-      <div style={{ marginBottom:32 }}>
-        <h1 style={{ fontSize:28, fontWeight:800, margin:0, letterSpacing:'-0.5px' }}>Dashboard</h1>
-        <p style={{ color:'#94a3b8', fontSize:14, margin:'6px 0 0', fontWeight:500 }}>
+      <div className="dash-page-header">
+        <h1 className="dash-page-title">Dashboard</h1>
+        <p className="dash-page-sub">
           Monitor your games, participants and redemptions from one place.
         </p>
       </div>
 
       {/* Error */}
       {error && (
-        <div style={{ padding:'14px 18px', borderRadius:14, marginBottom:20, background:'#fef2f2', border:'1px solid #fecaca', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div className="dash-error-banner" style={{ padding:'14px 18px', borderRadius:14, marginBottom:20, background:'#fef2f2', border:'1px solid #fecaca', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontSize:13, color:'#ef4444', fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><AlertTriangle size={15} /> {error}</span>
           <button onClick={fetchNotifications} style={{ padding:'7px 18px', borderRadius:8, border:'none', background:'#ef4444', color:'#fff', fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Retry</button>
         </div>
@@ -372,7 +433,7 @@ export default function BODashboard() {
       <div className="dash-search-wrap" style={{ marginBottom:24 }}>
         <Search size={18} style={{ color:'#94a3b8', marginLeft:8, flexShrink:0 }} />
         <input className="dash-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by participant name or email..." />
-        <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+        <div className="dash-toolbar-actions">
           <select className="dash-filter-btn" value={dateFilter} onChange={e => setDateFilter(e.target.value)}>
             <option value="all">All Dates</option>
             <option value="today">Today</option>
@@ -423,20 +484,20 @@ export default function BODashboard() {
             const sb = statusBadge(n.status)
             return (
               <div key={n.id} className="dash-table-row" style={{ animationDelay:`${i*0.03}s` }}>
-                <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                <div className="dash-player-cell dash-c-player">
                   <div className="dash-avatar" style={{ background:GAME_COLORS[i % GAME_COLORS.length] }}>
                     {getInitials(n.player_name)}
                   </div>
-                  <div>
-                    <div style={{ fontWeight:600, fontSize:13, color:'#1e1b4b' }}>{n.player_name}</div>
-                    {n.location_name && <div style={{ fontSize:11, color:'#94a3b8', marginTop:1 }}>{n.location_name}</div>}
+                  <div style={{ minWidth:0 }}>
+                    <div className="dash-player-name">{n.player_name}</div>
+                    {n.location_name && <div className="dash-player-sub">{n.location_name}</div>}
                   </div>
                 </div>
-                <div style={{ fontSize:13, fontWeight:500, color:'#475569' }}>{n.game_name || '—'}</div>
-                <div>
+                <div className="dash-game-cell dash-c-game">{n.game_name || '—'}</div>
+                <div className="dash-c-status">
                   <span className="dash-status-badge" style={{ background:sb.bg, color:sb.color }}>{sb.label}</span>
                 </div>
-                <div style={{ fontSize:12, color:'#94a3b8', fontWeight:500 }}>{formatDate(n.created_at)}</div>
+                <div className="dash-time-cell dash-c-time">{formatDate(n.created_at)}</div>
               </div>
             )
           })}

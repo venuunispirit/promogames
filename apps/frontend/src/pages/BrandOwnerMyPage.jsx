@@ -46,6 +46,7 @@ const MYPAGE_CSS = `
 }
 .mb-branch-row:last-child { border-bottom:none; }
 .mb-branch-row:hover { background:#faf9ff; }
+.mb-branch-row > div { min-width:0; }
 .mb-branch-head {
   font-size:11px; font-weight:700; color:#94a3b8; text-transform:uppercase;
   letter-spacing:0.5px; padding:12px 24px; border-bottom:1px solid #ece8ff;
@@ -56,9 +57,9 @@ const MYPAGE_CSS = `
 
 .mb-bar-row { margin-bottom:14px; }
 .mb-bar-row:last-child { margin-bottom:0; }
-.mb-bar-top { display:flex; justify-content:space-between; margin-bottom:6px; }
-.mb-bar-name { font-size:13px; font-weight:600; color:#1e1b4b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; }
-.mb-bar-val { font-size:13px; font-weight:700; color:#7c3aed; }
+.mb-bar-top { display:flex; justify-content:space-between; margin-bottom:6px; gap:4px; }
+.mb-bar-name { font-size:13px; font-weight:600; color:#1e1b4b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:200px; min-width:0; }
+.mb-bar-val { font-size:13px; font-weight:700; color:#7c3aed; white-space:nowrap; }
 .mb-bar-track { height:8px; border-radius:100px; background:#f0eef5; overflow:hidden; }
 .mb-bar-fill { height:100%; border-radius:100px; transition:width 1s cubic-bezier(.4,0,.2,1); }
 
@@ -69,15 +70,40 @@ const MYPAGE_CSS = `
   font-size:12px; font-weight:600; color:#7c3aed;
 }
 
+/* Page header */
+.mb-page-header{margin-bottom:32px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.mb-page-title{font-size:28px;font-weight:800;margin:0;letter-spacing:-0.5px;line-height:1.2;overflow-wrap:anywhere}
+.mb-page-sub{color:#94a3b8;font-size:14px;margin:6px 0 0;font-weight:500;overflow-wrap:anywhere}
+
+/* Mobile-only cell labels for the branch table */
+.mb-lbl{display:none}
+
+.mb-card-body{padding:24px}
+.mb-val{font-weight:700}
+
 @media(max-width:1200px) {
   .mb-stats-grid { grid-template-columns:repeat(3,1fr) !important; }
   .mb-main-grid { grid-template-columns:1fr !important; }
 }
 @media(max-width:768px) {
   .mb-stats-grid { grid-template-columns:repeat(2,1fr) !important; }
-  .mb-branch-row,.mb-branch-head { grid-template-columns:1fr;gap:8px; }
+  .mb-branch-head { display:none; }
+  .mb-branch-row { grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px 14px; padding:16px; }
+  .mb-c-branch { grid-column:1 / -1; }
+  .mb-lbl { display:block; font-size:11px; font-weight:600; color:#94a3b8; margin-bottom:3px; }
+  .mb-val { font-size:15px; }
+  .mb-card-header { padding:16px; }
+  .mb-card-body { padding:18px; }
 }
-@media(max-width:480px) { .mb-stats-grid { grid-template-columns:1fr !important; } }
+@media(max-width:640px) {
+  .mb-page-header { margin-bottom:20px; }
+  .mb-page-title { font-size:22px; }
+  .mb-stat { padding:18px; }
+  .mb-stat-value { font-size:30px; letter-spacing:-1px; }
+  .mb-stat-icon { width:42px; height:42px; border-radius:12px; margin-bottom:12px; }
+  .mb-bar-top { flex-wrap:wrap; gap:2px 8px; }
+  .mb-bar-name { max-width:100%; white-space:normal; overflow:visible; overflow-wrap:anywhere; }
+}
 `
 
 const COLORS = ['#7c3aed','#2563eb','#059669','#f59e0b','#ef4444','#8b5cf6','#0ea5e9','#ec4899','#14b8a6','#f97316']
@@ -132,16 +158,16 @@ export default function BrandOwnerMyPage() {
       <style>{MYPAGE_CSS}</style>
 
       {/* Header */}
-      <div style={{ marginBottom:32, display:'flex', alignItems:'flex-start', justifyContent:'space-between' }}>
-        <div>
-          <h1 style={{ fontSize:28, fontWeight:800, margin:0, letterSpacing:'-0.5px' }}>
+      <div className="mb-page-header">
+        <div style={{ minWidth:0 }}>
+          <h1 className="mb-page-title">
             {brand?.name || 'Brand'} — Overview
           </h1>
-          <p style={{ color:'#94a3b8', fontSize:14, margin:'6px 0 0', fontWeight:500 }}>
+          <p className="mb-page-sub">
             Aggregated KPIs across {totalBranches} branch{totalBranches !== 1 ? 'es' : ''}. View only — no action required.
           </p>
         </div>
-        <div style={{ display:'flex', gap:8, alignItems:'center' }}>
+        <div style={{ display:'flex', gap:8, alignItems:'center', flexShrink:0 }}>
           <div className="mb-readonly-badge"><Eye size={14} /> View Only</div>
           <button onClick={fetchData} style={{ width:40, height:40, borderRadius:12, border:'1px solid #ece8ff', background:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', color:'#64748b', transition:'all 0.2s' }} title="Refresh">
             <RefreshCw size={16} />
@@ -186,18 +212,26 @@ export default function BrandOwnerMyPage() {
               </div>
               {branches.map((b, i) => (
                 <div key={b.id} className="mb-branch-row">
-                  <div style={{ display:'flex', alignItems:'center', gap:10 }}>
+                  <div className="mb-c-branch" style={{ display:'flex', alignItems:'center', gap:10 }}>
                     <div style={{ width:36, height:36, borderRadius:10, background:COLORS[i % COLORS.length], display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, color:'#fff', flexShrink:0 }}>
                       {(b.business_name?.[0] || 'B').toUpperCase()}
                     </div>
-                    <div>
-                      <div style={{ fontWeight:600, fontSize:13 }}>{b.business_name}</div>
+                    <div style={{ minWidth:0 }}>
+                      <div style={{ fontWeight:600, fontSize:13, overflowWrap:'anywhere' }}>{b.business_name}</div>
                     </div>
                   </div>
-                  <div style={{ fontSize:13, fontWeight:600, color:'#475569' }}>{b.game_count}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color:'#2563eb' }}>{b.play_count}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color:'#f59e0b' }}>{b.redemption_count}</div>
-                  <div style={{ fontSize:13, fontWeight:600, color:'#10b981' }}>{b.completed_count || 0}</div>
+                  <div className="mb-c-games" style={{ fontSize:13, fontWeight:600, color:'#475569' }}>
+                    <span className="mb-lbl">Games</span><span className="mb-val">{b.game_count}</span>
+                  </div>
+                  <div className="mb-c-plays" style={{ fontSize:13, fontWeight:600, color:'#2563eb' }}>
+                    <span className="mb-lbl">Plays</span><span className="mb-val">{b.play_count}</span>
+                  </div>
+                  <div className="mb-c-redemptions" style={{ fontSize:13, fontWeight:600, color:'#f59e0b' }}>
+                    <span className="mb-lbl">Redemptions</span><span className="mb-val">{b.redemption_count}</span>
+                  </div>
+                  <div className="mb-c-completed" style={{ fontSize:13, fontWeight:600, color:'#10b981' }}>
+                    <span className="mb-lbl">Completed</span><span className="mb-val">{b.completed_count || 0}</span>
+                  </div>
                 </div>
               ))}
             </>
@@ -209,7 +243,7 @@ export default function BrandOwnerMyPage() {
           <div className="mb-card-header">
             <span className="mb-card-title"><BarChart3 size={18} style={{ marginRight:8, verticalAlign:'middle', color:'#2563eb' }} />Top Games by Plays</span>
           </div>
-          <div style={{ padding:24 }}>
+          <div className="mb-card-body">
             {(!topGames || topGames.length === 0) ? (
               <div style={{ textAlign:'center', padding:'48px 20px', color:'#94a3b8', fontSize:14 }}>
                 No games played yet.
@@ -235,7 +269,7 @@ export default function BrandOwnerMyPage() {
           <div className="mb-card-header">
             <span className="mb-card-title"><TrendingUp size={18} style={{ marginRight:8, verticalAlign:'middle', color:'#059669' }} />Plays per Branch</span>
           </div>
-          <div style={{ padding:24 }}>
+          <div className="mb-card-body">
             {branches.map((b, i) => (
               <div key={b.id} className="mb-bar-row">
                 <div className="mb-bar-top">

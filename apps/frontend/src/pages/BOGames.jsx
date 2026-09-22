@@ -95,11 +95,66 @@ const GAMES_CSS = `
   gap:12px;
 }
 
+/* Page title */
+.g-page-header { margin-bottom:28px; }
+.g-page-title { font-size:28px; font-weight:800; margin:0; letter-spacing:-0.5px; line-height:1.2; }
+.g-page-sub { color:#94a3b8; font-size:14px; margin:6px 0 0; font-weight:500; overflow-wrap:anywhere; }
+.g-error-banner { flex-wrap:wrap; gap:10px; }
+
+/* Toolbar */
+.g-toolbar-actions { display:flex; gap:8px; flex-shrink:0; }
+
+/* Grid/list text handling */
+.g-grid { grid-template-columns:repeat(auto-fill, minmax(min(300px,100%), 1fr)) !important; }
+.g-card-body { min-width:0; }
+.g-card-name { overflow-wrap:anywhere; }
+.g-card-meta { overflow-wrap:anywhere; }
+.g-list-row > div { min-width:0; }
+.g-list-game-name { font-weight:600; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.g-list-cell { font-size:13px; color:#64748b; font-weight:500; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.g-card-slug {
+  font-size:12px; color:#94a3b8; font-weight:500;
+  min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.g-card-footer { gap:8px; }
+
+@media(max-width:1024px) {
+  .g-search-wrap { flex-wrap:wrap; }
+  .g-search-input { flex:1 1 calc(100% - 40px); }
+  .g-toolbar-actions { flex:1 1 100%; flex-wrap:wrap; flex-shrink:1; }
+  .g-toolbar-actions .g-filter-btn { flex:1 1 auto; justify-content:center; min-height:42px; max-width:100%; }
+}
 @media(max-width:768px) {
   .g-stats-grid { grid-template-columns:repeat(2,1fr) !important; }
   .g-grid { grid-template-columns:1fr !important; }
+  .g-list-head { display:none; }
+  .g-list-row {
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:8px 12px; padding:14px 16px; align-items:center;
+  }
+  .g-c-game { grid-column:1; grid-row:1; }
+  .g-c-status { grid-column:2; grid-row:1; justify-self:end; }
+  .g-c-location { grid-column:1; grid-row:2; }
+  .g-c-type { grid-column:2; grid-row:2; justify-self:end; }
+  .g-c-action { grid-column:1 / -1; grid-row:3; }
+  .g-list-game-name { white-space:normal; overflow:visible; overflow-wrap:anywhere; }
+  .g-list-cell { white-space:normal; overflow:visible; overflow-wrap:anywhere; }
+}
+@media(max-width:640px) {
+  .g-page-header { margin-bottom:20px; }
+  .g-page-title { font-size:22px; }
+  .g-stat { padding:16px 18px; }
+  .g-icon-btn { width:44px; height:44px; }
+  .g-search-wrap { border-radius:14px; }
+  .g-card-footer { flex-wrap:wrap; }
+  .g-card-link { min-height:40px; }
+  .g-card-img { height:140px; }
 }
 @media(max-width:480px) { .g-stats-grid { grid-template-columns:1fr !important; } }
+@media(max-width:360px) {
+  .g-toolbar-actions .g-filter-btn { flex:1 1 100%; }
+  .g-card-footer { flex-direction:column; align-items:flex-start; }
+}
 `
 
 const GAME_COLORS = ['#7c3aed','#2563eb','#059669','#f59e0b','#ef4444','#8b5cf6','#0ea5e9','#ec4899']
@@ -156,16 +211,16 @@ export default function BOGames() {
       <style>{GAMES_CSS}</style>
 
       {/* Header */}
-      <div style={{ marginBottom:28 }}>
-        <h1 style={{ fontSize:28, fontWeight:800, margin:0, letterSpacing:'-0.5px' }}>My Games</h1>
-        <p style={{ color:'#94a3b8', fontSize:14, margin:'6px 0 0', fontWeight:500 }}>
+      <div className="g-page-header">
+        <h1 className="g-page-title">My Games</h1>
+        <p className="g-page-sub">
           All games linked to your brand and branches.
         </p>
       </div>
 
       {/* Error */}
       {error && (
-        <div style={{ padding:'14px 18px', borderRadius:14, marginBottom:20, background:'#fef2f2', border:'1px solid #fecaca', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
+        <div className="g-error-banner" style={{ padding:'14px 18px', borderRadius:14, marginBottom:20, background:'#fef2f2', border:'1px solid #fecaca', display:'flex', alignItems:'center', justifyContent:'space-between' }}>
           <span style={{ fontSize:13, color:'#ef4444', fontWeight:600, display:'flex', alignItems:'center', gap:6 }}><AlertTriangle size={15} /> {error}</span>
           <button onClick={fetchGames} style={{ padding:'7px 18px', borderRadius:8, border:'none', background:'#ef4444', color:'#fff', fontWeight:600, fontSize:12, cursor:'pointer', fontFamily:'inherit' }}>Retry</button>
         </div>
@@ -175,7 +230,7 @@ export default function BOGames() {
       <div className="g-search-wrap" style={{ marginBottom:24 }}>
         <Search size={18} style={{ color:'#94a3b8', marginLeft:8, flexShrink:0 }} />
         <input className="g-search-input" value={search} onChange={e => setSearch(e.target.value)} placeholder="Search games by name or location..." />
-        <div style={{ display:'flex', gap:8, flexShrink:0 }}>
+        <div className="g-toolbar-actions">
           <select className="g-filter-btn" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>
             <option value="all">All Status</option>
             <option value="live">Live</option>
@@ -246,7 +301,7 @@ export default function BOGames() {
               </div>
 
               <div className="g-card-footer">
-                <span style={{ fontSize:12, color:'#94a3b8', fontWeight:500 }}>
+                <span className="g-card-slug" style={{ marginRight:8 }}>
                   {g.slug ? `/play/${g.slug}` : '—'}
                 </span>
                 {g.slug && (
@@ -275,7 +330,7 @@ export default function BOGames() {
           </div>
           {filtered.map((g, i) => (
             <div key={g.id || `template-${i}`} className="g-list-row">
-              <div style={{ display:'flex', alignItems:'center', gap:12 }}>
+              <div className="g-c-game" style={{ display:'flex', alignItems:'center', gap:12 }}>
                 <div style={{
                   width:40, height:40, borderRadius:12, flexShrink:0,
                   background: g.game_logo_url ? 'transparent' : `linear-gradient(135deg,${GAME_COLORS[i % GAME_COLORS.length]}20,${GAME_COLORS[i % GAME_COLORS.length]}08)`,
@@ -288,12 +343,12 @@ export default function BOGames() {
                     <span style={{ fontSize:14, fontWeight:700, color:GAME_COLORS[i % GAME_COLORS.length] }}>{getInitials(g.game_name)}</span>
                   )}
                 </div>
-                <div style={{ fontWeight:600, fontSize:13 }}>{g.game_name}</div>
+                <div className="g-list-game-name">{g.game_name}</div>
               </div>
-              <div style={{ fontSize:13, color:'#64748b', fontWeight:500 }}>
+              <div className="g-list-cell g-c-location">
                 {g.location_name || <span style={{ color:'#cbd5e1' }}>—</span>}
               </div>
-              <div>
+              <div className="g-c-status">
                 <span className="g-badge" style={{
                   background: g.game_status === 'live' ? '#dcfce7' : g.game_status === 'testing' ? '#fef3c7' : '#f1f5f9',
                   color: g.game_status === 'live' ? '#16a34a' : g.game_status === 'testing' ? '#d97706' : '#64748b',
@@ -301,14 +356,14 @@ export default function BOGames() {
                   {g.game_status}
                 </span>
               </div>
-              <div>
+              <div className="g-c-type">
                 {g.is_template ? (
                   <span className="g-badge" style={{ background:'#f5f3ff', color:'#7c3aed' }}>Template</span>
                 ) : (
                   <span className="g-badge" style={{ background:'#eff6ff', color:'#2563eb' }}>Branch</span>
                 )}
               </div>
-              <div>
+              <div className="g-c-action">
                 {g.slug && (
                   <a href={`/play/${g.slug}/${g.game_slug || 'play'}`} target="_blank" rel="noopener noreferrer" className="g-card-link">
                     <ExternalLink size={12} /> Play

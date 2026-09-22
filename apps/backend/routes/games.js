@@ -958,6 +958,10 @@ router.put('/:id/status', requireAdmin, async (req, res) => {
   if (!allowed.includes(status)) return res.status(400).json({ success: false, message: 'Invalid status' });
   try {
     if (status === 'live') {
+      // Only reclaim the series when actually transitioning to live — never re-wipe a live game
+      const [[prev]] = await db.query('SELECT status FROM games WHERE id = ?', [req.params.id]);
+      const wasLive = prev?.status === 'live';
+
       // Clear test player sessions & answers for this game
       await db.query(
         `DELETE pa FROM player_answers pa
@@ -966,6 +970,16 @@ router.put('/:id/status', requireAdmin, async (req, res) => {
       );
       await db.query('DELETE FROM player_sessions WHERE game_id = ?', [req.params.id]);
       await db.query('UPDATE games SET status=?, is_active=1 WHERE id=?', [status, req.params.id]);
+
+      if (!wasLive) {
+        // Reclaim the full code series for the public: un-burn test-consumed codes so the
+        // range restarts from the beginning. Keep the shuffle seed so the order stays stable.
+        await db.query('DELETE FROM quiz_generated_codes WHERE game_id = ?', [req.params.id]);
+        await db.query('UPDATE quiz_settings SET code_current_number = 0 WHERE game_id = ?', [req.params.id]);
+        // Drop stale test redemptions so a reissued code can't collide with an old test row
+        await db.query('DELETE FROM business_redemptions WHERE game_id = ?', [req.params.id]);
+      }
+
       // Auto-sync linked BD request to live
       await db.query('UPDATE bd_requests SET status=? WHERE game_id=? AND status!=?', ['live', req.params.id, 'live']);
       // Notify the BD who requested this game

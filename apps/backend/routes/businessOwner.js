@@ -20,13 +20,20 @@ function boAuth(req, res, next) {
   }
 }
 
+// Redemption codes are either the quiz-generated ones (prefix+digits, e.g. FL0042)
+// or the legacy random 6-digit codes.
+function isValidRedemptionCode(code) {
+  return typeof code === 'string' && /^[A-Za-z0-9]{3,50}$/.test(code);
+}
+
 // POST /api/business/login — Business Owner login (email or business name + phone as password)
 router.post('/login', async (req, res) => {
   const { business_name, password } = req.body;
-  const identifier = business_name || '';
+  const identifier = String(business_name || '').trim();
   if (!identifier || !password) return res.status(400).json({ success: false, message: 'Email/business name and password required' });
   try {
-    const [rows] = await db.query('SELECT * FROM business_owners WHERE (business_name = ? OR email = ?) AND is_active = 1', [identifier, identifier]);
+    const identifierKey = identifier.toLowerCase();
+    const [rows] = await db.query('SELECT * FROM business_owners WHERE (business_name = ? OR email = ?) AND is_active = 1', [identifierKey, identifierKey]);
     if (rows.length === 0) return res.status(401).json({ success: false, message: 'Invalid credentials' });
     // Try each match — multiple BOs can share the same email (parent + branches)
     // Prefer parent BO (parent_id IS NULL) so brand-level accounts see all children's data
@@ -350,7 +357,7 @@ router.get('/notifications', boAuth, async (req, res) => {
     );
     // Data privacy: hide email, hide code, hide phone when table_number is present
     const sanitized = rows.map(r => {
-      const { player_email, code, ...rest } = r
+      const { player_email, ...rest } = r
       let playerData = null
       if (r.player_data) {
         try {
@@ -400,10 +407,10 @@ router.get('/unread-count', boAuth, async (req, res) => {
   }
 });
 
-// POST /api/business/verify-code — BO enters 6-digit passkey (finds player for accept/reject)
+// POST /api/business/verify-code — BO enters the redemption/passkey code (finds player for accept/reject)
 router.post('/verify-code', boAuth, async (req, res) => {
   const { code } = req.body;
-  if (!code || code.length !== 6) return res.status(400).json({ success: false, message: '6-digit code required' });
+  if (!code || !isValidRedemptionCode(code)) return res.status(400).json({ success: false, message: 'Valid redemption code required' });
   try {
     let ids = [req.bo.id]
     if (!req.bo.parent_id) {
@@ -530,8 +537,8 @@ router.post('/accept-with-code', boAuth, async (req, res) => {
     const redemption = rows[0];
     // Verify code if provided (optional)
     if (code) {
-      if (code.length !== 6) return res.status(400).json({ success: false, message: 'Code must be 6 digits' });
-      if (redemption.code !== code) return res.status(400).json({ success: false, message: 'Invalid code' });
+      if (!isValidRedemptionCode(code)) return res.status(400).json({ success: false, message: 'Valid redemption code required' });
+      if (String(redemption.code).toLowerCase() !== String(code).trim().toLowerCase()) return res.status(400).json({ success: false, message: 'Invalid code' });
     }
 
     await db.query(
@@ -611,7 +618,7 @@ router.post('/reject-redemption', boAuth, async (req, res) => {
 // POST /api/business/confirm-redemption — Player confirms they got the surprise
 router.post('/confirm-redemption', async (req, res) => {
   const { code } = req.body;
-  if (!code || code.length !== 6) return res.status(400).json({ success: false, message: '6-digit code required' });
+  if (!code || !isValidRedemptionCode(code)) return res.status(400).json({ success: false, message: 'Valid redemption code required' });
   try {
     const [rows] = await db.query(
       "SELECT * FROM business_redemptions WHERE code = ? AND status = 'code_entered'",

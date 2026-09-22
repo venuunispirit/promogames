@@ -340,24 +340,32 @@ export default function BOLayout() {
                 </div>
               </div>
 
+              {/* Player's redemption code */}
+              {forcePopup.code && (
+                <div style={{ marginBottom:16, padding:'12px 16px', borderRadius:12, background:'#f5f3ff', border:'1px dashed #c4b5fd' }}>
+                  <div style={{ fontSize:10, fontWeight:700, letterSpacing:1, textTransform:'uppercase', color:'#7c3aed', marginBottom:4 }}>Redemption code</div>
+                  <div style={{ fontSize:20, fontWeight:800, letterSpacing:3, color:'#5b21b6', fontFamily:'Inter, monospace', wordBreak:'break-all' }}>{forcePopup.code}</div>
+                </div>
+              )}
+
               {/* Code verification input */}
               {acceptMode === 'code' && (
                 <div style={{ marginBottom:16 }}>
-                  <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#64748b', marginBottom:6 }}>6-digit code (optional)</label>
+                  <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#64748b', marginBottom:6 }}>Code (optional)</label>
                   <input
                     type="text"
-                    inputMode="numeric"
-                    maxLength={6}
+                    maxLength={50}
                     value={codeInput}
-                    onChange={e => { setCodeInput(e.target.value.replace(/\D/g, '').slice(0, 6)); setCodeError('') }}
+                    onChange={e => { setCodeInput(e.target.value); setCodeError('') }}
                     autoFocus
-                    placeholder="000000"
+                    placeholder="FLPMC0001"
                     style={{
-                      width:'100%', padding:'12px 16px', fontSize:20, fontWeight:700, letterSpacing:8,
+                      width:'100%', padding:'12px 16px', fontSize:16, fontWeight:600, letterSpacing:1,
                       textAlign:'center', border: codeError ? '2px solid #ef4444' : '2px solid #e5e7eb',
                       borderRadius:12, outline:'none', fontFamily:'Inter, monospace', color:'#1e1b4b',
                       background: codeError ? '#fef2f2' : '#f9fafb',
                       animation: codeError ? 'boShake .4s ease' : 'none',
+                      textTransform:'uppercase',
                     }}
                     onKeyDown={e => { if (e.key === 'Enter') handleAcceptWithCode() }}
                   />

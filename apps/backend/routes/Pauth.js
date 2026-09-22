@@ -82,26 +82,29 @@ router.post('/check-email', async (req, res) => {
   const { email } = req.body;
   if (!email) return res.status(400).json({ success: false, message: 'Email is required' });
 
+  const emailKey = String(email).trim().toLowerCase();
+
   try {
     // 1. Check admin table (users)
-    const [adminRows] = await db.query('SELECT id FROM users WHERE email = ?', [email]);
+    const [adminRows] = await db.query('SELECT id FROM users WHERE email = ?', [emailKey]);
     if (adminRows.length > 0) {
       return res.json({ success: true, type: 'admin' });
     }
 
     // 1.5 Check business owners table
     try {
-      const [boRows] = await db.query('SELECT id FROM business_owners WHERE email = ? AND is_active = 1', [email]);
+      const [boRows] = await db.query('SELECT id FROM business_owners WHERE email = ? AND is_active = 1', [emailKey]);
       if (boRows.length > 0) {
         return res.json({ success: true, type: 'business_owner' });
       }
-    } catch {
-      // business_owners table may not exist yet
+    } catch (err) {
+      // business_owners table may not exist yet — surface it so a mismatch is never silent
+      console.warn('check-email business_owners lookup failed:', err.message);
     }
 
     // 2. Check internal team table (gracefully skip if table doesn't exist)
     try {
-      const [teamRows] = await db.query('SELECT id FROM internal_team WHERE email = ?', [email]);
+      const [teamRows] = await db.query('SELECT id FROM internal_team WHERE email = ?', [emailKey]);
       if (teamRows.length > 0) {
         return res.json({ success: true, type: 'internal_team' });
       }
@@ -110,7 +113,7 @@ router.post('/check-email', async (req, res) => {
     }
 
     // 3. Check promo_players table
-    const [playerRows] = await db.query('SELECT id FROM promo_players WHERE email = ?', [email]);
+    const [playerRows] = await db.query('SELECT id FROM promo_players WHERE email = ?', [emailKey]);
     if (playerRows.length > 0) {
       return res.json({ success: true, type: 'player' });
     }

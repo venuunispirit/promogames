@@ -344,12 +344,12 @@ export default function BORedemptions() {
     setAcceptError('')
     try {
       const payload = { redemption_id: verifyModal.id }
-      if (acceptCode.length === 6) payload.code = acceptCode
+      if (acceptCode.trim()) payload.code = acceptCode.trim()
       const { data } = await api.post('/business/accept-with-code', payload)
       if (data.success) {
         setVerifyModal(null)
         setAcceptCode('')
-        showToast(acceptCode.length === 6 ? 'Code verified & accepted' : 'Redemption accepted')
+        showToast(acceptCode.trim() ? 'Code verified & accepted' : 'Redemption accepted')
         fetchRedemptions()
       }
     } catch (err) {
@@ -437,22 +437,22 @@ export default function BORedemptions() {
               </button>
             </div>
             <label style={{ display:'block', fontSize:12, fontWeight:600, color:'#64748b', marginBottom:8 }}>
-              6-digit code (optional)
+              Code (optional)
             </label>
             <input
               style={{
-                width:'100%', padding:'14px', fontSize:24, fontWeight:700, letterSpacing:10, textAlign:'center',
+                width:'100%', padding:'14px', fontSize:24, fontWeight:700, letterSpacing:6, textAlign:'center',
                 background:'#f8f7ff', border:'2px solid #f0eef5', borderRadius:14,
                 color:'#8F2CFF', outline:'none', fontFamily:'inherit', boxSizing:'border-box',
-                transition:'border-color 0.2s',
+                transition:'border-color 0.2s', textTransform:'uppercase',
               }}
-              type="text" maxLength={6} value={acceptCode}
-              onChange={e => setAcceptCode(e.target.value.replace(/\D/g,''))}
+              type="text" maxLength={50} value={acceptCode}
+              onChange={e => setAcceptCode(e.target.value.toUpperCase())}
               onKeyDown={e => e.key === 'Enter' && submitVerify()}
-              placeholder="000000" autoComplete="off"
+              placeholder="FLPMC0001" autoComplete="off"
               onFocus={e => e.target.style.borderColor = '#8F2CFF'}
               onBlur={e => e.target.style.borderColor = '#f0eef5'}
-              autoFocus aria-label="6-digit verification code" />
+              autoFocus aria-label="redemption verification code" />
             <p style={{ margin:'8px 0 0', fontSize:11, color:'#94a3b8' }}>
               Leave blank to accept without code verification.
             </p>
@@ -689,6 +689,12 @@ export default function BORedemptions() {
                   <div className="redemption-card-body">
                     <div style={{ display:'flex', gap:12, alignItems:'flex-start' }}>
                       <div className="redemption-card-info" style={{ flex:1, minWidth:0 }}>
+                        {n.code && (
+                          <div className="redemption-card-info-row">
+                            <Gift size={13} />
+                            <span style={{ fontWeight:700, color:'#6E11D8', letterSpacing:1, fontFamily:'Inter, monospace' }}>{n.code}</span>
+                          </div>
+                        )}
                         {(() => {
                           const pd = parsePlayerData(n.player_data)
                           const phone = n.player_phone || pd.phone || pd['Phone Number'] || pd['phone number'] || pd['Phone'] || pd['mobile'] || ''

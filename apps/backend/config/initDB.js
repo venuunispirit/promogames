@@ -2505,7 +2505,7 @@ await safeQuery(connection, `
        business_owner_id INT NOT NULL,
        game_id INT NOT NULL,
        session_id INT DEFAULT NULL,
-       code VARCHAR(6) DEFAULT NULL,
+       code VARCHAR(50) DEFAULT NULL,
        player_name VARCHAR(255) DEFAULT '',
        player_phone VARCHAR(50) DEFAULT '',
        player_email VARCHAR(255) DEFAULT '',
@@ -2521,7 +2521,7 @@ await safeQuery(connection, `
 
    /* BUSINESS REDEMPTIONS — migrate existing tables */
    try {
-     await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN code VARCHAR(6) DEFAULT NULL");
+     await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN code VARCHAR(50) DEFAULT NULL");
      console.log('✅ Made business_redemptions.code nullable');
    } catch (err) {
      // Column might already be nullable

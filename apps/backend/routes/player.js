@@ -1587,7 +1587,11 @@ router.post('/session/complete', async (req, res) => {
 
       if (resolvedBoId) {
         const isPlayer = !!session.promo_player_id;
-        const code = String(Math.floor(100000 + Math.random() * 900000));
+        // Reuse the quiz-generated code (e.g. FL0042) when code generation is on,
+        // otherwise fall back to a random 6-digit code.
+        const code = (gameSettings.code_generation_enabled && generatedCode)
+          ? generatedCode
+          : String(Math.floor(100000 + Math.random() * 900000));
 
         const phoneKey = Object.keys(playerData).find(k => /phone|mobile|whatsapp|contact/i.test(k));
         const playerPhone = phoneKey ? String(playerData[phoneKey]) : '';

@@ -202,8 +202,9 @@ router.get('/redemption-logs', auth, async (req, res) => {
 async function getBusinessOwnerGameIds(boId) {
   const [rows] = await db.query(
     `SELECT DISTINCT game_id FROM business_owner_games WHERE business_owner_id = ?
-     UNION SELECT id FROM games WHERE business_owner_id = ?`,
-    [boId, boId]
+     UNION SELECT id FROM games WHERE business_owner_id = ?
+     UNION SELECT id FROM games WHERE client_id = (SELECT client_id FROM business_owners WHERE id = ?)`,
+    [boId, boId, boId]
   );
   return rows.map(r => r.game_id).filter(Boolean);
 }

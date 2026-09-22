@@ -962,16 +962,16 @@ router.put('/:id/status', requireAdmin, async (req, res) => {
       const [[prev]] = await db.query('SELECT status FROM games WHERE id = ?', [req.params.id]);
       const wasLive = prev?.status === 'live';
 
-      // Clear test player sessions & answers for this game
-      await db.query(
-        `DELETE pa FROM player_answers pa
-         INNER JOIN player_sessions ps ON pa.session_id = ps.id
-         WHERE ps.game_id = ?`, [req.params.id]
-      );
-      await db.query('DELETE FROM player_sessions WHERE game_id = ?', [req.params.id]);
       await db.query('UPDATE games SET status=?, is_active=1 WHERE id=?', [status, req.params.id]);
 
       if (!wasLive) {
+        // Clear test player sessions, answers & redemptions for this game
+        await db.query(
+          `DELETE pa FROM player_answers pa
+           INNER JOIN player_sessions ps ON pa.session_id = ps.id
+           WHERE ps.game_id = ?`, [req.params.id]
+        );
+        await db.query('DELETE FROM player_sessions WHERE game_id = ?', [req.params.id]);
         // Reclaim the full code series for the public: un-burn test-consumed codes so the
         // range restarts from the beginning. Keep the shuffle seed so the order stays stable.
         await db.query('DELETE FROM quiz_generated_codes WHERE game_id = ?', [req.params.id]);

@@ -69,21 +69,17 @@ export default function GameResponsesPage() {
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState('completed_at')
   const [sortDir, setSortDir] = useState('desc')
-  const [sources, setSources] = useState([])
-  const [showSources, setShowSources] = useState(false)
 
   const showToast = (msg, type = 'success') => setToast({ msg, type })
 
   useEffect(() => {
     Promise.all([
       api.get(`/games/${id}`),
-      api.get(`/games/${id}/responses`),
-      api.get(`/games/${id}/traffic-sources`).catch(() => null)
-    ]).then(([gameRes, respRes, srcRes]) => {
+      api.get(`/games/${id}/responses`)
+    ]).then(([gameRes, respRes]) => {
       setGame(gameRes.data.game)
       setQuestions(gameRes.data.game.questions || [])
       setSessions(respRes.data.sessions || [])
-      if (srcRes?.data?.success) setSources(srcRes.data.sources || [])
     }).catch(err => {
       showToast(err.response?.data?.message || 'Failed to load', 'error')
     }).finally(() => setLoading(false))
@@ -105,31 +101,61 @@ export default function GameResponsesPage() {
     return sessions.map(s => {
       const pd = parsePlayerData(s.player_data)
       const ansMap = getAnswerMap(s.answers)
-      return { session: s, playerData: pd, ansMap }
+      return { session: s, playerData: pd, ansMap, stationAnswers: s.station_answers || {}, bmi: s.bmi || null }
     })
   }
 
   const rows = buildRows()
-  const formKeys = rows.length > 0 ? Object.keys(rows[0].playerData) : []
+
+  // Spot Registration collects its values on stations rather than in questions.
+  // They arrive pre-labelled as "Station — Field" and are shown as normal
+  // columns so the camp's data is all visible in one place.
+  const isSpotReg = game?.category === 'spotregistration'
+
+  // Union across every row, not just the first: participants may skip
+  // optional fields, so a single row never holds the full column list.
+  const columnKeys = []
+  for (const r of rows) {
+    for (const k of Object.keys(r.playerData)) if (!columnKeys.includes(k)) columnKeys.push(k)
+    if (isSpotReg) {
+      for (const k of Object.keys(r.stationAnswers)) if (!columnKeys.includes(k)) columnKeys.push(k)
+    }
+  }
+  // BMI is derived, not entered, so it gets its own trailing columns.
+  const bmiKeys = isSpotReg
+    ? ['BMI', 'BMI Category', 'BMI Percentile', 'BMI Height (cm)', 'BMI Weight (kg)']
+    : []
+
+  const valueFor = (row, key) => {
+    if (row.playerData[key] !== undefined) return row.playerData[key]
+    if (row.stationAnswers[key] !== undefined) return row.stationAnswers[key]
+    if (key === 'BMI') return row.bmi ? row.bmi.value : ''
+    if (key === 'BMI Category') return row.bmi ? row.bmi.category : ''
+    if (key === 'BMI Percentile') return row.bmi && row.bmi.percentile ? `${row.bmi.percentile}th` : ''
+    if (key === 'BMI Height (cm)') return row.bmi ? row.bmi.height_cm : ''
+    if (key === 'BMI Weight (kg)') return row.bmi ? row.bmi.weight_kg : ''
+    return ''
+  }
 
   // Enhanced filter - searches across ALL player data fields, score, and completion date
   const filtered = rows.filter(r => {
     if (!search) return true
     const searchLower = search.toLowerCase()
-    
-    // Search in all player data fields
-    const playerDataMatch = Object.values(r.playerData).some(val => 
-      val?.toString().toLowerCase().includes(searchLower)
-    )
-    
+
+    // Search every captured value, including station inputs and BMI.
+    const valueMatch = columnKeys.some(k => {
+      const v = valueFor(r, k)
+      return v !== '' && v != null && String(v).toLowerCase().includes(searchLower)
+    })
+
     // Search in score
     const scoreMatch = (r.session.score || 0).toString().includes(searchLower)
-    
+
     // Search in completion date
-    const dateMatch = r.session.completed_at && 
+    const dateMatch = r.session.completed_at &&
       new Date(r.session.completed_at).toLocaleString().toLowerCase().includes(searchLower)
-    
-    return playerDataMatch || scoreMatch || dateMatch
+
+    return valueMatch || scoreMatch || dateMatch
   })
 
   // Sort
@@ -145,8 +171,16 @@ export default function GameResponsesPage() {
       av = (a.session.source_type || '').toLowerCase()
       bv = (b.session.source_type || '').toLowerCase()
     } else {
-      av = (a.playerData[sortField] || '').toLowerCase()
-      bv = (b.playerData[sortField] || '').toLowerCase()
+      const left = valueFor(a, sortField)
+      const right = valueFor(b, sortField)
+      // Numeric columns (BMI, measurements) sort by value, not as text.
+      const na = Number(left), nb = Number(right)
+      if (left !== '' && right !== '' && Number.isFinite(na) && Number.isFinite(nb)) {
+        av = na; bv = nb
+      } else {
+        av = String(left ?? '').toLowerCase()
+        bv = String(right ?? '').toLowerCase()
+      }
     }
     return sortDir === 'asc' ? (av > bv ? 1 : -1) : (av < bv ? 1 : -1)
   })
@@ -156,26 +190,53 @@ export default function GameResponsesPage() {
     else { setSortField(field); setSortDir('asc') }
   }
 
+  /** Match the colour coding used on the emailed BMI card. */
+  const bmiColour = (category) => {
+    const c = String(category || '')
+    if (c.startsWith('Obese')) return '#dc2626'
+    if (c.startsWith('Overweight')) return '#d97706'
+    if (c.startsWith('Severely')) return '#2563eb'
+    if (c.startsWith('Underweight')) return '#0ea5e9'
+    if (c.startsWith('Normal')) return '#16a34a'
+    return 'var(--text)'
+  }
+
   const SortIcon = ({ field }) => {
     if (sortField !== field) return <span style={{color:'var(--text3)',marginLeft:4}}><Ico.arrowSort/></span>
     return <span style={{color:'var(--primary)',marginLeft:4}}>{sortDir === 'asc' ? <Ico.arrowUp/> : <Ico.arrowDown/>}</span>
   }
 
   const downloadExcel = () => {
-    const headers = [
-      '#',
-      ...formKeys,
-      'Score',
-      'Total Questions',
-      ...questions.map((q, i) => `Q${i + 1}: ${(q.question_text || '').substring(0, 40)}`),
-      ...questions.map((q, i) => `Q${i + 1} Correct?`),
-      'Completed At',
-      'Source',
-      'Email Sent',
-      'Code'
-    ]
+    const escape = v => `"${(v === null || v === undefined ? '' : v).toString().replace(/"/g, '""')}"`
+
+    // Station captures and BMI are the whole point of a Spot Registration
+    // export, and the quiz question columns are meaningless for it.
+    const headers = isSpotReg
+      ? ['#', ...columnKeys, ...bmiKeys, 'Completed At', 'Source', 'Email Sent']
+      : [
+        '#',
+        ...columnKeys,
+        'Score',
+        'Total Questions',
+        ...questions.map((q, i) => `Q${i + 1}: ${(q.question_text || '').substring(0, 40)}`),
+        ...questions.map((q, i) => `Q${i + 1} Correct?`),
+        'Completed At',
+        'Source',
+        'Email Sent'
+      ]
 
     const csvRows = sorted.map((r, idx) => {
+      if (isSpotReg) {
+        return [
+          idx + 1,
+          ...columnKeys.map(k => escape(valueFor(r, k))),
+          ...bmiKeys.map(k => escape(valueFor(r, k))),
+          r.session.completed_at ? new Date(r.session.completed_at).toLocaleString() : '',
+          r.session.source_type === 'direct' ? 'Website' : 'Link',
+          r.session.email_sent ? 'Yes' : 'No'
+        ]
+      }
+
       const pd = r.playerData
       const ansMap = r.ansMap
       const qAnswers = questions.map(q => {
@@ -190,15 +251,14 @@ export default function GameResponsesPage() {
       })
       return [
         idx + 1,
-        ...formKeys.map(k => `"${(pd[k] || '').toString().replace(/"/g, '""')}"`),
+        ...columnKeys.map(k => escape(pd[k])),
         r.session.score || 0,
         r.session.total_scoreable || 0,
         ...qAnswers.map(v => `"${v.replace(/"/g, '""')}"`),
         ...qCorrect,
         r.session.completed_at ? new Date(r.session.completed_at).toLocaleString() : '',
         r.session.source_type === 'direct' ? 'Website' : 'Link',
-        r.session.email_sent ? 'Yes' : 'No',
-        r.session.generated_code || ''
+        r.session.email_sent ? 'Yes' : 'No'
       ]
     })
 
@@ -315,53 +375,6 @@ export default function GameResponsesPage() {
           </button>
         </div>
 
-        {/* Traffic Sources — UTM attribution (whatsapp / qr / direct / referrer links) */}
-        {sources.length > 0 && (
-          <div style={{background:'var(--surface)',borderRadius:12,border:'1.5px solid var(--border)',marginBottom:22,overflow:'hidden'}}>
-            <button
-              onClick={() => setShowSources(v => !v)}
-              style={{width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',padding:'12px 18px',background:'none',border:'none',cursor:'pointer'}}
-            >
-              <span style={{fontSize:11,fontWeight:700,color:'var(--text2)',textTransform:'uppercase',letterSpacing:'.08em'}}>
-                📊 Traffic sources — where players came from
-              </span>
-              <span style={{fontSize:16,color:'var(--text3)'}}>{showSources ? '▾' : '▸'}</span>
-            </button>
-            {showSources && (
-              <table style={{width:'100%',borderCollapse:'collapse'}}>
-                <thead>
-                  <tr style={{borderTop:'1.5px solid var(--border)',background:'var(--surface2)'}}>
-                    {['Source (utm_source)','Channel (utm_medium)','Plays','Completed','Completion %'].map(h => (
-                      <th key={h} style={{padding:'8px 18px',textAlign:'left',fontSize:9.5,fontWeight:700,color:'var(--text3)',textTransform:'uppercase',letterSpacing:'.06em'}}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sources.map((s, i) => {
-                    const pct = s.plays > 0 ? Math.round(((s.completions || 0) / s.plays) * 100) : 0
-                    return (
-                      <tr key={i} style={{borderTop:'1px solid var(--border)'}}>
-                        <td style={{padding:'8px 18px',fontSize:12.5,fontWeight:600,color:'var(--text)'}}>{s.source}</td>
-                        <td style={{padding:'8px 18px'}}>
-                          <span style={{
-                            fontSize:10,fontWeight:700,padding:'2px 9px',borderRadius:100,
-                            background: s.medium === 'whatsapp' ? '#E8F8EE' : s.medium === 'qr' ? '#FFF4E5' : 'var(--surface2)',
-                            color: s.medium === 'whatsapp' ? '#1B7F42' : s.medium === 'qr' ? '#B45309' : 'var(--text2)',
-                            textTransform:'capitalize'
-                          }}>{s.medium}</span>
-                        </td>
-                        <td style={{padding:'8px 18px',fontSize:12.5,color:'var(--text)'}}>{Number(s.plays).toLocaleString()}</td>
-                        <td style={{padding:'8px 18px',fontSize:12.5,color:'var(--text)'}}>{Number(s.completions || 0).toLocaleString()}</td>
-                        <td style={{padding:'8px 18px',fontSize:12.5,fontWeight:700,color:pct >= 50 ? 'var(--success)' : 'var(--warning)'}}>{pct}%</td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
-            )}
-          </div>
-        )}
-
         {/* Table */}
         {sorted.length === 0 && !search ? (
           <div style={{textAlign:'center',padding:'80px 0'}}>
@@ -411,7 +424,7 @@ export default function GameResponsesPage() {
                     }}>
                       #
                     </th>
-                    {formKeys.map(k => (
+                    {columnKeys.map(k => (
                       <th
                         key={k}
                         onClick={() => handleSort(k)}
@@ -437,6 +450,34 @@ export default function GameResponsesPage() {
                         </div>
                       </th>
                     ))}
+                    {isSpotReg && bmiKeys.map(k => (
+                      <th
+                        key={k}
+                        onClick={() => handleSort(k)}
+                        style={{
+                          padding:'14px 16px',
+                          textAlign:'left',
+                          fontSize:11,
+                          fontWeight:700,
+                          color:'var(--primary)',
+                          textTransform:'uppercase',
+                          letterSpacing:'.08em',
+                          cursor:'pointer',
+                          userSelect:'none',
+                          whiteSpace:'nowrap',
+                          transition:'color .15s'
+                        }}
+                        onMouseEnter={e => e.currentTarget.style.color = 'var(--primary)'}
+                        onMouseLeave={e => e.currentTarget.style.color = 'var(--primary)'}
+                      >
+                        <div style={{display:'inline-flex',alignItems:'center'}}>
+                          {k}
+                          <SortIcon field={k} />
+                        </div>
+                      </th>
+                    ))}
+                    {!isSpotReg && (
+                    <>
                     <th
                       onClick={() => handleSort('score')}
                       style={{
@@ -478,6 +519,8 @@ export default function GameResponsesPage() {
                         Q{i + 1}
                       </th>
                     ))}
+                    </>
+                    )}
                     <th
                       onClick={() => handleSort('completed_at')}
                       style={{
@@ -537,18 +580,6 @@ export default function GameResponsesPage() {
                     }}>
                       Email
                     </th>
-                    <th style={{
-                      padding:'14px 16px',
-                      textAlign:'center',
-                      fontSize:11,
-                      fontWeight:700,
-                      color:'var(--text2)',
-                      textTransform:'uppercase',
-                      letterSpacing:'.08em',
-                      whiteSpace:'nowrap'
-                    }}>
-                      Code
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -575,23 +606,50 @@ export default function GameResponsesPage() {
                         }}>
                           {idx + 1}
                         </td>
-                        {formKeys.map(k => (
-                          <td
-                            key={k}
-                            title={pd[k] || ''}
-                            style={{
-                              padding:'12px 16px',
-                              fontSize:13.5,
-                              color:'var(--text)',
-                              maxWidth:200,
-                              overflow:'hidden',
-                              textOverflow:'ellipsis',
-                              whiteSpace:'nowrap'
-                            }}
-                          >
-                            {pd[k] || <span style={{color:'var(--border-light)'}}>—</span>}
-                          </td>
-                        ))}
+                        {columnKeys.map(k => {
+                          const v = valueFor(r, k)
+                          return (
+                            <td
+                              key={k}
+                              title={v === '' || v == null ? '' : String(v)}
+                              style={{
+                                padding:'12px 16px',
+                                fontSize:13.5,
+                                color:'var(--text)',
+                                maxWidth:200,
+                                overflow:'hidden',
+                                textOverflow:'ellipsis',
+                                whiteSpace:'nowrap'
+                              }}
+                            >
+                              {v === '' || v == null
+                                ? <span style={{color:'var(--border-light)'}}>—</span>
+                                : v}
+                            </td>
+                          )
+                        })}
+                        {isSpotReg && bmiKeys.map(k => {
+                          const v = valueFor(r, k)
+                          return (
+                            <td
+                              key={k}
+                              title={v === '' || v == null ? '' : String(v)}
+                              style={{
+                                padding:'12px 16px',
+                                fontSize:13.5,
+                                fontWeight: k === 'BMI' || k === 'BMI Category' ? 700 : 400,
+                                color: k === 'BMI Category' && r.bmi ? bmiColour(r.bmi.category) : 'var(--text)',
+                                whiteSpace:'nowrap'
+                              }}
+                            >
+                              {v === '' || v == null
+                                ? <span style={{color:'var(--border-light)',fontWeight:400}}>—</span>
+                                : v}
+                            </td>
+                          )
+                        })}
+                        {!isSpotReg && (
+                        <>
                         <td style={{
                           padding:'12px 16px',
                           fontSize:15,
@@ -641,6 +699,8 @@ export default function GameResponsesPage() {
                             </td>
                           )
                         })}
+                        </>
+                        )}
                         <td style={{
                           padding:'12px 16px',
                           fontSize:12.5,
@@ -681,16 +741,6 @@ export default function GameResponsesPage() {
                           ) : (
                             <span style={{color:'var(--border-light)'}}>—</span>
                           )}
-                        </td>
-                        <td style={{
-                          padding:'12px 16px',
-                          fontSize:13,
-                          fontWeight:600,
-                          fontFamily:'monospace',
-                          textAlign:'center',
-                          color: r.session.generated_code ? 'var(--primary)' : 'var(--border-light)'
-                        }}>
-                          {r.session.generated_code || '—'}
                         </td>
                       </tr>
                     )

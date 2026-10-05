@@ -7,7 +7,7 @@ import {
   Route, Grid3x3, Snail, ShoppingBasket, Zap, Target, Bird, CircleDot,
   Gamepad2, Trophy, Brain, Flag, Boxes, Dices, Layers, TowerControl,
   Bomb, Shuffle, Scissors, Hand, Hammer, Building, Squircle, Rocket,
-  ArrowRight, Frown, Volume2, CircleX, Crown, Car, Crosshair, Box, Copy, Trash2
+  ArrowRight, Frown, Volume2, CircleX, Crown, Car, Crosshair, Box, Copy, Trash2, Stethoscope
 } from 'lucide-react'
 import api from '../api'
 import { useTheme } from './ThemeContext'
@@ -27,6 +27,7 @@ const CATEGORY_META = {
   pouring:   { label:'Pouring Water', bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#3B82F6', icon:'💧', desc:'Pour exact amount challenge' },
   typer:     { label:'Speed Typer',   bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'⌨️', desc:'Type falling words fast' },
   screw:     { label:'Screw & Reveal',bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#D97706', icon:'🔩', desc:'Unscrew blocks to reveal' },
+  spotregistration: { label:'Spot Registration', bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#0EA5E9', icon:'🩺', desc:'QR-gated camp station data collection' },
   math:      { label:'Math Game',     bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'🔢', desc:'Solve math questions' },
   maze:      { label:'Maze Game',     bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#6366F1', icon:'🌀', desc:'Navigate the maze' },
   '2048':    { label:'2048',           bg:'var(--chip-orange-bg)', fg:'var(--chip-orange-fg)', dot:'#FB923C', icon:'🔢', desc:'Merge tiles to reach 2048' },
@@ -71,6 +72,7 @@ const CATEGORY_ICON = {
   quiz:'HelpCircle', survey:'ClipboardList', poll:'BarChart3', registration:'FileText',
   crossword:'Grid3x3', spin:'Sparkles', memory:'Puzzle', jigsaw:'Image', wordsearch:'Search',
   pouring:'Droplets', typer:'Keyboard', screw:'Wrench',   math:'Calculator', maze:'Route',
+  spotregistration:'Stethoscope',
   '2048':'Grid3x3',   snake:'Snail', catch:'ShoppingBasket', reaction:'Zap', simon:'Target',
   flappy:'Bird', bounce:'CircleDot', space:'Rocket', connect4:'CircleDot',   bejeweled:'Sparkles',
   tetris:'Layers', stack:'Layers', tower:'TowerControl', bowling:'Building', sudoku:'Grid3x3', minesweeper:'Bomb',
@@ -405,6 +407,8 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/maze-builder`)
     } else if (game.category === 'screw') {
       navigate(`/dashboard/games/${game.id}/screw-builder`)
+    } else if (game.category === 'spotregistration') {
+      navigate(`/dashboard/games/${game.id}/spotreg-builder`)
     } else if (game.category === 'tower') {
       navigate(`/dashboard/games/${game.id}/tower-builder`)
     } else if (game.category === '2048') {
@@ -1261,7 +1265,7 @@ export default function GamesPage() {
   const STATUS_CYCLE = ['development', 'testing', 'live']
 
   const navigateBuilder = (game) => {
-    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',tower:'tower',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',chess:'chess',snakeandladder:'snakeandladder',ludo:'ludo',Carrom:'Carrom',tictactoemultiplayer:'tictactoemultiplayer'}
+    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',spotregistration:'spotreg',tower:'tower',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',chess:'chess',snakeandladder:'snakeandladder',ludo:'ludo',Carrom:'Carrom',tictactoemultiplayer:'tictactoemultiplayer'}
     const slug = builders[game.category]
     navigate(`/dashboard/games/${game.id}${slug ? '/' + slug + '-builder' : '/builder'}`)
   }
@@ -1560,6 +1564,7 @@ export default function GamesPage() {
                                 else if (game.category === 'pouring') navigate(`/dashboard/games/${game.id}/pouring-builder`)
                                 else if (game.category === 'typer') navigate(`/dashboard/games/${game.id}/typer-builder`)
                                 else if (game.category === 'screw') navigate(`/dashboard/games/${game.id}/screw-builder`)
+                                else if (game.category === 'spotregistration') navigate(`/dashboard/games/${game.id}/spotreg-builder`)
                                 else if (game.category === 'tower') navigate(`/dashboard/games/${game.id}/tower-builder`)
                                 else if (game.category === 'math') navigate(`/dashboard/games/${game.id}/math-builder`)
                                 else if (game.category === 'maze') navigate(`/dashboard/games/${game.id}/maze-builder`)

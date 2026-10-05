@@ -13,6 +13,19 @@ export default function FormPreview({ settings, formFields, bgUrl, logoUrl, defa
   const logo = logoUrl ?? settings?.game_logo_url
   const fontFamily = settings?.font_family ? `'${settings.font_family}', sans-serif` : "'DM Sans', sans-serif"
 
+  // Font sizes are optional per game type: builders that don't expose a size
+  // control keep the original fixed values.
+  const size = (value, fallback) =>
+    (value === undefined || value === null || value === '' ? fallback : Number(value) || fallback)
+
+  const h1Size = size(settings?.heading_1_size, 16)
+  const h2Size = size(settings?.heading_2_size, 13)
+  const h3Size = size(settings?.heading_3_size, 12)
+  const descSize = size(settings?.description_size, 12)
+  const labelColor = settings?.label_color
+  const fieldBorder = settings?.field_border_color
+  const cardRadius = settings?.card_radius ? Number(settings.card_radius) || 22 : 22
+
   return (
     <div style={{
       flex: 1, display: 'flex', flexDirection: 'column',
@@ -25,7 +38,7 @@ export default function FormPreview({ settings, formFields, bgUrl, logoUrl, defa
         width: '100%', maxWidth: 280, margin: 'auto',
         background: hasBg ? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.93)',
         backdropFilter: 'blur(28px)', WebkitBackdropFilter: 'blur(28px)',
-        borderRadius: 22, padding: '20px 16px', boxSizing: 'border-box',
+        borderRadius: cardRadius, padding: '20px 16px', boxSizing: 'border-box',
         boxShadow: hasBg ? '0 8px 40px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.4)' : '0 8px 40px rgba(0,0,0,0.12)',
         border: hasBg ? '1px solid rgba(255,255,255,0.35)' : '1px solid rgba(255,255,255,0.85)',
       }}>
@@ -34,8 +47,10 @@ export default function FormPreview({ settings, formFields, bgUrl, logoUrl, defa
             <img src={logo} alt="" style={{ maxWidth: '100%', maxHeight: 80, objectFit: 'contain', borderRadius: 8 }} />
           </div>
         )}
-        <h1 style={{ fontSize: 16, fontWeight: 800, textAlign: 'center', marginBottom: 2, color: settings?.heading_1_color || '#1a1a2e', lineHeight: 1.2, textShadow: hasBg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none' }}>{settings?.heading_1 || 'Untitled'}</h1>
-        {settings?.heading_2 && <div style={{ fontSize: 13, fontWeight: 600, textAlign: 'center', marginBottom: 4, color: settings?.heading_2_color || '#666666', lineHeight: 1.3 }}>{settings.heading_2}</div>}
+        <h1 style={{ fontSize: h1Size, fontWeight: 800, textAlign: 'center', marginBottom: 2, color: settings?.heading_1_color || '#1a1a2e', lineHeight: 1.2, textShadow: hasBg ? '0 2px 8px rgba(0,0,0,0.3)' : 'none' }}>{settings?.heading_1 || 'Untitled'}</h1>
+        {settings?.heading_2 && <div style={{ fontSize: h2Size, fontWeight: 600, textAlign: 'center', marginBottom: 4, color: settings?.heading_2_color || '#666666', lineHeight: 1.3 }}>{settings.heading_2}</div>}
+        {settings?.heading_3 && <div style={{ fontSize: h3Size, fontWeight: 600, textAlign: 'center', marginBottom: 4, color: settings?.heading_3_color || '#777777', lineHeight: 1.3 }}>{settings.heading_3}</div>}
+        {settings?.description_text && <div style={{ fontSize: descSize, textAlign: 'center', marginBottom: 6, color: settings?.description_color || '#888888', lineHeight: 1.5 }}>{settings.description_text}</div>}
         {settings?.intro_text && (
           <div style={{
             background: hasBg ? 'rgba(255,255,255,0.15)' : '#f0f0ff',
@@ -46,16 +61,16 @@ export default function FormPreview({ settings, formFields, bgUrl, logoUrl, defa
         )}
         {(formFields || []).map((f, i) => (
           <div key={i} style={{ marginBottom: 10 }}>
-            <div style={{ fontSize: 11, fontWeight: 700, color: hasBg ? 'rgba(255,255,255,0.9)' : '#555', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-              {f.field_label}{f.is_required ? <span style={{ color: '#ef4444' }}>*</span> : ''}
+            <div style={{ fontSize: 11, fontWeight: 700, color: labelColor || (hasBg ? 'rgba(255,255,255,0.9)' : '#555'), marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              {f.field_label}{f.is_required ? <span style={{ color: '#ef4444' }}>*</span> : null}
             </div>
             {f.field_type === 'textarea' ? (
               <textarea rows={2} placeholder={f.field_label}
-                style={{ width: '100%', background: 'rgba(255,255,255,0.88)', border: `1.5px solid ${hasBg ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius: 8, padding: '9px 12px', fontSize: 13, color: '#1a1a2e', outline: 'none', boxSizing: 'border-box', resize: 'none', fontFamily: 'inherit' }} />
+                style={{ width: '100%', background: 'rgba(255,255,255,0.88)', border: fieldBorder || `1.5px solid ${hasBg ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius: 8, padding: '9px 12px', fontSize: 13, color: '#1a1a2e', outline: 'none', boxSizing: 'border-box', resize: 'none', fontFamily: 'inherit' }} />
             ) : (
               <input type={f.field_type === 'email' ? 'email' : f.field_type === 'phone' ? 'tel' : f.field_type === 'number' ? 'number' : 'text'}
                 placeholder={f.field_label}
-                style={{ width: '100%', background: 'rgba(255,255,255,0.88)', border: `1.5px solid ${hasBg ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius: 8, padding: '9px 12px', fontSize: 13, color: '#1a1a2e', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
+                style={{ width: '100%', background: 'rgba(255,255,255,0.88)', border: fieldBorder || `1.5px solid ${hasBg ? 'rgba(255,255,255,0.45)' : '#e0e0f0'}`, borderRadius: 8, padding: '9px 12px', fontSize: 13, color: '#1a1a2e', outline: 'none', boxSizing: 'border-box', fontFamily: 'inherit' }} />
             )}
           </div>
         ))}

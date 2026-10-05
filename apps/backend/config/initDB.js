@@ -377,6 +377,10 @@ async function initDB() {
       description_color VARCHAR(20) DEFAULT '#888888',
       intro_text TEXT,
       outro_text TEXT,
+      outro_text_color VARCHAR(20) DEFAULT '#1a1a2e',
+      bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
       bg_color VARCHAR(20) DEFAULT '#f0fdf4',
       primary_color VARCHAR(20) DEFAULT '#22c55e',
       font_family VARCHAR(100) DEFAULT 'DM Sans',
@@ -396,6 +400,12 @@ async function initDB() {
       FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
     )
   `, 'math_settings table');
+
+  /* math_settings — visual + image columns (additive, for existing DBs) */
+  await addColumn(connection, 'math_settings', 'outro_text_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
+  await addColumn(connection, 'math_settings', 'bg_image_url', 'VARCHAR(500)');
+  await addColumn(connection, 'math_settings', 'thankyou_bg_image_url', 'VARCHAR(500)');
+  await addColumn(connection, 'math_settings', 'game_logo_url', 'VARCHAR(500)');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS math_progress (
@@ -805,6 +815,224 @@ async function initDB() {
     )
   `, 'screw_settings table');
 
+  /* ── SPOT REGISTRATION (QR-gated multi-station data collection) ──
+     A player registers once, then walks a set of physical stations. Each
+     station has a printed QR code; scanning it unlocks that station's form.
+     Used at medical camps (height/weight/BP desks) and similar walk-throughs.
+     station_code is the secret embedded in the printed QR and is NEVER sent
+     to the player before it is scanned. */
+  console.log('📍 Creating spot registration tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS spotreg_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      bg_color VARCHAR(20) DEFAULT '#f4f6ff',
+      primary_color VARCHAR(20) DEFAULT '#4F46E5',
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      /* Registration screen */
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      description_text TEXT,
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_color VARCHAR(20) DEFAULT '#888888',
+      label_color VARCHAR(20) DEFAULT '#6b7280',
+      field_border_color VARCHAR(20) DEFAULT '#e5e7eb',
+      card_bg_color VARCHAR(20) DEFAULT '#ffffff',
+      card_radius VARCHAR(10) DEFAULT '20',
+      /* Station list screen */
+      stations_heading VARCHAR(500) DEFAULT 'Find your next station',
+      stations_subheading TEXT,
+      station_done_color VARCHAR(20) DEFAULT '#15803d',
+      bg_image_url VARCHAR(500),
+      game_logo_url VARCHAR(500),
+      station_bg_image_url VARCHAR(500),
+      thankyou_bg_image_url VARCHAR(500),
+      intro_text TEXT,
+      outro_text TEXT,
+      intro_text_color VARCHAR(20) DEFAULT NULL,
+      outro_text_color VARCHAR(20) DEFAULT NULL,
+      /* Buttons: text + colours are independently editable per button */
+      start_button_text VARCHAR(500) DEFAULT 'Start Registration',
+      start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      start_button_bg_color VARCHAR(20) DEFAULT '#4F46E5',
+      scan_button_text VARCHAR(500) DEFAULT 'Scan Station QR Code',
+      scan_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      scan_button_bg_color VARCHAR(20) DEFAULT '#4F46E5',
+      submit_button_text VARCHAR(500) DEFAULT 'Save & Continue',
+      submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
+      submit_button_bg_color VARCHAR(20) DEFAULT '#4F46E5',
+      skip_button_text VARCHAR(500) DEFAULT 'Skip for now',
+      skip_button_text_color VARCHAR(20) DEFAULT '#6b7280',
+      skip_button_bg_color VARCHAR(20) DEFAULT 'transparent',
+      /* Thank-you screen */
+      thankyou_heading VARCHAR(500) DEFAULT 'All Stations Complete!',
+      thankyou_text TEXT,
+      thankyou_heading_color VARCHAR(20) DEFAULT '#1a1a2e',
+      thankyou_text_color VARCHAR(20) DEFAULT '#4b5563',
+      thankyou_summary_heading VARCHAR(500) DEFAULT 'Your entries',
+      show_entries_summary TINYINT(1) DEFAULT 1,
+      /* Kept for backwards compatibility with the original column names */
+      complete_heading VARCHAR(500) DEFAULT 'All Stations Complete!',
+      complete_text TEXT,
+      scan_hint_text VARCHAR(500) DEFAULT 'Point your camera at the QR code on this station.',
+      require_order TINYINT(1) DEFAULT 1,
+      require_qr TINYINT(1) DEFAULT 1,
+      show_progress TINYINT(1) DEFAULT 1,
+      allow_rescan TINYINT(1) DEFAULT 1,
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'spotreg_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS spotreg_stations (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      station_name VARCHAR(255) NOT NULL,
+      station_code VARCHAR(40) UNIQUE,
+      station_order INT DEFAULT 0,
+      icon VARCHAR(16),
+      heading_1 VARCHAR(500),
+      description_text TEXT,
+      image_url VARCHAR(500),
+      is_active TINYINT(1) DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'spotreg_stations table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS spotreg_station_fields (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      station_id INT NOT NULL,
+      field_label VARCHAR(255),
+      field_type VARCHAR(50) DEFAULT 'text',
+      field_options JSON,
+      is_required TINYINT(1) DEFAULT 0,
+      field_order INT DEFAULT 0,
+      FOREIGN KEY (station_id) REFERENCES spotreg_stations(id) ON DELETE CASCADE
+    )
+  `, 'spotreg_station_fields table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS spotreg_progress (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      session_id INT NOT NULL,
+      station_id INT NOT NULL,
+      scanned_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      completed_at TIMESTAMP NULL,
+      answers JSON,
+      UNIQUE KEY session_station (session_id, station_id),
+      FOREIGN KEY (session_id) REFERENCES player_sessions(id) ON DELETE CASCADE,
+      FOREIGN KEY (station_id) REFERENCES spotreg_stations(id) ON DELETE CASCADE
+    )
+  `, 'spotreg_progress table');
+
+  /* BMI RESULTS — computed once, at the end of a run, and never shown on the
+     thank-you screen; it exists so the emailed report is reproducible. */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS spotreg_bmi (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      session_id INT UNIQUE,
+      bmi_value DECIMAL(5,2),
+      bmi_category VARCHAR(100),
+      bmi_percentile DECIMAL(5,2) NULL,
+      height_cm DECIMAL(6,2) NULL,
+      weight_kg DECIMAL(6,2) NULL,
+      age_years DECIMAL(4,1) NULL,
+      gender VARCHAR(20),
+      is_adult TINYINT(1) DEFAULT 1,
+      source JSON,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (session_id) REFERENCES player_sessions(id) ON DELETE CASCADE
+    )
+  `, 'spotreg_bmi table');
+
+  /* Design + email settings for this game type. Kept in its own table so the
+     generic email_templates flow (which is quiz-shaped) stays untouched. */
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS spotreg_email_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      is_enabled TINYINT(1) DEFAULT 0,
+      subject VARCHAR(500) DEFAULT 'Your Health Checkup Report',
+      sender_name VARCHAR(200) DEFAULT 'Health Camp',
+      sender_email VARCHAR(200),
+      header_text VARCHAR(500) DEFAULT '🩺 Your Health Report',
+      header_color VARCHAR(20) DEFAULT '#4F46E5',
+      body_html MEDIUMTEXT,
+      footer_text TEXT,
+      accent_color VARCHAR(20) DEFAULT '#4F46E5',
+      show_bmi_block TINYINT(1) DEFAULT 1,
+      show_entries_table TINYINT(1) DEFAULT 1,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'spotreg_email_settings table');
+
+  /* SPOTREG SETTINGS - additive columns. CREATE TABLE IF NOT EXISTS skips these
+     for games created before the redesign, so existing rows are migrated here. */
+  for (const [column, definition] of [
+    ['label_color', "VARCHAR(20) DEFAULT '#6b7280'"],
+    ['field_border_color', "VARCHAR(20) DEFAULT '#e5e7eb'"],
+    ['card_bg_color', "VARCHAR(20) DEFAULT '#ffffff'"],
+    ['card_radius', "VARCHAR(10) DEFAULT '20'"],
+    ['stations_heading', "VARCHAR(500) DEFAULT 'Find your next station'"],
+    ['stations_subheading', 'TEXT'],
+    ['station_done_color', "VARCHAR(20) DEFAULT '#15803d'"],
+    ['start_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
+    ['start_button_bg_color', "VARCHAR(20) DEFAULT '#4F46E5'"],
+    ['scan_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
+    ['scan_button_bg_color', "VARCHAR(20) DEFAULT '#4F46E5'"],
+    ['submit_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
+    ['submit_button_bg_color', "VARCHAR(20) DEFAULT '#4F46E5'"],
+    ['skip_button_text_color', "VARCHAR(20) DEFAULT '#6b7280'"],
+    ['skip_button_bg_color', "VARCHAR(20) DEFAULT 'transparent'"],
+    ['thankyou_heading', "VARCHAR(500) DEFAULT 'All Stations Complete!'"],
+    ['thankyou_text', 'TEXT'],
+    ['thankyou_heading_color', "VARCHAR(20) DEFAULT '#1a1a2e'"],
+    ['thankyou_text_color', "VARCHAR(20) DEFAULT '#4b5563'"],
+    ['thankyou_summary_heading', "VARCHAR(500) DEFAULT 'Your entries'"],
+    ['show_entries_summary', 'TINYINT(1) DEFAULT 1'],
+    ['heading_1_size', 'VARCHAR(10)'],
+    ['heading_2_size', 'VARCHAR(10)'],
+    ['heading_3_size', 'VARCHAR(10)'],
+    ['description_size', 'VARCHAR(10)'],
+    ['thankyou_heading_size', 'VARCHAR(10)'],
+    ['thankyou_text_size', 'VARCHAR(10)'],
+    ['finish_button_text', "VARCHAR(500) DEFAULT 'Finish'"],
+    ['finish_button_text_color', "VARCHAR(20) DEFAULT '#6b7280'"],
+    ['finish_button_bg_color', "VARCHAR(20) DEFAULT '#f3f4f6'"],
+    ['require_qr', 'TINYINT(1) DEFAULT 1'],
+  ]) {
+    await addColumn(connection, 'spotreg_settings', column, definition);
+  }
+
+  // Older rows used complete_heading / complete_text; seed the new names from
+  // them so a pre-redesign game keeps whatever text it already had.
+  await safeQuery(connection,
+    `UPDATE spotreg_settings
+        SET thankyou_heading = complete_heading
+      WHERE (thankyou_heading IS NULL OR thankyou_heading = '')
+        AND complete_heading IS NOT NULL AND complete_heading <> ''`,
+    'spotreg_settings.thankyou_heading seeded from complete_heading');
+  await safeQuery(connection,
+    `UPDATE spotreg_settings
+        SET thankyou_text = complete_text
+      WHERE (thankyou_text IS NULL OR thankyou_text = '')
+        AND complete_text IS NOT NULL AND complete_text <> ''`,
+    'spotreg_settings.thankyou_text seeded from complete_text');
+
   /* TOWER SETTINGS */
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS tower_settings (
@@ -1076,7 +1304,7 @@ async function initDB() {
       grid_size INT DEFAULT 8,
       logo_url VARCHAR(500) DEFAULT '',
       logo_name VARCHAR(255) DEFAULT '',
-      levels_json TEXT,
+      levels_json TEXT DEFAULT '[]',
       candy_types INT DEFAULT 6,
       match_score INT DEFAULT 10,
       combo_multiplier INT DEFAULT 40,
@@ -1277,66 +1505,18 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'speech_rate', 'FLOAT DEFAULT 1');
   await addColumn(connection, 'quiz_settings', 'speech_pitch', 'FLOAT DEFAULT 1');
 
-  /* QUIZ SETTINGS — Completion modal */
-  await addColumn(connection, 'quiz_settings', 'show_completion_modal', 'TINYINT(1) DEFAULT 1');
-  await addColumn(connection, 'quiz_settings', 'completion_heading_text', 'VARCHAR(500)');
-  await addColumn(connection, 'quiz_settings', 'completion_subtext', 'TEXT');
-  await addColumn(connection, 'quiz_settings', 'completion_show_confetti', 'TINYINT(1) DEFAULT 1');
-  await addColumn(connection, 'quiz_settings', 'completion_show_progress_bar', 'TINYINT(1) DEFAULT 1');
-  await addColumn(connection, 'quiz_settings', 'completion_progress_bar_color', "VARCHAR(20) DEFAULT '#8076F5'");
-  await addColumn(connection, 'quiz_settings', 'close_button_text', 'VARCHAR(100)');
-  await addColumn(connection, 'quiz_settings', 'close_button_text_color', "VARCHAR(20) DEFAULT '#888888'");
-  await addColumn(connection, 'quiz_settings', 'completion_redirect_url', 'VARCHAR(500)');
-
-  /* QUIZ SETTINGS — Sequential unique code generation */
-  await addColumn(connection, 'quiz_settings', 'code_generation_enabled', 'TINYINT(1) DEFAULT 0');
-  await addColumn(connection, 'quiz_settings', 'code_from', 'VARCHAR(50)');
-  await addColumn(connection, 'quiz_settings', 'code_to', 'VARCHAR(50)');
-  await addColumn(connection, 'quiz_settings', 'code_current_number', 'INT DEFAULT 0');
-  await addColumn(connection, 'quiz_settings', 'code_show_on_thank_you', 'TINYINT(1) DEFAULT 0');
-  await addColumn(connection, 'quiz_settings', 'code_send_in_email', 'TINYINT(1) DEFAULT 0');
-  await addColumn(connection, 'quiz_settings', 'code_label', "VARCHAR(100) DEFAULT 'YOUR UNIQUE CODE'");
-  await addColumn(connection, 'quiz_settings', 'code_shuffle_k', 'INT DEFAULT NULL');
-  await addColumn(connection, 'quiz_settings', 'code_shuffle_salt', 'INT DEFAULT NULL');
-  await addColumn(connection, 'quiz_settings', 'meta_description', 'TEXT');
-
-  /* QUIZ GENERATED CODES — tracks allocated codes per game */
-  await connection.query(`
-    CREATE TABLE IF NOT EXISTS quiz_generated_codes (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      game_id INT NOT NULL,
-      submission_id INT DEFAULT NULL,
-      user_id INT DEFAULT NULL,
-      generated_code VARCHAR(50) NOT NULL,
-      seq_number INT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      UNIQUE KEY uniq_game_code (game_id, generated_code),
-      INDEX idx_game_id (game_id),
-      INDEX idx_seq_number (seq_number)
-    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4
-  `);
-
   /* GAMES */
-  // Widen the category ENUM to every known game type PLUS whatever values
-  // already exist in the table. A single legacy row with an unlisted value
-  // used to abort the whole ALTER ("Data truncated for column 'category'").
-  try {
-    const KNOWN_CATEGORIES = ['quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer','candyblast','blockblaster','classicmaze'];
-    let existing = [];
-    try {
-      const [rows] = await connection.query("SELECT DISTINCT category FROM games WHERE category IS NOT NULL");
-      existing = rows.map(r => r.category).filter(Boolean);
-    } catch { /* table may not exist yet on first boot */ }
-    const merged = [...new Set([...KNOWN_CATEGORIES, ...existing])];
-    await connection.query(
-      `ALTER TABLE games MODIFY COLUMN category ENUM(${merged.map(v => `'${String(v).replace(/'/g, "''")}'`).join(',')}) DEFAULT 'quiz'`
-    );
-    console.log(`✅ games.category ENUM covers ${merged.length} types`);
-  } catch (err) {
-    console.error('❌ games.category ENUM widening failed:', err.message);
-  }
+  await safeQuery(connection,
+      `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer','classicmaze','spotregistration') DEFAULT 'quiz'`,
+    'games.category ENUM includes all game types'
+  );
   await addColumn(connection, 'games', 'client_id', 'INT');
   await addColumn(connection, 'games', 'slug', 'VARCHAR(255)');
+  // Auto-populate slug for any existing games that have NULL slugs
+  await safeQuery(connection,
+    `UPDATE games SET slug = LOWER(REPLACE(REPLACE(REPLACE(name, ' ', '-'), '.', ''), '&', 'and')) WHERE slug IS NULL OR slug = ''`,
+    'Auto-populated NULL game slugs'
+  );
   await addColumn(connection, 'games', 'description', 'TEXT');
   await addColumn(connection, 'games', 'redirect_url', 'VARCHAR(500)');
   await addColumn(connection, 'games', 'is_active', 'TINYINT(1) DEFAULT 1');
@@ -2505,7 +2685,7 @@ await safeQuery(connection, `
        business_owner_id INT NOT NULL,
        game_id INT NOT NULL,
        session_id INT DEFAULT NULL,
-       code VARCHAR(50) DEFAULT NULL,
+       code VARCHAR(6) DEFAULT NULL,
        player_name VARCHAR(255) DEFAULT '',
        player_phone VARCHAR(50) DEFAULT '',
        player_email VARCHAR(255) DEFAULT '',
@@ -2521,7 +2701,7 @@ await safeQuery(connection, `
 
    /* BUSINESS REDEMPTIONS — migrate existing tables */
    try {
-     await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN code VARCHAR(50) DEFAULT NULL");
+     await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN code VARCHAR(6) DEFAULT NULL");
      console.log('✅ Made business_redemptions.code nullable');
    } catch (err) {
      // Column might already be nullable
@@ -2708,6 +2888,24 @@ await safeQuery(connection, `
      )
    `, 'chess_messages table');
 
+   /* PROMO COIN REWARDS (idempotent global reward ledger) */
+   await safeQuery(connection, `
+     CREATE TABLE IF NOT EXISTS promo_coin_rewards (
+       id INT AUTO_INCREMENT PRIMARY KEY,
+       player_id INT NOT NULL,
+       game_id INT DEFAULT NULL,
+       session_ref VARCHAR(255) NOT NULL,
+       reward_type VARCHAR(50) DEFAULT 'GAME_COMPLETED',
+       points INT NOT NULL DEFAULT 0,
+       result VARCHAR(50) DEFAULT NULL,
+       score INT DEFAULT NULL,
+       source VARCHAR(30) DEFAULT 'claim',
+       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+       UNIQUE KEY uk_pcr_session (player_id, session_ref),
+       INDEX idx_pcr_player (player_id)
+     )
+   `, 'promo_coin_rewards table');
+
    console.log('👤 Creating admin user...');
 
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@yourdomain.com';
@@ -2738,8 +2936,8 @@ await safeQuery(connection, `
       }
       if (clientId) {
         await connection.query(
-          `INSERT INTO games (name, category, game_type, slug, client_id, is_active, show_in_play_page, status)
-           VALUES ('Tower Building', 'tower', 'promogames', 'tower', ?, 1, 1, 'live')`,
+          `INSERT INTO games (name, company_name, category, game_type, slug, client_id, is_active, show_in_play_page, status)
+           VALUES ('Tower Building', 'promo', 'tower', 'promogames', 'tower', ?, 1, 1, 'live')`,
           [clientId]
         );
         console.log('✅ Tower game seeded');
@@ -2747,44 +2945,6 @@ await safeQuery(connection, `
     }
   } catch (err) {
     console.error('❌ Tower game seed failed:', err.message);
-  }
-
-  /* ================= PLAYER ENGAGEMENT: high scores & best scores ================= */
-
-  // games.high_score — all-time high score per game
-  await addColumn(connection, 'games', 'high_score', 'INT DEFAULT 0');
-
-  // player_best_scores — per-player best score per game (upserted with GREATEST).
-  // No FKs on purpose: promo_players is created by config/initPromo.js which may
-  // run separately; integrity is enforced at the API layer.
-  await safeQuery(connection, `
-    CREATE TABLE IF NOT EXISTS player_best_scores (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      promo_player_id INT NOT NULL,
-      game_id INT NOT NULL,
-      best_score INT DEFAULT 0,
-      plays INT DEFAULT 1,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      UNIQUE KEY uniq_player_game (promo_player_id, game_id),
-      KEY idx_game_score (game_id, best_score)
-    )
-  `, 'player_best_scores table');
-
-  // promo_players.profile_complete — 0 for instant-OTP signups until they set
-  // name + username (dashboards use it to nudge profile completion)
-  await addColumn(connection, 'promo_players', 'profile_complete', 'TINYINT(1) DEFAULT 0');
-
-  // Composite index powering every play-count subquery (arcade / hero / play-count)
-  try {
-    const [idxRows] = await connection.query(
-      "SHOW INDEX FROM player_sessions WHERE Key_name = 'idx_ps_game_completed'"
-    );
-    if (idxRows.length === 0) {
-      await connection.query('CREATE INDEX idx_ps_game_completed ON player_sessions (game_id, completed)');
-      console.log('✅ Added player_sessions(game_id, completed) index');
-    }
-  } catch (err) {
-    console.error('❌ player_sessions index:', err.message);
   }
 
   await connection.end();

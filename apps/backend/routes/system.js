@@ -45,7 +45,8 @@ const EXPECTED_TABLES = [
   'tictactoe_settings', 'snake_ladder_settings', 'ludo_settings', 'Carrom_settings', 'tictactoe_multi_settings', 'promo_players', 'otp_tokens', 'trusted_devices',
   'pc_transactions', 'brand_rewards', 'redemptions', 'reset_log',
   'internal_team', 'notifications', 'business_developers', 'bd_requests',
-  'business_owners', 'business_owner_games', 'business_redemptions', 'spin_settings', 'spin_segments'
+  'business_owners', 'business_owner_games', 'business_redemptions', 'spin_settings', 'spin_segments',
+  'spotreg_settings', 'spotreg_stations', 'spotreg_station_fields', 'spotreg_progress'
 ];
 
 const GAME_TYPES = [
@@ -53,7 +54,8 @@ const GAME_TYPES = [
   'pouring', 'typer', 'math', 'maze', 'screw', 'tower', '2048', 'snake', 'catch', 'reaction',
   'simon', 'flappy', 'bounce', 'space', 'connect4', 'bejeweled', 'tetris', 'stack',
   'bowling', 'sudoku', 'minesweeper', 'wordscramble', 'rps', 'whackamole', 'hanoi',
-  'breakout', 'bubbleshooter', 'carlaunch', 'frustration', 'stressbuster', 'soundify', 'tictactoe', 'arrowescape', 'snakeandladder', 'ludo', 'Carrom', 'tictactoemultiplayer'
+  'breakout', 'bubbleshooter', 'carlaunch', 'frustration', 'stressbuster', 'soundify', 'tictactoe', 'arrowescape', 'snakeandladder', 'ludo', 'Carrom', 'tictactoemultiplayer',
+  'spotregistration'
 ];
 
 // Cache helpers

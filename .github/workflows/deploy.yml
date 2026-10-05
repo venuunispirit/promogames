@@ -9,7 +9,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to Oracle Server via SSH
+      - name: Update backend on server
         uses: appleboy/ssh-action@v1.0.0
         with:
           host: ${{ secrets.SERVER_HOST }}
@@ -17,19 +17,9 @@ jobs:
           key: ${{ secrets.SERVER_SSH_KEY }}
           script_stop: true
           script: |
-            set -e
             cd ~/quiz-platform/pro
-
             git fetch origin
             git reset --hard origin/main
-
-            # npm workspaces: ONE install at the repo root covers backend + frontend
             npm install --legacy-peer-deps --no-audit --no-fund
-
-            # Build the frontend (served from apps/frontend/dist)
-            npm run build -w apps/frontend
-
-            # --update-env picks up .env changes; backend runs its DB migrations on start
             pm2 restart quiz-backend --update-env
-
-            echo "✅ Deploy complete!"
+            echo "Backend deployed"

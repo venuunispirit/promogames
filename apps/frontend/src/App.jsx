@@ -65,6 +65,8 @@ const StressBusterBuilderPage  = lazy(() => import('./pages/frustrationbuilderta
 const SoundifyBuilderPage      = lazy(() => import('./pages/soundifybuilderpage.jsx'))
 const TicTacToeBuilderPage     = lazy(() => import('./pages/tictactoebuilder.jsx'))
 const ChessBuilderPage         = lazy(() => import('./pages/ChessBuilderPage.jsx'))
+const SpotRegBuilderPage       = lazy(() => import('./pages/SpotRegBuilderPage.jsx'))
+const SpotRegPlayerPage        = lazy(() => import('./pages/SpotRegPlayerPage.jsx'))
 const ChessPlayerPage          = lazy(() => import('./pages/ChessPlayerPage.jsx'))
 const BlockBlasterBuilderPage  = lazy(() => import('./pages/BlockBlasterBuilderPage.jsx'))
 const CandyBlastBuilderPage    = lazy(() => import('./pages/CandyBlastBuilderPage.jsx'))
@@ -157,6 +159,8 @@ function AppRoutes() {
       <Route path="/play/bejeweled/:id" element={<BejeweledPlayerPage />} />
       <Route path="/play/chess" element={<ChessPlayerPage />} />
       <Route path="/play/chess/:gameName/:companyName" element={<ChessPlayerPage />} />
+      <Route path="/play/spotreg/:gameName/:companyName" element={<SpotRegPlayerPage />} />
+      <Route path="/play/spotreg/:gameName" element={<SpotRegPlayerPage />} />
 
       {/* Player dashboard */}
       <Route path="/player" element={<PlayerRoute><PlayerLayout /></PlayerRoute>}>
@@ -216,6 +220,7 @@ function AppRoutes() {
         <Route path="games/:id/soundify-builder"      element={<SoundifyBuilderPage />} />
         <Route path="games/:id/tictactoe-builder"     element={<TicTacToeBuilderPage />} />
         <Route path="games/:id/chess-builder"          element={<ChessBuilderPage />} />
+        <Route path="games/:id/spotreg-builder"       element={<SpotRegBuilderPage />} />
         <Route path="games/:id/blockblaster-builder"   element={<BlockBlasterBuilderPage />} />
         <Route path="games/:id/candyblast-builder"     element={<CandyBlastBuilderPage />} />
         <Route path="games/:id/Carrom-builder"          element={<CarromBuilderPage />} />

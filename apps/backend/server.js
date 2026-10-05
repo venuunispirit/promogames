@@ -149,6 +149,7 @@ const stressbusterRoutes = require("./routes/stressbuster");
 const soundifyRoutes = require("./routes/soundify");
 const tictactoeRoutes = require("./routes/tictactoe");
 const chessRoutes = require("./routes/chess");
+const spotRegRoutes = require('./routes/spotregistration');
 const snakeandladderRoutes = require("./routes/snakeandladder");
 const ludoRoutes = require("./routes/ludo");
 const CarromRoutes = require("./routes/Carrom");
@@ -217,6 +218,7 @@ app.use("/api/stressbuster", requireAdmin, stressbusterRoutes);
 app.use("/api/soundify", requireAdmin, soundifyRoutes);
 app.use("/api/tictactoe", requireAdmin, tictactoeRoutes);
 app.use("/api/chess", chessRoutes); // No requireAdmin — GET settings must be accessible to players; PUT/POST routes use their own auth middleware
+app.use("/api/spotregistration", spotRegRoutes);
 app.use("/api/snakeandladder", requireAdmin, snakeandladderRoutes);
 app.use("/api/ludo", requireAdmin, ludoRoutes);
 app.use("/api/Carrom", requireAdmin, CarromRoutes);

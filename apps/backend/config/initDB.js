@@ -1507,7 +1507,7 @@ async function initDB() {
 
   /* GAMES */
   await safeQuery(connection,
-      `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer','classicmaze','spotregistration') DEFAULT 'quiz'`,
+      `ALTER TABLE games MODIFY COLUMN category ENUM('quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer','candyblast','blockblaster','classicmaze','carom','spotregistration') DEFAULT 'quiz'`,
     'games.category ENUM includes all game types'
   );
   await addColumn(connection, 'games', 'client_id', 'INT');

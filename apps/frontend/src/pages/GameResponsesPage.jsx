@@ -121,12 +121,16 @@ export default function GameResponsesPage() {
       for (const k of Object.keys(r.stationAnswers)) if (!columnKeys.includes(k)) columnKeys.push(k)
     }
   }
+  // Reward code (quiz code generation) is stored outside player_data, so add it
+  // as a normal column whenever at least one response has one.
+  if (!isSpotReg && rows.some(r => r.session.generated_code)) columnKeys.push('Code')
   // BMI is derived, not entered, so it gets its own trailing columns.
   const bmiKeys = isSpotReg
     ? ['BMI', 'BMI Category', 'BMI Percentile', 'BMI Height (cm)', 'BMI Weight (kg)']
     : []
 
   const valueFor = (row, key) => {
+    if (key === 'Code' && row.playerData[key] === undefined) return row.session.generated_code || ''
     if (row.playerData[key] !== undefined) return row.playerData[key]
     if (row.stationAnswers[key] !== undefined) return row.stationAnswers[key]
     if (key === 'BMI') return row.bmi ? row.bmi.value : ''
@@ -251,7 +255,7 @@ export default function GameResponsesPage() {
       })
       return [
         idx + 1,
-        ...columnKeys.map(k => escape(pd[k])),
+        ...columnKeys.map(k => escape(valueFor(r, k))),
         r.session.score || 0,
         r.session.total_scoreable || 0,
         ...qAnswers.map(v => `"${v.replace(/"/g, '""')}"`),

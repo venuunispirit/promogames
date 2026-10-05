@@ -15,23 +15,21 @@ jobs:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           key: ${{ secrets.SERVER_SSH_KEY }}
+          script_stop: true
           script: |
+            set -e
             cd ~/quiz-platform/pro
 
             git fetch origin
             git reset --hard origin/main
 
-            cd backend
-            rm -rf node_modules
+            # npm workspaces: ONE install at the repo root covers backend + frontend
+            npm install --legacy-peer-deps --no-audit --no-fund
 
-            npm install --legacy-peer-deps
+            # Build the frontend (served from apps/frontend/dist)
+            npm run build -w apps/frontend
 
-            cd ../frontend
-            rm -rf node_modules
-
-            npm install --legacy-peer-deps
-            npm run build
-
-            pm2 restart quiz-backend
+            # --update-env picks up .env changes; backend runs its DB migrations on start
+            pm2 restart quiz-backend --update-env
 
             echo "✅ Deploy complete!"

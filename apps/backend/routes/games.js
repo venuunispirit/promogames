@@ -874,6 +874,33 @@ router.get('/:id/responses', requireAdmin, async (req, res) => {
       session.answers = answers;
     }
 
+    // Attach the reward code each player received (quiz code generation, e.g. FL0042).
+    // Primary source: quiz_generated_codes; fallback: business_redemptions.code.
+    // Wrapped so a missing table/column can never turn Responses into a 500.
+    try {
+      if (sessions.length > 0) {
+        const ids = sessions.map(s => s.id);
+        const [codeRows] = await db.query(
+          'SELECT submission_id, generated_code FROM quiz_generated_codes WHERE game_id = ? AND submission_id IN (?) ORDER BY id ASC',
+          [req.params.id, ids]
+        );
+        const byId = new Map(codeRows.map(r => [r.submission_id, r.generated_code]));
+        let redeemById = new Map();
+        try {
+          const [redRows] = await db.query(
+            'SELECT session_id, code FROM business_redemptions WHERE session_id IN (?) AND code IS NOT NULL ORDER BY id ASC',
+            [ids]
+          );
+          redeemById = new Map(redRows.map(r => [r.session_id, r.code]));
+        } catch (_) { /* table optional */ }
+        for (const s of sessions) {
+          s.generated_code = byId.get(s.id) || redeemById.get(s.id) || null;
+        }
+      }
+    } catch (codeErr) {
+      console.error('responses: could not load generated codes:', codeErr.message);
+    }
+
     // Spot Registration has no questions: every value lives on a station row.
     // Flatten them into labelled keys so the shared Responses table can show
     // them as ordinary columns, and attach the computed BMI for the report.

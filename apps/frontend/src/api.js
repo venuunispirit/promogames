@@ -36,7 +36,10 @@ api.interceptors.response.use(
   (res) => res,
   (err) => {
     const status = err.response?.status;
-    const isAuthError = status === 401 || status === 403;
+    // 403 is also returned for "Insufficient permissions" (wrong role). That is
+    // not a dead session, so it must not wipe tokens and bounce to /login.
+    const msg = String(err.response?.data?.message || err.response?.data?.error || '');
+    const isAuthError = status === 401 || (status === 403 && /invalid|expired|token/i.test(msg) && !/insufficient/i.test(msg));
     
     const isLoginPath = window.location.pathname.includes('/login');
     const isVerifyOtp = err.config?.url?.includes('verify-otp');

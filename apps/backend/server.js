@@ -305,6 +305,7 @@ const CATEGORY_SETTINGS = {
   soundify: 'soundify_settings', arrowescape: 'arrowescape_settings', bowling: 'bowling_settings',
   sudoku: 'sudoku_settings', minesweeper: 'minesweeper_settings', wordscramble: 'wordscramble_settings',
   rps: 'rps_settings',
+  spotregistration: 'spotreg_settings',
   snakeandladder: 'snake_ladder_settings', ludo: 'ludo_settings',
   Carrom: 'Carrom_settings', carrom: 'Carrom_settings', tictactoemultiplayer: 'tictactoe_multi_settings',
 };
@@ -392,12 +393,12 @@ async function detectImageSize(imageSrc) {
       const t = setTimeout(() => ctrl.abort(), 4000);
       try {
         const resp = await fetch(imageSrc, { signal: ctrl.signal });
-        t.clearTimeout();
+        clearTimeout(t);
         if (!resp.ok) return fallback;
         const arr = await resp.arrayBuffer();
         buffer = Buffer.from(arr);
       } catch {
-        t.clearTimeout();
+        clearTimeout(t);
         return fallback;
       }
     } else {
@@ -439,6 +440,29 @@ if (fs.existsSync(FRONTEND_DIST)) {
     },
   }));
 }
+
+// Spot Registration share links are /play/spotreg/:gameSlug[/:clientSlug].
+// They must be registered BEFORE the generic /play/:a/:b routes below, which
+// would otherwise read "spotreg" as the game slug and find nothing.
+app.get('/play/spotreg/:gameSlug{/:clientSlug}', async (req, res) => {
+  const ua = req.headers['user-agent'] || '';
+
+  if (SOCIAL_BOTS.test(ua)) {
+    try {
+      const meta = await resolveGameOG(req, req.params.gameSlug, req.params.clientSlug || null);
+      if (meta) {
+        return res.type('html').send(renderOG(meta));
+      }
+    } catch (err) {
+      console.error('OG tag error (spotreg):', err.message);
+    }
+  }
+
+  if (fs.existsSync(INDEX_HTML_PATH)) {
+    return res.sendFile(INDEX_HTML_PATH);
+  }
+  res.status(404).send('Frontend not built. Run npm run build first.');
+});
 
 // Serve frontend HTML with OG tags for social media crawlers.
 // Two-segment URL: /play/:gameSlug/:clientSlug (branded game share link)

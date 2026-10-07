@@ -1017,6 +1017,10 @@ async function initDB() {
   ]) {
     await addColumn(connection, 'spotreg_settings', column, definition);
   }
+  await addColumn(connection, 'spotreg_email_settings', 'sender_account', 'VARCHAR(100) NULL');
+  await addColumn(connection, 'spotreg_email_settings', 'show_disclaimer', 'TINYINT(1) DEFAULT 1');
+  await addColumn(connection, 'spotreg_email_settings', 'disclaimer_text', 'TEXT NULL');
+  await addColumn(connection, 'spotreg_email_settings', 'use_full_html', 'TINYINT(1) DEFAULT 0');
 
   // Older rows used complete_heading / complete_text; seed the new names from
   // them so a pre-redesign game keeps whatever text it already had.
@@ -1567,6 +1571,7 @@ async function initDB() {
   await addColumn(connection, 'player_sessions', 'source_type', "VARCHAR(20) DEFAULT 'direct'");
   await addColumn(connection, 'player_sessions', 'completed_at', 'TIMESTAMP NULL');
   await addColumn(connection, 'player_sessions', 'email_sent', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'player_sessions', 'email_error', 'VARCHAR(500) NULL');
   await addColumn(connection, 'player_sessions', 'utm_source', 'VARCHAR(255)');
   await addColumn(connection, 'player_sessions', 'utm_medium', 'VARCHAR(255)');
   await addColumn(connection, 'player_sessions', 'utm_campaign', 'VARCHAR(255)');

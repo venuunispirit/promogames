@@ -936,10 +936,10 @@ router.post('/station-submit', async (req, res) => {
 const nodemailer = require('nodemailer');
 const { computeBmi, extractMeasurements } = require('../lib/bmi');
 
-const EMAIL_BOOLEAN_KEYS = ['is_enabled', 'show_bmi_block', 'show_entries_table'];
+const EMAIL_BOOLEAN_KEYS = ['is_enabled', 'show_bmi_block', 'show_entries_table', 'show_disclaimer', 'use_full_html'];
 const EMAIL_TEXT_KEYS = [
-  'subject', 'sender_name', 'sender_email', 'header_text', 'header_color',
-  'footer_text', 'accent_color',
+  'subject', 'sender_name', 'sender_email', 'sender_account', 'header_text', 'header_color',
+  'footer_text', 'accent_color', 'disclaimer_text',
 ];
 
 function escapeHtml(value) {
@@ -953,6 +953,113 @@ async function loadEmailSettings(gameId) {
     'SELECT * FROM spotreg_email_settings WHERE game_id = ?', [gameId]
   );
   return rows[0] || null;
+}
+
+/* ── Sending: sender accounts, address detection, timeouts + retry ─────────── */
+
+const EMAIL_RE = /^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/;
+
+/**
+ * Mailboxes a game may send from. "default" is the SMTP_* login from .env.
+ * Extra mailboxes come from SMTP_ACCOUNTS (JSON array in .env), e.g.
+ *   SMTP_ACCOUNTS=[{"key":"health","label":"Health Camp","host":"smtp.gmail.com",
+ *     "port":587,"secure":false,"user":"health@x.com","pass":"app-password"}]
+ * Passwords stay in .env; the builder only ever sees key + label.
+ */
+function getSmtpAccounts() {
+  const accounts = [{
+    key: 'default',
+    label: `Default (${process.env.SMTP_USER || 'SMTP_USER not set'})`,
+    host: process.env.SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1',
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
+    from: process.env.SMTP_USER,
+  }];
+  if (process.env.SMTP_ACCOUNTS) {
+    try {
+      for (const a of JSON.parse(process.env.SMTP_ACCOUNTS)) {
+        if (!a || !a.key || !a.host || !a.user || !a.pass) continue;
+        accounts.push({
+          key: String(a.key),
+          label: a.label ? `${a.label} (${a.from || a.user})` : (a.from || a.user),
+          host: a.host,
+          port: parseInt(a.port || 587, 10),
+          secure: a.secure === true || a.secure === 'true',
+          user: a.user,
+          pass: a.pass,
+          from: a.from || a.user,
+        });
+      }
+    } catch (e) {
+      console.error('SMTP_ACCOUNTS is not valid JSON:', e.message);
+    }
+  }
+  return accounts;
+}
+
+function pickSmtpAccount(key) {
+  const accounts = getSmtpAccounts();
+  const found = key && accounts.find(a => a.key === key);
+  if (key && !found) console.warn(`spotreg: sender account "${key}" not found, using default`);
+  return found || accounts[0];
+}
+
+/**
+ * Find the participant's address. Forms label the field differently per game
+ * ("Email", "Email ID", "Your E-mail"...), so match any label containing "mail"
+ * and only accept a value that actually looks like an address.
+ */
+function findPlayerEmail(playerData) {
+  const entries = Object.entries(playerData || {});
+  const clean = v => String(v === null || v === undefined ? '' : v).trim();
+  const norm = l => String(l).toLowerCase().replace(/[^a-z]/g, '');
+  const ok = v => EMAIL_RE.test(clean(v));
+  for (const exact of ['email', 'emailaddress', 'emailid']) {
+    for (const [label, val] of entries) if (norm(label) === exact && ok(val)) return clean(val);
+  }
+  for (const [label, val] of entries) if (norm(label).includes('mail') && ok(val)) return clean(val);
+  return null;
+}
+
+/** Send one report with hard timeouts and up to 3 attempts on transient errors. */
+async function sendReportMail({ settings, to, subject, html }) {
+  const account = pickSmtpAccount(settings.sender_account);
+  const fromAddress = account.from || account.user;
+  const replyTo = settings.sender_email && EMAIL_RE.test(settings.sender_email) && settings.sender_email !== fromAddress
+    ? settings.sender_email : undefined;
+  const mail = {
+    from: { name: settings.sender_name || 'Health Camp', address: fromAddress },
+    to, replyTo, subject, html,
+  };
+
+  let lastErr;
+  for (let attempt = 1; attempt <= 3; attempt++) {
+    const transporter = nodemailer.createTransport({
+      host: account.host,
+      port: account.port,
+      secure: account.secure,
+      auth: { user: account.user, pass: account.pass },
+      connectionTimeout: 8000,
+      greetingTimeout: 8000,
+      socketTimeout: 15000,
+      tls: { rejectUnauthorized: false },
+    });
+    try {
+      const info = await transporter.sendMail(mail);
+      transporter.close();
+      return info;
+    } catch (err) {
+      transporter.close();
+      lastErr = err;
+      const permanent = err.responseCode >= 500 && err.responseCode < 600;
+      console.error(`spotreg mail attempt ${attempt} failed (${account.key} -> ${to}): ${err.message}`);
+      if (permanent || attempt === 3) break;
+      await new Promise(r => setTimeout(r, 1000 * attempt));
+    }
+  }
+  throw lastErr;
 }
 
 /** Collect every saved answer for a session, ordered by station. */
@@ -1008,7 +1115,7 @@ async function computeAndStoreBmi(session, entries) {
 }
 
 /** Render the BMI card, or null when the builder turned it off. */
-function renderBmiBlock(bmi) {
+function renderBmiRow(bmi, pad) {
   if (!bmi) return '';
   const accent = escapeHtml(bmi.hex || '#4F46E5');
   const headline = bmi.isAdult
@@ -1021,7 +1128,7 @@ function renderBmiBlock(bmi) {
       : 'Add gender to the registration form for a percentile comparison.');
 
   return `
-      <tr><td style="padding:0 40px 28px 40px;">
+      <tr><td style="padding:${pad};">
         <table width="100%" cellpadding="0" cellspacing="0"
           style="background:#f8fafc;border-left:5px solid ${accent};border-radius:10px;">
           <tr><td style="padding:24px 26px;">
@@ -1042,7 +1149,7 @@ function renderBmiBlock(bmi) {
       </td></tr>`;
 }
 
-function renderEntriesTable(entries) {
+function renderEntriesRow(entries, pad) {
   const rows = entries.map(entry => {
     const pairs = Object.entries(entry.answers || {})
       .filter(([, v]) => v !== null && v !== undefined && String(v).trim() !== '')
@@ -1065,7 +1172,7 @@ function renderEntriesTable(entries) {
 
   if (!rows) return '';
   return `
-      <tr><td style="padding:0 40px 32px 40px;">
+      <tr><td style="padding:${pad};">
         <div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#64748b;font-weight:bold;margin-bottom:8px;">
           Measurements recorded
         </div>
@@ -1078,7 +1185,17 @@ function renderEntriesTable(entries) {
  * header, BMI block and entries table are structured so the layout always holds
  * together, while `body_html` gives full control over the prose.
  */
-function renderEmailHtml({ settings, bmi, entries, playerName, gameName, stationCount }) {
+const asBlock = (row) => (row ? `<table width="100%" cellpadding="0" cellspacing="0">${row}</table>` : '');
+/** Full-width rows, appended below the body when the template has no placeholder. */
+const renderBmiBlock = (bmi) => renderBmiRow(bmi, '0 40px 28px 40px');
+const renderEntriesTable = (entries) => renderEntriesRow(entries, '0 40px 32px 40px');
+/** Same blocks without side padding, for {{bmi_card}} / {{measurements_table}} inside the body. */
+const renderBmiInline = (bmi) => asBlock(renderBmiRow(bmi, '0 0 24px 0'));
+const renderEntriesInline = (entries) => asBlock(renderEntriesRow(entries, '0 0 24px 0'));
+
+const DEFAULT_DISCLAIMER = 'This report is generated automatically for information only. It is not a medical diagnosis. Please follow up with a qualified health professional.';
+
+function renderEmailHtml({ settings, bmi, entries, playerName, gameName, stationCount, playerData }) {
   const headerColor = settings.header_color || '#4F46E5';
   const accent = settings.accent_color || headerColor;
 
@@ -1087,6 +1204,25 @@ function renderEmailHtml({ settings, bmi, entries, playerName, gameName, station
     .replace(/^```[\s\S]*?\n/, '')
     .replace(/```\s*$/, '')
     .trim();
+
+  const showBmi = settings.show_bmi_block !== 0 && settings.show_bmi_block !== false;
+  const showEntries = settings.show_entries_table !== 0 && settings.show_entries_table !== false;
+  const usesBmiToken = /\{\{\s*bmi_card\s*\}\}/i.test(rawBody);
+  const usesEntriesToken = /\{\{\s*measurements_table\s*\}\}/i.test(rawBody);
+
+  // {{field:Label}} pulls any value the participant entered, by its label
+  // (registration form first, then station answers). Matching ignores case/spaces.
+  const findField = (label) => {
+    const want = String(label).toLowerCase().replace(/[^a-z0-9]/g, '');
+    const pools = [playerData || {}, ...entries.map(e => e.answers || {})];
+    for (const pool of pools) {
+      for (const [k, v] of Object.entries(pool)) {
+        if (String(k).toLowerCase().replace(/[^a-z0-9]/g, '') === want
+            && v !== null && v !== undefined && String(v).trim() !== '') return String(v);
+      }
+    }
+    return '';
+  };
 
   const tokens = {
     '{{player_name}}': playerName,
@@ -1102,11 +1238,25 @@ function renderEmailHtml({ settings, bmi, entries, playerName, gameName, station
   };
 
   let body = rawBody;
+  // HTML blocks first (inserted raw), then plain-text tokens (escaped, because
+  // participants type these values and they must not inject markup into the email).
+  body = body.replace(/\{\{\s*bmi_card\s*\}\}/gi, showBmi ? renderBmiInline(bmi) : '');
+  body = body.replace(/\{\{\s*measurements_table\s*\}\}/gi, showEntries ? renderEntriesInline(entries) : '');
   for (const [token, value] of Object.entries(tokens)) {
-    body = body.split(token).join(value === null || value === undefined ? '' : value);
+    body = body.split(token).join(escapeHtml(value));
   }
+  body = body.replace(/\{\{\s*field:([^}]+?)\s*\}\}/gi, (_, label) => escapeHtml(findField(label)));
   // Any token the builder did not use should not leak through as raw text.
   body = body.replace(/\{\{[a-z_]+\}\}/gi, '');
+
+  // "My HTML is the whole email": no header, card, footer or disclaimer is added.
+  if (settings.use_full_html && rawBody) {
+    if (/<html[\s>]/i.test(body)) return body;
+    return `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="margin:0;padding:0;">${body}</body></html>`;
+  }
+
+  const showDisclaimer = settings.show_disclaimer !== 0 && settings.show_disclaimer !== false;
+  const disclaimerText = (settings.disclaimer_text || '').trim() || DEFAULT_DISCLAIMER;
 
   const defaultBody = `<p style="font-size:16px;color:#333;margin:0 0 16px 0;">
         Hi <strong>${escapeHtml(playerName)}</strong>,
@@ -1139,15 +1289,15 @@ function renderEmailHtml({ settings, bmi, entries, playerName, gameName, station
           ${body || defaultBody}
         </td></tr>
 
-        ${settings.show_bmi_block !== 0 ? renderBmiBlock(bmi) : ''}
-        ${settings.show_entries_table !== 0 ? renderEntriesTable(entries) : ''}
+        ${showBmi && !usesBmiToken ? renderBmiBlock(bmi) : ''}
+        ${showEntries && !usesEntriesToken ? renderEntriesTable(entries) : ''}
 
+        ${showDisclaimer ? `
         <tr><td style="padding:0 40px 32px 40px;">
           <p style="font-size:13px;color:#94a3b8;line-height:1.6;margin:0;">
-            This report is generated automatically for information only. It is not a medical
-            diagnosis. Please follow up with a qualified health professional.
+            ${escapeHtml(disclaimerText)}
           </p>
-        </td></tr>
+        </td></tr>` : ''}
 
         ${settings.footer_text ? `
         <tr><td style="background:#f8fafc;border-top:3px solid ${escapeHtml(accent)};padding:22px 40px;text-align:center;">
@@ -1205,7 +1355,7 @@ router.post('/complete', async (req, res) => {
       }
       return null;
     };
-    const playerEmail = normalize(playerData, ['email', 'emailaddress', 'e-mail']);
+    const playerEmail = findPlayerEmail(playerData);
     const playerName = normalize(playerData, ['name', 'fullname']) || 'there';
 
     // Mark the run complete. Guarded so a double tap can't double-report.
@@ -1222,38 +1372,37 @@ router.post('/complete', async (req, res) => {
     let email = { attempted: false, sent: false, reason: null };
 
     const emailEnabled = emailSettings && (emailSettings.is_enabled === 1 || emailSettings.is_enabled === true);
-    if (emailEnabled && playerEmail) {
+    if (emailEnabled && session.email_sent) {
+      // A repeat /complete (double tap, reconnect) must not send a second report.
+      email.reason = 'already_sent';
+    } else if (emailEnabled && playerEmail) {
       email.attempted = true;
       try {
         const html = renderEmailHtml({
           settings: emailSettings, bmi, entries,
-          playerName, gameName: game.name, stationCount: entries.length,
+          playerName, gameName: game.name, stationCount: entries.length, playerData,
         });
-        const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-        const smtpSecure = process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1';
-        const transporter = nodemailer.createTransport({
-          host: process.env.SMTP_HOST,
-          port: smtpPort,
-          secure: smtpSecure,
-          auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-          tls: { rejectUnauthorized: false },
-        });
-        await transporter.sendMail({
-          from: `"${emailSettings.sender_name || 'Health Camp'}" <${emailSettings.sender_email || process.env.SMTP_USER}>`,
+        await sendReportMail({
+          settings: emailSettings,
           to: playerEmail,
           subject: renderEmailSubject({ settings: emailSettings, playerName }),
           html,
         });
         email.sent = true;
-        await db.query('UPDATE player_sessions SET email_sent = 1 WHERE id = ?', [session.id]);
+        await db.query('UPDATE player_sessions SET email_sent = 1, email_error = NULL WHERE id = ?', [session.id]);
         console.log(`✅ spotreg report emailed to ${playerEmail}`);
       } catch (err) {
-        email.reason = err.message;
+        // Keep SMTP details off the public player response; store them for the admin.
+        email.reason = 'send_failed';
         console.error('❌ spotreg email error:', err.message);
+        await db.query('UPDATE player_sessions SET email_error = ? WHERE id = ?',
+          [String(err.message).slice(0, 490), session.id]).catch(() => {});
       }
     } else if (emailEnabled && !playerEmail) {
       email.attempted = true;
-      email.reason = 'No email address in the registration form';
+      email.reason = 'No valid email address in the registration form';
+      await db.query('UPDATE player_sessions SET email_error = ? WHERE id = ?',
+        ['No valid email address in the registration form', session.id]).catch(() => {});
     } else {
       email.reason = emailEnabled ? 'disabled' : 'Email disabled in the builder';
     }
@@ -1273,6 +1422,11 @@ router.post('/complete', async (req, res) => {
 });
 
 /* ── Admin: email settings ─────────────────────────────────────────────── */
+
+/** Mailboxes the builder can choose from (labels only, never credentials). */
+router.get('/email-senders', requireAdmin, (req, res) => {
+  res.json({ success: true, senders: getSmtpAccounts().map(a => ({ key: a.key, label: a.label })) });
+});
 
 router.get('/:gameId/email-settings', requireAdmin, async (req, res) => {
   try {
@@ -1299,6 +1453,12 @@ router.put('/:gameId/email-settings', requireAdmin, async (req, res) => {
     for (const key of EMAIL_TEXT_KEYS) {
       if (req.body[key] === undefined) continue;
       fields[key] = req.body[key] === '' ? null : req.body[key];
+    }
+    if (fields.sender_email && !EMAIL_RE.test(fields.sender_email)) {
+      return res.status(400).json({ success: false, message: 'Reply-to email is not a valid address' });
+    }
+    if (fields.sender_account && !getSmtpAccounts().some(a => a.key === fields.sender_account)) {
+      return res.status(400).json({ success: false, message: 'Unknown sender account' });
     }
     if (req.body.body_html !== undefined) {
       fields.body_html = req.body.body_html === '' ? null : req.body.body_html;
@@ -1398,8 +1558,8 @@ router.post('/:gameId/sessions/:sessionId/resend', requireAdmin, async (req, res
       }
       return null;
     };
-    const to = normalize(playerData, ['email', 'emailaddress', 'e-mail']);
-    if (!to) return res.status(400).json({ success: false, message: 'This session has no email address' });
+    const to = findPlayerEmail(playerData);
+    if (!to) return res.status(400).json({ success: false, message: 'This session has no valid email address' });
 
     const entries = await collectSessionEntries(sessionId, gameId);
     const bmi = await computeAndStoreBmi(session, entries);
@@ -1407,25 +1567,16 @@ router.post('/:gameId/sessions/:sessionId/resend', requireAdmin, async (req, res
 
     const html = renderEmailHtml({
       settings: emailSettings, bmi, entries, playerName,
-      gameName: games[0].name, stationCount: entries.length,
+      gameName: games[0].name, stationCount: entries.length, playerData,
     });
-    const smtpPort = parseInt(process.env.SMTP_PORT || '587', 10);
-    const smtpSecure = process.env.SMTP_SECURE === 'true' || process.env.SMTP_SECURE === '1';
-    const transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST,
-      port: smtpPort,
-      secure: smtpSecure,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      tls: { rejectUnauthorized: false },
-    });
-    await transporter.sendMail({
-      from: `"${emailSettings.sender_name || 'Health Camp'}" <${emailSettings.sender_email || process.env.SMTP_USER}>`,
+    await sendReportMail({
+      settings: emailSettings,
       to,
       subject: renderEmailSubject({ settings: emailSettings, playerName }),
       html,
     });
 
-    await db.query('UPDATE player_sessions SET email_sent = 1 WHERE id = ?', [sessionId]);
+    await db.query('UPDATE player_sessions SET email_sent = 1, email_error = NULL WHERE id = ?', [sessionId]);
     res.json({ success: true, message: `Report sent to ${to}` });
   } catch (err) {
     console.error('spotreg POST resend error:', err);

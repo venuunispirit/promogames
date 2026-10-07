@@ -325,6 +325,7 @@ const DEFAULT_EMAIL = {
   subject: 'Your Health Checkup Report',
   sender_name: 'Health Camp',
   sender_email: '',
+  sender_account: '',
   header_text: '🩺 Your Health Report',
   header_color: '#4F46E5',
   accent_color: '#4F46E5',
@@ -332,6 +333,9 @@ const DEFAULT_EMAIL = {
   footer_text: '',
   show_bmi_block: 1,
   show_entries_table: 1,
+  show_disclaimer: 1,
+  disclaimer_text: '',
+  use_full_html: 0,
 }
 
 const EMAIL_TOKENS = [
@@ -344,7 +348,15 @@ const EMAIL_TOKENS = [
   { token: '{{bmi_percentile}}', hint: "Children only, e.g. 62th" },
   { token: '{{bmi_height}}', hint: 'Height used, in cm' },
   { token: '{{bmi_weight}}', hint: 'Weight used, in kg' },
+  { token: '{{bmi_card}}', hint: 'The coloured BMI card, placed exactly here' },
+  { token: '{{measurements_table}}', hint: 'The table of every value entered, placed exactly here' },
+  { token: '{{field:Age}}', hint: 'Any form/station value by its label: replace Age with the label' },
 ]
+
+const STARTER_EMAIL_BODY = `<p style="font-size:16px;color:#333;margin:0 0 16px 0;">Hi <strong>{{player_name}}</strong>,</p>
+<p style="font-size:16px;color:#333;margin:0 0 20px 0;">Thank you for completing all {{stations_completed}} stations of the <strong>{{game_name}}</strong> health checkup. Your report is below.</p>
+{{bmi_card}}
+{{measurements_table}}`
 
 export default function SpotRegBuilderPage() {
   const { id } = useParams()
@@ -362,6 +374,7 @@ export default function SpotRegBuilderPage() {
 
   const [openStations, setOpenStations] = useState({})
   const [emailSettings, setEmailSettings] = useState({})
+  const [senders, setSenders] = useState([])
   const [savingEmail, setSavingEmail] = useState(false)
   const [previewing, setPreviewing] = useState(false)
   const [emailPreview, setEmailPreview] = useState(null)
@@ -393,6 +406,10 @@ export default function SpotRegBuilderPage() {
       setSettings({ ...DEFAULT_SETTINGS, ...(settingsRes.data.settings || {}) })
       setStations(settingsRes.data.stations || [])
       setEmailSettings({ ...DEFAULT_EMAIL, ...(emailRes.data.settings || {}) })
+      try {
+        const sRes = await api.get('/spotreg/email-senders')
+        setSenders(sRes.data.senders || [])
+      } catch (e) { console.error('Could not load sender accounts:', e) }
     } catch (err) {
       console.error('SpotReg builder load failed:', err)
       setFetchError(err.response?.data?.message || 'Could not load this game')
@@ -1529,10 +1546,19 @@ export default function SpotRegBuilderPage() {
                       placeholder="Health Camp" />
                   </div>
                   <div className="sr-fg">
-                    <span className="sr-label">Sender email</span>
+                    <span className="sr-label">Send from</span>
+                    <select value={emailSettings.sender_account || 'default'}
+                      onChange={e => setEmailSettings({ ...emailSettings, sender_account: e.target.value === 'default' ? '' : e.target.value })}>
+                      {(senders.length ? senders : [{ key: 'default', label: 'Default' }]).map(s => (
+                        <option key={s.key} value={s.key}>{s.label}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="sr-fg">
+                    <span className="sr-label">Reply-to email (optional)</span>
                     <input value={emailSettings.sender_email || ''}
                       onChange={e => setEmailSettings({ ...emailSettings, sender_email: e.target.value })}
-                      placeholder="reports@yourcamp.org" />
+                      placeholder="replies@yourcamp.org" />
                   </div>
                 </div>
               </div>
@@ -1562,8 +1588,30 @@ export default function SpotRegBuilderPage() {
               <div className="sr-section">
                 <div className="sr-section-title">📝 Body HTML</div>
                 <p className="sr-hint" style={{ marginBottom: 12 }}>
-                  Full HTML is supported. Click a token to insert it at the cursor.
+                  Full HTML is supported. Click a token to insert it at the cursor. Use{' '}
+                  <code>{'{{bmi_card}}'}</code> and <code>{'{{measurements_table}}'}</code> to place those
+                  blocks yourself, and <code>{'{{field:Label}}'}</code> for any value the participant entered.
                 </p>
+
+                <label className="sr-checkbox" style={{ alignItems: 'flex-start', marginBottom: 12 }}>
+                  <input type="checkbox" checked={!!emailSettings.use_full_html}
+                    onChange={e => setEmailSettings({ ...emailSettings, use_full_html: e.target.checked ? 1 : 0 })} />
+                  <span>
+                    <strong>My HTML is the whole email</strong>
+                    <br />
+                    <span className="sr-hint">
+                      No header, card, footer or disclaimer is added around it. You control every pixel.
+                    </span>
+                  </span>
+                </label>
+
+                <button type="button" className="sr-btn sr-btn-ghost sr-btn-sm" style={{ marginBottom: 10 }}
+                  onClick={() => {
+                    if (emailSettings.body_html && !window.confirm('Replace the current body with the starter template?')) return
+                    setEmailSettings({ ...emailSettings, body_html: STARTER_EMAIL_BODY })
+                  }}>
+                  Load starter template
+                </button>
 
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
                   {EMAIL_TOKENS.map(tok => (
@@ -1607,6 +1655,20 @@ export default function SpotRegBuilderPage() {
                       <span className="sr-hint">Every value the participant entered, by station.</span>
                     </span>
                   </label>
+                  <label className="sr-checkbox" style={{ alignItems: 'flex-start' }}>
+                    <input type="checkbox" checked={emailSettings.show_disclaimer !== 0}
+                      onChange={e => setEmailSettings({ ...emailSettings, show_disclaimer: e.target.checked ? 1 : 0 })} />
+                    <span>
+                      <strong>Include the disclaimer</strong>
+                      <br />
+                      <span className="sr-hint">Small print under the report. Edit the wording below.</span>
+                    </span>
+                  </label>
+                  {emailSettings.show_disclaimer !== 0 && (
+                    <textarea rows={3} value={emailSettings.disclaimer_text || ''}
+                      onChange={e => setEmailSettings({ ...emailSettings, disclaimer_text: e.target.value })}
+                      placeholder="This report is generated automatically for information only. It is not a medical diagnosis. Please follow up with a qualified health professional." />
+                  )}
                 </div>
               </div>
 

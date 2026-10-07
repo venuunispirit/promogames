@@ -697,9 +697,15 @@ export default function SpotRegPlayerPage() {
   const requireQr = progress?.settings?.require_qr !== false
   // Trust the server flag, but also derive it, so a stale payload can never
   // hide the Complete button or show it too early.
-  const everyStationSaved = (progress?.stations || []).length > 0
-    && progress.stations.every(st => st.saved)
-  const readyToComplete = !noStations && (progress?.all_done === true || everyStationSaved)
+  const stationList = progress?.stations || []
+  const allStationsSaved = stationList.length > 0 && stationList.every(st => st.saved)
+  // A station is "required" when it has at least one required field. The run can
+  // be finished once all of those are saved; a station with only optional fields
+  // may be skipped. If no station has a required field, every station is needed.
+  const requiredStations = stationList.filter(st => (st.fields || []).some(f => f.is_required))
+  const gatingStations = requiredStations.length > 0 ? requiredStations : stationList
+  const requiredStationsSaved = gatingStations.length > 0 && gatingStations.every(st => st.saved)
+  const readyToComplete = !noStations && (progress?.all_done === true || requiredStationsSaved)
 
   /** The visitor pressed Complete — only now is the thank-you screen shown. */
   const completeRun = () => setPhase('complete')
@@ -855,10 +861,12 @@ export default function SpotRegPlayerPage() {
                   </svg>
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--srp-h1-color)' }}>
-                  All stations complete
+                  {allStationsSaved ? 'All stations complete' : 'Required stations complete'}
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--srp-h2-color)', marginTop: 6, lineHeight: 1.5 }}>
-                  Press Complete when you are ready to finish.
+                  {allStationsSaved
+                    ? 'Press Complete when you are ready to finish.'
+                    : 'Press Complete to finish, or fill in the optional stations first.'}
                 </p>
               </div>
             )}
@@ -867,7 +875,7 @@ export default function SpotRegPlayerPage() {
                 front of you and that station opens. Ordered camps keep a Scan
                 button on the single station that is currently unlocked. With QR
                 disabled there is no camera at all. */}
-            {requireQr && !requireOrder && !noStations && !readyToComplete && (
+            {requireQr && !requireOrder && !noStations && !allStationsSaved && (
               <button className="srp-btn" style={{ marginBottom: 16 }} onClick={openScanner} disabled={scanBusy}>
                 📷 {s.scan_button_text || 'Scan Station QR Code'}
               </button>

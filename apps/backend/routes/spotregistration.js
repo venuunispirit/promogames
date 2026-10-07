@@ -629,10 +629,6 @@ router.get('/progress/:sessionToken', async (req, res) => {
     );
     const progressByStation = new Map(progress.map(p => [p.station_id, p]));
 
-    // First station that is not yet scanned — drives the "next station" pointer.
-    let nextIndex = stations.findIndex(s => !progressByStation.has(s.id));
-    if (nextIndex === -1) nextIndex = stations.length;
-
     // No settings row at all means "ordered", matching the column default.
     const requireOrder = !settingsRows[0] || settingsRows[0].require_order !== 0;
     const requireQr = !settingsRows[0] || settingsRows[0].require_qr !== 0;
@@ -654,6 +650,16 @@ router.get('/progress/:sessionToken', async (req, res) => {
       fieldsByStation.get(f.station_id).push({ ...f, field_options: options || [] });
     }
 
+    // A station whose fields are all optional never blocks the ones after it.
+    const hasRequired = (st) => (fieldsByStation.get(st.id) || []).some(f => f.is_required);
+
+    // First station not yet scanned — drives the "next station" pointer. Stations
+    // with a required field come first, so skipping an optional-only station
+    // does not lock everything behind it.
+    let nextIndex = stations.findIndex(s => !progressByStation.has(s.id) && hasRequired(s));
+    if (nextIndex === -1) nextIndex = stations.findIndex(s => !progressByStation.has(s.id));
+    if (nextIndex === -1) nextIndex = stations.length;
+
     const stationPayloads = stations.map((s, index) => {
       const { station_code, ...safe } = s;
       const p = progressByStation.get(s.id);
@@ -666,6 +672,7 @@ router.get('/progress/:sessionToken', async (req, res) => {
         fields: fieldsByStation.get(s.id) || [],
         scanned: !!p,
         saved: !!(p && p.completed_at),
+        has_required: hasRequired(s),
         answers: answers || {},
         locked: requireOrder ? index > nextIndex : false,
         isNext: index === nextIndex,
@@ -673,6 +680,10 @@ router.get('/progress/:sessionToken', async (req, res) => {
     });
 
     const doneCount = stationPayloads.filter(s => s.saved).length;
+    // The run can be finished once every station that has a required field is
+    // saved. If no station has one, every station is needed (previous behaviour).
+    const requiredPayloads = stationPayloads.filter(s => s.has_required);
+    const gatingPayloads = requiredPayloads.length > 0 ? requiredPayloads : stationPayloads;
 
     res.json({
       success: true,
@@ -695,7 +706,7 @@ router.get('/progress/:sessionToken', async (req, res) => {
       stations: stationPayloads,
       total: stationPayloads.length,
       done: doneCount,
-      all_done: stationPayloads.length > 0 && doneCount === stationPayloads.length,
+      all_done: gatingPayloads.length > 0 && gatingPayloads.every(s => s.saved),
     });
   } catch (err) {
     console.error('spotreg GET progress error:', err);
@@ -749,12 +760,20 @@ router.post('/scan', scanRateLimit, async (req, res) => {
         [session.id]
       );
       const doneIds = new Set(doneRows.map(p => Number(p.station_id)));
+      const [reqRows] = await db.query(
+        `SELECT DISTINCT f.station_id FROM spotreg_station_fields f
+           JOIN spotreg_stations s ON s.id = f.station_id
+          WHERE s.game_id = ? AND s.is_active = 1 AND f.is_required = 1`,
+        [session.game_id]
+      );
+      const requiredIds = new Set(reqRows.map(r => Number(r.station_id)));
 
       // Every station before this one must be finished (scanned *and* saved),
       // otherwise someone could skip ahead by scanning out of sequence.
       for (const row of orderRows) {
         if (Number(row.id) >= Number(station.id)) break;
-        if (!doneIds.has(Number(row.id))) {
+        const blocks = requiredIds.size === 0 || requiredIds.has(Number(row.id));
+        if (blocks && !doneIds.has(Number(row.id))) {
           return res.status(409).json({
             success: false,
             locked: true,
@@ -869,6 +888,13 @@ router.post('/station-submit', async (req, res) => {
     }
 
     if (requireOrder) {
+      const [[reqCount]] = await db.query(
+        `SELECT COUNT(*) AS c FROM spotreg_station_fields f
+           JOIN spotreg_stations s ON s.id = f.station_id
+          WHERE s.game_id = ? AND s.is_active = 1 AND f.is_required = 1`,
+        [session.game_id]
+      );
+      const anyRequiredStation = reqCount.c > 0 ? 1 : 0;
       const [earlier] = await db.query(
         `SELECT st.station_name
            FROM spotreg_stations st
@@ -881,8 +907,11 @@ router.post('/station-submit', async (req, res) => {
                   SELECT 1 FROM spotreg_progress p
                    WHERE p.session_id = ? AND p.station_id = st.id
                      AND p.completed_at IS NOT NULL)
+            AND (? = 0 OR EXISTS (
+                  SELECT 1 FROM spotreg_station_fields f
+                   WHERE f.station_id = st.id AND f.is_required = 1))
           LIMIT 1`,
-        [session.game_id, stationId, session.id]
+        [session.game_id, stationId, session.id, anyRequiredStation]
       );
       if (earlier.length > 0) {
         return res.status(409).json({

@@ -1367,7 +1367,7 @@ router.post('/complete', async (req, res) => {
     if (!game) return res.status(404).json({ success: false, message: 'Game not found' });
 
     const entries = await collectSessionEntries(session.id, session.game_id);
-    const bmi = await computeAndStoreBmi(session, entries);
+    const bmi = await computeAndStoreBmi(session, entries).catch(e => { console.error('spotreg BMI store failed:', e.message); return null; });
 
     let playerData = session.player_data;
     if (typeof playerData === 'string') {
@@ -1591,7 +1591,7 @@ router.post('/:gameId/sessions/:sessionId/resend', requireAdmin, async (req, res
     if (!to) return res.status(400).json({ success: false, message: 'This session has no valid email address' });
 
     const entries = await collectSessionEntries(sessionId, gameId);
-    const bmi = await computeAndStoreBmi(session, entries);
+    const bmi = await computeAndStoreBmi(session, entries).catch(e => { console.error('spotreg BMI store failed:', e.message); return null; });
     const playerName = normalize(playerData, ['name', 'fullname']) || 'there';
 
     const html = renderEmailHtml({

@@ -1308,7 +1308,7 @@ async function initDB() {
       grid_size INT DEFAULT 8,
       logo_url VARCHAR(500) DEFAULT '',
       logo_name VARCHAR(255) DEFAULT '',
-      levels_json TEXT DEFAULT '[]',
+      levels_json TEXT,
       candy_types INT DEFAULT 6,
       match_score INT DEFAULT 10,
       combo_multiplier INT DEFAULT 40,

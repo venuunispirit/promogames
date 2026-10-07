@@ -265,7 +265,7 @@ function computeBmi({ heightCm, weightKg, age, gender }) {
 
   const metres = heightCm / 100;
   const bmi = weightKg / (metres * metres);
-  if (!Number.isFinite(bmi) || bmi <= 0) return null;
+  if (!Number.isFinite(bmi) || bmi < 5 || bmi > 100) return null;
 
   const rounded = Math.round(bmi * 10) / 10;
   const ageYears = age === null ? null : Math.round(age * 10) / 10;

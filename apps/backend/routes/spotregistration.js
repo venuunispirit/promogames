@@ -681,9 +681,8 @@ router.get('/progress/:sessionToken', async (req, res) => {
 
     const doneCount = stationPayloads.filter(s => s.saved).length;
     // The run can be finished once every station that has a required field is
-    // saved. If no station has one, every station is needed (previous behaviour).
+    // saved. A game with no required fields can be finished at any time.
     const requiredPayloads = stationPayloads.filter(s => s.has_required);
-    const gatingPayloads = requiredPayloads.length > 0 ? requiredPayloads : stationPayloads;
 
     res.json({
       success: true,
@@ -706,7 +705,7 @@ router.get('/progress/:sessionToken', async (req, res) => {
       stations: stationPayloads,
       total: stationPayloads.length,
       done: doneCount,
-      all_done: gatingPayloads.length > 0 && gatingPayloads.every(s => s.saved),
+      all_done: stationPayloads.length > 0 && requiredPayloads.every(s => s.saved),
     });
   } catch (err) {
     console.error('spotreg GET progress error:', err);

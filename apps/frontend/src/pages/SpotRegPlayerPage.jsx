@@ -700,11 +700,10 @@ export default function SpotRegPlayerPage() {
   const stationList = progress?.stations || []
   const allStationsSaved = stationList.length > 0 && stationList.every(st => st.saved)
   // A station is "required" when it has at least one required field. The run can
-  // be finished once all of those are saved; a station with only optional fields
-  // may be skipped. If no station has a required field, every station is needed.
+  // be finished once all of those are saved. Stations with only optional fields
+  // may be skipped, so a game with no required fields can be finished right away.
   const requiredStations = stationList.filter(st => (st.fields || []).some(f => f.is_required))
-  const gatingStations = requiredStations.length > 0 ? requiredStations : stationList
-  const requiredStationsSaved = gatingStations.length > 0 && gatingStations.every(st => st.saved)
+  const requiredStationsSaved = stationList.length > 0 && requiredStations.every(st => st.saved)
   const readyToComplete = !noStations && (progress?.all_done === true || requiredStationsSaved)
 
   /** The visitor pressed Complete — only now is the thank-you screen shown. */
@@ -861,12 +860,14 @@ export default function SpotRegPlayerPage() {
                   </svg>
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--srp-h1-color)' }}>
-                  {allStationsSaved ? 'All stations complete' : 'Required stations complete'}
+                  {allStationsSaved
+                    ? 'All stations complete'
+                    : requiredStations.length === 0 ? 'Ready to finish' : 'Required stations complete'}
                 </div>
                 <p style={{ fontSize: 13, color: 'var(--srp-h2-color)', marginTop: 6, lineHeight: 1.5 }}>
                   {allStationsSaved
                     ? 'Press Complete when you are ready to finish.'
-                    : 'Press Complete to finish, or fill in the optional stations first.'}
+                    : 'Press Complete to finish, or fill in the stations first.'}
                 </p>
               </div>
             )}

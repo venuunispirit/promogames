@@ -7,6 +7,25 @@ const { sendError } = require('../lib/apiError');
 const jwt = require('jsonwebtoken');
 const { allocateNextCode, getExistingCode, getCodeForSession, applyEmailPlaceholder } = require('../lib/quizCodes');
 
+
+// ── Quiz sound fallback ──────────────────────────────────────────────────────
+// The quiz player reads settings.sound_correct_id / sound_wrong_id, while the
+// builder stores them per question. If the settings value is empty (or points
+// at a sound that isn't in this game's soundMap) take it from the questions,
+// then from sounds tagged 'correct' / 'wrong'.
+function applyQuizSoundFallback(settings, questions, sounds) {
+  if (!settings) return;
+  const ids = new Set((sounds || []).map((s) => Number(s.id)));
+  const valid = (v) => v !== undefined && v !== null && v !== '' && ids.has(parseInt(v, 10));
+  for (const [key, type] of [['sound_correct_id', 'correct'], ['sound_wrong_id', 'wrong']]) {
+    if (valid(settings[key])) { settings[key] = parseInt(settings[key], 10); continue; }
+    const fromQ = (questions || []).map((q) => q[key]).find(valid);
+    if (fromQ) { settings[key] = parseInt(fromQ, 10); continue; }
+    const byType = (sounds || []).find((s) => String(s.sound_type || '').toLowerCase() === type);
+    if (byType) settings[key] = byType.id;
+  }
+}
+
 // ── Player engagement helpers ────────────────────────────────────────────────
 // Resolve the promo player from an optional Authorization: Bearer <playerToken>.
 // Returns null for guests / invalid tokens — never throws.
@@ -177,7 +196,8 @@ router.get('/game-data/:gameId', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
     const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [gameId]);
     const soundMap = {};
-    for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+    for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
+    if (game.category === 'quiz') applyQuizSoundFallback(settings, questions, sounds);
 
     res.json({
       success: true,
@@ -230,7 +250,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = cwSettings[0] ? { ...cwSettings[0] } : {};
       // Default allow_hints to 1 if not set
@@ -279,7 +299,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = spinSettings[0] ? { ...spinSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url']) {
@@ -326,7 +346,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = memSettings[0] ? { ...memSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'card_cover_image_url', 'overlay_image_url', 'gif_url']) {
@@ -367,7 +387,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = jigSettings[0] ? { ...jigSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'puzzle_image_url', 'submit_confirm_gif_url']) {
@@ -419,7 +439,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = wsSettings[0] ? { ...wsSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -459,7 +479,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = pourSettings[0] ? { ...pourSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -501,7 +521,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = typerSettings[0] ? { ...typerSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -541,7 +561,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = mathSettings[0] ? { ...mathSettings[0] } : {};
 
@@ -577,7 +597,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = mazeSettings[0] ? { ...mazeSettings[0] } : {};
 
@@ -613,7 +633,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       );
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = screwSettings[0] ? { ...screwSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'reveal_image_url', 'submit_confirm_gif_url']) {
@@ -647,7 +667,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -684,7 +704,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -718,7 +738,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -745,7 +765,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -772,7 +792,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -799,7 +819,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -826,7 +846,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -860,7 +880,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -894,7 +914,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
@@ -965,7 +985,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
 
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url', 'o_image_url', 'puzzle_image_url', 'reveal_image_url', 'overlay_image_url', 'card_cover_image_url', 'gif_url']) {
@@ -1004,7 +1024,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -1028,7 +1048,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -1052,7 +1072,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -1076,7 +1096,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -1106,9 +1126,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
     }
 
     const soundMap = {};
-    for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+    for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
 
     const safeSettings = settings[0] ? { ...settings[0] } : {};
+    applyQuizSoundFallback(safeSettings, questions, sounds);
     if (safeSettings) {
       for (const f of ['bg_image_url','thankyou_bg_image_url','game_logo_url','submit_confirm_gif_url']) {
         safeSettings[f] = toAbs(safeSettings[f]);
@@ -1819,7 +1840,7 @@ router.get('/:gameName', async (req, res) => {
       const [cwFormFields] = await db.query('SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]);
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = cwSettings[0] ? { ...cwSettings[0] } : {};
       if (settings.allow_hints === undefined || settings.allow_hints === null) settings.allow_hints = 1;
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url']) {
@@ -1845,7 +1866,7 @@ router.get('/:gameName', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = spinSettings[0] ? { ...spinSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -1873,7 +1894,7 @@ router.get('/:gameName', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -1897,7 +1918,7 @@ router.get('/:gameName', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -1921,7 +1942,7 @@ router.get('/:gameName', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -1945,7 +1966,7 @@ router.get('/:gameName', async (req, res) => {
     formFields = formFields.map(f => ({ ...f, field_options: (() => { if (Array.isArray(f.field_options)) return f.field_options; try { return JSON.parse(f.field_options || '[]') } catch { return [] } })() }));
       const [sounds] = await db.query('SELECT * FROM sounds WHERE game_id = ?', [game.id]);
       const soundMap = {};
-      for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+      for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
       const settings = gameSettings[0] ? { ...gameSettings[0] } : {};
       for (const f of ['bg_image_url', 'thankyou_bg_image_url', 'game_logo_url', 'submit_confirm_gif_url']) {
         if (settings[f] !== undefined) settings[f] = toAbs(settings[f]);
@@ -1982,9 +2003,10 @@ router.get('/:gameName', async (req, res) => {
       q.options = options;
     }
     const soundMap = {};
-    for (const s of sounds) soundMap[s.id] = toAbs(s.url);
+    for (const s of sounds) soundMap[s.id] = toAbs(s.url || s.file_url);
     const rawSettings = settingsRows[0] || {};
     const safeSettings = { ...rawSettings };
+    applyQuizSoundFallback(safeSettings, questions, sounds);
     for (const f of ['bg_image_url','thankyou_bg_image_url','game_logo_url','intro_video_url']) {
       if (safeSettings[f]) safeSettings[f] = toAbs(safeSettings[f]);
     }

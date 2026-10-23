@@ -9,6 +9,20 @@ require("./config/env"); // Validates all required env vars — exits if missing
 const app = express();
 app.set('trust proxy', 1); // needed so req.protocol reflects the original HTTPS request behind nginx
 
+// PUBLIC_HTTPS_FIX: nginx does not forward X-Forwarded-Proto, so req.protocol was
+// "http" and absolute media links (sounds, images, videos) came back as http://
+// on an https page. Treat requests for a public hostname as https unless the
+// proxy already said otherwise. localhost / raw IPs are left alone.
+app.use((req, res, next) => {
+  if (!req.headers['x-forwarded-proto']) {
+    const host = String(req.headers.host || '').split(':')[0].toLowerCase();
+    const isLocal = !host || host === 'localhost' || host === '127.0.0.1' || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+    if (!isLocal) req.headers['x-forwarded-proto'] = 'https';
+  }
+  next();
+});
+
+
 // ── Layer 1+2: CORS lockdown + security headers ─────────────────────────────
 // The frontend calls the API same-origin (baseURL '/api'), so we only allow
 // known origins. Set ALLOWED_ORIGINS (comma-separated) in .env for production.

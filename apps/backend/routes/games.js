@@ -258,7 +258,7 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
              outro_text_color, start_button_text, scan_button_text, submit_button_text, skip_button_text,
              complete_heading, complete_text, scan_hint_text, require_order, show_progress, allow_rescan,
              terms_enabled, terms_text, terms_url, meta_description)
-           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
           [newId, s.bg_color, s.primary_color, s.font_family, s.heading_1, s.heading_2, s.heading_3,
            s.description_text, s.heading_1_color, s.heading_2_color, s.heading_3_color, s.description_color,
            s.bg_image_url, s.game_logo_url, s.station_bg_image_url, s.thankyou_bg_image_url, s.intro_text,

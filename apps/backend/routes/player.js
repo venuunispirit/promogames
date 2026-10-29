@@ -1681,9 +1681,9 @@ router.post('/session/complete', async (req, res) => {
               subject,
               html,
               headers: {
-                'Message-ID': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
-                'In-Reply-To': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
-                'References': `<bo-${boGames[0].business_owner_id}-game-${session.game_id}@promogames>`,
+                'Message-ID': `<bo-${resolvedBoId}-game-${session.game_id}@promogames>`,
+                'In-Reply-To': `<bo-${resolvedBoId}-game-${session.game_id}@promogames>`,
+                'References': `<bo-${resolvedBoId}-game-${session.game_id}@promogames>`,
               },
             });
             console.log(`✅ BO notification sent to ${boEmail} for ${playerName}`);

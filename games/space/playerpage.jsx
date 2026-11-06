@@ -69,6 +69,7 @@ const SpacePlayerPage = () => {
         setWeapons(res.data.weapons || []);
         setEnemies(res.data.enemies || []);
         setLevels(res.data.levels || []);
+        setBestScore(res.data.game.high_score || 0);
         // Set default ship as selected
         const defaultShip = (res.data.ships || []).find(s => s.is_default);
         if (defaultShip) setSelectedShip(defaultShip);
@@ -98,7 +99,6 @@ const SpacePlayerPage = () => {
           setKills(progress.kills || 0);
           setTimeElapsed(progress.time_elapsed || 0);
           setDeaths(progress.deaths || 0);
-          setBestScore(progress.best_score || 0);
           setBestTime(progress.best_time || null);
         }
       })

@@ -7,6 +7,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@games': path.resolve(__dirname, '../../games'),
+      '@': path.resolve(__dirname, './src'),
     },
   },
   build: {
@@ -32,6 +33,11 @@ export default defineConfig({
   },
   server: {
     port: 5173,
+    host: '0.0.0.0',
+    // Allow access via Cloudflare tunnels (`cloudflared tunnel --url ...`).
+    // The random *.trycloudflare.com subdomain changes on every tunnel
+    // restart, so allow the whole suffix instead of a fixed hostname.
+    allowedHosts: ['.trycloudflare.com'],
     proxy: {
       '/api': {
         target: 'http://localhost:8080',
@@ -39,6 +45,13 @@ export default defineConfig({
       },
       '/uploads': {
         target: 'http://localhost:8080',
+        changeOrigin: true
+      },
+      // Chess online mode — WebSocket upgrade (rematch push). `ws: true` is
+      // required for Vite to proxy the HTTP upgrade handshake.
+      '/ws/chess': {
+        target: 'http://localhost:8080',
+        ws: true,
         changeOrigin: true
       }
     }

@@ -1,4 +1,5 @@
 const express = require("express");
+const http = require("http");
 const cors = require("cors");
 const compression = require("compression");
 const path = require("path");
@@ -102,7 +103,7 @@ const gamesRoutes = require("./routes/games");
 const templateRoutes = require("./routes/templates");
 const soundsRoutes = require("./routes/sounds");
 const uploadRoutes = require("./routes/upload");
-const quizRoutes = require("../../games/quiz/route");
+
 const playerRoutes = require("./routes/player");
 const clientsRoutes = require("./routes/clients");
 const spinRoutes = require("../../games/spin/route");
@@ -122,6 +123,7 @@ const catchRoutes = require("../../games/catch/route");
 const reactionRoutes = require("../../games/reaction/route");
 const mathRoutes = require("../../games/math/route");
 const mazeRoutes = require("../../games/classicmaze/route");
+const stickMazeRoutes = require("../../games/stickmaze/route");
 const game2048Routes = require("../../games/2048/route");
 const simonRoutes = require("../../games/simon/route");
 const bounceRoutes = require("../../games/bounce/route");
@@ -149,11 +151,13 @@ const stressbusterRoutes = require("../../games/stressbuster/route");
 const soundifyRoutes = require("../../games/soundify/route");
 const tictactoeRoutes = require("../../games/tictactoe/route");
 const chessRoutes = require("../../games/chess/route");
+const chessRealtime = require("../../games/chess/realtime");
 const snakeandladderRoutes = require("../../games/snakeandladder/route");
 const ludoRoutes = require("../../games/ludo/route");
 const CarromRoutes = require("../../games/carrom/route");
 const tictactoemultiRoutes = require("../../games/tictactoemulti/route");
 const businessOwnerRoutes = require("./routes/businessOwner");
+const spotRegRoutes = require("../../games/spotreg/route");
 const businessDevRoutes = require("./routes/businessDev");
 const franchiseRoutes = require("./routes/franchise");
 const internalTeamRoutes = require("./routes/internalTeam");
@@ -171,7 +175,7 @@ app.use("/api/games", requireAdmin, gamesRoutes);
 app.use("/api/templates", requireAdmin, templateRoutes);
 app.use("/api/sounds", requireAdmin, soundsRoutes);
 app.use("/api/upload", requireAdmin, uploadRoutes);
-app.use("/api/quiz", requireAdmin, quizRoutes);
+
 app.use("/api/play", playerRoutes);
 app.use("/api/clients", requireAdmin, clientsRoutes);
 app.use("/api/spin", requireAdmin, spinRoutes);
@@ -190,7 +194,8 @@ app.use("/api/nagaraja", requireAdmin, nagarajaRoutes);
 app.use("/api/catch", requireAdmin, catchRoutes);
 app.use("/api/reaction", requireAdmin, reactionRoutes);
 app.use("/api/math", requireAdmin, mathRoutes);
-app.use("/api/maze", requireAdmin, mazeRoutes);
+app.use("/api/classicmaze", mazeRoutes); // No requireAdmin — /generate & /progress must be accessible to players; routes carry their own auth middleware
+app.use("/api/stickmaze", stickMazeRoutes); // No requireAdmin — same player-facing routes
 app.use("/api/2048", game2048Routes);
 app.use("/api/simon", requireAdmin, simonRoutes);
 app.use("/api/bounce", requireAdmin, bounceRoutes);
@@ -230,6 +235,7 @@ app.use("/api/notifications", auth, notificationsRoutes);
 app.use("/api/internal-team/notifications", itAuth, notificationsRoutes);
 app.use("/api/system", requireAdmin, systemRoutes);
 app.use("/api/translate", auth, translateRoutes);
+app.use(["/api/spotreg", "/api/spotregistration"], spotRegRoutes);
 
 const { startPCResetCron } = require('./cron/pcReset');
 startPCResetCron();
@@ -387,11 +393,16 @@ app.use((err, req, res, next) => {
 
 const PORT = process.env.PORT || 8080;
 
+// HTTP server wrapping the Express app so WebSocket upgrades (chess online
+// mode at /ws/chess) share the same port as the REST API.
+const server = http.createServer(app);
+chessRealtime.attach(server);
+
 // Run DB migrations on startup (idempotent — safe to run every time)
 const initDB = require('./config/initDB');
 initDB()
   .then(() => {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
       // Auto-start the translation companion (LibreTranslate) so it comes up
       // with the backend — no manual step on restart.

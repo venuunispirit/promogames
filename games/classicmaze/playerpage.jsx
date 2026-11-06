@@ -1,12 +1,16 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import api from '../../apps/frontend/src/api'
+import { postPromoCoinReward } from '../../apps/frontend/src/lib/promocoins'
 
 /* ============================================================
-   This is the original MazePlayerPage component, unmodified in
-   its logic, wired up to a small in-memory mock of `../api` and
-   `gameData` so it can actually run standalone in this preview.
-   In the real app, `../api` talks to a server that generates
-   mazes and stores session progress; here that's simulated with
-   a client-side maze generator and an in-memory store.
+   Classic Maze player page. Renders the maze board, handles
+   movement (keyboard arrows / touch swipe), tracks
+   collectibles and level progress, and persists progress to the
+   backend via /api/classicmaze/:gameId (generate + progress) and
+   /api/play/session/complete. Expects props:
+     gameData     - { id, settings, soundMap, redirect_url }
+     sessionToken - player session token (optional)
+     onComplete   - called with completion payload
    ============================================================ */
 
 const STYLES = `
@@ -23,138 +27,34 @@ function playSound(soundMap, id) {
   try { const a = new Audio(soundMap[id]); a.volume = 0.6; a.play().catch(() => {}) } catch (e) {}
 }
 
-/* ---------------- mock backend ---------------- */
+/* ---------------- backend API helpers ---------------- */
 
-// simple recursive-backtracker maze generator; returns a size x size
-// grid of cells with wall flags n/s/e/w (true = wall present on that side)
-function generateMazeGrid(size, extraPathRatio = 0.12) {
-  const grid = Array.from({ length: size }, () =>
-    Array.from({ length: size }, () => ({ n: true, s: true, e: true, w: true, visited: false }))
-  )
-  const stack = [[0, 0]]
-  grid[0][0].visited = true
-  const dirs = [
-    [-1, 0, 'n', 's'],
-    [1, 0, 's', 'n'],
-    [0, -1, 'w', 'e'],
-    [0, 1, 'e', 'w'],
-  ]
-  while (stack.length) {
-    const [r, c] = stack[stack.length - 1]
-    const neighbors = []
-    for (const [dr, dc, side, opp] of dirs) {
-      const nr = r + dr, nc = c + dc
-      if (nr >= 0 && nr < size && nc >= 0 && nc < size && !grid[nr][nc].visited) {
-        neighbors.push([nr, nc, side, opp])
-      }
-    }
-    if (!neighbors.length) { stack.pop(); continue }
-    const [nr, nc, side, opp] = neighbors[Math.floor(Math.random() * neighbors.length)]
-    grid[r][c][side] = false
-    grid[nr][nc][opp] = false
-    grid[nr][nc].visited = true
-    stack.push([nr, nc])
-  }
-
-  // A recursive-backtracker maze is "perfect": exactly one route between
-  // any two cells, and no loops. Knock down a handful of extra walls so
-  // there are more paths to choose from and dead ends open back up.
-  const extraCount = Math.round(size * size * extraPathRatio)
-  for (let i = 0; i < extraCount; i++) {
-    const r = Math.floor(Math.random() * size)
-    const c = Math.floor(Math.random() * size)
-    const options = []
-    if (r > 0) options.push(['n', -1, 0])
-    if (r < size - 1) options.push(['s', 1, 0])
-    if (c > 0) options.push(['w', 0, -1])
-    if (c < size - 1) options.push(['e', 0, 1])
-    const opposite = { n: 's', s: 'n', e: 'w', w: 'e' }
-    const [side, dr, dc] = options[Math.floor(Math.random() * options.length)]
-    grid[r][c][side] = false
-    grid[r + dr][c + dc][opposite[side]] = false
-  }
-
-  return grid.map(row => row.map(({ n, s, e, w }) => ({ n, s, e, w })))
+async function fetchProgress(gameId, sessionToken) {
+  try {
+    const res = await api.get(`/classicmaze/${gameId}/progress`, { params: { session_token: sessionToken } })
+    return res.data.progress || null
+  } catch { return null }
 }
 
-function generateCollectibles(size, count, exit) {
-  const items = []
-  const used = new Set(['0,0', `${exit.r},${exit.c}`])
-  while (items.length < count && items.length < size * size - 2) {
-    const r = Math.floor(Math.random() * size)
-    const c = Math.floor(Math.random() * size)
-    const key = `${r},${c}`
-    if (used.has(key)) continue
-    used.add(key)
-    items.push({ r, c })
-  }
-  return items
+async function generateMazeApi(gameId, level, sessionToken) {
+  const res = await api.get(`/classicmaze/${gameId}/generate`, { params: { level, session_token: sessionToken || '' } })
+  return res.data
 }
 
-const mockStore = { progress: null }
-
-const mockApi = {
-  get(url, config) {
-    const params = (config && config.params) || {}
-    return new Promise(resolve => {
-      setTimeout(() => {
-        if (url.endsWith('/progress')) {
-          resolve({ data: { progress: mockStore.progress } })
-        } else if (url.includes('/generate')) {
-          const level = parseInt(params.level) || 1
-          // grid grows every level instead of every couple levels, and the
-          // maze gets "tighter" (fewer extra shortcut walls knocked down)
-          // the further you get, so later levels are meaningfully harder.
-          const size = Math.min(16 + level, 28)
-          const extraPathRatio = Math.max(0.03, 0.08 - level * 0.003)
-          const maze = generateMazeGrid(size, extraPathRatio)
-          const exit = { r: size - 1, c: size - 1 }
-          const collectibles = generateCollectibles(size, 2 + Math.floor(level / 2), exit)
-          resolve({ data: { maze, size, collectibles } })
-        } else {
-          resolve({ data: {} })
-        }
-      }, 250)
-    })
-  },
-  post(url, body) {
-    return new Promise(resolve => {
-      setTimeout(() => {
-        if (url.includes('/progress')) {
-          mockStore.progress = {
-            current_level: body.completed ? body.level + 1 : body.level,
-            total_collectibles: (mockStore.progress?.total_collectibles || 0) + (body.collectibles_found || 0),
-          }
-          resolve({ data: { ok: true } })
-        } else if (url.includes('/session/complete')) {
-          resolve({ data: { redirect_url: null, message: 'Demo session complete!' } })
-        } else {
-          resolve({ data: {} })
-        }
-      }, 200)
-    })
-  },
+async function saveProgress(gameId, payload) {
+  try {
+    const res = await api.post(`/classicmaze/${gameId}/progress`, payload)
+    // Backend-confirmed per-level PromoCoins award → surface to the shell wallet.
+    if (res.data?.pc_reward) postPromoCoinReward(res.data.pc_reward)
+    return res.data
+  } catch { return null }
 }
 
-const mockGameData = {
-  id: 'demo-maze',
-  settings: {
-    total_levels: 5,
-    show_timer: true,
-    time_limit_seconds: 45,
-    bg_color: '#0f172a',
-    primary_color: '#818cf8',
-    wall_color: '#334155',
-    path_color: '#ffffff',
-    font_family: 'DM Sans',
-    collectible_label: '★',
-    overlay_animation_in: 'flyFromBottom',
-    overlay_animation_out: 'flyToTop',
-    outro_text: 'All Mazes Complete!',
-    continue_button_text: 'Continue →',
-  },
-  soundMap: {},
-  redirect_url: null,
+async function completeSession(sessionToken) {
+  try {
+    const res = await api.post('/play/session/complete', { session_token: sessionToken })
+    return res.data
+  } catch { return { redirect_url: null } }
 }
 
 /* ---------------- original component ---------------- */
@@ -179,6 +79,7 @@ function MazePlayerPage({ gameData, sessionToken, onComplete }) {
   const [gameOver, setGameOver] = useState(false)
   const [moves, setMoves] = useState(0)
   const [cellSize, setCellSize] = useState(40)
+  const [loadError, setLoadError] = useState(null)
   const timerRef = useRef(null)
   const isCompleteRef = useRef(false)
 
@@ -195,9 +96,8 @@ function MazePlayerPage({ gameData, sessionToken, onComplete }) {
 
   useEffect(() => {
     if (!sessionToken) { loadMaze(1); return }
-    mockApi.get(`/maze/${game.id}/progress`, { params: { session_token: sessionToken } })
-      .then(res => {
-        const p = res.data.progress
+    fetchProgress(game.id, sessionToken)
+      .then(p => {
         if (p) {
           const lvl = p.current_level || 1
           setCurrentLevel(lvl)
@@ -211,13 +111,11 @@ function MazePlayerPage({ gameData, sessionToken, onComplete }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sessionToken, game.id])
 
-  const loadMaze = async (level) => {
+const loadMaze = async (level) => {
     setPhase('loading')
+    setLoadError(null)
     try {
-      const res = await mockApi.get(`/maze/${game.id}/generate`, {
-        params: { level, session_token: sessionToken || '' }
-      })
-      const data = res.data
+      const data = await generateMazeApi(game.id, level, sessionToken || '')
       setMaze(data.maze)
       setSize(data.size)
       setPlayer({ r: 0, c: 0 })
@@ -230,7 +128,10 @@ function MazePlayerPage({ gameData, sessionToken, onComplete }) {
       }
       setPhase('playing')
     } catch (err) {
+      console.error('[Classic Maze] Failed to load maze:', err?.response?.status, err?.response?.data || err?.message || err)
+      setLoadError(err?.response?.status ? `HTTP ${err.response.status}` : (err?.message || 'Network error'))
       setPhase('playing')
+      setMaze(null)
     }
   }
 
@@ -285,13 +186,13 @@ function MazePlayerPage({ gameData, sessionToken, onComplete }) {
       setShowOverlay(true)
       if (sessionToken) {
         const timeSpent = settings.time_limit_seconds ? settings.time_limit_seconds - timeLeft : 0
-        mockApi.post(`/maze/${game.id}/progress`, {
+        saveProgress(game.id, {
           session_token: sessionToken,
           level: currentLevel,
           completed: true,
           time_spent: Math.round(timeSpent),
           collectibles_found: collected.has(`${nr},${nc}`) ? collectibles.length : collected.size,
-        }).catch(() => {})
+        })
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -338,8 +239,8 @@ function MazePlayerPage({ gameData, sessionToken, onComplete }) {
     setGameOver(true)
     if (!sessionToken) return
     try {
-      const res = await mockApi.post('/play/session/complete', { session_token: sessionToken })
-      onComplete?.(res.data)
+      const data = await completeSession(sessionToken)
+      onComplete?.(data)
     } catch (err) {
       onComplete?.({ redirect_url: game.redirect_url })
     }
@@ -347,7 +248,7 @@ function MazePlayerPage({ gameData, sessionToken, onComplete }) {
 
   const animIn = settings.overlay_animation_in || 'flyFromBottom'
   const animOut = overlayAnimOut || 'flyToTop'
-  const wallColor = settings.wall_color || '#1e293b'
+  const wallColor = settings.wall_color || '#64748b'
   const pathColor = settings.path_color || '#ffffff'
 
   if (phase === 'loading') return (
@@ -430,20 +331,18 @@ function MazePlayerPage({ gameData, sessionToken, onComplete }) {
             ))}
           </div>
         </div>
-      ) : null}
-
-      <div style={{ display:'flex', justifyContent:'center', gap:4, padding:'8px 16px 16px', background:'rgba(255,255,255,0.03)' }}>
-        <div style={{ display:'grid', gridTemplateColumns:'repeat(3,56px)', gap:5 }}>
-          <div />
-          <button onTouchStart={(e)=>{e.preventDefault();movePlayer(-1,0)}} onClick={()=>movePlayer(-1,0)} style={{width:56,height:56,borderRadius:12,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.08)',color:'#fff',fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>▲</button>
-          <div />
-          <button onTouchStart={(e)=>{e.preventDefault();movePlayer(0,-1)}} onClick={()=>movePlayer(0,-1)} style={{width:56,height:56,borderRadius:12,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.08)',color:'#fff',fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>◀</button>
-          <div style={{width:56,height:56,borderRadius:12,background:'rgba(99,102,241,0.2)',border:'1px solid rgba(99,102,241,0.3)',display:'flex',alignItems:'center',justifyContent:'center',fontSize:14,color:settings.primary_color||'#6366f1'}}>●</div>
-          <button onTouchStart={(e)=>{e.preventDefault();movePlayer(0,1)}} onClick={()=>movePlayer(0,1)} style={{width:56,height:56,borderRadius:12,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.08)',color:'#fff',fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>▶</button>
-          <div />
-          <button onTouchStart={(e)=>{e.preventDefault();movePlayer(1,0)}} onClick={()=>movePlayer(1,0)} style={{width:56,height:56,borderRadius:12,border:'1px solid rgba(255,255,255,0.1)',background:'rgba(255,255,255,0.08)',color:'#fff',fontSize:22,cursor:'pointer',display:'flex',alignItems:'center',justifyContent:'center'}}>▼</button>
+      ) : (
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', padding:20 }}>
+          <div style={{ textAlign:'center', color:'#94a3b8' }}>
+            <div style={{ fontSize:40, marginBottom:10 }}>🧱</div>
+            <div style={{ fontSize:14, fontWeight:600, color:'#fff', marginBottom:6 }}>Maze could not be loaded</div>
+            {loadError && <div style={{ fontSize:12, color:'#f87171', marginBottom:4 }}>{loadError}</div>}
+            <button onClick={() => loadMaze(currentLevel)} style={{ marginTop:8, padding:'10px 24px', borderRadius:10, border:'none', background: settings.primary_color || '#6366f1', color:'#fff', fontSize:13, fontWeight:700, cursor:'pointer', fontFamily:'inherit' }}>
+              Try Again
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {showOverlay && (
         <div style={{ position:'fixed',inset:0,zIndex:100,display:'flex',alignItems:'center',justifyContent:'center',background:'rgba(0,0,0,0.7)',backdropFilter:'blur(6px)' }}>
@@ -465,12 +364,4 @@ function MazePlayerPage({ gameData, sessionToken, onComplete }) {
   )
 }
 
-export default function Demo() {
-  return (
-    <MazePlayerPage
-      gameData={mockGameData}
-      sessionToken="demo-session"
-      onComplete={(data) => console.log('Game complete:', data)}
-    />
-  )
-}
+export default MazePlayerPage

@@ -880,7 +880,7 @@ const TTTStyles = `
   }
 `
 
-export default function TicTacToePlayerPage({ gameData, sessionToken: initToken, sessionId: initSessionId, onSessionStart, onComplete, onLose }) {
+export default function TicTacToePlayerPage({ gameData, sessionToken: initToken, sessionId: initSessionId, onSessionStart, onComplete }) {
   const settings = gameData?.settings || {}
   console.log('[GAME] board_selection:', settings.enable_board_selection, 'level_selection:', settings.enable_level_selection)
   const defBoardSize = parseInt(settings.board_size) || 3
@@ -967,14 +967,14 @@ export default function TicTacToePlayerPage({ gameData, sessionToken: initToken,
     const b = board.map(r => [...r])
     b[row][col] = 'X'
     setBoard(b)
-    setCurrentTurn('ai')
     setBoardVer(v => v + 1)
     playSound(resolveSound(settings.sound_correct_id))
 
     const playerResult = checkWinner(b, winLength)
-    if (playerResult) { setTimeout(() => endGame('win', playerResult.cells, 1), 3000); return }
-    if (isBoardFull(b)) { setTimeout(() => endGame('draw', [], 0), 3000); return }
+    if (playerResult) { setCurrentTurn('ai'); setTimeout(() => endGame('win', playerResult.cells, 1), 600); return }
+    if (isBoardFull(b)) { setCurrentTurn('ai'); setTimeout(() => endGame('draw', [], 0), 600); return }
 
+    setCurrentTurn('ai')
     const aiBoard = b
     setTimeout(() => {
       const latest = aiBoard.map(r => [...r])
@@ -988,11 +988,11 @@ export default function TicTacToePlayerPage({ gameData, sessionToken: initToken,
       const aiResult = checkWinner(latest, winLength)
       if (aiResult) {
         setCurrentTurn('ai')
-        setTimeout(() => endGame('lose', aiResult.cells, 0), 3000)
+        setTimeout(() => endGame('lose', aiResult.cells, 0), 600)
         return
       }
       if (isBoardFull(latest)) {
-        setTimeout(() => endGame('draw', [], 0), 3000)
+        setTimeout(() => endGame('draw', [], 0), 600)
         return
       }
       setCurrentTurn('player')
@@ -1074,8 +1074,9 @@ export default function TicTacToePlayerPage({ gameData, sessionToken: initToken,
     if (gameOver === 'lose') return { text: "Player O Wins!", className: 'lose' }
     if (gameOver === 'draw') return { text: 'Draw Game', className: 'draw' }
     if (currentTurn === 'ai') {
-      const aiWinCheck = checkWinner(board, winLength)
-      if (aiWinCheck && aiWinCheck.winner === 'O') return { text: "Player O Wins!", className: 'lose' }
+      const winCheck = checkWinner(board, winLength)
+      if (winCheck && winCheck.winner === 'O') return { text: "Player O Wins!", className: 'lose' }
+      if (winCheck && winCheck.winner === 'X') return { text: settings.custom_win_msg || 'You Win!', className: 'win' }
       return { text: 'Thinking...', className: 'thinking' }
     }
     return { text: 'Your Turn (X)', className: 'turn-x' }
@@ -1218,7 +1219,7 @@ export default function TicTacToePlayerPage({ gameData, sessionToken: initToken,
               </div>
             )}
             <div className="ttt-popup-actions">
-              {gameOver === 'draw' && (
+              {gameOver !== 'draw' && (
                 <button onClick={handleRetry} className="ttt-btn secondary"
                   style={{
                     color: settings.try_again_text_color || '#ffffff',
@@ -1228,18 +1229,8 @@ export default function TicTacToePlayerPage({ gameData, sessionToken: initToken,
                   {settings.try_again_btn_text || 'Try Again'}
                 </button>
               )}
-              {gameOver === 'win' && (
+              {(gameOver === 'win' || gameOver === 'lose') && (
                 <button onClick={handleContinue} className="ttt-btn primary"
-                  style={{
-                    color: settings.continue_btn_text_color || '#1a1a1a',
-                    background: settings.continue_btn_bg_color || 'linear-gradient(135deg, #73C7F6, #5ab8e8)',
-                    boxShadow: settings.continue_btn_bg_color ? `0 6px 20px ${settings.continue_btn_bg_color}66` : '0 6px 20px rgba(115, 199, 246, 0.4)'
-                  }}>
-                  {settings.continue_btn_text || 'Continue'}
-                </button>
-              )}
-              {gameOver === 'lose' && (
-                <button onClick={onLose} className="ttt-btn primary"
                   style={{
                     color: settings.continue_btn_text_color || '#1a1a1a',
                     background: settings.continue_btn_bg_color || 'linear-gradient(135deg, #73C7F6, #5ab8e8)',

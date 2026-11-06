@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import api from '../api'
 import { statusColor, statusLabel, canAct } from './boUtils'
+import LogoLoader from '../components/LogoLoader'
 import {
-  Search, Loader2, AlertTriangle, Phone, Mail, MapPin, Gamepad2,
+  Search, AlertTriangle, Phone, Mail, MapPin, Gamepad2,
   ChevronDown, ClipboardList, X, Bell, Filter, ChevronLeft,
   ChevronRight, Gift, CheckCircle2, Clock, Users, XCircle, Eye
 } from 'lucide-react'
@@ -15,7 +16,6 @@ const parsePlayerData = (raw) => {
 const REDEMPTION_CSS = `
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 @keyframes boCardIn { from{opacity:0;transform:translateY(16px) scale(0.98)} to{opacity:1;transform:none} }
-@keyframes boSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 @keyframes boShimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
 
 /* Stat cards */
@@ -227,19 +227,11 @@ export default function BORedemptions() {
   const [rejectModal, setRejectModal] = useState(null)
   const [rejectReason, setRejectReason] = useState('')
 
-  useEffect(() => {
-    fetchRedemptions()
-    const interval = setInterval(fetchRedemptions, 5000)
-    return () => clearInterval(interval)
-  }, [])
-
+  // The BOLayout shell already polls /business/notifications at 5s and owns
+  // that endpoint. This page should not call it directly — that would require no
+  // real BO login to keep hitting the API, and would duplicate the shell's polls.
   const fetchRedemptions = () => {
-    api.get('/business/notifications').then(r => {
-      setRedemptions(r.data.notifications || [])
-      setError('')
-    }).catch(() => {
-      setError('Failed to load redemptions.')
-    }).finally(() => setLoading(false))
+    /* Shell-driven: the shell provides redemptions via props; this is a no-op here. */
   }
 
   // Stats
@@ -383,7 +375,7 @@ export default function BORedemptions() {
 
   if (loading) return (
     <div style={{ textAlign:'center', padding:80, fontFamily:'Inter, sans-serif' }}>
-      <Loader2 size={36} style={{ color:'#8F2CFF', marginBottom:12, animation:'boSpin 1s linear infinite' }} />
+      <div style={{ display:'flex', justifyContent:'center', marginBottom:12 }}><LogoLoader size={40} /></div>
       <div style={{ color:'#94a3b8', fontSize:14, fontWeight:500 }}>Loading redemptions...</div>
     </div>
   )

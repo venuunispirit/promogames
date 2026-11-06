@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 
 let audioCtx = null
+const audioEls = {}
 function getAudioCtx() { if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)(); return audioCtx }
 function synthEat() {
   try { const c = getAudioCtx(), o = c.createOscillator(), g = c.createGain(); o.connect(g); g.connect(c.destination); o.type = 'sine'; o.frequency.setValueAtTime(520, c.currentTime); o.frequency.exponentialRampToValueAtTime(1400, c.currentTime + 0.15); g.gain.setValueAtTime(0.3, c.currentTime); g.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.2); o.start(c.currentTime); o.stop(c.currentTime + 0.2) } catch {}
@@ -8,7 +9,22 @@ function synthEat() {
 function synthGameOver() {
   try { const c = getAudioCtx(), o1 = c.createOscillator(), g1 = c.createGain(); o1.connect(g1); g1.connect(c.destination); o1.type = 'sawtooth'; o1.frequency.setValueAtTime(600, c.currentTime); o1.frequency.exponentialRampToValueAtTime(80, c.currentTime + 0.5); g1.gain.setValueAtTime(0.25, c.currentTime); g1.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.5); o1.start(c.currentTime); o1.stop(c.currentTime + 0.5); const o2 = c.createOscillator(), g2 = c.createGain(); o2.connect(g2); g2.connect(c.destination); o2.type = 'sine'; o2.frequency.setValueAtTime(120, c.currentTime + 0.1); o2.frequency.exponentialRampToValueAtTime(40, c.currentTime + 0.6); g2.gain.setValueAtTime(0.4, c.currentTime + 0.1); g2.gain.exponentialRampToValueAtTime(0.01, c.currentTime + 0.6); o2.start(c.currentTime + 0.1); o2.stop(c.currentTime + 0.6) } catch {}
 }
-function playSound(url) { if (!url) return; try { new Audio(url).play().catch(() => {}) } catch {} }
+function primeSound(url) { if (!url || audioEls[url]) return; const a = new Audio(url); a.preload = 'auto'; audioEls[url] = a }
+function playSound(url) {
+  if (!url) return
+  try {
+    let a = audioEls[url]
+    if (!a) { a = new Audio(url); audioEls[url] = a }
+    a.currentTime = 0
+    a.volume = 1
+    a.play().catch(() => {})
+  } catch {}
+}
+function unlockAudio() {
+  try { const c = getAudioCtx(); if (c.state === 'suspended') c.resume() } catch {}
+  try { for (const k in audioEls) { const a = audioEls[k]; a.volume = 0; a.currentTime = 0; a.play().then(() => { a.pause(); a.currentTime = 0; a.volume = 1 }).catch(() => { a.volume = 1 }) } } catch {}
+}
+function vibrate(pattern) { try { if (navigator.vibrate) navigator.vibrate(pattern) } catch {} }
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700;800;900&family=Rajdhani:wght@400;500;600;700&display=swap');
@@ -153,12 +169,13 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
   const [snake, setSnake] = useState([{ x: 10, y: 10 }])
   const [food, setFood] = useState({ x: 5, y: 5 })
   const [score, setScore] = useState(0)
-  const [highScore, setHighScore] = useState(0)
+  const [highScore, setHighScore] = useState(gameData?.high_score || 0)
   const [foodCollected, setFoodCollected] = useState(0)
   const [timeLeft, setTimeLeft] = useState(timeLimit)
   const [difficulty, setDifficulty] = useState(baseSpeed <= 4 ? 'easy' : baseSpeed >= 8 ? 'hard' : 'medium')
 
   const dirRef = useRef({ x: 1, y: 0 })
+  const pendingDirs = useRef([])
   const snakeRef = useRef([{ x: 10, y: 10 }])
   const foodRef = useRef({ x: 5, y: 5 })
   const scoreRef = useRef(0)
@@ -169,6 +186,13 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
   const lastTickTimeRef = useRef(performance.now())
   const animFrameRef = useRef(null)
   const [renderTick, setRenderTick] = useState(0)
+
+  const setDirection = useCallback((x, y) => {
+    const last = pendingDirs.current.length ? pendingDirs.current[pendingDirs.current.length - 1] : dirRef.current
+    if ((x === last.x && y === last.y) || (x === -last.x && y === -last.y)) return false
+    if (pendingDirs.current.length < 2) pendingDirs.current.push({ x, y })
+    return true
+  }, [])
 
   const speedForDifficulty = difficulty === 'easy' ? 3 : difficulty === 'hard' ? 10 : 5
   const tick = Math.max(50, 300 - speedForDifficulty * 25)
@@ -200,15 +224,22 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
   }, [])
 
   const handleStart = useCallback(() => {
+    vibrate(15)
+    const eat = resolveSound(settings?.sound_eat_id)
+    const over = resolveSound(settings?.sound_gameover_id)
+    if (eat) primeSound(eat)
+    if (over) primeSound(over)
+    unlockAudio()
     setShowIntro(false); setGameActive(true); setGameOver(false); completedRef.current = false
     const init = [{ x: Math.floor(boardW / 2), y: Math.floor(boardH / 2) }]
     snakeRef.current = init; setSnake(init); prevSnakeRef.current = init.map(s => ({ ...s })); lastTickTimeRef.current = performance.now()
-    dirRef.current = { x: 1, y: 0 }; scoreRef.current = 0; setScore(0); setFoodCollected(0); setTimeLeft(timeLimit); spawnFood(init)
-  }, [boardW, boardH, spawnFood, timeLimit])
+    dirRef.current = { x: 1, y: 0 }; pendingDirs.current = []; scoreRef.current = 0; setScore(0); setFoodCollected(0); setTimeLeft(timeLimit); spawnFood(init)
+  }, [boardW, boardH, spawnFood, timeLimit, settings, resolveSound])
 
   const handleRestart = useCallback(() => { if (timerRef.current) clearInterval(timerRef.current); completedRef.current = false; handleStart() }, [handleStart])
 
   const handleBackToMenu = useCallback(() => {
+    vibrate(8)
     if (gameLoopRef.current) clearInterval(gameLoopRef.current)
     if (timerRef.current) clearInterval(timerRef.current)
     exitFullscreen()
@@ -225,12 +256,13 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
   useEffect(() => {
     if (!gameActive || gameOver) return
     gameLoopRef.current = setInterval(() => {
+      if (pendingDirs.current.length) dirRef.current = pendingDirs.current.shift()
       const dir = dirRef.current, curr = snakeRef.current, head = curr[0]
       let nx = (head.x + dir.x + boardW) % boardW, ny = (head.y + dir.y + boardH) % boardH
       prevSnakeRef.current = curr.map(s => ({ ...s }))
-      if (curr.some(s => s.x === nx && s.y === ny)) { setGameOver(true); const c = resolveSound(settings?.sound_gameover_id); if (c) playSound(c); else synthGameOver(); return }
+      if (curr.slice(0, -1).some(s => s.x === nx && s.y === ny)) { vibrate([60, 40, 60]); setGameOver(true); const c = resolveSound(settings?.sound_gameover_id); if (c) playSound(c); else synthGameOver(); return }
       const ns = [{ x: nx, y: ny }, ...curr]
-      if (nx === foodRef.current.x && ny === foodRef.current.y) { scoreRef.current += 10; setScore(scoreRef.current); setFoodCollected(p => p + 1); const c = resolveSound(settings?.sound_eat_id); if (c) playSound(c); else synthEat(); spawnFood(ns) } else { ns.pop() }
+      if (nx === foodRef.current.x && ny === foodRef.current.y) { scoreRef.current += 10; setScore(scoreRef.current); setFoodCollected(p => p + 1); vibrate(12); const c = resolveSound(settings?.sound_eat_id); if (c) playSound(c); else synthEat(); spawnFood(ns) } else { ns.pop() }
       snakeRef.current = ns; setSnake(ns); lastTickTimeRef.current = performance.now()
     }, tick)
     return () => clearInterval(gameLoopRef.current)
@@ -245,9 +277,14 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
 
   useEffect(() => {
     if (!gameActive || gameOver || !showTimer || timeLimit <= 0) return
-    timerRef.current = setInterval(() => { setTimeLeft(p => { if (p <= 1) { clearInterval(timerRef.current); setGameOver(true); const c = resolveSound(settings?.sound_gameover_id); if (c) playSound(c); else synthGameOver(); return 0 } return p - 1 }) }, 1000)
+    timerRef.current = setInterval(() => {
+      setTimeLeft(p => {
+        if (p <= 1) { clearInterval(timerRef.current); timerRef.current = null; return 0 }
+        return p - 1
+      })
+    }, 1000)
     return () => { if (timerRef.current) clearInterval(timerRef.current) }
-  }, [gameActive, gameOver, showTimer, timeLimit, settings, resolveSound])
+  }, [gameActive, gameOver, showTimer, timeLimit])
 
   useEffect(() => { if (score > highScore) setHighScore(score) }, [score])
   useEffect(() => { if (gameOver && !completedRef.current) { setTimeout(() => handleComplete(), 1500); exitFullscreen() } }, [gameOver])
@@ -263,7 +300,7 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
   }, [])
 
   useEffect(() => {
-    const h = (e) => { const d = dirRef.current, m = { ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0} }[e.key]; if (m && !(m.x === -d.x && m.y === -d.y)) dirRef.current = m }
+    const h = (e) => { const m = { ArrowUp:{x:0,y:-1},ArrowDown:{x:0,y:1},ArrowLeft:{x:-1,y:0},ArrowRight:{x:1,y:0},w:{x:0,y:-1},s:{x:0,y:1},a:{x:-1,y:0},d:{x:1,y:0} }[e.key]; if (m && setDirection(m.x, m.y)) vibrate(5) }
     window.addEventListener('keydown', h); return () => window.removeEventListener('keydown', h)
   }, [])
 
@@ -281,24 +318,43 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
   }, [gameActive])
 
   const touchStart = useRef(null)
+  const touchLast = useRef(null)
+  const applyDragDir = (cx, cy) => {
+    const base = touchLast.current || touchStart.current
+    if (!base) return null
+    const dx = cx - base.x, dy = cy - base.y
+    if (Math.abs(dx) < 12 && Math.abs(dy) < 12) return null
+    let nd
+    if (Math.abs(dx) > Math.abs(dy)) nd = dx > 0 ? { x: 1, y: 0 } : { x: -1, y: 0 }
+    else nd = dy > 0 ? { x: 0, y: 1 } : { x: 0, y: -1 }
+    if (!setDirection(nd.x, nd.y)) return null
+    vibrate(5)
+    touchLast.current = { x: cx, y: cy }
+    return nd
+  }
   const onTouchStart = (e) => {
     if (!gameActive) return
     if (e.target.closest('button, a, input, label, .card, .io, .go')) return
+    if (e.touches.length > 1) return
     e.preventDefault()
     touchStart.current = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+    touchLast.current = touchStart.current
+  }
+  const onTouchMove = (e) => {
+    if (!gameActive) return
+    if (e.target.closest('button, a, input, label, .card, .io, .go')) return
+    e.preventDefault()
+    if (!touchStart.current || e.touches.length === 0) return
+    applyDragDir(e.touches[0].clientX, e.touches[0].clientY)
   }
   const onTouchEnd = (e) => {
     if (!gameActive) return
     if (e.target.closest('button, a, input, label, .card, .io, .go')) return
     e.preventDefault()
     if (!touchStart.current) return
-    const dx = e.changedTouches[0].clientX - touchStart.current.x, dy = e.changedTouches[0].clientY - touchStart.current.y
-    if (Math.abs(dx) < 10 && Math.abs(dy) < 10) return
-    const d = dirRef.current; let nd
-    if (Math.abs(dx) > Math.abs(dy)) nd = dx > 0 ? {x:1,y:0} : {x:-1,y:0}
-    else nd = dy > 0 ? {x:0,y:1} : {x:0,y:-1}
-    if (!(nd.x === -d.x && nd.y === -d.y)) dirRef.current = nd
+    if (e.changedTouches[0]) applyDragDir(e.changedTouches[0].clientX, e.changedTouches[0].clientY)
     touchStart.current = null
+    touchLast.current = null
   }
   const pad = 4
   const displayW = winSize.w - pad * 2
@@ -334,7 +390,7 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
   const ft = (s) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, '0')}`
 
   return (
-    <div className="snk" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+    <div className="snk" onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}>
       <style>{CSS}</style>
       <div className="gp" />
       {particles.map(p => <div key={p.id} className="pt" style={{ left: p.left, width: p.size, height: p.size, background: p.c + p.op + ')', boxShadow: `0 0 ${p.size * 3}px ${p.c}0.3)`, animationDuration: p.dur + 's', animationDelay: p.delay + 's' }} />)}
@@ -367,7 +423,7 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
                   const i = smoothSegs.length - 1 - ri, isHead = i === 0
                   const br = snake.length > 1 ? i / (snake.length - 1) : 0, b = 1 - br * .25
                   return (
-                    <div key={i} style={{ position: 'absolute', left: seg.x * (cellW + 1) + 2, top: seg.y * (cellH + 1) + 2, width: segW, height: segH, borderRadius: isHead ? 9 : 7, background: isHead ? `radial-gradient(circle at 40% 35%,${snakeColor},${snakeColor}dd)` : `linear-gradient(135deg,${snakeColor}${Math.round(b * 255).toString(16).padStart(2, '0')},${snakeColor}${Math.round(b * 180).toString(16).padStart(2, '0')})`, boxShadow: isHead ? `0 0 14px ${snakeColor}55,0 0 6px ${snakeColor}33` : `0 0 ${8 - br * 4}px ${snakeColor}${Math.round((1 - br) * 60).toString(16).padStart(2, '0')}`, zIndex: isHead ? 20 : 10 - i }}>
+                    <div key={i} style={{ position: 'absolute', left: seg.x * (cellW + 1) + 2, top: seg.y * (cellH + 1) + 2, width: segW, height: segH, borderRadius: isHead ? 9 : 7, background: isHead ? `radial-gradient(circle at 40% 35%,${snakeColor},${snakeColor}dd)` : `linear-gradient(135deg,${snakeColor}${Math.round(b * 255).toString(16).padStart(2, '0')},${snakeColor}${Math.round(b * 180).toString(16).padStart(2, '0')})`, boxShadow: isHead ? `0 0 14px ${snakeColor}55,0 0 6px ${snakeColor}33` : `0 0 ${8 - br * 4}px ${snakeColor}${Math.round((1 - br) * 60).toString(16).padStart(2, '0')}`, zIndex: isHead ? 20 : Math.max(1, 10 - i) }}>
                       {isHead && <div style={{ width: '100%', height: '100%', position: 'relative' }}>
                         <div style={{ position: 'absolute', top: '18%', left: '15%', width: Math.max(2, segW * .2), height: Math.max(2, segH * .2), background: '#fff', borderRadius: '50%' }}><div style={{ position: 'absolute', top: '15%', right: '10%', width: '50%', height: '50%', background: '#1a1a2e', borderRadius: '50%' }} /></div>
                         <div style={{ position: 'absolute', top: '18%', right: '15%', width: Math.max(2, segW * .2), height: Math.max(2, segH * .2), background: '#fff', borderRadius: '50%' }}><div style={{ position: 'absolute', top: '15%', right: '10%', width: '50%', height: '50%', background: '#1a1a2e', borderRadius: '50%' }} /></div>
@@ -396,9 +452,9 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
             {showTimer && timeLimit > 0 && <div className="gp2" style={{ fontFamily: 'Orbitron', fontSize: 'clamp(11px,2vw,16px)', fontWeight: 700, color: '#fbbf24' }}>{ft(timeLeft)}</div>}
             <div className="gp2 diff-wrap">
               <div className="diff">
-                <button className={`e ${difficulty === 'easy' ? 'on' : ''}`} onClick={() => setDifficulty('easy')}>EASY</button>
-                <button className={`m ${difficulty === 'medium' ? 'on' : ''}`} onClick={() => setDifficulty('medium')}>MED</button>
-                <button className={`h ${difficulty === 'hard' ? 'on' : ''}`} onClick={() => setDifficulty('hard')}>HARD</button>
+                <button className={`e ${difficulty === 'easy' ? 'on' : ''}`} onClick={() => { vibrate(6); setDifficulty('easy') }}>EASY</button>
+                <button className={`m ${difficulty === 'medium' ? 'on' : ''}`} onClick={() => { vibrate(6); setDifficulty('medium') }}>MED</button>
+                <button className={`h ${difficulty === 'hard' ? 'on' : ''}`} onClick={() => { vibrate(6); setDifficulty('hard') }}>HARD</button>
               </div>
             </div>
           </div>
@@ -422,7 +478,7 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
             <h2>GAME OVER</h2>
             <div className="fs">Score: {score}</div>
             <div className="bl">Best: {highScore}</div>
-            <button className="cb" onClick={handleContinue}>{settings?.continue_button_text || 'CONTINUE'}</button>
+            <button className="cb" onClick={() => { vibrate(8); handleContinue() }}>{settings?.continue_button_text || 'CONTINUE'}</button>
           </div>
         </div>
       )}
@@ -433,4 +489,3 @@ function SnakePlayerPage({ gameData = {}, sessionToken = null, onComplete = () =
 export default function Demo() {
   return <SnakePlayerPage />
 }
-1

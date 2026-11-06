@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import api from '../api'
+import LogoLoader from '../components/LogoLoader'
 import {
   Gamepad2, Users, Trophy, Clock, CheckCircle, XCircle,
   TrendingUp, BarChart3, Building2, RefreshCw, Eye, AlertTriangle
@@ -7,7 +8,6 @@ import {
 
 const MYPAGE_CSS = `
 @keyframes mbFadeIn { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
-@keyframes mbSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 
 .mb-stat {
   background:#fff; border:1px solid #ece8ff; border-radius:20px;
@@ -101,7 +101,7 @@ export default function BrandOwnerMyPage() {
 
   if (loading) return (
     <div style={{ textAlign:'center', padding:80 }}>
-      <div style={{ width:40, height:40, border:'3px solid #ece8ff', borderTopColor:'#7c3aed', borderRadius:'50%', animation:'mbSpin 1s linear infinite', margin:'0 auto 16px' }} />
+      <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}><LogoLoader size={40} /></div>
       <div style={{ color:'#94a3b8', fontSize:14, fontWeight:500 }}>Loading brand dashboard...</div>
     </div>
   )

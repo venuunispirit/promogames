@@ -4,6 +4,7 @@ const db = require('../config/db');
 const nodemailer = require('nodemailer');
 const { v4: uuidv4 } = require('uuid');
 const { sendError } = require('../lib/apiError');
+const { awardGameCompletionReward } = require('../lib/promocoins');
 const jwt = require('jsonwebtoken');
 
 // ── Player engagement helpers ────────────────────────────────────────────────
@@ -62,21 +63,9 @@ async function recordBestScore({ promoPlayerId, deviceId }, gameId, finalScore) 
   };
 }
 
-// Award Promo Coins for a completed session once (guarded by pc_awarded).
-// Returns true when coins were awarded now.
-async function awardPCOnce(session) {
-  if (!session.promo_player_id || session.pc_awarded) return false;
-  const [g] = await db.query('SELECT name, game_type FROM games WHERE id = ?', [session.game_id]);
-  if (g.length === 0) return false;
-  const pcAmount = g[0].game_type === 'branded' ? 50 : 10;
-  await db.query('UPDATE promo_players SET pc_balance = pc_balance + ? WHERE id = ?', [pcAmount, session.promo_player_id]);
-  await db.query(
-    'INSERT INTO pc_transactions (player_id, type, points, game_id, note) VALUES (?, ?, ?, ?, ?)',
-    [session.promo_player_id, 'earn', pcAmount, session.game_id, `Completed: ${g[0].name}`]
-  );
-  await db.query('UPDATE player_sessions SET pc_awarded = 1 WHERE id = ?', [session.id]);
-  return true;
-}
+// Award Promo Coins for a completed session once — handled by the central
+// transactional service (lib/promocoins.js) which enforces idempotency via a
+// row lock + the pc_transactions(session_id, type) unique index.
 
 // GET /api/play/game-data/:gameId — full game payload for the Flutter app
 // MUST be before /:gameName/:companyName catch-all
@@ -104,7 +93,7 @@ router.get('/game-data/:gameId', async (req, res) => {
       quiz: 'quiz_settings', crossword: 'crossword_settings', spin: 'spin_settings',
       memory: 'memory_settings', jigsaw: 'jigsaw_settings', wordsearch: 'wordsearch_settings',
       pouring: 'pouring_settings', typer: 'typer_settings', screw: 'screw_settings', tower: 'tower_settings',
-      math: 'math_settings', maze: 'maze_settings', '2048': 'game2048_settings',
+      math: 'math_settings', maze: 'maze_settings', classicmaze: 'maze_settings', stickmaze: 'stickmaze_settings', '2048': 'game2048_settings',
       snake: 'snake_settings', nagaraja: 'nagaraja_settings', catch: 'catch_settings', reaction: 'reaction_settings',
       simon: 'simon_settings', connect4: 'connect4_settings', flappy: 'flappy_settings',
       bounce: 'bounce_settings', space: 'space_settings', bejeweled: 'bejeweled_settings',
@@ -116,6 +105,7 @@ router.get('/game-data/:gameId', async (req, res) => {
       rps: 'rps_settings',
       snakeandladder: 'snake_ladder_settings', ludo: 'ludo_settings',
       Carrom: 'Carrom_settings', carrom: 'Carrom_settings', tictactoemultiplayer: 'tictactoe_multi_settings',
+      spotregistration: 'spotreg_settings',
     };
 
     let settings = {};
@@ -220,6 +210,17 @@ router.get('/:gameName/:companyName', async (req, res) => {
     if (!allRows[0].is_active) return res.status(403).json({ success: false, message: 'This game is currently inactive' });
 
     const game = allRows[0];
+
+    // Expose the all-time (global) high score to every game payload so game
+    // player pages can show the true record instead of a per-player best.
+    const _sendJson = res.json.bind(res);
+    res.json = (body) => {
+      if (body && typeof body === 'object' && body.game && typeof body.game.high_score !== 'number') {
+        body.game.high_score = Number(game.high_score) || 0;
+      }
+      return _sendJson(body);
+    };
+
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     const toAbs = (url) => {
       if (!url) return null;
@@ -586,9 +587,10 @@ router.get('/:gameName/:companyName', async (req, res) => {
     }
 
     // ── MAZE branch ──────────────────────────────────────────────────────────
-    if (game.category === 'maze') {
+    if (game.category === 'maze' || game.category === 'classicmaze' || game.category === 'stickmaze') {
+      const table = game.category === 'stickmaze' ? 'stickmaze_settings' : 'maze_settings';
       const [mazeSettings] = await db.query(
-        'SELECT * FROM maze_settings WHERE game_id = ?', [game.id]
+        `SELECT * FROM ${table} WHERE game_id = ?`, [game.id]
       );
       const [formFields] = await db.query(
         'SELECT * FROM form_fields WHERE game_id = ? ORDER BY field_order', [game.id]
@@ -987,6 +989,8 @@ router.get('/:gameName/:companyName', async (req, res) => {
       bounce:     'bounce_settings',
       '2048':     'game2048_settings',
       maze:       'maze_settings',
+      classicmaze: 'maze_settings',
+      stickmaze:  'stickmaze_settings',
       screw:      'screw_settings',
       typer:      'typer_settings',
       pouring:    'pouring_settings',
@@ -1015,6 +1019,7 @@ router.get('/:gameName/:companyName', async (req, res) => {
       minesweeper:   'minesweeper_settings',
       wordscramble:  'wordscramble_settings',
       rps:           'rps_settings',
+      spotregistration: 'spotreg_settings',
     };
     const settingsTable = categorySettingsMap[game.category];
 
@@ -1399,9 +1404,16 @@ router.post('/session/:token/claim', async (req, res) => {
     }
 
     let pc_awarded_now = false;
+    let pc_reward = null;
     let score_info = null;
     if (session.completed) {
-      pc_awarded_now = await awardPCOnce(session);
+      try {
+        pc_reward = await awardGameCompletionReward(session);
+        pc_awarded_now = pc_reward.rewarded === true;
+      } catch (err) {
+        console.error('❌ Claim PromoCoins award error:', err.message);
+        pc_reward = { success: false, rewarded: false, reason: 'internal_error' };
+      }
       const finalScore = parseInt(session.score, 10) || 0;
       if (finalScore > 0) {
         try { score_info = await recordBestScore({ promoPlayerId: playerId, deviceId: session.device_id }, session.game_id, finalScore); }
@@ -1409,7 +1421,7 @@ router.post('/session/:token/claim', async (req, res) => {
       }
     }
 
-    res.json({ success: true, claimed: true, already_claimed: wasAlreadyClaimed, pc_awarded: pc_awarded_now, score_info });
+    res.json({ success: true, claimed: true, already_claimed: wasAlreadyClaimed, pc_awarded: pc_awarded_now, pc_reward, score_info });
   } catch (err) {
     console.error('Claim session error:', err);
     sendError(res, err);
@@ -1440,6 +1452,32 @@ router.get('/game/:id/score-info', async (req, res) => {
       player_best = best.length ? best[0].best_score : null;
     }
     res.json({ success: true, high_score: rows[0].high_score || 0, player_best });
+  } catch (err) {
+    sendError(res, err);
+  }
+});
+
+// POST /api/play/record-score — lightweight global high score recording for
+// arcade games that report a numeric score without a form/email completion
+// flow. Mirrors session/complete high-score handling (games.high_score is the
+// all-time record across every player). Optional device_id / Bearer player
+// token also maintains the caller's personal best.
+router.post('/record-score', async (req, res) => {
+  try {
+    const gameId = parseInt(req.body.game_id, 10);
+    const rawScore = parseInt(req.body.score, 10);
+    if (!gameId || isNaN(rawScore) || rawScore <= 0) {
+      return res.status(400).json({ success: false, message: 'Valid game_id and positive score are required' });
+    }
+    const [gRows] = await db.query('SELECT id FROM games WHERE id = ?', [gameId]);
+    if (gRows.length === 0) return res.status(404).json({ success: false, message: 'Game not found' });
+    const deviceId = typeof req.body.device_id === 'string' && req.body.device_id ? req.body.device_id : null;
+    const info = await recordBestScore(
+      { promoPlayerId: getPromoPlayerId(req), deviceId },
+      gameId,
+      Math.floor(rawScore)
+    );
+    res.json({ success: true, high_score: info.high_score, player_best: info.player_best, is_new_best: info.is_new_best });
   } catch (err) {
     sendError(res, err);
   }
@@ -1571,18 +1609,15 @@ router.post('/session/complete', async (req, res) => {
     }
 
     // ── Award Promo Coins (PC) on game completion ──
-    const game = games[0];
-    if (session.promo_player_id && !session.pc_awarded && game) {
-      const pcAmount = game.game_type === 'branded' ? 50 : 10;
-      await db.query(
-        'UPDATE promo_players SET pc_balance = pc_balance + ? WHERE id = ?',
-        [pcAmount, session.promo_player_id]
-      );
-      await db.query(
-        'INSERT INTO pc_transactions (player_id, type, points, game_id, note) VALUES (?, ?, ?, ?, ?)',
-        [session.promo_player_id, 'earn', pcAmount, session.game_id, `Completed: ${game.name}`]
-      );
-      await db.query('UPDATE player_sessions SET pc_awarded = 1 WHERE id = ?', [session.id]);
+    // Central, transactional and idempotent: the reward amount is derived from
+    // the trusted DB games.game_type, never from the client. The result is
+    // echoed to the frontend so it can animate the coin fly + wallet update.
+    let pcReward = null;
+    try {
+      pcReward = await awardGameCompletionReward(session);
+    } catch (err) {
+      console.error('❌ PromoCoins award error:', err.message);
+      pcReward = { success: false, rewarded: false, reason: 'internal_error' };
     }
 
     // ── High scores: per-player best + all-time high (score reported games) ──
@@ -1733,7 +1768,8 @@ router.post('/session/complete', async (req, res) => {
       session: updatedSession[0],
       email_sent: emailSent,
       score_info: scoreInfo,
-      redirect_url: game?.redirect_url || null,
+      pc_reward: pcReward,
+      redirect_url: games[0]?.redirect_url || null,
     });
   } catch (err) {
     console.error('Complete session error:', err);
@@ -1855,6 +1891,17 @@ router.get('/:gameName', async (req, res) => {
     if (!allRows[0].is_active) return res.status(403).json({ success: false, message: 'This game is currently inactive' });
 
     const game = allRows[0];
+
+    // Expose the all-time (global) high score to every game payload so game
+    // player pages can show the true record instead of a per-player best.
+    const _sendJson = res.json.bind(res);
+    res.json = (body) => {
+      if (body && typeof body === 'object' && body.game && typeof body.game.high_score !== 'number') {
+        body.game.high_score = Number(game.high_score) || 0;
+      }
+      return _sendJson(body);
+    };
+
     const baseUrl = `${req.protocol}://${req.get('host')}`;
     const toAbs = (url) => {
       if (!url) return null;

@@ -60,7 +60,7 @@ class _SnakePlayerPageState extends State<SnakePlayerPage> {
   void _onFx(GameFx effect) {
     switch (effect) {
       case GameFx.correct:
-        HapticFeedback.selectionClick();
+        HapticFeedback.mediumImpact();
       case GameFx.gameOver:
         HapticFeedback.heavyImpact();
       default:
@@ -73,7 +73,10 @@ class _SnakePlayerPageState extends State<SnakePlayerPage> {
     widget.onFinished(_engine.score, _engine.maxScore, false);
   }
 
-  void _setDir(int dx, int dy) => _engine.setDir(dx, dy);
+  void _setDir(int dx, int dy) {
+    HapticFeedback.lightImpact();
+    _engine.setDir(dx, dy);
+  }
 
   Color? _hex(String? hex) {
     if (hex == null || hex.isEmpty) return null;

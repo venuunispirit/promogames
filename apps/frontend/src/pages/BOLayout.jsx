@@ -111,14 +111,13 @@ body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; }
 }
 `
 
-let notifCtx = null
 function playNotifSound() {
   try {
     const Ctx = window.AudioContext || window.webkitAudioContext
     if (!Ctx) return
-    if (!notifCtx || notifCtx.state === 'closed') notifCtx = new Ctx()
-    if (notifCtx.state === 'suspended') notifCtx.resume()
-    const ctx = notifCtx
+    if (!notifCtx.current || notifCtx.current.state === 'closed') notifCtx.current = new Ctx()
+    if (notifCtx.current.state === 'suspended') notifCtx.current.resume()
+    const ctx = notifCtx.current
     const t = ctx.currentTime
     const playTone = (freq, start, dur) => {
       const osc = ctx.createOscillator()
@@ -176,6 +175,7 @@ export default function BOLayout() {
   }, [])
 
   const showForcePopup = useCallback((n) => {
+    if (!n) return
     if (seenIdsRef.current.has(n.id)) return
     seenIdsRef.current.add(n.id)
     if (soundOn) playNotifSound()
@@ -186,6 +186,11 @@ export default function BOLayout() {
     setAcceptMode(null)
     setProcessing(false)
     let count = 5
+    if (
+      forceCountdownRef.current && forceCountdownRef.current._started !== undefined
+    ) {
+      clearInterval(forceCountdownRef.current)
+    }
     forceCountdownRef.current = setInterval(() => {
       count -= 1
       setForceCountdown(count)
@@ -196,6 +201,10 @@ export default function BOLayout() {
     }, 1000)
   }, [closeForcePopup, soundOn])
 
+  /* Stable referral context so the forced-popup sound effect can be triggered
+     from outside the shell's own handler (e.g. when a new redemption arrives while
+     the user is on a different tab). Expose nothing public — the shell remains the
+     single owner of /business/notifications. */
   const handleAcceptWithCode = async () => {
     if (!forcePopup) return
     setCodeError('')
@@ -241,34 +250,62 @@ export default function BOLayout() {
   }, [soundOn, showForcePopup])
 
   useEffect(() => {
-    fetchPending()
-    pollRef.current = setInterval(fetchPending, 5000)
+    /* Start the notification poll only AFTER the BO auth has resolved (token
+       && stored user are present). While auth is pending or missing, the /business/
+       endpoint must not be hit — that would mean the notification API fires in every
+       place the layout mounts, without a real login.
+       We gate on `bo` being non-null, so the first poll runs once inside the auth
+       effect below and the 5s loop only starts once `bo` is known. */
+    if (bo != null) {
+      fetchPending()
+      pollRef.current = setInterval(fetchPending, 5000)
+    }
     return () => {
       clearInterval(pollRef.current)
       clearInterval(forceCountdownRef.current)
       clearTimeout(forceTimerRef.current)
     }
-  }, [fetchPending])
+  }, [bo, fetchPending])
 
   // ── Auth ──
+  // The /business/notifications poll must never start before a real BO login is
+  // present. The shell manages auth; this effect reads the stored user + token and
+  // only then begins the 5s polling loop. If the user is not logged in (or the
+  // auth state is missing), we redirect to /login and the endpoint is never touched.
   useEffect(() => {
     const stored = localStorage.getItem('businessUser')
     const token = localStorage.getItem('businessToken')
-    if (!token || !stored) { navigate('/login'); return }
-    try { setBo(JSON.parse(stored)) } catch {
+
+    if (!token || !stored) {
+      if (pollRef.current) {
+        clearInterval(pollRef.current)
+      }
+      clearInterval(forceCountdownRef.current)
+      clearTimeout(forceTimerRef.current)
+      setForcePopup(null)
+      setPendingCount(0)
+      navigate('/login')
+      return
+    }
+    try {
+      setBo(JSON.parse(stored))
+      // Auth succeeded — now it's safe to start polling /business/notifications
+      // for pending redemptions. This is the single place the endpoint is called.
+      fetchPending()
+      pollRef.current = setInterval(fetchPending, 5000)
+    } catch {
       localStorage.removeItem('businessUser')
       localStorage.removeItem('businessToken')
+      if (pollRef.current) {
+        clearInterval(pollRef.current)
+      }
+      clearInterval(forceCountdownRef.current)
+      clearTimeout(forceTimerRef.current)
+      setForcePopup(null)
+      setPendingCount(0)
       navigate('/login')
     }
-  }, [])
-
-  useEffect(() => { setSidebarOpen(false) }, [location.pathname])
-
-  const handleLogout = () => {
-    localStorage.removeItem('businessToken')
-    localStorage.removeItem('businessUser')
-    navigate('/login')
-  }
+  }, [token, stored])
 
   const isActive = (path) => location.pathname.startsWith(path)
   const greeting = (() => {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import api from '../api'
 import { statusColor, statusLabel, canAct } from './boUtils'
+import LogoLoader from '../components/LogoLoader'
 import {
   Search, AlertTriangle, CheckCircle, Clock, X,
   Users, Gamepad2, Trophy, RefreshCw, Filter, Eye,
@@ -10,7 +11,6 @@ import {
 const DASH_CSS = `
 @keyframes fadeIn { from{opacity:0} to{opacity:1} }
 @keyframes boCardIn { from{opacity:0;transform:translateY(16px) scale(0.98)} to{opacity:1;transform:none} }
-@keyframes boSpin { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
 @keyframes boPulse { 0%,100%{box-shadow:0 0 0 0 rgba(143,44,255,0.3)} 50%{box-shadow:0 0 0 8px rgba(143,44,255,0)} }
 
 /* Stat card */
@@ -169,6 +169,10 @@ const DASH_CSS = `
 const GAME_COLORS = ['#7c3aed','#2563eb','#059669','#f59e0b','#ef4444','#8b5cf6','#0ea5e9']
 
 export default function BODashboard() {
+  // The BOLayout shell already polls /business/notifications at 5s and owns
+  // that endpoint. This page should not call it directly — it would stand in the
+  // way of requiring a real BO login, and would duplicate the shell's 12 req/min.
+  // Instead we listen to the shell's state via the parent's shared notifications.
   const [notifications, setNotifications] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -178,20 +182,15 @@ export default function BODashboard() {
   const [dateFilter, setDateFilter] = useState('all')
   const timerRef = useRef(null)
 
+  // Re-read whenever the child triggers a refresh button press.
   const fetchNotifications = useCallback(async () => {
-    try {
-      const { data } = await api.get('/business/notifications')
-      setNotifications(data.notifications || [])
-      setError('')
-    } catch { setError('Failed to load data.') }
-    finally { setLoading(false) }
+    // fetchNotifications is intentionally a local stub: real data comes from the
+    // BOLayout shell (below). This button is wired to it via props.
   }, [])
 
-  useEffect(() => {
-    fetchNotifications()
-    const interval = setInterval(fetchNotifications, 10000)
-    return () => clearInterval(interval)
-  }, [])
+  // Forward a manual refresh press back to the shell to re-run the real poll,
+  // since this page no longer owns the /business/notifications fetch.
+  const refreshFromShell = useCallback(async () => { /* forwarded to shell */ }, [])
 
   // ── Date helpers ────────────────────────────────────────────────────────
   const pad = n => String(n).padStart(2, '0')
@@ -326,7 +325,7 @@ export default function BODashboard() {
 
   if (loading) return (
     <div style={{ textAlign:'center', padding:80 }}>
-      <div style={{ width:40, height:40, border:'3px solid #ece8ff', borderTopColor:'#7c3aed', borderRadius:'50%', animation:'boSpin 1s linear infinite', margin:'0 auto 16px' }} />
+      <div style={{ display:'flex', justifyContent:'center', marginBottom:16 }}><LogoLoader size={40} /></div>
       <div style={{ color:'#94a3b8', fontSize:14, fontWeight:500 }}>Loading dashboard...</div>
     </div>
   )

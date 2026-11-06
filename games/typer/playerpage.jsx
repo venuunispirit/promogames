@@ -68,6 +68,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     requestAnimationFrame(function(){
       root.querySelectorAll('.reveal').forEach(function(el){ el.classList.add('in'); });
     });
+    updateShell();
 
     var gSettings = (gameDataRef.current && gameDataRef.current.settings) || {};
     var gSoundMap = (gameDataRef.current && gameDataRef.current.soundMap) || {};
@@ -647,29 +648,38 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     var countdownTimeoutId = null;
 
     function showCountdown(onDone){
-      var n = 3;
+      var t0 = performance.now();
+      var tickMs = 800;
+      var goMs = 550;
       countdownOverlay.classList.remove('hidden');
       tapVeil.classList.add('hidden');
       focusInput();
 
-      function step(){
-        if(n > 0){
-          countdownOverlay.textContent = n;
+      function render(){
+        var el = performance.now() - t0;
+        var label;
+        var sound = 'tick';
+        if(el < tickMs){ label = '3'; }
+        else if(el < tickMs * 2){ label = '2'; }
+        else if(el < tickMs * 3){ label = '1'; }
+        else if(el < tickMs * 3 + goMs){ label = 'Go!'; }
+        else {
+          clearInterval(countdownTimeoutId);
+          countdownTimeoutId = null;
+          countdownOverlay.classList.add('hidden');
+          onDone();
+          return;
+        }
+        if(countdownOverlay.textContent !== label){
+          countdownOverlay.textContent = label;
           retrigger(countdownOverlay, 'pop');
-          countdownTick();
-          n--;
-          countdownTimeoutId = setTimeout(step, 800);
-        } else {
-          countdownOverlay.textContent = 'Go!';
-          retrigger(countdownOverlay, 'pop');
-          countdownGo();
-          countdownTimeoutId = setTimeout(function(){
-            countdownOverlay.classList.add('hidden');
-            onDone();
-          }, 550);
+          if(sound === 'tick') countdownTick();
+          else countdownGo();
         }
       }
-      step();
+      clearInterval(countdownTimeoutId);
+      countdownTimeoutId = setInterval(render, 70);
+      render();
     }
 
     function startRound(){
@@ -687,6 +697,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       statTime.classList.remove('warn');
 
       clearTimeout(countdownTimeoutId);
+      countdownTimeoutId = null;
       clearInterval(roundTimerId);
       stopRing();
 
@@ -694,6 +705,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       endWrap.classList.add('hidden');
       gameWrap.classList.add('active');
       tapVeil.classList.add('hidden');
+      updateShell();
 
       statTime.textContent = duration;
       statWpm.textContent = 0;
@@ -743,6 +755,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       gameActive = false;
       playSoundById(gSettings.sound_gameover_id);
       clearTimeout(countdownTimeoutId);
+      countdownTimeoutId = null;
       countdownOverlay.classList.add('hidden');
       clearInterval(roundTimerId);
       stopRing();
@@ -840,6 +853,12 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
       clack();
       endWrap.classList.add('hidden');
       startWrap.classList.remove('hidden');
+      updateShell();
+    }
+
+    function updateShell(){
+      root.classList.toggle('tp-landing', !startWrap.classList.contains('hidden'));
+      root.classList.toggle('tp-playing', gameWrap.classList.contains('active'));
     }
 
     /* ── Attach ────────────────────────────────────────────── */
@@ -888,6 +907,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
     /* ── Detach everything on cleanup ───────────────────────── */
     return function(){
       clearTimeout(countdownTimeoutId);
+      countdownTimeoutId = null;
       clearInterval(roundTimerId);
       stopRing();
       document.removeEventListener('visibilitychange', onVisibilityChange);
@@ -907,7 +927,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
   }, []);
 
   return (
-    <div ref={containerRef} style={{ minHeight: '100vh', color: 'var(--cream)', fontFamily: "'Inter', sans-serif", background: '#1c122f', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '28px 18px', position: 'relative', overflowX: 'hidden' }}>
+    <div ref={containerRef} className="tp-root" style={{ color: 'var(--cream)', fontFamily: "'Inter', sans-serif", background: '#1c122f' }}>
       <style>{`
 @import url('https://fonts.googleapis.com/css2?family=Special+Elite&family=IBM+Plex+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
@@ -924,6 +944,41 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
   --shadow-deep: 0 24px 60px rgba(5,15,14,0.55); --shadow-soft: 0 10px 26px rgba(5,15,14,0.35);
 }
 *{ box-sizing:border-box; }
+.tp-root{ min-height:100vh; min-height:100dvh; display:flex; align-items:center; justify-content:center; padding:28px 18px; position:relative; overflow-x:hidden; }
+.tp-root.tp-landing{ height:100vh; height:100dvh; overflow:hidden; padding:20px 18px; overscroll-behavior:none; }
+@media (max-height:820px){
+  .tp-root.tp-landing{ padding:16px 16px; }
+  .tp-root.tp-landing .start-wrap{ gap:16px; }
+  .tp-root.tp-landing .brand-mark{ font-size: clamp(30px, 6.2vw, 44px); margin-bottom:12px; }
+  .tp-root.tp-landing .sub{ font-size:14px; line-height:1.5; margin-bottom:14px; }
+  .tp-root.tp-landing .mini-stats{ gap:16px; }
+  .tp-root.tp-landing .ticket{ padding:20px 20px; }
+  .tp-root.tp-landing .field{ margin-bottom:12px; }
+  .tp-root.tp-landing .field-label{ margin-bottom:8px; }
+  .tp-root.tp-landing .key{ padding:8px 18px; font-size:15px; }
+  .tp-root.tp-landing .key-space{ padding:11px 20px; margin-top:4px; }
+  .tp-root.tp-landing .hint-row{ margin-top:8px; }
+}
+@media (max-height:640px){
+  .tp-root.tp-landing .illustration{ display:none; }
+  .tp-root.tp-landing .mini-stats{ display:none; }
+  .tp-root.tp-landing .site-tag{ margin-bottom:8px; }
+  .tp-root.tp-landing .eyebrow{ margin-bottom:10px; }
+}
+.tp-root.tp-playing{ height:100vh; height:100dvh; overflow:hidden; padding:12px 14px; overscroll-behavior:none; }
+.tp-root.tp-playing .game-wrap{ display:flex; flex-direction:column; height:100%; min-height:0; }
+.tp-root.tp-playing .top-row{ margin-bottom:12px; }
+.tp-root.tp-playing .console{ margin-top:12px; }
+.tp-root.tp-playing .paper-frame{ flex:1; min-height:0; display:flex; flex-direction:column; justify-content:center; margin:0; }
+.tp-root.tp-playing .paper-frame .rollers{ margin-bottom:2px; }
+.tp-root.tp-playing .ladder-stage{ flex:1; min-height:0; max-height:520px; }
+@media (max-height:640px){
+  .tp-root.tp-playing .top-row{ margin-bottom:8px; }
+  .tp-root.tp-playing .console{ margin-top:8px; }
+  .tp-root.tp-playing .game-footer{ margin-top:8px; }
+  .tp-root.tp-playing .ladder-row.done{ font-size:16px; }
+  .tp-root.tp-playing .ladder-row.next{ font-size:16px; }
+}
 .stage{ width:100%; max-width: 960px; position:relative; }
 .reveal{ opacity:0; transform: translateY(10px); transition: opacity .5s ease, transform .5s ease; }
 .reveal.in{ opacity:1; transform:none; }
@@ -1044,7 +1099,7 @@ export default function TyperPlayerPage({ gameData, sessionToken, onComplete }) 
 .tap-veil.hidden{ display:none; }
 .tap-veil svg{ width:26px; height:26px; opacity:0.85; }
 #hidden-input{ position:absolute; top:0; left:0; width:100%; height:100%; opacity:1; font-size:16px; border:none; outline:none; background:transparent; color:transparent; caret-color:transparent; z-index:9999; pointer-events:auto; }
-.game-footer{ display:flex; justify-content:space-between; align-items:center; margin-top: 18px; flex-wrap:wrap; gap:10px; }
+.game-footer{ display:flex; justify-content:space-between; align-items:center; margin-top: 18px; flex-wrap:wrap; gap:10px; position:relative; z-index:10001; }
 .btn-ghost{ background: transparent; color: var(--cream); border: 1.5px solid rgba(243,236,216,0.22); padding: 11px 20px; border-radius: var(--r-sm); font-family:'Special Elite', monospace; font-weight:400; font-size:15.5px; letter-spacing:0.02em; transition: border-color .15s ease, background .15s ease; display:flex; align-items:center; gap:8px; }
 .btn-ghost:hover{ border-color: var(--copper-400); background: rgba(201,124,77,0.08); }
 .btn-ghost svg{ width:14px; height:14px; }
@@ -1147,6 +1202,28 @@ button{ font-family:'Inter', sans-serif; cursor:pointer; border:none; -webkit-ta
             <div className="eyebrow">Round in progress</div>
             <button className="icon-btn" id="sound-toggle" aria-label="Toggle sound"></button>
           </div>
+          <div className="paper-frame">
+            <div className="rollers"><div className="roll l"></div><div className="bar"></div><div className="roll r"></div></div>
+            <div className="paper-card">
+              <div className="countdown-overlay hidden" id="countdown-overlay"></div>
+              <div className="letters-badge" id="letters-badge">3 letters</div>
+              <div className="ladder-stage">
+                <svg className="ladder-ring" viewBox="0 0 300 300" aria-hidden="true">
+                  <circle className="ring-track" cx="150" cy="150" r="146"/>
+                  <circle className="ring-progress" id="ring-progress" cx="150" cy="150" r="146"/>
+                  <circle className="dot" cx="150" cy="6" r="3.4"/><circle className="dot" cx="272" cy="82" r="3.4"/><circle className="dot" cx="272" cy="218" r="3.4"/><circle className="dot" cx="150" cy="294" r="3.4"/><circle className="dot" cx="28" cy="218" r="3.4"/><circle className="dot" cx="28" cy="82" r="3.4"/>
+                </svg>
+                <div className="flash" id="flash"></div>
+                <div className="impact-ring" id="impact-ring"></div>
+                <svg id="bell-indicator" className="bell-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+                <div className="word-ladder" id="word-ladder"><div className="ladder-track" id="ladder-track"></div></div>
+              </div>
+              <div className="tap-veil" id="tap-veil">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12"/></svg>
+                Tap here to bring up your keyboard and start typing
+              </div>
+            </div>
+          </div>
           <div className="console">
             <div className="gauge">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
@@ -1168,28 +1245,6 @@ button{ font-family:'Inter', sans-serif; cursor:pointer; border:none; -webkit-ta
               <div className="gauge-val" id="stat-streak">0</div>
               <div className="gauge-lab">Streak</div>
               <div className="streak-popup-layer" id="streak-popup-layer"></div>
-            </div>
-          </div>
-          <div className="paper-frame">
-            <div className="rollers"><div className="roll l"></div><div className="bar"></div><div className="roll r"></div></div>
-            <div className="paper-card">
-              <div className="countdown-overlay hidden" id="countdown-overlay"></div>
-              <div className="letters-badge" id="letters-badge">3 letters</div>
-              <div className="ladder-stage">
-                <svg className="ladder-ring" viewBox="0 0 300 300" aria-hidden="true">
-                  <circle className="ring-track" cx="150" cy="150" r="146"/>
-                  <circle className="ring-progress" id="ring-progress" cx="150" cy="150" r="146"/>
-                  <circle className="dot" cx="150" cy="6" r="3.4"/><circle className="dot" cx="272" cy="82" r="3.4"/><circle className="dot" cx="272" cy="218" r="3.4"/><circle className="dot" cx="150" cy="294" r="3.4"/><circle className="dot" cx="28" cy="218" r="3.4"/><circle className="dot" cx="28" cy="82" r="3.4"/>
-                </svg>
-                <div className="flash" id="flash"></div>
-                <div className="impact-ring" id="impact-ring"></div>
-                <svg id="bell-indicator" className="bell-indicator" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
-                <div className="word-ladder" id="word-ladder"><div className="ladder-track" id="ladder-track"></div></div>
-              </div>
-              <div className="tap-veil" id="tap-veil">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8"><rect x="2" y="6" width="20" height="14" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M6 14h12"/></svg>
-                Tap here to bring up your keyboard and start typing
-              </div>
             </div>
           </div>
           <div className="game-footer">

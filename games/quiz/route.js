@@ -7,10 +7,11 @@ const path = require('path');
 const fs = require('fs');
 const { sendError } = require('../../apps/backend/lib/apiError');
 
+// Helper: delete a file stored as a /uploads/... URL from disk
 function deleteUploadFile(urlPath) {
   if (!urlPath) return;
   try {
-    const abs = path.join(__dirname, '..', '..', urlPath);
+    const abs = path.join(__dirname, '..', urlPath);
     if (fs.existsSync(abs)) {
       fs.unlinkSync(abs);
       console.log('🗑️  Deleted file:', urlPath);
@@ -69,6 +70,7 @@ router.put('/questions/:id', auth, upload.fields([
     const [existing] = await db.query('SELECT * FROM questions WHERE id = ?', [req.params.id]);
     if (existing.length === 0) return res.status(404).json({ success: false, message: 'Question not found' });
 
+    // Delete old image from disk if a new one is being uploaded
     let img_url;
     if (req.files?.question_image) {
       deleteUploadFile(existing[0].question_image_url);
@@ -103,6 +105,7 @@ router.put('/questions/:id', auth, upload.fields([
 
 router.delete('/questions/:id', auth, async (req, res) => {
   try {
+    // Fetch question and its options before deleting so we can clean up files
     const [existing] = await db.query('SELECT * FROM questions WHERE id = ?', [req.params.id]);
     if (existing[0]) {
       deleteUploadFile(existing[0].question_image_url);
@@ -118,12 +121,16 @@ router.delete('/questions/:id', auth, async (req, res) => {
   } catch (err) { sendError(res, err); }
 });
 
+// POST duplicate a question with all its options
 router.post('/questions/:id/duplicate', auth, async (req, res) => {
   try {
     const [src] = await db.query('SELECT * FROM questions WHERE id = ?', [req.params.id]);
     if (!src.length) return res.status(404).json({ success: false, message: 'Question not found' });
     const q = src[0];
+
+    // Shift later questions down
     await db.query('UPDATE questions SET question_order = question_order + 1 WHERE game_id = ? AND question_order > ?', [q.game_id, q.question_order]);
+
     const [qr] = await db.query(
       `INSERT INTO questions (game_id, question_text, question_image_url, question_bg_image_url, question_type, question_color, question_order, num_options, sound_correct, sound_wrong, sound_neutral, sound_correct_id, sound_wrong_id, sound_neutral_id, overlay_duration, overlay_idle_time, overlay_animation_in, overlay_animation_out, question_image_animation)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -132,13 +139,16 @@ router.post('/questions/:id/duplicate', auth, async (req, res) => {
        q.overlay_duration, q.overlay_idle_time, q.overlay_animation_in, q.overlay_animation_out, q.question_image_animation]
     );
     const newQId = qr.insertId;
+
+    // Clone options
     const [options] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [q.id]);
     for (const o of options) {
       await db.query(
-        'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, option_border_color, option_border_width, option_border_radius, option_font_gradient, option_bg_gradient, option_border_gradient, option_corners_json, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-        [newQId, o.option_text, o.option_image_url, o.option_overlay_image_url, o.option_color, o.option_text_color, o.option_border_color, o.option_border_width, o.option_border_radius, o.option_font_gradient, o.option_bg_gradient, o.option_border_gradient, o.option_corners_json, o.is_correct, o.option_order]
+        'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        [newQId, o.option_text, o.option_image_url, o.option_overlay_image_url, o.option_color, o.option_text_color, o.is_correct, o.option_order]
       );
     }
+
     const [newQ] = await db.query('SELECT * FROM questions WHERE id = ?', [newQId]);
     const [newOpts] = await db.query('SELECT * FROM options WHERE question_id = ? ORDER BY option_order', [newQId]);
     res.status(201).json({ success: true, question: { ...newQ[0], options: newOpts } });
@@ -159,14 +169,15 @@ router.post('/questions/:questionId/options', auth, upload.fields([
   { name: 'option_image', maxCount: 1 },
   { name: 'option_overlay_image', maxCount: 1 }
 ]), async (req, res) => {
-  const { option_text, option_color, option_text_color, option_border_color, option_border_width, option_border_radius, option_font_gradient, option_bg_gradient, option_border_gradient, option_corners_json, is_correct, option_order } = req.body;
+  const { option_text, option_color, option_text_color, is_correct, option_order } = req.body;
   try {
+    // FIX: Properly parse is_correct from string form data ("0", "1", "true", "false")
     const isCorrectBool = is_correct === 1 || is_correct === true || is_correct === '1' || is_correct === 'true';
     const img_url = req.files?.option_image ? `/uploads/images/${req.files.option_image[0].filename}` : null;
     const overlay_url = req.files?.option_overlay_image ? `/uploads/images/${req.files.option_overlay_image[0].filename}` : null;
     const [result] = await db.query(
-      'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, option_border_color, option_border_width, option_border_radius, option_font_gradient, option_bg_gradient, option_border_gradient, option_corners_json, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
-      [req.params.questionId, option_text, img_url, overlay_url, option_color || '#1a1a2e', option_text_color || '#ffffff', option_border_color || 'transparent', option_border_width || 0, option_border_radius || 12, option_font_gradient || '', option_bg_gradient || '', option_border_gradient || '', option_corners_json || '', isCorrectBool ? 1 : 0, option_order || 0]
+      'INSERT INTO options (question_id, option_text, option_image_url, option_overlay_image_url, option_color, option_text_color, is_correct, option_order) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+      [req.params.questionId, option_text, img_url, overlay_url, option_color || '#1a1a2e', option_text_color || '#ffffff', isCorrectBool ? 1 : 0, option_order || 0]
     );
     const [opt] = await db.query('SELECT * FROM options WHERE id = ?', [result.insertId]);
     res.status(201).json({ success: true, option: opt[0] });
@@ -177,14 +188,20 @@ router.put('/options/:id', auth, upload.fields([
   { name: 'option_image', maxCount: 1 },
   { name: 'option_overlay_image', maxCount: 1 }
 ]), async (req, res) => {
-  const { option_text, option_color, option_text_color, option_border_color, option_border_width, option_border_radius, option_font_gradient, option_bg_gradient, option_border_gradient, option_corners_json, is_correct, option_order } = req.body;
+  const { option_text, option_color, option_text_color, is_correct, option_order } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM options WHERE id = ?', [req.params.id]);
     if (existing.length === 0) return res.status(404).json({ success: false, message: 'Option not found' });
+
+    // FIX: Properly parse is_correct — req.body values are always strings when sent as form data.
     const isCorrectBool = is_correct === 1 || is_correct === true || is_correct === '1' || is_correct === 'true';
+
+    // If marking this option as correct, unmark all other options in the same question
     if (isCorrectBool) {
       await db.query('UPDATE options SET is_correct = 0 WHERE question_id = ? AND id != ?', [existing[0].question_id, req.params.id]);
     }
+
+    // Delete old image from disk if a new one is being uploaded
     let img_url;
     if (req.files?.option_image) {
       deleteUploadFile(existing[0].option_image_url);
@@ -192,6 +209,7 @@ router.put('/options/:id', auth, upload.fields([
     } else {
       img_url = existing[0].option_image_url;
     }
+
     let overlay_url;
     if (req.files?.option_overlay_image) {
       deleteUploadFile(existing[0].option_overlay_image_url);
@@ -199,10 +217,10 @@ router.put('/options/:id', auth, upload.fields([
     } else {
       overlay_url = existing[0].option_overlay_image_url;
     }
-    const toInt = (v, d) => (v === '' || v === null || v === undefined) ? d : parseInt(v, 10);
+
     await db.query(
-      'UPDATE options SET option_text=?, option_image_url=?, option_overlay_image_url=?, option_color=?, option_text_color=?, option_border_color=?, option_border_width=?, option_border_radius=?, option_font_gradient=?, option_bg_gradient=?, option_border_gradient=?, option_corners_json=?, is_correct=?, option_order=? WHERE id=?',
-      [option_text, img_url, overlay_url, option_color, option_text_color || existing[0].option_text_color || '#ffffff', option_border_color || existing[0].option_border_color || 'transparent', toInt(option_border_width, existing[0].option_border_width ?? 0), toInt(option_border_radius, existing[0].option_border_radius ?? 12), option_font_gradient ?? existing[0].option_font_gradient ?? '', option_bg_gradient ?? existing[0].option_bg_gradient ?? '', option_border_gradient ?? existing[0].option_border_gradient ?? '', option_corners_json ?? existing[0].option_corners_json ?? '', isCorrectBool ? 1 : 0, option_order, req.params.id]
+      'UPDATE options SET option_text=?, option_image_url=?, option_overlay_image_url=?, option_color=?, option_text_color=?, is_correct=?, option_order=? WHERE id=?',
+      [option_text, img_url, overlay_url, option_color, option_text_color || existing[0].option_text_color || '#ffffff', isCorrectBool ? 1 : 0, option_order, req.params.id]
     );
     const [updated] = await db.query('SELECT * FROM options WHERE id = ?', [req.params.id]);
     res.json({ success: true, option: updated[0] });
@@ -211,6 +229,7 @@ router.put('/options/:id', auth, upload.fields([
 
 router.delete('/options/:id', auth, async (req, res) => {
   try {
+    // Fetch option before deleting so we can clean up its files
     const [existing] = await db.query('SELECT * FROM options WHERE id = ?', [req.params.id]);
     if (existing[0]) {
       deleteUploadFile(existing[0].option_image_url);

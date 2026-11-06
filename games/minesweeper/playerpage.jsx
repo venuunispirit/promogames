@@ -139,6 +139,7 @@ export default function MinesweeperVelvet() {
   const [shake, setShake] = useState(false);
   const [flash, setFlash] = useState(false);
   const [blast, setBlast] = useState(null); // { r, c, particles }
+  const [showPopup, setShowPopup] = useState(false);
 
   // ---- responsive viewport tracking ----
   const [viewport, setViewport] = useState(() => ({
@@ -201,6 +202,15 @@ export default function MinesweeperVelvet() {
   useEffect(() => {
     return () => clearInterval(timerRef.current);
   }, []);
+
+  useEffect(() => {
+    if (gameOver) {
+      const timer = setTimeout(() => setShowPopup(true), 850);
+      return () => clearTimeout(timer);
+    } else {
+      setShowPopup(false);
+    }
+  }, [gameOver]);
 
   // ---- audio ----
   const ensureAudio = useCallback(() => {
@@ -384,6 +394,7 @@ export default function MinesweeperVelvet() {
       setBlast(null);
       setShake(false);
       setFlash(false);
+      setShowPopup(false);
       firstClickRef.current = true;
       setGrid(makeEmptyGrid(rows, cols));
       setScreen("game");
@@ -651,6 +662,32 @@ export default function MinesweeperVelvet() {
             <button className="ms-change-diff" onClick={changeDifficulty}>
               Change difficulty
             </button>
+
+            {showPopup && (
+              <div className="ms-popup-overlay">
+                <div className="ms-popup">
+                  <div className="ms-popup-emoji">{won ? "🏆" : "💀"}</div>
+                  <div className="ms-popup-title">{won ? "You Win!" : "Game Over"}</div>
+                  <div className="ms-popup-sub">
+                    {won ? "Congratulations, you cleared the board!" : "Better luck next time!"}
+                  </div>
+                  <div className="ms-popup-buttons">
+                    <button
+                      className="ms-popup-btn ms-popup-btn-home"
+                      onClick={changeDifficulty}
+                    >
+                      🏠 Home
+                    </button>
+                    <button
+                      className="ms-popup-btn ms-popup-btn-retry"
+                      onClick={() => startGame(dims.cols, dims.rows, dims.mines)}
+                    >
+                      🔄 Try Again
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -1087,5 +1124,113 @@ const CSS = `
 
 @media (hover: none) {
   .ms-diff:hover, .ms-face:hover, .ms-change-diff:hover { border-color: inherit; }
+}
+
+/* ---- game-over popup ---- */
+@keyframes ms-popupFadeIn {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+@keyframes ms-popupScaleIn {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.ms-popup-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10000;
+  animation: ms-popupFadeIn 0.3s ease forwards;
+  padding: 20px;
+}
+.ms-popup {
+  background:
+    radial-gradient(ellipse 340px 160px at 28% 0%, rgba(255,255,255,0.10), transparent 55%),
+    linear-gradient(150deg, var(--velvet-1) 0%, var(--velvet-2) 48%, var(--velvet-3) 100%);
+  border-radius: 22px;
+  padding: 2rem 1.8rem;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow:
+    0 0 0 1px rgba(0,0,0,0.5),
+    0 0 0 3px rgba(255,209,102,0.22),
+    0 30px 70px -20px rgba(10, 0, 25, 0.85),
+    0 0 60px -14px var(--accent-soft);
+  animation: ms-popupScaleIn 0.35s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.ms-popup-emoji {
+  font-size: 48px;
+  margin-bottom: 10px;
+  line-height: 1.1;
+}
+.ms-popup-title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(22px, 6vw, 28px);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+  letter-spacing: 0.01em;
+}
+.ms-popup-sub {
+  font-family: 'Poppins', sans-serif;
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 1.4rem;
+  letter-spacing: 0.02em;
+}
+.ms-popup-buttons {
+  display: flex;
+  gap: 10px;
+}
+.ms-popup-btn {
+  flex: 1;
+  font-family: 'Poppins', sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 14px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,209,102,0.22);
+  cursor: pointer;
+  color: var(--text-primary);
+  letter-spacing: 0.02em;
+  transition: transform 0.12s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+.ms-popup-btn-home {
+  background:
+    radial-gradient(ellipse 40px 20px at 30% 0%, rgba(255,255,255,0.12), transparent 60%),
+    linear-gradient(160deg, rgba(255,255,255,0.06), rgba(0,0,0,0.12));
+}
+.ms-popup-btn-retry {
+  background:
+    radial-gradient(ellipse 40px 20px at 30% 0%, rgba(255,255,255,0.18), transparent 60%),
+    linear-gradient(160deg, rgba(255,180,60,0.15), rgba(255,120,40,0.08));
+  border-color: rgba(255,209,102,0.4);
+  box-shadow: 0 0 0 1px rgba(255,209,102,0.3) inset, 0 6px 16px -8px rgba(255,209,102,0.35);
+}
+.ms-popup-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--gold-soft);
+}
+.ms-popup-btn:active {
+  transform: translateY(0) scale(0.97);
+}
+.ms-popup-btn-retry:hover {
+  box-shadow: 0 0 0 1px rgba(255,209,102,0.5) inset, 0 8px 20px -8px rgba(255,209,102,0.5);
+}
+
+@media (max-width: 480px) {
+  .ms-popup { padding: 1.6rem 1.4rem; border-radius: 18px; max-width: 300px; }
+  .ms-popup-emoji { font-size: 40px; }
+  .ms-popup-title { font-size: clamp(20px, 5vw, 24px); }
+  .ms-popup-sub { font-size: 12px; margin-bottom: 1.2rem; }
+  .ms-popup-btn { font-size: 13px; padding: 11px 12px; border-radius: 12px; }
 }
 `;

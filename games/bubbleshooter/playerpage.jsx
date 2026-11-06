@@ -399,7 +399,7 @@ export default function BubbleShooterPlayerPage({ gameData, sessionToken, onComp
   const [difficulty, setDifficulty] = useState("medium");
   const [level, setLevel] = useState(1);
   const [score, setScore] = useState(0);
-  const [highScore, setHighScore] = useState(0);
+  const [highScore, setHighScore] = useState(gameData?.high_score || 0);
   const [muted, setMuted] = useState(false);
   const [musicOn, setMusicOn] = useState(true);
   const [hapticsOn, setHapticsOn] = useState(true);
@@ -451,10 +451,12 @@ export default function BubbleShooterPlayerPage({ gameData, sessionToken, onComp
   /* ------------------------------ LOAD HIGH SCORE ------------------------------ */
   useEffect(() => {
     try {
+      const globalHigh = gameData?.high_score;
+      if (globalHigh > 0) { setHighScore(globalHigh); return; }
       const saved = localStorage.getItem(HIGH_SCORE_KEY);
       if (saved) setHighScore(parseInt(saved, 10) || 0);
     } catch (e) {}
-  }, []);
+  }, [gameData?.high_score]);
 
   useEffect(() => {
     if (score > highScore) {

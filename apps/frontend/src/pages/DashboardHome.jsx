@@ -40,12 +40,14 @@ const CSS = `
   color:var(--text);
   position:relative;
 
-  background: #ffffff;
+  /* Keep the page background on the theme token — a hard-coded #ffffff here
+     made dark-mode text invisible (white on white). */
+  background: var(--bg-secondary);
 }
 
 .dh-card {
   width:100%;
-  background:#ffffff !important;
+  background:var(--surface) !important;
 
   border:1px solid var(--border);
 
@@ -70,17 +72,17 @@ const CSS = `
 }
     .dh-card-pad {
   padding:20px 22px;
-  background:#ffffff !important;
+  background:var(--surface) !important;
 }.dh-card table {
-  background:#ffffff !important;
+  background:var(--surface) !important;
 }
 
 .dh-card thead tr {
-  background:#f8f9fa !important;
+  background:var(--surface2) !important;
 }
 
 .dh-tr:hover {
-  background:#f5f3ff !important;
+  background:var(--surface2) !important;
 }
 
 .dh-kpi-val {

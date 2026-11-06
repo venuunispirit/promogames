@@ -219,11 +219,19 @@ export default function ScrewPlayerPage({ gameData, sessionToken, onComplete }) 
   const completingRef = useRef(false)
   const timerRef = useRef(null)
 
-  // Computed cell size
-  const cellSize = Math.min(
-    Math.floor((Math.min(window.innerWidth, 480) - 40) / cols),
-    Math.floor((window.innerHeight * 0.65) / rows)
-  )
+  // Available vertical space: viewport minus header (~50px) and footer (~50px)
+  const vh = window.innerHeight
+  const vw = window.innerWidth
+  const headerH = 56
+  const footerH = 52
+  const availW = Math.min(vw, 480) - 32 // padding 16px each side
+  const availH = vh - headerH - footerH - 32
+  // Cell size fits both width and height; add gap allowance (gap ≈ 2vw, cap 12px)
+  const gap = Math.min(12, Math.max(6, Math.floor(vw * 0.02)))
+  const cellSize = Math.max(28, Math.min(
+    Math.floor((availW - (cols - 1) * gap) / cols),
+    Math.floor((availH - (rows - 1) * gap) / rows)
+  ))
 
   // Init board
   useEffect(() => {

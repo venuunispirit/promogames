@@ -433,231 +433,6 @@ function ColorPicker({ value, onChange, label, noPresets }) {
   )
 }
 
-/* ─────────── Gradient helpers ─────────── */
-// Normalize a saved/loaded value into { colors:[{c,stop}], angle, start, end }
-const normGrad = (v) => {
-  if (!v || typeof v !== 'object') v = {}
-  const colorsRaw = Array.isArray(v.colors) ? v.colors : [{ c: v.c || '#6366f1' }]
-  const colors = colorsRaw.map(x => typeof x === 'string' ? { c: x } : { c: x.c || '#6366f1' })
-  return {
-    colors,
-    angle: v.angle != null ? v.angle : 90,
-    start: v.start != null ? v.start : 0,
-    end: v.end != null ? v.end : 100,
-  }
-}
-
-// Build a CSS linear-gradient string from a gradient state ('' if single color)
-const gradToCss = (g) => {
-  const g2 = normGrad(g)
-  if (g2.colors.length < 2) return ''
-  const n = g2.colors.length
-  const stops = g2.colors.map((_, i) => {
-    const pct = g2.start + ((g2.end - g2.start) * i) / (n - 1)
-    return `${g2.colors[i].c} ${Math.round(pct)}%`
-  })
-  return `linear-gradient(${g2.angle}deg, ${stops.join(', ')})`
-}
-
-// Parse a stored JSON gradient string, falling back to a solid color
-const parseGradJson = (s, fallbackColor) => {
-  if (s) {
-    try {
-      const o = JSON.parse(s)
-      if (o && (Array.isArray(o.colors) || o.c)) return normGrad(o)
-    } catch {}
-  }
-  return normGrad({ colors: [{ c: fallbackColor || '#6366f1' }] })
-}
-
-/* ─────────── MultiColorField ───────────
-   One row: base solid color + "+ Add color" squares; 2+ colors → gradient
-   with angle + start/end stop sliders; each color square gets a ✕ to remove. */
-function MultiColorField({ value, onChange, label, title }) {
-  const g = normGrad(value)
-  const isGrad = g.colors.length > 1
-
-  const setColor = (i, c) => {
-    const colors = g.colors.map((x, idx) => idx === i ? { c } : x)
-    onChange({ ...g, colors })
-  }
-  const addColor = () => {
-    const colors = [...g.colors, { c: g.colors[g.colors.length-1].c }]
-    onChange({ ...g, colors })
-  }
-  const removeColor = (i) => {
-    const colors = g.colors.filter((_, idx) => idx !== i)
-    onChange({ ...g, colors: colors.length ? colors : [{ c: '#6366f1' }] })
-  }
-
-  return (
-    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-      <span className="gb-label">{label}</span>
-
-      {/* Squares row */}
-      <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-        {g.colors.map((x, i) => (
-          <div key={i} style={{ position:'relative' }}>
-            <input type="color" value={x.c} onChange={e => setColor(i, e.target.value)}
-              title={title || `${label} color ${i+1}`}
-              style={{ width:34, height:34, padding:0, border:`2px solid ${i===0 ? 'var(--gb-primary)' : 'transparent'}`, borderRadius:8, cursor:'pointer', background:'none' }} />
-            {isGrad && (
-              <button type="button" onClick={() => removeColor(i)}
-                style={{ position:'absolute', top:-5, right:-5, width:14, height:14, borderRadius:'50%',
-                  background:'#ef4444', color:'#fff', border:'none', fontSize:9, lineHeight:'14px',
-                  cursor:'pointer', padding:0, display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
-            )}
-          </div>
-        ))}
-        <button type="button" onClick={addColor}
-          title="Add color to create a gradient"
-          style={{ width:34, height:34, borderRadius:8, border:'1.5px dashed var(--gb-border)',
-            background:'transparent', color:'var(--gb-text3)', fontSize:20, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>
-          +
-        </button>
-      </div>
-
-      {/* Gradient controls (only when 2+ colors) */}
-      {isGrad && (
-        <div style={{ display:'flex', flexDirection:'column', gap:6, background:'var(--gb-bg)', borderRadius:8, padding:'8px 10px' }}>
-          {/* Live preview bar */}
-          <div style={{ height:14, borderRadius:6, background: gradToCss(g), border:'1px solid var(--gb-border)' }} />
-          <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
-            <span style={{ flex:'0 0 auto', fontWeight:600 }}>Angle</span>
-            <input type="range" min={0} max={360} step={1} value={g.angle}
-              onChange={e => onChange({ ...g, angle: parseInt(e.target.value) })}
-              style={{ flex:1, accentColor:'var(--gb-primary)' }} />
-            <span style={{ flex:'0 0 34px', textAlign:'right', fontFamily:'monospace' }}>{g.angle}°</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
-            <span style={{ flex:'0 0 auto', fontWeight:600 }}>Start</span>
-            <input type="range" min={0} max={100} step={1} value={g.start}
-              onChange={e => onChange({ ...g, start: Math.min(parseInt(e.target.value), g.end) })}
-              style={{ flex:1, accentColor:'var(--gb-primary)' }} />
-            <span style={{ flex:'0 0 34px', textAlign:'right', fontFamily:'monospace' }}>{g.start}%</span>
-          </div>
-          <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
-            <span style={{ flex:'0 0 auto', fontWeight:600 }}>End</span>
-            <input type="range" min={0} max={100} step={1} value={g.end}
-              onChange={e => onChange({ ...g, end: Math.max(parseInt(e.target.value), g.start) })}
-              style={{ flex:1, accentColor:'var(--gb-primary)' }} />
-            <span style={{ flex:'0 0 34px', textAlign:'right', fontFamily:'monospace' }}>{g.end}%</span>
-          </div>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* ─────────── Corner radius (per-corner) ───────────
-   Start with a single radius that applies everywhere; the "+" button
-   adds per-corner overrides (asking WHICH corner) once its data lives
-   in a chip; once all 4 corners are set the base radius field hides. */
-const CORNER_LABELS = [
-  { k:'tl', l:'Top Left' },
-  { k:'tr', l:'Top Right' },
-  { k:'br', l:'Bottom Right' },
-  { k:'bl', l:'Bottom Left' },
-]
-
-const parseCornersJson = (s) => {
-  if (!s) return {}
-  try { const o = JSON.parse(s); if (o && typeof o === 'object') return o } catch {}
-  return {}
-}
-
-// Build a CSS border-radius shorthand; corners w/o an override fall back to base
-const cornersToCss = (overrides, base) => {
-  const b = base != null ? Number(base) : 0
-  const tl = Number(overrides?.tl ?? b)
-  const tr = Number(overrides?.tr ?? b)
-  const br = Number(overrides?.br ?? b)
-  const bl = Number(overrides?.bl ?? b)
-  return `${tl}px ${tr}px ${br}px ${bl}px`
-}
-
-// Gradient border ring that follows border-radius (border-image cannot round corners).
-// Paints the option fill on padding-box and the gradient ring on border-box.
-const ringBorder = (fill, grad, width) => {
-  if (!grad || !width || width <= 0) return null
-  const f = String(fill || '#1a1a2e').startsWith('linear-gradient') ? fill : `linear-gradient(135deg, ${fill || '#1a1a2e'}, ${fill || '#1a1a2e'})`
-  return {
-    background: `${f} padding-box, ${grad} border-box`,
-    backgroundClip: 'padding-box, border-box',
-    border: `${width}px solid transparent`,
-  }
-}
-
-function CornerRadiusField({ value, base, onChange, onBaseChange }) {
-  const overrides = value || {}
-  const active = CORNER_LABELS.filter(c => overrides[c.k] != null)
-  const allUsed = active.length >= CORNER_LABELS.length
-  const [pickerOpen, setPickerOpen] = useState(false)
-  const bVal = base != null ? base : 12
-
-  return (
-    <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-      <span className="gb-label">Border Radius — per corner</span>
-
-      {!allUsed && (
-        <div style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
-          <span style={{ flex:'0 0 auto', fontWeight:600 }}>Radius (px)</span>
-          <input type="range" min={0} max={60} step={1} value={bVal}
-            onChange={e => onBaseChange(parseInt(e.target.value))}
-            style={{ flex:1, accentColor:'var(--gb-primary)' }} />
-          <span style={{ flex:'0 0 30px', textAlign:'right', fontFamily:'monospace' }}>{bVal}</span>
-        </div>
-      )}
-
-      {active.length > 0 && (
-        <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-          {active.map(c => (
-            <div key={c.k} style={{ display:'flex', alignItems:'center', gap:10, fontSize:11, color:'var(--gb-text2)' }}>
-              <span style={{ flex:'0 0 84px', fontWeight:600 }}>{c.l}</span>
-              <input type="range" min={0} max={60} step={1} value={overrides[c.k]}
-                onChange={e => onChange({ ...overrides, [c.k]: parseInt(e.target.value) })}
-                style={{ flex:1, accentColor:'var(--gb-primary)' }} />
-              <span style={{ flex:'0 0 30px', textAlign:'right', fontFamily:'monospace' }}>{overrides[c.k]}</span>
-              <button type="button" title="Reset this corner to the base radius"
-                onClick={() => { const n = { ...overrides }; delete n[c.k]; onChange(n) }}
-                style={{ width:18, height:18, borderRadius:'50%', background:'#ef4444', color:'#fff',
-                  border:'none', fontSize:10, lineHeight:'18px', cursor:'pointer', padding:0,
-                  display:'flex', alignItems:'center', justifyContent:'center' }}>✕</button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      {!allUsed && (
-        <div style={{ display:'flex', alignItems:'center', gap:8, flexWrap:'wrap' }}>
-          <button type="button" title="Add a corner to give it its own radius"
-            onClick={() => setPickerOpen(p => !p)}
-            style={{ width:30, height:30, borderRadius:8, border:'1.5px dashed var(--gb-border)',
-              background:'transparent', color:'var(--gb-text3)', fontSize:18, cursor:'pointer',
-              display:'flex', alignItems:'center', justifyContent:'center', lineHeight:1 }}>
-            +
-          </button>
-          {pickerOpen && (
-            <>
-              <span style={{ fontSize:11, color:'var(--gb-text3)' }}>Which corner?</span>
-              {CORNER_LABELS.filter(c => overrides[c.k] == null).map(c => (
-                <button key={c.k} type="button" onClick={() => {
-                  onChange({ ...overrides, [c.k]: bVal })
-                  setPickerOpen(false)
-                }}
-                  style={{ fontSize:11, padding:'4px 10px', borderRadius:999, border:'1px solid var(--gb-primary)',
-                    background:'var(--gb-bg)', color:'var(--gb-primary)', cursor:'pointer' }}>
-                  {c.l}
-                </button>
-              ))}
-            </>
-          )}
-        </div>
-      )}
-    </div>
-  )
-}
-
 /* ─────────── ImageUpload ─────────── */
 function ImageUpload({ label, url, onFile, onClear, error, accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,video/mp4,video/webm" }) {
   const ref = useRef()
@@ -743,28 +518,9 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
                 style={{ border:'1.5px dashed var(--gb-border)', borderRadius:6, padding:'4px 8px', cursor:'pointer', background:'transparent', fontSize:14, lineHeight:1, flexShrink:0 }} title="Option image">📷</button>
             )}
           </div>
-          <div style={{ display:'flex', gap:12, alignItems:'center', flexWrap:'wrap' }}>
+          <div style={{ display:'flex', gap:12, alignItems:'center' }}>
             <ColorPicker value={opt.option_text_color||'#ffffff'} onChange={v => onUpdate('option_text_color', v)} label="Text Color" />
             <ColorPicker value={opt.option_color} onChange={v => onUpdate('option_color', v)} label="BG Color" />
-            <ColorPicker value={opt.option_border_color||'transparent'} onChange={v => onUpdate('option_border_color', v)} label="Border Color" />
-            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-              <span className="gb-label" style={{ whiteSpace:'nowrap' }}>Border W</span>
-              <input type="number" min={0} max={20} value={opt.option_border_width??0}
-                onChange={e => onUpdate('option_border_width', parseInt(e.target.value)||0)}
-                style={{ width:56 }} />
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-              <span className="gb-label" style={{ whiteSpace:'nowrap' }}>Radius</span>
-              <input type="number" min={0} max={60} value={opt.option_border_radius??12}
-                onChange={e => onUpdate('option_border_radius', parseInt(e.target.value)||0)}
-                style={{ width:56 }} />
-            </div>
-            <div style={{ display:'flex', alignItems:'center', gap:4 }}>
-              <span className="gb-label" style={{ whiteSpace:'nowrap' }}>Font Gradient</span>
-              <input value={opt.option_font_gradient||''} onChange={e => onUpdate('option_font_gradient', e.target.value)}
-                placeholder="linear-gradient(90deg,#f59e0b,#ef4444)"
-                style={{ width:200, fontFamily:'monospace', fontSize:11 }} />
-            </div>
             {showCorrect && (
               <div style={{ paddingTop:18 }}>
                 <button
@@ -775,31 +531,6 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
               </div>
             )}
           </div>
-          {/* gradient preview hint */}
-          {opt.option_bg_gradient && (
-            <div style={{ marginTop:8, fontSize:12, color:'var(--gb-text3)', display:'flex', alignItems:'center', gap:8 }}>
-              BG gradient:
-              <span style={{ display:'inline-block', width:130, height:14, borderRadius:4,
-                background:opt.option_bg_gradient, border:'1px solid var(--gb-border)' }} />
-            </div>
-          )}
-          {opt.option_font_gradient && (
-            <div style={{ marginTop:8, fontSize:12, color:'var(--gb-text3)' }}>
-              Preview: <span style={{ backgroundImage:opt.option_font_gradient, WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent', fontWeight:700 }}>{opt.option_text||'Sample text'}</span>
-            </div>
-          )}
-          {opt.option_border_gradient && (
-            <div style={{ marginTop:8, fontSize:12, color:'var(--gb-text3)', display:'flex', alignItems:'center', gap:8 }}>
-              Border gradient:
-              <span style={{ display:'inline-block', width:130, height:14, borderRadius:4,
-                background:opt.option_border_gradient, border:'1px solid var(--gb-border)' }} />
-            </div>
-          )}
-          {opt.option_corners_json && (
-            <div style={{ marginTop:8, fontSize:12, color:'var(--gb-text3)' }}>
-              Corner radius: {cornersToCss(parseCornersJson(opt.option_corners_json), opt.option_border_radius != null ? opt.option_border_radius : 12)}
-            </div>
-          )}
         </div>
         {/* Col 2: overlay image */}
         <div style={{ display:'flex', flexDirection:'column', alignItems:'center', minWidth:100 }}>
@@ -831,7 +562,7 @@ function OptionRow({ opt, index, onUpdate, onRemove, onSetCorrect, showCorrect }
 }
 
 /* ─────────── QuestionCard ─────────── */
-function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown, onLiveChange, optDefaults }) {
+function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMoveDown, onLiveChange }) {
   const [q, setQ] = useState(question)
   const [saving, setSaving] = useState(false)
   const [imgPreview, setImgPreview] = useState(question.question_image_url||null)
@@ -852,19 +583,8 @@ function QuestionCard({ question, index, total, onSave, onDelete, onMoveUp, onMo
       const opts = [...(prev.options||[])]; opts[i] = { ...opts[i], [field]:val }; return { ...prev, options:opts }
     })
   }
-  // New options inherit styling from the GAME-WIDE default option styling (set once, applies to all questions/options)
-  const addOption = () => {
-    const opts = q.options || []
-    const d = optDefaults || {}
-    setQ({ ...q, options:[...opts,
-      { option_text:'', option_color:d.option_color||'#1a1a2e', option_text_color:d.option_text_color||'#ffffff',
-        option_border_color:d.option_border_color||'transparent', option_border_width:d.option_border_width!=null?d.option_border_width:0,
-        option_border_radius:d.option_border_radius!=null?d.option_border_radius:12, option_font_gradient:d.option_font_gradient||'',
-        option_bg_gradient:d.option_bg_gradient||'',
-        option_border_gradient:d.option_border_gradient||'',
-        option_corners_json:d.option_corners_json||'',
-        is_correct:0, option_order:opts.length }] })
-  }
+  const addOption = () => setQ({ ...q, options:[...(q.options||[]),
+    { option_text:'', option_color:'#6366f1', option_text_color:'#ffffff', is_correct:0, option_order:(q.options||[]).length }] })
   const removeOption = i => { const opts=[...(q.options||[])]; opts.splice(i,1); setQ({ ...q, options:opts }) }
   const setCorrect = sel => setQ(prev => ({ ...prev,
     options: prev.options.map((o,idx) => ({ ...o, is_correct: idx===sel ? 1 : 0 })) }))
@@ -1063,12 +783,10 @@ export default function GameBuilderPage() {
 </head>
 <body>
 <div class="wrap">
-<div class="header"><h1>You earned an offer! 🎉</h1></div>
+<div class="header"><h1>Congratulations! 🎉</h1></div>
 <div class="body">
 <p>Hi {{name}},</p>
-<p>Congratulations on playing <strong>{{game_name}}</strong>! You've earned a special offer.</p>
-<p style="text-align:center;margin:28px 0;font-size:24px;font-weight:800;letter-spacing:8px;background:#f4f4f6;padding:12px 24px;border-radius:8px;display:inline-block;font-family:monospace">{{code}}</p>
-<p>Show this 6-digit code to the staff to redeem your reward.</p>
+<p>You have completed <strong>{{game_name}}</strong>. Thank you for playing!</p>
 </div>
 <div class="footer"><p>© PromoGames · Enjoy your reward!</p></div>
 </div>
@@ -1164,7 +882,7 @@ const [nameInput,     setNameInput]     = useState('')
       if (g.questions?.length) setSelectedQuestionId(g.questions[0].id)
       setFormFields(g.formFields||[])
       setEmailTemplate(g.emailTemplate||{})
-      setSettings(g.settings||{})
+      setSettings({ ...(g.settings||{}), meta_description: g.meta_description || g.settings?.meta_description || '' })
       setSounds(g.sounds||[])
       setSlugInput(g.slug||'')
       setRedirectUrl(g.redirect_url||'')
@@ -1279,13 +997,6 @@ const [nameInput,     setNameInput]     = useState('')
       ofd.append('option_text',       opt.option_text||'')
       ofd.append('option_color',      opt.option_color||'#6366f1')
       ofd.append('option_text_color', opt.option_text_color||'#ffffff')
-      ofd.append('option_border_color',   opt.option_border_color||'transparent')
-      ofd.append('option_border_width',   opt.option_border_width||0)
-      ofd.append('option_border_radius',  opt.option_border_radius||12)
-      ofd.append('option_font_gradient',  opt.option_font_gradient||'')
-      ofd.append('option_bg_gradient',    opt.option_bg_gradient||'')
-      ofd.append('option_border_gradient', opt.option_border_gradient||'')
-      ofd.append('option_corners_json',    opt.option_corners_json||'')
       ofd.append('is_correct',        opt.is_correct ? 1 : 0)
       ofd.append('option_order',      (q.options||[]).indexOf(opt))
       if (opt._optImageFile) ofd.append('option_image',         opt._optImageFile)
@@ -1411,6 +1122,17 @@ const [nameInput,     setNameInput]     = useState('')
     setSaving(true)
     upload.clearAll()
     try {
+      // Client-side validation for sequential code generation
+      if (settings.code_generation_enabled) {
+        const from = (settings.code_from || '').trim()
+        const to = (settings.code_to || '').trim()
+        const fromM = from.match(/^([A-Za-z]+)(\d+)$/)
+        const toM = to.match(/^([A-Za-z]+)(\d+)$/)
+        if (!from || !to) { showToast('Code From and Code To are required', 'error'); setSaving(false); return }
+        if (!fromM || !toM) { showToast('Codes must use a prefix followed by a number (e.g. FL0001)', 'error'); setSaving(false); return }
+        if (fromM[1].toLowerCase() !== toM[1].toLowerCase()) { showToast('Code From and Code To must share the same prefix', 'error'); setSaving(false); return }
+        if (parseInt(fromM[2], 10) > parseInt(toM[2], 10)) { showToast('Code From must not be greater than Code To', 'error'); setSaving(false); return }
+      }
       const fd = new FormData()
       const fields = ['bg_color','primary_color','show_progress','time_per_question',
         'heading_1','heading_2','intro_text','outro_text','win_sound_id','lose_sound_id',
@@ -1425,12 +1147,12 @@ const [nameInput,     setNameInput]     = useState('')
         'next_button_text','next_button_text_color','next_button_bg_color',
         'randomize_questions','questions_per_session',
         'enable_mascot','enable_speech','speech_language','speech_rate','speech_pitch',
-        'default_option_color','default_option_text_color','default_option_border_color',
-        'default_option_border_width','default_option_border_radius','default_option_font_gradient',
-        'default_option_bg_json','default_option_font_json',
-        'default_option_border_json','default_option_corners_json']
-      const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech']
-      const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time','default_option_border_width','default_option_border_radius']
+        'show_completion_modal','completion_heading_text','completion_subtext',
+        'completion_show_confetti','completion_show_progress_bar',
+        'completion_progress_bar_color','close_button_text','close_button_text_color','completion_redirect_url',
+        'code_generation_enabled','code_from','code_to','code_show_on_thank_you','code_send_in_email','code_label','meta_description']
+      const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech','code_generation_enabled','code_show_on_thank_you','code_send_in_email']
+      const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time']
       for (const f of fields) {
         let v = settings[f]
         if (v === undefined || v === '') v = null
@@ -1438,16 +1160,6 @@ const [nameInput,     setNameInput]     = useState('')
         else if (nums.includes(f) && v !== null) v = Number(v)
         fd.append(f, v ?? '')
       }
-      // Derive solid colors + CSS gradient strings from the multi-color state so
-      // the options/new options + player receive the computed look.
-      const bgG = parseGradJson(settings.default_option_bg_json, settings.default_option_color || '#1a1a2e')
-      const fG  = parseGradJson(settings.default_option_font_json, settings.default_option_text_color || '#ffffff')
-      const bG  = parseGradJson(settings.default_option_border_json, settings.default_option_border_color || 'transparent')
-      fd.set('default_option_color', bgG.colors[0].c)
-      fd.set('default_option_text_color', fG.colors[0].c)
-      fd.set('default_option_bg_gradient', gradToCss(bgG))
-      fd.set('default_option_font_gradient', gradToCss(fG))
-      fd.set('default_option_border_color', bG.colors[0].c)
       if (settings._bgImageFile)    fd.append('bg_image',           settings._bgImageFile)
       else if (settings.bg_image_url !== undefined) fd.append('bg_image_url',     settings.bg_image_url)
       if (settings._tyBgImageFile)  fd.append('thankyou_bg_image',  settings._tyBgImageFile)
@@ -1532,7 +1244,6 @@ const [nameInput,     setNameInput]     = useState('')
   const gameLink = game ? `${window.location.origin}/play/${game.slug}/${game.client_slug}` : ''
   const isParentGame = !game?.parent_game_id
   const TABS = [
-    { id:'global',    label:'Global Styling' },
     { id:'form',      label:'Player Form' },
     { id:'questions', label:'Questions' },
     { id:'thankyou',  label:'Thankyou Page' },
@@ -1772,8 +1483,6 @@ const [nameInput,     setNameInput]     = useState('')
                     </div>
                   )
                   const idx = questions.indexOf(selQ)
-                  const defaultCorners = parseCornersJson(settings.default_option_corners_json)
-                  const defaultR = settings.default_option_border_radius != null ? settings.default_option_border_radius : 12
                   return (
                     <QuestionCard
                       key={selQ.id}
@@ -1786,83 +1495,9 @@ const [nameInput,     setNameInput]     = useState('')
                       onMoveDown={i => moveQuestion(i, i+1)}
                       forceOpen={true}
                       onLiveChange={handleLiveChange}
-                      optDefaults={{
-                        option_color: settings.default_option_color || '#1a1a2e',
-                        option_text_color: settings.default_option_text_color || '#ffffff',
-                        option_border_color: settings.default_option_border_color || 'transparent',
-                        option_border_width: settings.default_option_border_width != null ? settings.default_option_border_width : 0,
-                        option_border_radius: settings.default_option_border_radius != null ? settings.default_option_border_radius : 12,
-                        option_font_gradient: gradToCss(parseGradJson(settings.default_option_font_json, settings.default_option_text_color || '#ffffff')) || settings.default_option_font_gradient || '',
-                        option_bg_gradient: gradToCss(parseGradJson(settings.default_option_bg_json, settings.default_option_color || '#1a1a2e')) || '',
-                        option_border_gradient: gradToCss(parseGradJson(settings.default_option_border_json, settings.default_option_border_color || 'transparent')) || '',
-                        option_corners_json: JSON.stringify({
-                          tl: (defaultCorners.tl != null ? defaultCorners.tl : defaultR),
-                          tr: (defaultCorners.tr != null ? defaultCorners.tr : defaultR),
-                          br: (defaultCorners.br != null ? defaultCorners.br : defaultR),
-                          bl: (defaultCorners.bl != null ? defaultCorners.bl : defaultR),
-                        }),
-                      }}
                     />
                   )
                 })()}
-              </div>
-            </div>
-          )}
-
-          {/* ════ GLOBAL STYLING TAB ════ */}
-          {tab === 'global' && (
-            <div>
-              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
-                <div className="gb-section-title">🎨 Default Option Styling</div>
-                <p style={{ fontSize:12, color:'var(--gb-text3)', marginTop:4, marginBottom:14 }}>
-                  Set the default look for all answer options across every question in this game. New options inherit
-                  this styling automatically. Existing options keep whatever styling they were saved with, and you can
-                  still override any individual option in the Questions tab.
-                </p>
-
-                {/* Row 1: Option BG + Option Font (multi-color gradient) */}
-                <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:16 }}>
-                  <MultiColorField
-                    label="Option Background"
-                    value={parseGradJson(settings.default_option_bg_json, settings.default_option_color || '#1a1a2e')}
-                    onChange={g => setSettings({ ...settings, default_option_bg_json: JSON.stringify(g) })}
-                  />
-                  <MultiColorField
-                    label="Option Font"
-                    value={parseGradJson(settings.default_option_font_json, settings.default_option_text_color || '#ffffff')}
-                    onChange={g => setSettings({ ...settings, default_option_font_json: JSON.stringify(g) })}
-                  />
-                </div>
-
-                {/* Border styling: Row 1 = per-corner radius + width, Row 2 = multi-color border */}
-                <div style={{ display:'grid', gridTemplateColumns:'1.4fr 0.6fr', gap:20, marginTop:4, marginBottom:16 }}>
-                  <CornerRadiusField
-                    value={parseCornersJson(settings.default_option_corners_json)}
-                    base={settings.default_option_border_radius != null ? settings.default_option_border_radius : 12}
-                    onChange={v => setSettings({ ...settings, default_option_corners_json: Object.keys(v).length ? JSON.stringify(v) : '' })}
-                    onBaseChange={b => setSettings({ ...settings, default_option_border_radius: b })}
-                  />
-                  <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
-                    <span className="gb-label">Border Width (px)</span>
-                    <input type="number" min={0} max={20} value={settings.default_option_border_width!=null?settings.default_option_border_width:0}
-                      onChange={e=>setSettings({...settings,default_option_border_width:parseInt(e.target.value)||0})} />
-                    <p style={{ fontSize:11, color:'var(--gb-text3)', margin:0, lineHeight:1.4 }}>
-                      Start with one radius for all corners, then press <b>+</b> to give a specific corner its own radius.
-                    </p>
-                  </div>
-                </div>
-                <MultiColorField
-                  label="Border Color"
-                  value={parseGradJson(settings.default_option_border_json, settings.default_option_border_color && settings.default_option_border_color !== 'transparent' ? settings.default_option_border_color : (settings.default_option_color || '#1a1a2e'))}
-                  onChange={g => setSettings({ ...settings, default_option_border_json: JSON.stringify(g) })}
-                  title="Border color"
-                />
-
-                <div style={{ marginTop:18, textAlign:'center' }}>
-                  <button className="gb-btn gb-btn-primary" onClick={saveSettings} disabled={saving} style={{ padding:'10px 40px' }}>
-                    {saving ? 'Saving…' : 'Save Global Styling'}
-                  </button>
-                </div>
               </div>
             </div>
           )}
@@ -1951,6 +1586,38 @@ const [nameInput,     setNameInput]     = useState('')
                     </label>
                     <button className="gb-btn gb-btn-danger gb-btn-sm" onClick={() => removeFormField(i)}>✕</button>
                   </div>
+
+                  {f.field_type === 'select' && (
+                    <div style={{ marginTop: 10, paddingTop: 10, borderTop: '1px dashed #e5e7eb' }}>
+                      <span className="gb-label" style={{ display: 'block', marginBottom: 6 }}>Dropdown Options</span>
+                      {(f.field_options || []).map((opt, oi) => (
+                        <div key={oi} style={{ display: 'flex', gap: 8, marginBottom: 6 }}>
+                          <input
+                            value={opt}
+                            onChange={e => {
+                              const opts = [...(f.field_options || [])]
+                              opts[oi] = e.target.value
+                              updateFormField(i, 'field_options', opts)
+                            }}
+                            placeholder={`Option ${oi + 1}`}
+                            style={{ flex: 1 }}
+                          />
+                          <button
+                            className="gb-btn gb-btn-danger gb-btn-sm"
+                            onClick={() => {
+                              const opts = [...(f.field_options || [])]
+                              opts.splice(oi, 1)
+                              updateFormField(i, 'field_options', opts)
+                            }}
+                          >✕</button>
+                        </div>
+                      ))}
+                      <button
+                        className="gb-btn gb-btn-ghost gb-btn-sm"
+                        onClick={() => updateFormField(i, 'field_options', [...(f.field_options || []), ''])}
+                      >+ Add Option</button>
+                    </div>
+                  )}
                 </div>
               ))}
               <div style={{ display:'flex', gap:10, marginTop:16, justifyContent:'center' }}>
@@ -2072,6 +1739,11 @@ const [nameInput,     setNameInput]     = useState('')
                   <div className="gb-section" style={{ marginBottom:16, background:'#fffbeb', borderColor:'#fde68a' }}>
                     💡 Use <code>{'{{name}}'}</code>, <code>{'{{score}}'}</code>, <code>{'{{total}}'}</code>, <code>{'{{game_name}}'}</code> as placeholders.
                   </div>
+                  {!!settings.code_generation_enabled && (
+                    <div className="gb-section" style={{ marginBottom:16, background:'#eef2ff', borderColor:'#c7d2fe' }}>
+                      🔢 Code generation is on — use <code>{'{{generated_code}}'}</code> to inject each player's unique code. It is only filled when <b>Include the code in the completion email</b> is enabled in Settings.
+                    </div>
+                  )}
                   <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
                     <div className="gb-fg"><span className="gb-label">Sender Name</span><input value={emailTemplate.sender_name||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_name:e.target.value })} placeholder="Quiz Platform" /></div>
                     <div className="gb-fg"><span className="gb-label">Sender Email</span><input value={emailTemplate.sender_email||''} onChange={e => setEmailTemplate({ ...emailTemplate, sender_email:e.target.value })} placeholder="noreply@yourdomain.com" /></div>
@@ -2215,6 +1887,10 @@ const [nameInput,     setNameInput]     = useState('')
                   <ColorPicker value={settings.submit_button_text_color||'#ffffff'} onChange={v => setSettings({...settings,submit_button_text_color:v})} noPresets label="Text" />
                   <ColorPicker value={settings.submit_button_bg_color||''} onChange={v => setSettings({...settings,submit_button_bg_color:v})} noPresets label="Background" />
                 </div>
+                <div className="gb-fg" style={{ marginBottom:0, marginTop:14 }}>
+                  <span className="gb-label">Redirect URL (opens when the button is clicked)</span>
+                  <input value={redirectUrl} onChange={e => setRedirectUrl(e.target.value)} placeholder="https://yourwebsite.com/thankyou" type="url" />
+                </div>
               </div>
 
               <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:16 }}>
@@ -2236,17 +1912,18 @@ const [nameInput,     setNameInput]     = useState('')
                     {upload.hasError('submit_confirm_gif_url') && <div className="gb-img-error-msg">⚠️ {upload.errors['submit_confirm_gif_url']}</div>}
                   </div>
                 </div>
+                {settings.show_completion_modal && (
                 <div className="gb-card" style={{ padding:16, margin:0 }}>
                   <div className="gb-section-title">🔗 Post-Game Redirect URL</div>
                   <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:12 }}>
-                    Where should players be sent after completing? Leave blank to show default.
+                    URL used by the <b>Continue button</b> in the completion popup. Leave blank to fall back to the Submit &amp; Explore URL.
                   </p>
                   <div className="gb-fg" style={{ marginBottom:0 }}>
-                    <input value={redirectUrl} onChange={e => setRedirectUrl(e.target.value)} placeholder="https://yourwebsite.com/thankyou" type="url" />
+                    <input value={settings.completion_redirect_url||''} onChange={e => setSettings({...settings,completion_redirect_url:e.target.value})} placeholder="https://yourwebsite.com/promo" type="url" />
                   </div>
-                  {redirectUrl && (
+                  {settings.completion_redirect_url && (
                     <div style={{ marginTop:10, marginBottom:16, background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:8, padding:'8px 12px', fontSize:12, color:'#15803d', wordBreak:'break-all' }}>
-                      ✅ {redirectUrl}
+                      ✅ {settings.completion_redirect_url}
                     </div>
                   )}
                   <div style={{ borderTop:'1px solid var(--gb-border)', paddingTop:16 }}>
@@ -2260,6 +1937,41 @@ const [nameInput,     setNameInput]     = useState('')
                     </div>
                   </div>
                 </div>
+                )}
+              </div>
+
+              {/* ─── Completion Modal Toggle & Customization ─── */}
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🎯 Completion Modal</div>
+                <div style={{ display:'flex', alignItems:'center', gap:12, marginBottom:16, padding:'10px 14px', background:'#f0fdf4', border:'1px solid #bbf7d0', borderRadius:10 }}>
+                  <input type="checkbox" id="completionModalToggle" checked={!!settings.show_completion_modal}
+                    onChange={e => setSettings({...settings, show_completion_modal: e.target.checked ? 1 : 0})}
+                    style={{ width:18, height:18 }} />
+                  <label htmlFor="completionModalToggle" style={{ fontSize:13, fontWeight:600, color:'#166534', cursor:'pointer' }}>Show completion modal after quiz/game ends</label>
+                  <span style={{ marginLeft:'auto', fontSize:11, color:'#16a34a', fontWeight:600 }}>{settings.show_completion_modal ? 'ON' : 'OFF'}</span>
+                </div>
+                {settings.show_completion_modal && (
+                  <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'10px 16px', paddingTop:4 }}>
+                    <div className="gb-fg" style={{ gridColumn:'1 / -1' }}><span className="gb-label">Completion Heading Text</span><input value={settings.completion_heading_text||''} onChange={e => setSettings({...settings, completion_heading_text:e.target.value})} placeholder="Quiz Completed!" /></div>
+                    <div className="gb-fg" style={{ gridColumn:'1 / -1' }}><span className="gb-label">Completion Subtext (supports <code>&lt;br /&gt;</code>)</span><textarea rows={2} value={settings.completion_subtext||''} onChange={e => setSettings({...settings, completion_subtext:e.target.value})} placeholder="Your responses have been recorded.<br />Redirecting you now…" style={{ resize:'vertical' }} /></div>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, padding:8, background:'#fef9c3', borderRadius:8 }}>
+                      <input type="checkbox" id="completionConfetti" checked={!!settings.completion_show_confetti} onChange={e => setSettings({...settings, completion_show_confetti:e.target.checked?1:0})} style={{ width:16, height:16 }} />
+                      <label htmlFor="completionConfetti" style={{ fontSize:12, color:'var(--gb-text2)', cursor:'pointer', flex:1 }}>Show confetti/celebration icon</label>
+                    </div>
+                    <div style={{ display:'flex', alignItems:'center', gap:10, padding:8, background:'#fef9c3', borderRadius:8 }}>
+                      <input type="checkbox" id="completionProgressBar" checked={!!settings.completion_show_progress_bar} onChange={e => setSettings({...settings, completion_show_progress_bar:e.target.checked?1:0})} style={{ width:16, height:16 }} />
+                      <label htmlFor="completionProgressBar" style={{ fontSize:12, color:'var(--gb-text2)', cursor:'pointer', flex:1 }}>Show progress bar</label>
+                    </div>
+                    <ColorPicker value={settings.completion_progress_bar_color||'#8076F5'} onChange={v => setSettings({...settings, completion_progress_bar_color:v})} label="Progress Bar Color" />
+                    <div className="gb-fg"><span className="gb-label">Continue Button Text</span><input value={settings.continue_button_text||''} onChange={e => setSettings({...settings, continue_button_text:e.target.value})} placeholder="Continue Now →" /></div>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10 }}>
+                      <ColorPicker value={settings.continue_button_text_color||'#ffffff'} onChange={v => setSettings({...settings, continue_button_text_color:v})} noPresets label="Continue Text" />
+                      <ColorPicker value={settings.continue_button_bg_color||''} onChange={v => setSettings({...settings, continue_button_bg_color:v})} noPresets label="Continue Bg" />
+                    </div>
+                    <div className="gb-fg"><span className="gb-label">Close Button Text</span><input value={settings.close_button_text||''} onChange={e => setSettings({...settings, close_button_text:e.target.value})} placeholder="Close" /></div>
+                    <ColorPicker value={settings.close_button_text_color||'#888888'} onChange={v => setSettings({...settings, close_button_text_color:v})} label="Close Button Text Color" />
+                  </div>
+                )}
               </div>
 
               <div style={{ display:'flex', justifyContent:'flex-end' }}>
@@ -2333,6 +2045,86 @@ const [nameInput,     setNameInput]     = useState('')
                     </div>
                   </div>
                 </div>
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">🔢 Code Generation</div>
+                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:14 }}>
+                  Generate a unique code for every player who completes the quiz. Codes are drawn from the range in a scrambled order (e.g. FL0412, FL9087, …) — so no two players ever see the same pattern — and each code is used only once, safe under concurrent submissions.
+                </p>
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:14 }}>
+                  <input type="checkbox" checked={!!settings.code_generation_enabled} onChange={e => setSettings({...settings, code_generation_enabled: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                  Enable code generation on quiz completion
+                </label>
+                {settings.code_generation_enabled ? (
+                  <>
+                    <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:20, marginBottom:14 }}>
+                      <div className="gb-fg" style={{ marginBottom:0 }}>
+                        <span className="gb-label">Code From</span>
+                        <input
+                          value={settings.code_from || ''}
+                          onChange={e => setSettings({...settings, code_from: e.target.value})}
+                          placeholder="FL0001"
+                          style={{ fontFamily:'monospace', letterSpacing:'0.02em' }}
+                        />
+                        <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>Prefix + number, e.g. <b>FL</b>0001 or 001.</span>
+                      </div>
+                      <div className="gb-fg" style={{ marginBottom:0 }}>
+                        <span className="gb-label">Code To</span>
+                        <input
+                          value={settings.code_to || ''}
+                          onChange={e => setSettings({...settings, code_to: e.target.value})}
+                          placeholder="FL10000"
+                          style={{ fontFamily:'monospace', letterSpacing:'0.02em' }}
+                        />
+                        <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>Last code in the range, e.g. <b>FL</b>10000.</span>
+                      </div>
+                    </div>
+                    <div style={{
+                      background:'var(--gb-primary-bg)', border:'1px solid var(--gb-primary)',
+                      borderRadius:10, padding:'10px 14px', marginBottom:14, fontSize:12.5, color:'var(--gb-text)'
+                    }}>
+                      {(() => {
+                        const from = String(settings.code_from || '').trim()
+                        const to = String(settings.code_to || '').trim()
+                        const fromM = from.match(/^([A-Za-z]+)(\d+)$/)
+                        const toM = to.match(/^([A-Za-z]+)(\d+)$/)
+                        if (!fromM || !toM) return '⚠️ Enter a valid From / To range, e.g. FL0001 → FL10000.'
+                        if (fromM[1].toLowerCase() !== toM[1].toLowerCase()) return '⚠️ Both codes must share the same prefix.'
+                        const fromN = parseInt(fromM[2], 10); const toN = parseInt(toM[2], 10)
+                        if (fromN > toN) return '⚠️ Code From must not be greater than Code To.'
+                        const width = fromM[2].length
+                        const first = fromM[1] + String(fromN).padStart(width, '0')
+                        const last = toM[1] + String(toN).padStart(width, '0')
+                        return `✓ Up to ${(toN - fromN + 1).toLocaleString()} codes · drawn in scrambled order between ${first} – ${last}`
+                      })()}
+                    </div>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:8 }}>
+                      <input type="checkbox" checked={!!settings.code_show_on_thank_you} onChange={e => setSettings({...settings, code_show_on_thank_you: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                      Show the code on the Thank You page
+                    </label>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:8 }}>
+                      <input type="checkbox" checked={!!settings.code_send_in_email} onChange={e => setSettings({...settings, code_send_in_email: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                      Include the code in the completion email
+                    </label>
+                    <div className="gb-fg" style={{ marginBottom:10 }}>
+                      <span className="gb-label">Code box label (Thank You page)</span>
+                      <input
+                        value={settings.code_label || ''}
+                        onChange={e => setSettings({...settings, code_label: e.target.value})}
+                        placeholder="YOUR UNIQUE CODE"
+                        maxLength={100}
+                      />
+                    </div>
+                    <p style={{ color:'var(--gb-text3)', fontSize:11, lineHeight:1.5 }}>
+                      Add the <code style={{ background:'var(--gb-border)', padding:'1px 6px', borderRadius:6, fontSize:11 }}>{'{{generated_code}}'}</code> placeholder anywhere in your Email template to inject the code. When this is off, the placeholder (and its wrapper) is removed from the email.
+                    </p>
+                  </>
+                ) : (
+                  <div className="gb-empty" style={{ padding:'18px' }}>
+                    <div style={{ color:'var(--gb-text3)', fontSize:12 }}>🔒 Code generation is currently disabled.</div>
+                    <div style={{ color:'var(--gb-text3)', fontSize:12, marginTop:4 }}>Enable it above to configure a sequential code range and delivery options.</div>
+                  </div>
+                )}
               </div>
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">🗣️ Mascot &amp; Voice (Text-to-Speech)</div>
@@ -2452,57 +2244,6 @@ const [nameInput,     setNameInput]     = useState('')
           {/* ── Form preview ── */}
           {tab === 'form' && <FormPreview settings={settings} formFields={formFields} defaultButtonText="Start Quiz →" />}
 
-          {/* ── Global styling preview (sample option look) ── */}
-          {tab === 'global' && (() => {
-            const bg = settings.bg_image_url
-            const hasBg = !!bg
-            const optBgGrad = gradToCss(parseGradJson(settings.default_option_bg_json, settings.default_option_color || '#1a1a2e'))
-            const optFontGrad = gradToCss(parseGradJson(settings.default_option_font_json, settings.default_option_text_color || '#ffffff'))
-            const optBorderGrad = gradToCss(parseGradJson(settings.default_option_border_json, settings.default_option_border_color || 'transparent'))
-            const defaultCorners = parseCornersJson(settings.default_option_corners_json)
-            const defaultR = settings.default_option_border_radius != null ? settings.default_option_border_radius : 12
-            const optStyle = {
-              color: settings.default_option_color || '#1a1a2e',
-              textColor: settings.default_option_text_color || '#ffffff',
-              borderColor: settings.default_option_border_color || 'transparent',
-              borderWidth: settings.default_option_border_width != null ? settings.default_option_border_width : 0,
-              radius: cornersToCss(defaultCorners, defaultR),
-              gradient: optFontGrad || settings.default_option_font_gradient || '',
-            }
-            const optsText = ['Option 1', 'Option 2', 'Option 3', 'Option 4']
-            return (
-              <div style={{ flex:1, display:'flex', flexDirection:'column', padding:'8px 12px 14px', overflow:'auto' }}>
-                <div style={{
-                  flex:1, display:'flex', flexDirection:'column',
-                  background: hasBg ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.97)',
-                  backdropFilter:'blur(20px)', WebkitBackdropFilter:'blur(20px)',
-                  borderRadius:18, border: hasBg ? '1px solid rgba(255,255,255,0.3)' : '1px solid rgba(0,0,0,0.06)',
-                  boxShadow: hasBg ? '0 8px 40px rgba(0,0,0,0.28)' : '0 8px 40px rgba(0,0,0,0.12)',
-                  overflow:'hidden', padding:16, gap:10,
-                }}>
-                  <div style={{ fontSize:13, fontWeight:700, color: hasBg ? '#fff' : '#1a1a2e', textAlign:'center', marginBottom:6 }}>
-                    Sample question — default option styling
-                  </div>
-                  {optsText.map((t, i) => {
-                    const ring = ringBorder(optBgGrad || optStyle.color, optBorderGrad, optStyle.borderWidth)
-                    return (
-                    <div key={i} style={{
-                      padding:'13px 14px', borderRadius:optStyle.radius,
-                      ...(ring ? { background:ring.background, backgroundClip:ring.backgroundClip, border:ring.border } : { background: optBgGrad || optStyle.color, border:`${optStyle.borderWidth}px solid ${optStyle.borderColor}` }),
-                      textAlign:'center',
-                    }}>
-                      {optStyle.gradient ? (
-                        <span style={{ backgroundImage:optStyle.gradient, WebkitBackgroundClip:'text', backgroundClip:'text', color:'transparent', WebkitTextFillColor:'transparent', fontWeight:700 }}>{t}</span>
-                      ) : (
-                        <span style={{ color:optStyle.textColor, fontWeight:700 }}>{t}</span>
-                      )}
-                    </div>
-                    )})}
-                </div>
-              </div>
-            )
-          })()}
-
           {/* ── Questions preview (live edits via throttled state) ── */}
           {tab === 'questions' && questions.length > 0 && (() => {
             const previewQ = liveQ?.id === selectedQuestionId ? liveQ : (questions.find(q => q.id === selectedQuestionId) || questions[0])
@@ -2615,19 +2356,13 @@ const [nameInput,     setNameInput]     = useState('')
                       {previewQ.question_text || 'Untitled question'}
                     </h2>
                     <div style={{ display:'flex', flexDirection:'column', gap:6 }}>
-                      {(previewQ.options||[]).slice(0,4).map((opt,i) => {
-                        const bw = (opt.option_border_width ?? 0) > 0 ? opt.option_border_width : (opt.option_border_color && opt.option_border_color !== 'transparent' ? 2 : 0)
-                        const bc = opt.option_border_color || 'transparent'
-                        const oR = opt.option_border_radius != null ? opt.option_border_radius : 12
-                        const ring = ringBorder(opt.option_bg_gradient || opt.option_color || '#1a1a2e', opt.option_border_gradient, bw)
-                        return (
+                      {(previewQ.options||[]).slice(0,4).map((opt,i) => (
                         <div key={opt.id||i} onClick={() => handleOptionClick(opt)}
                           style={{
-                            ...(ring ? { background:ring.background, backgroundClip:ring.backgroundClip, border:ring.border } : { background: opt.option_bg_gradient || opt.option_color || '#1a1a2e', border:`${bw}px solid ${bc}` }),
+                            background: opt.option_color || '#1a1a2e',
                             color: opt.option_text_color || '#ffffff',
-                            borderRadius: opt.option_corners_json ? cornersToCss(parseCornersJson(opt.option_corners_json), oR) : oR,
-                            padding: opt.option_image_url ? '0' : '8px 12px', fontSize:12, fontWeight:600,
-                            textAlign:'center',
+                            borderRadius:12, padding: opt.option_image_url ? '0' : '8px 12px', fontSize:12, fontWeight:600,
+                            textAlign:'center', border:'2px solid transparent',
                             boxShadow:'0 2px 8px rgba(0,0,0,0.1)', cursor:'pointer',
                             overflow:'hidden', display:'flex', alignItems:'center', justifyContent:'center', minHeight:36,
                           }}>
@@ -2635,13 +2370,10 @@ const [nameInput,     setNameInput]     = useState('')
                             ? (isVideoUrl(opt.option_image_url)
                                 ? <video src={opt.option_image_url} autoPlay muted loop playsInline style={{ maxWidth:'100%', maxHeight:72, objectFit:'contain', borderRadius:8 }} />
                                 : <img src={opt.option_image_url} alt="" style={{ maxWidth:'100%', maxHeight:72, objectFit:'contain', borderRadius:8 }} />)
-                            : opt.option_font_gradient
-                              ? <span style={{ flex:1,textAlign:'center',background:opt.option_font_gradient,WebkitBackgroundClip:'text',backgroundClip:'text',color:'transparent',WebkitTextFillColor:'transparent' }}>{opt.option_text || `Option ${i+1}`}</span>
-                              : (opt.option_text || `Option ${i+1}`)
+                            : (opt.option_text || `Option ${i+1}`)
                           }
                         </div>
-                        )
-                      })}
+                      ))}
                     </div>
                     {/* Next button — appears after overlay + idle */}
                     {previewStage === 'next' && (

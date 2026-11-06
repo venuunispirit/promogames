@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import ShareMenu from './ShareMenu'
+import PromoCoinsWallet from './PromoCoinsWallet'
+import LogoLoader from './LogoLoader'
 
 // Persistent guest device identity — used to resolve personal best for guests.
 function getDeviceId() {
@@ -33,9 +35,22 @@ const STYLES = `
   .gm-iframe{width:100%;height:100%;border:none;display:block}
   .gm-loader{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:#0a0514;z-index:5;transition:opacity .35s,visibility .35s}
   .gm-loader.gone{opacity:0;visibility:hidden}
-  .gm-loader-ring{width:40px;height:40px;border-radius:50%;border:3px solid rgba(146,16,246,0.18);border-top-color:#9210f6;animation:gmSpin .75s linear infinite}
-  @keyframes gmSpin{to{transform:rotate(360deg)}}
   .gm-loader-txt{font-family:'Karla',sans-serif;font-size:13px;color:rgba(255,255,255,0.58)}
+  /* ── PromoCoins wallet pill (global top-right of the game header) ── */
+  .gm-wallet{display:inline-flex;align-items:center;gap:5px;font-family:'Karla',sans-serif;font-size:11.5px;font-weight:700;color:#f5c842;background:rgba(245,200,66,0.10);border:1px solid rgba(245,200,66,0.32);padding:5px 10px;border-radius:100px;flex-shrink:0;line-height:1;cursor:default;user-select:none;box-shadow:inset 0 1px 0 rgba(255,255,255,0.06)}
+  .gm-wallet-coin{width:14px;height:14px;object-fit:contain;filter:drop-shadow(0 0 6px rgba(245,200,66,0.55))}
+  .gm-wallet-amount{font-variant-numeric:tabular-nums}
+  .gm-wallet-label{font-size:8.5px;letter-spacing:.6px;color:rgba(245,200,66,0.78);text-transform:uppercase;font-weight:800}
+  @media(max-width:480px){.gm-wallet{padding:5px 8px}.gm-wallet-label{display:none}}
+  .gm-wallet--guest{color:rgba(245,200,66,0.45);border-color:rgba(245,200,66,0.16);background:rgba(245,200,66,0.05)}
+  .gm-wallet--guest .gm-wallet-coin{filter:none;opacity:.55}
+  .promo-wallet--pulse{animation:gmWalletPulse .62s ease}
+  @keyframes gmWalletPulse{0%{transform:scale(1)}35%{transform:scale(1.24);background:rgba(245,200,66,0.30);border-color:#f5c842;box-shadow:0 0 20px rgba(245,200,66,0.6)}100%{transform:scale(1)}}
+  /* ── Reward fly animation layer (coins → wallet) ── */
+  .promo-reward-layer{position:fixed;inset:0;pointer-events:none;z-index:12000;overflow:hidden}
+  .promo-reward-badge{position:absolute;left:0;top:0;font-family:'Karla',sans-serif;font-size:14px;font-weight:800;color:#1a0a26;background:linear-gradient(135deg,#fde68a,#f5c842);padding:8px 14px;border-radius:100px;box-shadow:0 8px 24px rgba(0,0,0,0.45),inset 0 0 0 1px rgba(255,255,255,0.45);white-space:nowrap;transition:transform .22s cubic-bezier(.22,1,.36,1),opacity .3s ease}
+  .promo-reward-coin{position:absolute;left:0;top:0;width:28px;height:28px;object-fit:contain;filter:drop-shadow(0 3px 6px rgba(0,0,0,0.45));will-change:transform,opacity}
+  .promo-reward-coin--landed{transform:translate(-50%,-50%) scale(.3)!important;opacity:0!important}
   body.gm-pointer-in-iframe .mascot-cursor{opacity:0!important}
 `
 
@@ -145,6 +160,8 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
     if (!iframe || !loaded) return
     const doc = iframe.contentDocument
     if (doc) injectMascotCursor(doc)
+    iframe.focus?.()
+    try { iframe.contentWindow?.focus() } catch {}
   }, [loaded, game.id])
   useEffect(() => {
     const iframe = iframeRef.current
@@ -204,6 +221,7 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
           <div className="gm-bar">
             <span className="gm-bar-cat">{game.category || 'Quiz'}</span>
             <span className="gm-bar-name">{game.name}</span>
+            <PromoCoinsWallet />
             <span className="gm-bar-plays">
               <svg width="9" height="9" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
               {playCount.toLocaleString()} plays
@@ -218,9 +236,9 @@ function GameModal({ game, allGames, onClose, onSwitch, isLoggedIn }) {
             <ShareMenu game={game} label={`Share ${game.name}`} />
             <button className="gm-close" onClick={onClose} title="Close (Esc)">✕</button>
           </div>
-          <div className="gm-iframe-wrap">
+          <div className="gm-iframe-wrap" data-gm-game-area>
             <div className={`gm-loader${loaded ? ' gone' : ''}`}>
-              <div className="gm-loader-ring" />
+              <LogoLoader size={40} />
               <div className="gm-loader-txt">Loading {game.name}…</div>
             </div>
             <iframe

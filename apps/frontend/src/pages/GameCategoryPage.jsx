@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'react-router-dom'
 import GameModal from '../components/GameModal'
 import PlayerNavbar from '../components/PlayerNavbar'
+import LogoLoader from '../components/LogoLoader'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600;700&display=swap');
@@ -28,8 +29,6 @@ const CSS = `
 .gc-play-ico{width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,0.95);display:flex;align-items:center;justify-content:center;box-shadow:0 4px 16px rgba(0,0,0,0.5);transform:scale(0.5);transition:transform .25s cubic-bezier(.34,1.56,.64,1);margin-bottom:40px}
 .gc-card:hover .gc-play-ico{transform:scale(1)}
 .gc-loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:80px 20px;font-size:14px;color:rgba(255,255,255,0.5)}
-.gc-spin{width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(146,16,246,0.2);border-top-color:#9210f6;animation:gcSpin .7s linear infinite;flex-shrink:0}
-@keyframes gcSpin{to{transform:rotate(360deg)}}
 .gc-empty{text-align:center;padding:80px 20px}
 .gc-empty-ico{font-size:48px;margin-bottom:16px}
 .gc-empty-txt{font-size:15px;color:rgba(255,255,255,0.5);line-height:1.7}
@@ -117,7 +116,7 @@ export default function GameCategoryPage() {
           </div>
 
           {loading ? (
-            <div className="gc-loading"><div className="gc-spin" /> Loading games…</div>
+            <div className="gc-loading"><LogoLoader size={24} /> Loading games…</div>
           ) : games.length === 0 ? (
             <div className="gc-empty">
               <div className="gc-empty-ico">🎮</div>

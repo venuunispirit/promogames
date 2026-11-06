@@ -476,6 +476,69 @@ async function initDB() {
     )
   `, 'maze_progress table');
 
+  /* ── STICKMAZE TABLES ── */
+  console.log('🕹️ Creating stickmaze tables...');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS stickmaze_settings (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT UNIQUE,
+      total_levels INT DEFAULT 50,
+      grid_size_min INT DEFAULT 5,
+      grid_size_max INT DEFAULT 20,
+      show_timer TINYINT(1) DEFAULT 1,
+      time_limit_seconds INT DEFAULT 0,
+      collectible_count INT DEFAULT 3,
+      collectible_label VARCHAR(100) DEFAULT '★',
+      collectible_images JSON,
+      heading_1 VARCHAR(500),
+      heading_2 VARCHAR(500),
+      heading_3 VARCHAR(500),
+      heading_1_color VARCHAR(20) DEFAULT '#1a1a2e',
+      heading_2_color VARCHAR(20) DEFAULT '#666666',
+      heading_3_color VARCHAR(20) DEFAULT '#777777',
+      description_text TEXT,
+      description_color VARCHAR(20) DEFAULT '#888888',
+      intro_text TEXT,
+      outro_text TEXT,
+      bg_color VARCHAR(20) DEFAULT '#0f172a',
+      primary_color VARCHAR(20) DEFAULT '#6366f1',
+      wall_color VARCHAR(20) DEFAULT '#64748b',
+      path_color VARCHAR(20) DEFAULT '#ffffff',
+      font_family VARCHAR(100) DEFAULT 'DM Sans',
+      sound_collect_id INT DEFAULT NULL,
+      sound_complete_id INT DEFAULT NULL,
+      overlay_animation_in VARCHAR(50) DEFAULT 'flyFromBottom',
+      overlay_animation_out VARCHAR(50) DEFAULT 'flyToTop',
+      submit_button_text VARCHAR(500),
+      start_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      terms_enabled TINYINT(1) DEFAULT 0,
+      terms_text TEXT,
+      terms_url VARCHAR(500),
+      meta_description TEXT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE
+    )
+  `, 'stickmaze_settings table');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS stickmaze_progress (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      session_token VARCHAR(255) NOT NULL,
+      current_level INT DEFAULT 1,
+      completed_levels JSON,
+      total_collectibles INT DEFAULT 0,
+      best_time INT DEFAULT NULL,
+      last_played_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY (game_id) REFERENCES games(id) ON DELETE CASCADE,
+      UNIQUE KEY unique_game_session (game_id, session_token)
+    )
+  `, 'stickmaze_progress table');
+
    /* ── MEMORY SETTINGS COLUMN MIGRATIONS (ensure ALL columns exist) ── */
   const memCols = [
     ['grid_rows', 'INT DEFAULT 4'],
@@ -1328,7 +1391,7 @@ async function initDB() {
   // already exist in the table. A single legacy row with an unlisted value
   // used to abort the whole ALTER ("Data truncated for column 'category'").
   try {
-    const KNOWN_CATEGORIES = ['quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','nagaraja','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer','candyblast','blockblaster','classicmaze'];
+    const KNOWN_CATEGORIES = ['quiz','survey','poll','crossword','spin','memory','jigsaw','wordsearch','pouring','typer','math','maze','screw','tower','2048','snake','nagaraja','catch','reaction','simon','flappy','bounce','space','connect4','bejeweled','tetris','stack','bowling','sudoku','minesweeper','wordscramble','rps','whackamole','hanoi','breakout','bubbleshooter','carlaunch','frustration','stressbuster','soundify','tictactoe','arrowescape','chess','snakeandladder','ludo','Carrom','tictactoemultiplayer','candyblast','blockblaster','classicmaze','stickmaze','spotregistration'];
     let existing = [];
     try {
       const [rows] = await connection.query("SELECT DISTINCT category FROM games WHERE category IS NOT NULL");
@@ -1405,6 +1468,7 @@ async function initDB() {
   await addColumn(connection, 'player_sessions', 'selected_question_ids', 'JSON DEFAULT NULL');
   await addColumn(connection, 'player_sessions', 'promo_player_id', 'INT');
   await addColumn(connection, 'player_sessions', 'referred_by', 'INT DEFAULT NULL');
+  await addColumn(connection, 'player_sessions', 'device_id', 'VARCHAR(255)');
 
   /* SOUNDS — url column used by sounds.js route */
   await addColumn(connection, 'sounds', 'url', 'VARCHAR(500)');
@@ -2608,6 +2672,47 @@ await safeQuery(connection, `
    } catch (err) { /* may already be updated */ }
    await addColumn(connection, 'pc_transactions', 'session_id', 'INT DEFAULT NULL');
 
+   /* PC_TRANSACTIONS — game category on the earnings row (audit + display) */
+   await addColumn(connection, 'pc_transactions', 'game_type', "VARCHAR(50) DEFAULT NULL");
+
+   /* PC_TRANSACTIONS — level number for per-level earn rows (0 = full-session
+      completion, >=1 = level-based reward from progress endpoints) */
+   await addColumn(connection, 'pc_transactions', 'level', "INT NOT NULL DEFAULT 0");
+
+   /* PC_TRANSACTIONS — idempotency backstop: one 'earn' row per session+level.
+      Crediting happens inside a row-locked transaction (lib/promocoins.js),
+      but this unique index makes a racing double-award impossible at the DB
+      level too. It also de-dupes referral_bonus per session (already guarded
+      in code, now enforced by the schema). NULL session_id rows (spend/reset)
+      are unaffected — MySQL unique indexes ignore NULLs. */
+   try {
+     const [[oldIx]] = await connection.query(
+       `SELECT COUNT(*) AS cnt FROM information_schema.STATISTICS
+        WHERE table_schema = ? AND table_name = 'pc_transactions' AND index_name = 'uniq_pc_earn_session'`,
+       [dbName]
+     );
+     if (oldIx.cnt > 0) {
+       await connection.query('ALTER TABLE pc_transactions DROP INDEX uniq_pc_earn_session');
+       console.log('♻️  Dropped old pc_transactions.uniq_pc_earn_session (session_id, type) index');
+     }
+   } catch (err) { /* index didn't exist — nothing to drop */ }
+   try {
+     const [[pcIx]] = await connection.query(
+       `SELECT COUNT(*) AS cnt FROM information_schema.STATISTICS
+        WHERE table_schema = ? AND table_name = 'pc_transactions' AND index_name = 'uniq_pc_earn_session_level'`,
+       [dbName]
+     );
+     if (pcIx.cnt === 0) {
+       await connection.query('ALTER TABLE pc_transactions ADD UNIQUE INDEX uniq_pc_earn_session_level (session_id, type, level)');
+       console.log('✅ Added pc_transactions.uniq_pc_earn_session_level unique index');
+     }
+   } catch (err) {
+     // Pre-existing duplicate earn rows for a session would block the index.
+     // That should never happen (pc_awarded has always guarded crediting), but
+     // log it loudly so it can be reconciled instead of silently skipping.
+     console.error('❌ uniq_pc_earn_session_level unique index:', err.message);
+   }
+
    /* INTERNAL_TEAM — ensure password/phone/permissions columns exist */
    await addColumn(connection, 'internal_team', 'phone', 'VARCHAR(50) DEFAULT NULL');
    await addColumn(connection, 'internal_team', 'password', 'VARCHAR(255) DEFAULT NULL');
@@ -2772,6 +2877,9 @@ await safeQuery(connection, `
   } catch (err) {
     console.error('❌ player_sessions index:', err.message);
   }
+
+  // Spot registration schema (idempotent)
+  try { await require('../sql/migrate-spotreg')(); } catch (e) { console.error('Spotreg migration:', e.message); }
 
   await connection.end();
   console.log('✅ Migration completed successfully!');

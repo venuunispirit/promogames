@@ -4,10 +4,12 @@ import { Volume2, VolumeX, Pause, Play, Home as HomeIcon } from "lucide-react";
 const LOGICAL_W = 360;
 const LOGICAL_H = 480;
 
-export default function FlappyPlayerPage() {
+export default function FlappyPlayerPage({ gameData, sessionToken, onComplete }) {
   const canvasRef = useRef(null);
   const audioCtxRef = useRef(null);
   const rafRef = useRef(null);
+  const bgMusicRef = useRef(null);
+  const bgMusicGainRef = useRef(null);
 
   const gRef = useRef({
     bird: { x: 90, y: LOGICAL_H / 2, r: 12, vy: 0 },
@@ -20,11 +22,11 @@ export default function FlappyPlayerPage() {
     state: "home",
     soundOn: true,
     score: 0,
-    best: 0,
+    best: gameData?.high_score || 0,
   });
 
   const [score, setScore] = useState(0);
-  const [best, setBest] = useState(0);
+  const [best, setBest] = useState(gameData?.high_score || 0);
   const [uiState, setUiState] = useState("home");
   const [soundOn, setSoundOn] = useState(true);
 
@@ -84,6 +86,22 @@ export default function FlappyPlayerPage() {
   const sfxScore = () => tone(880, 0.1, "triangle", 0.15, { slideTo: 1200 });
   const sfxHit = () => tone(180, 0.35, "sawtooth", 0.2, { slideTo: 60 });
 
+  const playBackgroundMusic = () => {
+    if (bgMusicRef.current) return;
+    const audio = new Audio("/flappy-bg-music.mp3");
+    audio.loop = true;
+    audio.volume = 0.3;
+    bgMusicRef.current = audio;
+    audio.play().catch(() => {});
+  };
+
+  const stopBackgroundMusic = () => {
+    if (bgMusicRef.current) {
+      bgMusicRef.current.pause();
+      bgMusicRef.current = null;
+    }
+  };
+
   const haptic = (pattern) => {
     if (navigator.vibrate) navigator.vibrate(pattern);
   };
@@ -114,6 +132,8 @@ export default function FlappyPlayerPage() {
     if (g.state === "home") {
       g.state = "playing";
       setUiState("playing");
+      // Start background music when game starts
+      playBackgroundMusic();
       return;
     }
     if (g.state === "playing") {
@@ -125,19 +145,22 @@ export default function FlappyPlayerPage() {
       resetGame();
       gRef.current.state = "playing";
       setUiState("playing");
+      playBackgroundMusic();
     }
   }, [resetGame]);
 
-  const togglePause = useCallback((e) => {
+const togglePause = useCallback((e) => {
     e.preventDefault();
     e.stopPropagation();
     const g = gRef.current;
     if (g.state === "playing") {
       g.state = "paused";
       setUiState("paused");
+      if (bgMusicRef.current) bgMusicRef.current.pause();
     } else if (g.state === "paused") {
       g.state = "playing";
       setUiState("playing");
+      if (bgMusicRef.current) bgMusicRef.current.play().catch(() => {});
     }
   }, []);
 
@@ -152,6 +175,7 @@ export default function FlappyPlayerPage() {
     (e) => {
       e.preventDefault();
       e.stopPropagation();
+      stopBackgroundMusic();
       resetGame();
     },
     [resetGame]
@@ -218,9 +242,21 @@ export default function FlappyPlayerPage() {
     setUiState("over");
     sfxHit();
     haptic([30, 40, 30]);
+    stopBackgroundMusic();
     if (g.score > g.best) {
       g.best = g.score;
       setBest(g.best);
+    }
+    if (g.score > 0 && gameData?.id) {
+      try {
+        let devId = null;
+        try { devId = localStorage.getItem('device_id') || null } catch {}
+        fetch('/api/play/record-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game_id: gameData.id, score: g.score, device_id: devId || undefined })
+        }).then(r => r.json()).then(d => { if (d && d.success && d.high_score) { const hi = Math.max(g.best, d.high_score); g.best = hi; setBest(hi); } }).catch(() => {})
+      } catch {}
     }
   };
 

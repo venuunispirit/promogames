@@ -150,7 +150,7 @@ export default function GuestGuide({ ready, sampleGame, onPlay }) {
       {step.center ? (
         <div className="gg-bubble gg-center">
           <button className="gg-x" aria-label="Skip guide" onClick={finish}>✕</button>
-          <div style={{ fontSize: 38, marginBottom: 8 }}>🪙</div>
+          <div style={{ fontSize: 38, marginBottom: 8 }}><img src="/promocoin.webp" alt="PromoCoin" width="48" height="48" /></div>
           <div className="gg-step"><i>{stepIdx + 1}/3</i> Your progress</div>
           <div className="gg-title">{step.title}</div>
           <div className="gg-txt">{step.txt}</div>

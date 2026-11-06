@@ -37,6 +37,15 @@ export function getAvatarById(id) {
   return DEFAULT_AVATARS.find(a => a.id === id) || DEFAULT_AVATARS[0];
 }
 
+/* PromoGames avatars ship as inline SVG markup, but <img src> consumers
+   (the landing-page testimonial reel) need a URL. Percent-encoding is what
+   keeps the '#' in the gradient stop colors from truncating the data URI. */
+export function avatarImageSrc(id) {
+  return `data:image/svg+xml,${encodeURIComponent(getAvatarById(id).svg)}`;
+}
+
+export const AVATAR_IDS = DEFAULT_AVATARS.map(a => a.id);
+
 const STYLES = `
   @keyframes av-glow { 0%,100%{box-shadow:0 0 12px rgba(46,207,184,0.5)} 50%{box-shadow:0 0 24px rgba(46,207,184,0.8)} }
   .av-card { position:relative; cursor:pointer; border-radius:16px; display:flex; flex-direction:column; align-items:center; justify-content:center; border:2px solid rgba(255,255,255,0.08); background:rgba(255,255,255,0.05); transition:all .2s ease; user-select:none; }

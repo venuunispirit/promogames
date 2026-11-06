@@ -7,15 +7,17 @@ import NotificationBell from './NotificationBell'
 import ProfilePanel from './ProfilePanel'
 // ThemeColorPicker no longer used here (moved into ProfilePanel)
 
-/* ─────────────────────────────────────────────
-   NAV STYLES — light, clean, 3-column
-───────────────────────────────────────────── */
+/* ═══════════════════════════════════════════════════════════════
+   NAV STYLES ─ light, clean, 3-column
+   ═══════════════════════════════════════════════════════════════ */
 const NAV_CSS = `
 @keyframes nav-fade-down {
   from { opacity:0; transform:translateY(-8px) }
   to   { opacity:1; transform:none }
 }
 @keyframes nav-spin { to { transform:rotate(360deg) } }
+@keyframes nav-slide-in { from { transform:translateX(-100%) } to { transform:translateX(0) } }
+@keyframes nav-fade-in { from { opacity:0 } to { opacity:1 } }
 
 .nav-root {
   background: var(--surface);
@@ -238,11 +240,112 @@ const NAV_CSS = `
 .nav-stat { flex:1; background:var(--surface2); border-radius:10px; padding:10px 8px; text-align:center; }
 .nav-stat-val { font-size:16px; font-weight:800; color:#6366f1; }
 .nav-stat-lbl { font-size:10px; color:var(--text3); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+
+/* ── mobile hamburger + drawer ── */
+.nav-hamburger {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+}
+.nav-hamburger svg { width: 22px; height: 22px; }
+.nav-mobile-drawer-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 250;
+  animation: nav-fade-in .2s ease;
+}
+.nav-mobile-drawer {
+  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: 85%;
+  max-width: 320px;
+  background: var(--surface);
+  border-right: 1.5px solid var(--border);
+  z-index: 260;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.4);
+  animation: nav-slide-in .25s ease;
+  flex-direction: column;
+}
+.nav-mobile-drawer.open { display: flex; }
+.nav-mobile-drawer-backdrop.open { display: block; }
+.nav-mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  border-bottom: 1px solid var(--border);
+}
+.nav-mobile-drawer-close {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav-mobile-drawer-links {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.nav-mobile-link {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  color: var(--text2);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 14px;
+}
+.nav-mobile-link:hover { background: var(--surface2); color: var(--text); }
+.nav-mobile-link.active {
+  background: linear-gradient(90deg, rgba(99,102,241,0.12) 0%, transparent 100%);
+  color: var(--primary);
+}
+
+@media (max-width: 768px) {
+  .nav-root { grid-template-columns: auto 1fr auto; padding: 0 12px; height: 56px; }
+  .nav-hamburger { display: flex; }
+  .nav-links { display: none; }
+  .nav-greeting { display: none; }
+  .nav-dropdown { width: 90vw !important; max-width: 360px; }
+}
 `
 
-/* ─────── helpers ─────── */
-const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']
-const DAYS   = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+const MONTHS_FULL = ['January','February','March','April','May','June','July','August','September','October','November','December']
+const DAYS_SHORT  = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']
+
+const navLinks = [
+  { to: '/dashboard', label: 'Dashboard', icon: '🏠', exact: true },
+  { to: '/dashboard/clients', label: 'Clients', icon: '🏢' },
+  { to: '/dashboard/games', label: 'Games', icon: '🎮' },
+  { to: '/dashboard/thumbnails', label: 'Thumbnail', icon: '🖼️' },
+  { to: '/dashboard/crm', label: 'Team', icon: '👥' },
+  { to: '/dashboard/players', label: 'Players', icon: '🎯' },
+  { to: '/dashboard/status', label: 'Status', icon: '📊' },
+  { to: '/dashboard/bo-logs', label: 'BO Logs', icon: '🧾' },
+]
 
 function getGreeting() {
   const h = new Date().getHours()
@@ -256,187 +359,142 @@ function initials(name = '') {
   return name.trim().split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || 'U'
 }
 
-/* ─────── Mini Calendar ─────── */
 function MiniCalendar() {
   const today = new Date()
-  const [cur, setCur] = useState({ y: today.getFullYear(), m: today.getMonth() })
-
-  const prev = () => setCur(c => c.m === 0 ? { y:c.y-1, m:11 } : { y:c.y, m:c.m-1 })
-  const next = () => setCur(c => c.m ===11 ? { y:c.y+1, m:0  } : { y:c.y, m:c.m+1 })
-
-  // Build calendar grid
-  const firstDay  = new Date(cur.y, cur.m, 1).getDay()
-  const daysInMonth = new Date(cur.y, cur.m+1, 0).getDate()
-  const daysInPrev  = new Date(cur.y, cur.m,   0).getDate()
-
+  const [cal, setCal] = useState({ y: today.getFullYear(), m: today.getMonth() })
+  const prevMonth = () => setCal(c => c.m === 0 ? { y: c.y - 1, m: 11 } : { y: c.y, m: c.m - 1 })
+  const nextMonth = () => setCal(c => c.m === 11 ? { y: c.y + 1, m: 0 } : { y: c.y, m: c.m + 1 })
+  const firstDow = new Date(cal.y, cal.m, 1).getDay()
+  const daysInMonth = new Date(cal.y, cal.m + 1, 0).getDate()
+  const daysInPrev = new Date(cal.y, cal.m, 0).getDate()
   const cells = []
-  // prev month fill
-  for (let i = firstDay - 1; i >= 0; i--) cells.push({ d: daysInPrev - i, cur: false })
-  // current month
-  for (let d = 1; d <= daysInMonth; d++) cells.push({ d, cur: true })
-  // next month fill
-  const remaining = 42 - cells.length
-  for (let d = 1; d <= remaining; d++) cells.push({ d, cur: false })
-
+  for (let i = firstDow - 1; i >= 0; i--) cells.push({ d: daysInPrev - i, cur: false })
+  for (let i = 1; i <= daysInMonth; i++) cells.push({ d: i, cur: true })
+  const fill = 42 - cells.length
+  for (let i = 1; i <= fill; i++) cells.push({ d: i, cur: false })
   return (
     <div className="nav-cal">
       <div className="nav-cal-header">
-        <button className="nav-cal-nav" onClick={prev}>‹</button>
-        <span>{MONTHS[cur.m]} {cur.y}</span>
-        <button className="nav-cal-nav" onClick={next}>›</button>
+        <button className="nav-cal-nav" onClick={prevMonth}>‹</button>
+        <span>{MONTHS_FULL[cal.m]} {cal.y}</span>
+        <button className="nav-cal-nav" onClick={nextMonth}>›</button>
       </div>
       <div className="nav-cal-grid">
-        {DAYS.map(d => <div key={d} className="nav-cal-dow">{d}</div>)}
-        {cells.map((cell, i) => {
-          const isToday   = cell.cur && cell.d === today.getDate() && cur.m === today.getMonth() && cur.y === today.getFullYear()
-          const dayOfWeek = i % 7
-          const isWeekend = dayOfWeek === 0 || dayOfWeek === 6
-          return (
-            <div key={i} className={`nav-cal-day${isToday?' today':''}${!cell.cur?' other-month':''}${isWeekend&&!isToday?' weekend':''}`}>
-              {cell.d}
-            </div>
-          )
+        {DAYS_SHORT.map(d => <div key={d} className="nav-cal-dow">{d}</div>)}
+        {cells.map((c, i) => {
+          const todayCell = c.cur && c.d === today.getDate() && cal.m === today.getMonth() && cal.y === today.getFullYear()
+          const dow = i % 7
+          const weekend = dow === 0 || dow === 6
+          return <div key={i} className={`nav-cal-day${todayCell ? ' today' : ''}${c.cur ? '' : ' other-month'}${weekend && !todayCell ? ' weekend' : ''}`}>{c.d}</div>
         })}
       </div>
     </div>
   )
 }
 
-/* ─────── Change Password Form ─────── */
 function ChangePasswordForm({ onClose }) {
-  const [oldPw,  setOldPw]  = useState('')
-  const [newPw,  setNewPw]  = useState('')
-  const [confPw, setConfPw] = useState('')
-  const [msg,    setMsg]    = useState(null)  // { text, ok }
-  const [busy,   setBusy]   = useState(false)
+  const [oldPw, setOldPw] = useState('')
+  const [newPw, setNewPw] = useState('')
+  const [confirmPw, setConfirmPw] = useState('')
+  const [msg, setMsg] = useState(null)
+  const [saving, setSaving] = useState(false)
   const [showOld, setShowOld] = useState(false)
   const [showNew, setShowNew] = useState(false)
 
   const submit = async () => {
-    if (!oldPw || !newPw || !confPw) { setMsg({ text:'All fields required', ok:false }); return }
-    if (newPw !== confPw)             { setMsg({ text:'New passwords do not match', ok:false }); return }
-    if (newPw.length < 6)             { setMsg({ text:'Password must be at least 6 characters', ok:false }); return }
-    setBusy(true); setMsg(null)
+    if (!oldPw || !newPw || !confirmPw) { setMsg({ text: 'All fields required', ok: false }); return }
+    if (newPw !== confirmPw) { setMsg({ text: 'New passwords do not match', ok: false }); return }
+    if (newPw.length < 6) { setMsg({ text: 'Password must be at least 6 characters', ok: false }); return }
+    setSaving(true)
+    setMsg(null)
     try {
       await api.post('/auth/change-password', { oldPassword: oldPw, newPassword: newPw })
-      setMsg({ text:'Password changed successfully ✅', ok:true })
-      setOldPw(''); setNewPw(''); setConfPw('')
+      setMsg({ text: 'Password changed successfully ✅', ok: true })
+      setOldPw(''); setNewPw(''); setConfirmPw('')
       setTimeout(onClose, 1800)
-    } catch (err) {
-      setMsg({ text: err.response?.data?.message || 'Failed to change password', ok:false })
+    } catch (e) {
+      setMsg({ text: e.response?.data?.message || 'Failed to change password', ok: false })
     }
-    setBusy(false)
+    setSaving(false)
   }
 
   return (
     <div className="nav-pw-form">
-      <div style={{ position:'relative' }}>
-        <input className="nav-pw-input" type={showOld?'text':'password'} placeholder="Current password"
-          value={oldPw} onChange={e => setOldPw(e.target.value)} />
-        <span onClick={() => setShowOld(s=>!s)} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', cursor:'pointer', fontSize:14, color:'var(--text3)' }}>{showOld?'🙈':'👁'}</span>
+      <div style={{ position: 'relative' }}>
+        <input className="nav-pw-input" type={showOld ? 'text' : 'password'} placeholder="Current password" value={oldPw} onChange={e => setOldPw(e.target.value)} />
+        <span onClick={() => setShowOld(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: 14, color: 'var(--text3)' }}>{showOld ? '🙈' : '👁'}</span>
       </div>
-      <div style={{ position:'relative' }}>
-        <input className="nav-pw-input" type={showNew?'text':'password'} placeholder="New password (min 6 chars)"
-          value={newPw} onChange={e => setNewPw(e.target.value)} />
-        <span onClick={() => setShowNew(s=>!s)} style={{ position:'absolute', right:10, top:'50%', transform:'translateY(-50%)', cursor:'pointer', fontSize:14, color:'var(--text3)' }}>{showNew?'🙈':'👁'}</span>
+      <div style={{ position: 'relative' }}>
+        <input className="nav-pw-input" type={showNew ? 'text' : 'password'} placeholder="New password (min 6 chars)" value={newPw} onChange={e => setNewPw(e.target.value)} />
+        <span onClick={() => setShowNew(v => !v)} style={{ position: 'absolute', right: 10, top: '50%', transform: 'translateY(-50%)', cursor: 'pointer', fontSize: 14, color: 'var(--text3)' }}>{showNew ? '🙈' : '👁'}</span>
       </div>
-      <input className="nav-pw-input" type="password" placeholder="Confirm new password"
-        value={confPw} onChange={e => setConfPw(e.target.value)}
-        onKeyDown={e => e.key==='Enter' && submit()} />
-      {msg && <div className={`nav-pw-msg ${msg.ok?'ok':'err'}`}>{msg.text}</div>}
-      <div style={{ display:'flex', gap:6 }}>
-        <button className="nav-pw-btn" onClick={submit} disabled={busy} style={{ flex:1 }}>
-          {busy ? 'Saving…' : '🔐 Update Password'}
-        </button>
-        <button className="nav-pw-btn" onClick={onClose} style={{ background:'var(--surface2)', color:'var(--text2)', flex:'0 0 auto', padding:'9px 14px' }}>
-          Cancel
-        </button>
+      <input className="nav-pw-input" type="password" placeholder="Confirm new password" value={confirmPw} onChange={e => setConfirmPw(e.target.value)} onKeyDown={e => e.key === 'Enter' && submit()} />
+      {msg && <div className={`nav-pw-msg ${msg.ok ? 'ok' : 'err'}`}>{msg.text}</div>}
+      <div style={{ display: 'flex', gap: 6 }}>
+        <button className="nav-pw-btn" onClick={submit} disabled={saving} style={{ flex: 1 }}>{saving ? 'Saving…' : '🔐 Update Password'}</button>
+        <button className="nav-pw-btn" onClick={onClose} style={{ background: 'var(--surface2)', color: 'var(--text2)', flex: '0 0 auto', padding: '9px 14px' }}>Cancel</button>
       </div>
     </div>
   )
 }
 
-/* ─────── Avatar Dropdown ─────── */
 function AvatarDropdown({ user, onLogout }) {
   const [open, setOpen] = useState(false)
   const ref = useRef()
   const { isDark, toggleTheme } = useTheme()
-
-  // Close on outside click
   useEffect(() => {
-    const fn = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false) }
+    const fn = e => { ref.current && !ref.current.contains(e.target) && setOpen(false) }
     document.addEventListener('mousedown', fn)
     return () => document.removeEventListener('mousedown', fn)
   }, [])
-
   return (
-    <div ref={ref} style={{ position:'relative' }}>
-      <button className="nav-avatar-btn" onClick={() => setOpen(o => !o)} title="Account menu">
+    <div ref={ref} style={{ position: 'relative' }}>
+      <button className="nav-avatar-btn" onClick={() => setOpen(v => !v)} title="Account menu">
         {initials(user?.name)}
       </button>
-
       {open && (
         <div className="nav-dropdown" style={{ width: 400, background: 'var(--surface)', backdropFilter: 'blur(20px)', WebkitBackdropFilter: 'blur(20px)', border: '1px solid var(--border)' }}>
-          <ProfilePanel
-            user={user}
-            onLogout={onLogout}
-            isDark={isDark}
-            toggleTheme={toggleTheme}
-            MiniCalendar={MiniCalendar}
-            ChangePasswordForm={ChangePasswordForm}
-          />
+          <ProfilePanel user={user} onLogout={onLogout} isDark={isDark} toggleTheme={toggleTheme} MiniCalendar={MiniCalendar} ChangePasswordForm={ChangePasswordForm} />
         </div>
       )}
     </div>
   )
 }
 
-/* ═══════════════════════════════════════
-   DASHBOARD LAYOUT
-═══════════════════════════════════════ */
 export default function DashboardLayout() {
   const { user, logout } = useAuth()
   const { isDark } = useTheme()
-  const navigate         = useNavigate()
-  const location         = useLocation()
+  const navigate = useNavigate()
+  const location = useLocation()
   const [greeting, setGreeting] = useState(getGreeting())
+  const [mobileOpen, setMobileOpen] = useState(false)
 
-  // Update greeting every minute
   useEffect(() => {
-    const t = setInterval(() => setGreeting(getGreeting()), 60_000)
+    const t = setInterval(() => setGreeting(getGreeting()), 60000)
     return () => clearInterval(t)
   }, [])
 
+  // Close the mobile drawer on navigation
+  useEffect(() => { setMobileOpen(false) }, [location.pathname])
+
   const handleLogout = () => { logout(); navigate('/login') }
-
-  const navLinks = [
-    { to:'/dashboard',         label:'Dashboard', icon:'🏠', exact:true },
-    { to:'/dashboard/clients', label:'Clients',   icon:'🏢' },
-    { to:'/dashboard/games',   label:'Games',     icon:'🎮' },
-    { to:'/dashboard/thumbnails', label:'Thumbnail', icon:'🖼️' },
-    { to:'/dashboard/crm',     label:'Team',      icon:'👥' },
-    { to:'/dashboard/players', label:'Players',   icon:'🎯' },
-    { to:'/dashboard/status',  label:'Status',    icon:'📊' },
-    { to:'/dashboard/bo-logs', label:'BO Logs',   icon:'🧾' },
-  ]
-
   const isActive = link => link.exact ? location.pathname === link.to : location.pathname.startsWith(link.to)
 
   return (
-    <div style={{ minHeight:'100vh', background:'var(--bg)', transition:'var(--transition)' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--bg)', transition: 'var(--transition)' }}>
       <style>{NAV_CSS}</style>
-
-      {/* ── Navbar ── */}
       <nav className="nav-root">
-
-        {/* LEFT — Logo only */}
-        <div>
+        {/* Left: hamburger (mobile) + logo */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button className="nav-hamburger" onClick={() => setMobileOpen(true)} aria-label="Open menu">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
           <Link to="/dashboard" className="nav-logo">
             <img src={isDark ? '/favicon2.png' : '/favicon3.png'} alt="PromoGames" />
           </Link>
         </div>
 
-        {/* CENTER — Nav links pill */}
+        {/* Center: links */}
         <div className="nav-links">
           {navLinks.map(link => (
             <Link key={link.to} to={link.to} className={`nav-link${isActive(link) ? ' active' : ''}`}>
@@ -446,7 +504,7 @@ export default function DashboardLayout() {
           ))}
         </div>
 
-        {/* RIGHT — Greeting + Notifications + Avatar */}
+        {/* Right: greeting + avatar + bell */}
         <div className="nav-right">
           <div className="nav-greeting">
             <span className="nav-greeting-msg">{greeting.emoji} {greeting.msg}</span>
@@ -455,10 +513,33 @@ export default function DashboardLayout() {
           <AvatarDropdown user={user} onLogout={handleLogout} />
           <NotificationBell />
         </div>
-
       </nav>
 
-      {/* ── Page content ── */}
+      {mobileOpen && (
+        <>
+          <div className="nav-mobile-drawer-backdrop open" onClick={() => setMobileOpen(false)} />
+          <aside className="nav-mobile-drawer open">
+            <div className="nav-mobile-drawer-header">
+              <Link to="/dashboard" className="nav-logo" onClick={() => setMobileOpen(false)}>
+                <img src={isDark ? '/favicon2.png' : '/favicon3.png'} alt="PromoGames" />
+              </Link>
+              <button className="nav-mobile-drawer-close" onClick={() => setMobileOpen(false)} aria-label="Close menu">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              </button>
+            </div>
+            <div className="nav-mobile-drawer-links">
+              {navLinks.map(link => (
+                <Link key={link.to} to={link.to} className={`nav-mobile-link${isActive(link) ? ' active' : ''}`} onClick={() => setMobileOpen(false)}>
+                  <span>{link.icon}</span>
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </aside>
+        </>
+      )}
+
+      {/* Page content */}
       <Outlet />
     </div>
   )

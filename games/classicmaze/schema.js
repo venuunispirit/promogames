@@ -25,7 +25,7 @@ module.exports = {
     bg_color: '#0f172a',
     primary_color: '#6366f1',
     font_family: 'DM Sans',
-    wall_color: '#1e293b',
+    wall_color: '#64748b',
     path_color: '#ffffff',
     heading_1_color: '#1a1a2e',
     heading_2_color: '#666666',

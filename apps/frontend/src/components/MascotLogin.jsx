@@ -163,6 +163,9 @@ export default function MascotLogin({ children, isTyping: isTypingProp, showPass
   }, [passwordVisible])
 
   const isFullHeight = scaleFactor >= 0.55
+  /* Hide the mascot characters on mobile/narrow screens — the layout strip
+     they occupy below the form isn't worth the space there. */
+  const showMascot = scaleFactor >= 0.55
   const p1 = charPos.c1, p2 = charPos.c2, p3 = charPos.c3, p4 = charPos.c4
   const l1 = lightData.c1, l2 = lightData.c2, l3 = lightData.c3, l4 = lightData.c4
 
@@ -242,8 +245,8 @@ export default function MascotLogin({ children, isTyping: isTypingProp, showPass
         </div>
       )}
 
-      {/* ── Left: Characters ── */}
-        <div style={{
+      {/* ── Left: Characters (hidden on mobile) ── */}
+        {showMascot && <div style={{
           display: 'flex', alignItems: 'flex-end', justifyContent: 'center',
           position: 'relative', minHeight: isFullHeight ? '100vh' : 'auto', paddingBottom: isFullHeight ? 40 : 0,
           opacity: hasEntered ? 1 : 0, transform: hasEntered ? 'translateY(0)' : 'translateY(40px)',
@@ -385,7 +388,7 @@ export default function MascotLogin({ children, isTyping: isTypingProp, showPass
               )
             })()}
           </div>
-        </div>
+        </div>}
 
       {/* ── Right: Form ── */}
       <div style={{

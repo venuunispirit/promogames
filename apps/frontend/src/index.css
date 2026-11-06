@@ -73,3 +73,11 @@ body.pressing .mascot-cursor {
   visibility: visible;
   outline: none;
 }
+
+/* Mobile responsiveness baseline */
+@media (max-width: 768px) {
+  html, body { overflow-x: hidden; }
+  table { display: block; width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  img, video, canvas, iframe { max-width: 100%; height: auto; }
+  input, textarea, select, button { font-size: 16px; }
+}

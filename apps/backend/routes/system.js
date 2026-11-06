@@ -27,7 +27,7 @@ const EXPECTED_TABLES = [
   'users', 'games', 'quiz_settings', 'questions', 'options', 'clients', 'sounds',
   'form_fields', 'email_templates', 'player_sessions', 'player_answers',
   'crossword_words', 'crossword_settings', 'memory_settings', 'memory_tiles',
-  'math_settings', 'math_progress', 'maze_settings', 'maze_progress',
+  'math_settings', 'math_progress', 'maze_settings', 'maze_progress', 'stickmaze_settings', 'stickmaze_progress',
   'jigsaw_settings', 'wordsearch_settings', 'wordsearch_words',
   'pouring_settings', 'typer_settings', 'typer_words', 'screw_settings', 'tower_settings',
   'snake_settings', 'nagaraja_settings', 'catch_settings', 'reaction_settings', 'simon_settings',
@@ -45,7 +45,7 @@ const EXPECTED_TABLES = [
   'tictactoe_settings', 'snake_ladder_settings', 'ludo_settings', 'Carrom_settings', 'tictactoe_multi_settings', 'promo_players', 'otp_tokens', 'trusted_devices',
   'pc_transactions', 'brand_rewards', 'redemptions', 'reset_log',
   'internal_team', 'notifications', 'business_developers', 'bd_requests',
-  'business_owners', 'business_owner_games', 'business_redemptions', 'spin_settings', 'spin_segments'
+  'business_owners', 'business_owner_games', 'business_redemptions', 'spin_settings', 'spin_segments', 'spotreg_settings', 'spotreg_stations', 'spotreg_station_fields', 'spotreg_progress'
 ];
 
 const GAME_TYPES = [
@@ -53,7 +53,7 @@ const GAME_TYPES = [
   'pouring', 'typer', 'math', 'maze', 'screw', 'tower', '2048', 'snake', 'nagaraja', 'catch', 'reaction',
   'simon', 'flappy', 'bounce', 'space', 'connect4', 'bejeweled', 'tetris', 'stack',
   'bowling', 'sudoku', 'minesweeper', 'wordscramble', 'rps', 'whackamole', 'hanoi',
-  'breakout', 'bubbleshooter', 'carlaunch', 'frustration', 'stressbuster', 'soundify', 'tictactoe', 'arrowescape', 'snakeandladder', 'ludo', 'Carrom', 'tictactoemultiplayer'
+  'breakout', 'bubbleshooter', 'carlaunch', 'frustration', 'stressbuster', 'soundify', 'tictactoe', 'arrowescape', 'snakeandladder', 'ludo', 'Carrom', 'tictactoemultiplayer', 'classicmaze', 'stickmaze', 'spotregistration'
 ];
 
 // Cache helpers

@@ -7,7 +7,7 @@ import {
   Route, Grid3x3, Snail, ShoppingBasket, Zap, Target, Bird, CircleDot,
   Gamepad2, Trophy, Brain, Flag, Boxes, Dices, Layers, TowerControl,
   Bomb, Shuffle, Scissors, Hand, Hammer, Building, Squircle, Rocket,
-  ArrowRight, Frown, Volume2, CircleX, Crown, Car, Crosshair, Box, Copy, Trash2
+  ArrowRight, Frown, Volume2, CircleX, Crown, Car, Crosshair, Box, Copy, Trash2, Stethoscope
 } from 'lucide-react'
 import api from '../api'
 import { useTheme } from './ThemeContext'
@@ -63,9 +63,11 @@ const CATEGORY_META = {
   candyblast: { label:'Candy Blast',     bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)', dot:'#EC4899', icon:'🍬', desc:'Match and blast candy combos' },
   Carrom:      { label:'Carrom',          bg:'var(--chip-amber-bg)', fg:'var(--chip-amber-fg)', dot:'#F59E0B', icon:'🎯', desc:'Classic carrom board game' },
   classicmaze:{ label:'Classic Maze',    bg:'var(--chip-green-bg)', fg:'var(--chip-green-fg)', dot:'#22C55E', icon:'🏰', desc:'Navigate through the maze' },
+  stickmaze: { label:'Stick Maze',       bg:'var(--chip-rose-bg)', fg:'var(--chip-rose-fg)', dot:'#EC4899', icon:'🪵', desc:'Navigate through the stick maze' },
   ludo:       { label:'Ludo',            bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#3B82F6', icon:'🎲', desc:'Classic Ludo board game' },
   snakeandladder:{ label:'Snake & Ladder', bg:'var(--chip-cyan-bg)', fg:'var(--chip-cyan-fg)', dot:'#06B6D4', icon:'🪜', desc:'Roll dice, climb the ladder' },
   tictactoemultiplayer:{ label:'Tic Tac Toe (Multi)', bg:'var(--chip-blue-bg)', fg:'var(--chip-blue-fg)', dot:'#3B82F6', icon:'🎮', desc:'Multiplayer noughts and crosses' },
+  spotregistration: { label:'Spot Registration', bg:'var(--chip-primary-bg)', fg:'var(--chip-primary-fg)', dot:'#0EA5E9', icon:'🩺', desc:'QR-gated camp station data collection' },
 }
 const catMeta = (cat) => CATEGORY_META[cat] || { label: cat, bg:'var(--chip-neutral-bg)', fg:'var(--chip-neutral-fg)', dot:'var(--text3)' }
 
@@ -79,11 +81,12 @@ const CATEGORY_ICON = {
   wordscramble:'Shuffle', rps:'Hand', whackamole:'Hammer', hanoi:'TowerControl', breakout:'Boxes',
   bubbleshooter:'CircleDot', carlaunch:'Car', arrowescape:'ArrowRight', stressbuster:'Frown',
   soundify:'Volume2', tictactoe:'CircleX', chess:'Crown',
+  spotregistration:'Stethoscope',
 }
 const ICONS = { HelpCircle, ClipboardList, BarChart3, FileText, Grid3x3, Sparkles, Puzzle, Image,
   Search, Droplets, Keyboard, Wrench, Calculator, Route, Snail, ShoppingBasket, Zap, Target, Bird,
   CircleDot, Rocket, Building, Layers, Bomb, Shuffle, Hand, Hammer, TowerControl, Boxes,
-  CircleX, Crown, Car, ArrowRight, Frown, Volume2 }
+  CircleX, Crown, Car, ArrowRight, Frown, Volume2, Stethoscope }
 const catIcon = (cat) => ICONS[CATEGORY_ICON[cat]] || Gamepad2
 const catIconEl = (cat) => { const I = catIcon(cat); return <I size={11} strokeWidth={2.4} /> }
 
@@ -230,7 +233,9 @@ function QRCodeModal({ game, onClose, onError }) {
 
     const slug = game.slug || ''
     const client_slug = game.client_slug || ''
-    const link = client_slug ? `${host}/play/${slug}/${client_slug}` : `${host}/play/${slug}`
+    const isSpotReg = game.category === 'spotregistration'
+    const base = isSpotReg ? '/play/spotreg' : '/play'
+    const link = client_slug ? `${host}${base}/${slug}/${client_slug}` : `${host}${base}/${slug}`
 
     console.log('[QRCode] Generating QR for:', link, 'game:', slug, client_slug)
 
@@ -269,7 +274,9 @@ function QRCodeModal({ game, onClose, onError }) {
   const handleCopyLink = () => {
     const slug = game?.slug || ''
     const client_slug = game?.client_slug || ''
-    const link = client_slug ? `${host}/play/${slug}/${client_slug}` : `${host}/play/${slug}`
+    const isSpotReg = game?.category === 'spotregistration'
+    const base = isSpotReg ? '/play/spotreg' : '/play'
+    const link = client_slug ? `${host}${base}/${slug}/${client_slug}` : `${host}${base}/${slug}`
     navigator.clipboard.writeText(link)
   }
 
@@ -404,7 +411,7 @@ const handleSubmit = async e => {
     } else if (game.category === 'math') {
       navigate(`/dashboard/games/${game.id}/math-builder`)
     } else if (game.category === 'maze') {
-      navigate(`/dashboard/games/${game.id}/maze-builder`)
+      navigate(`/dashboard/games/${game.id}/stickmaze-builder`)
     } else if (game.category === 'screw') {
       navigate(`/dashboard/games/${game.id}/screw-builder`)
     } else if (game.category === 'tower') {
@@ -473,12 +480,16 @@ const handleSubmit = async e => {
       navigate(`/dashboard/games/${game.id}/Carrom-builder`)
     } else if (game.category === 'classicmaze') {
       navigate(`/dashboard/games/${game.id}/classicmaze-builder`)
+    } else if (game.category === 'stickmaze') {
+      navigate(`/dashboard/games/${game.id}/stickmaze-builder`)
     } else if (game.category === 'ludo') {
       navigate(`/dashboard/games/${game.id}/ludo-builder`)
     } else if (game.category === 'snakeandladder') {
       navigate(`/dashboard/games/${game.id}/snakeandladder-builder`)
     } else if (game.category === 'tictactoemultiplayer') {
       navigate(`/dashboard/games/${game.id}/tictactoemultiplayer-builder`)
+    } else if (game.category === 'spotregistration') {
+      navigate(`/dashboard/games/${game.id}/spotreg-builder`)
     } else {
       navigate(`/dashboard/games/${game.id}/builder`)
     }
@@ -1346,7 +1357,8 @@ export default function GamesPage() {
   const handleDuplicateClick = (game) => {
     const g = typeof game === 'object' ? game : games.find(x => x.id === game)
     if (!g) return
-    if (isAdmin && clients.length > 0) { setDupTarget(g); return }
+    const changeClient = window.confirm('Do you want to change the client for the duplicate?')
+    if (changeClient && clients.length > 0) { setDupTarget(g); return }
     handleDuplicate(g.id)
   }
 
@@ -1359,7 +1371,7 @@ export default function GamesPage() {
   const STATUS_CYCLE = ['development', 'testing', 'live']
 
   const navigateBuilder = (game) => {
-    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',tower:'tower',math:'math',maze:'maze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',chess:'chess',snakeandladder:'snakeandladder',ludo:'ludo',Carrom:'Carrom',tictactoemultiplayer:'tictactoemultiplayer'}
+    const builders = {crossword:'crossword',spin:'spin',memory:'memory',jigsaw:'jigsaw',wordsearch:'wordsearch',pouring:'pouring',typer:'typer',screw:'screw',tower:'tower',math:'math',maze:'maze',classicmaze:'classicmaze',stickmaze:'stickmaze','2048':'2048',snake:'snake',catch:'catch',reaction:'reaction',simon:'simon',flappy:'flappy',bounce:'bounce',space:'space',connect4:'connect4',bejeweled:'bejeweled',tetris:'tetris',stack:'stack',bowling:'bowling',sudoku:'sudoku',minesweeper:'minesweeper',wordscramble:'wordscramble',rps:'rps',whackamole:'whackamole',hanoi:'hanoi',breakout:'breakout',bubbleshooter:'bubbleshooter',carlaunch:'carlaunch',arrowescape:'arrowescape',frustration:'frustration',stressbuster:'frustration',soundify:'soundify',tictactoe:'tictactoe',chess:'chess',snakeandladder:'snakeandladder',ludo:'ludo',Carrom:'Carrom',tictactoemultiplayer:'tictactoemultiplayer',spotregistration:'spotreg'}
     const slug = builders[game.category]
     navigate(`/dashboard/games/${game.id}${slug ? '/' + slug + '-builder' : '/builder'}`)
   }
@@ -1701,7 +1713,10 @@ export default function GamesPage() {
                                 else if (game.category === 'snakeandladder') navigate(`/dashboard/games/${game.id}/snakeandladder-builder`)
                                 else if (game.category === 'ludo') navigate(`/dashboard/games/${game.id}/ludo-builder`)
                                 else if (['Carrom', 'carrom'].includes(game.category)) navigate(`/dashboard/games/${game.id}/Carrom-builder`)
+                                else if (game.category === 'classicmaze') navigate(`/dashboard/games/${game.id}/classicmaze-builder`)
+                                else if (game.category === 'stickmaze') navigate(`/dashboard/games/${game.id}/stickmaze-builder`)
                                 else if (game.category === 'tictactoemultiplayer') navigate(`/dashboard/games/${game.id}/tictactoemultiplayer-builder`)
+                                else if (game.category === 'spotregistration') navigate(`/dashboard/games/${game.id}/spotreg-builder`)
                                 else navigate(`/dashboard/games/${game.id}/builder`)
                               }} title="Builder">
                               <Ico.wrench/> Builder

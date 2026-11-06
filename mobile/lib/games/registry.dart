@@ -20,6 +20,7 @@ import 'gamelinks/bounce/playerpage.dart';
 import 'gamelinks/bowling/playerpage.dart';
 import 'gamelinks/bejeweled/playerpage.dart';
 import 'gamelinks/classicmaze/playerpage.dart';
+import 'gamelinks/stickmaze/playerpage.dart';
 import 'gamelinks/connect4/playerpage.dart';
 import 'gamelinks/stressbuster/playerpage.dart';
 import 'gamelinks/2048/playerpage.dart';
@@ -68,6 +69,7 @@ final Map<String, GameBuilder> _builders = {
   'space': buildSpacePlayer,
   'catch': buildCatchPlayer,
   'maze': buildClassicMazePlayer,
+  'stickmaze': buildStickMazePlayer,
   'sudoku': buildSudokuPlayer,
   'jigsaw': buildJigsawPlayer,
   'pouring': buildPouringPlayer,

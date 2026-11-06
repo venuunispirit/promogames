@@ -447,13 +447,13 @@ function FloatingStars({ trigger }) {
 
 /* ------------------------------------ app ------------------------------------ */
 
-export default function MathChallenge() {
+export default function MathChallenge({ gameData, sessionToken, onComplete }) {
   const [screen, setScreen] = useState("home"); // home | playing | gameover
   const [soundOn, setSoundOn] = useState(true);
   const [hapticsOn, setHapticsOn] = useState(true);
   const [reducedMotion, setReducedMotion] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [bestScore, setBestScore] = useState(0);
+  const [bestScore, setBestScore] = useState(gameData?.high_score || 0);
 
   const [score, setScore] = useState(0);
   const [streak, setStreak] = useState(0);
@@ -479,10 +479,12 @@ export default function MathChallenge() {
   const usedQuestionsRef = useRef(new Set());
   const lastBeepSecondRef = useRef(null);
   const popupIdRef = useRef(0);
+  const gameRef = useRef(gameData);
+  useEffect(() => { gameRef.current = gameData }, [gameData]);
   const sound = useSoundEngine(soundOn);
 
   useEffect(() => {
-    setBestScore(loadBest());
+    setBestScore(prev => Math.max(prev, loadBest()));
     const mq = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)");
     if (mq && mq.matches) setReducedMotion(true);
   }, []);
@@ -553,6 +555,17 @@ export default function MathChallenge() {
       }
       return prev;
     });
+    if (finalScore > 0 && gameRef.current?.id) {
+      try {
+        let devId = null;
+        try { devId = localStorage.getItem('device_id') || null } catch {}
+        fetch('/api/play/record-score', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ game_id: gameRef.current.id, score: finalScore, device_id: devId || undefined })
+        }).then(r => r.json()).then(d => { if (d && d.success && d.high_score) setBestScore(p => Math.max(p, d.high_score)) }).catch(() => {})
+      } catch {}
+    }
   }, [sound, hapticsOn]);
 
   const goHome = useCallback(() => {

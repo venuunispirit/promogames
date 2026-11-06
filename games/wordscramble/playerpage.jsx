@@ -311,9 +311,18 @@ function shuffle(arr) {
 const DIFFICULTY_OFFSET = { easy: 0, medium: 1, hard: 2 };
 
 function pickWordForLevel(level, usedWords, difficulty = "easy") {
-  const baseTier = level <= 3 ? 1 : level <= 7 ? 2 : 3;
-  const tier = Math.min(3, baseTier + (DIFFICULTY_OFFSET[difficulty] ?? 0));
-  let pool = withDifficulty.filter((x) => x.diff === tier && !usedWords.has(x.w));
+  const offset = DIFFICULTY_OFFSET[difficulty] ?? 0;
+  const target = Math.max(3, Math.round(4 + (level - 1) * 0.55 + offset));
+  const minLen = Math.max(3, target - 1);
+  const maxLen = target + 1;
+  let pool = withDifficulty.filter(
+    (x) => x.w.length >= minLen && x.w.length <= maxLen && !usedWords.has(x.w)
+  );
+  if (pool.length < 4) {
+    pool = withDifficulty.filter(
+      (x) => x.w.length >= Math.max(3, minLen - 2) && x.w.length <= maxLen + 2 && !usedWords.has(x.w)
+    );
+  }
   if (pool.length === 0) pool = withDifficulty.filter((x) => !usedWords.has(x.w));
   if (pool.length === 0) pool = withDifficulty;
   return pool[Math.floor(Math.random() * pool.length)];
@@ -799,12 +808,17 @@ function AnimatedNumber({ value, duration = 500 }) {
 /* ----------------------------------------------------------------------- */
 /* MAIN COMPONENT                                                          */
 /* ----------------------------------------------------------------------- */
-export default function VocabularyGuess() {
+export default function VocabularyGuess({ gameData, sessionToken, onComplete }) {
   /* Persistent stats */
-  const [best, setBest] = useState(() => loadLocal("vg_best_score", 0));
+  const [best, setBest] = useState(gameData?.high_score || 0);
   const [stats, setStats] = useState(() =>
     loadLocal("vg_stats", { gamesPlayed: 0, totalCorrect: 0, totalWrong: 0, totalXp: 0 })
   );
+
+  const gameIdRef = useRef(gameData?.id);
+  useEffect(() => { gameIdRef.current = gameData?.id }, [gameData]);
+  const scoreRef = useRef(0);
+  useEffect(() => { scoreRef.current = score; }, [score]);
 
   /* Screen + core game state */
   const [screen, setScreen] = useState("home"); // home | playing | paused | levelComplete | gameOver | stats
@@ -949,6 +963,18 @@ export default function VocabularyGuess() {
             sounds.gameover();
             finalizeStats(true);
             setScreen("gameOver");
+            const finalScore = scoreRef.current;
+            if (finalScore > 0 && gameIdRef.current) {
+              try {
+                let devId = null;
+                try { devId = localStorage.getItem('device_id') || null } catch {}
+                fetch('/api/play/record-score', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ game_id: gameIdRef.current, score: finalScore, device_id: devId || undefined })
+                }).then(r => r.json()).then(d => { if (d && d.success && d.high_score) { setBest(p => Math.max(p, d.high_score)); saveLocal("vg_best_score", d.high_score); } }).catch(() => {})
+              } catch {}
+            }
           } else {
             // return letters, clear slots, keep same word
             setSlots(Array.from({ length: current.w.length }, () => null));

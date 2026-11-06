@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import PlayerNavbar from '../components/PlayerNavbar'
 import { AvatarDisplay } from '../components/AvatarData'
+import LogoLoader from '../components/LogoLoader'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800;900&display=swap');
@@ -312,14 +313,6 @@ const CSS = `
   display: flex; flex-direction: column; align-items: center; gap: 16px;
   padding: 90px 0;
 }
-.lb-spinner{
-  width: 42px; height: 42px;
-  border: 3px solid rgba(168,85,247,0.15);
-  border-top-color: #a855f7;
-  border-radius: 50%;
-  animation: lb-spin .7s linear infinite;
-}
-@keyframes lb-spin{ to{ transform: rotate(360deg); } }
 
 .lb-empty{ text-align: center; padding: 90px 20px; max-width: 420px; margin: 0 auto; }
 .lb-empty-icon{
@@ -484,7 +477,7 @@ export default function LeaderboardPage() {
         <div className="lb-inner">
           {loading ? (
             <div className="lb-loading">
-              <div className="lb-spinner" />
+              <LogoLoader size={42} />
               <div style={{ fontSize: 13, fontWeight: 700, color: 'rgba(168,85,247,0.5)', letterSpacing: 2 }}>LOADING...</div>
             </div>
           ) : sorted.length === 0 ? (

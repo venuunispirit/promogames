@@ -1,10 +1,12 @@
 import { Routes, Route, Navigate, useParams } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
+import { PromoCoinsProvider } from './context/PromoCoinsContext'
 import { ThemeProvider } from "./pages/ThemeContext"
 import { AccessibilityProvider } from './utils/accessibility'
 import './pages/Theme.css'
 import './index.css'
 import { lazy, Suspense } from 'react'
+import LogoLoader from './components/LogoLoader'
 
 // ── Route-level code splitting ───────────────────────────────────────────────
 // Each page is loaded only when its route is visited. This keeps the initial
@@ -43,7 +45,7 @@ const WordSearchPlayerPage     = lazy(() => import('@games/wordsearch/playerpage
 const PouringBuilderPage       = lazy(() => import('@games/pouring/builderpage.jsx'))
 const TyperBuilderPage         = lazy(() => import('@games/typer/builderpage.jsx'))
 const MathBuilderPage          = lazy(() => import('@games/math/builderpage.jsx'))
-const MazeBuilderPage          = lazy(() => import('@games/classicmaze/builderpage.jsx'))
+const MazeBuilderPage          = lazy(() => import('@games/stickmaze/builderpage.jsx'))
 const ScrewBuilderPage         = lazy(() => import('@games/screw/builderpage.jsx'))
 const TowerBuilderPage         = lazy(() => import('@games/tower/builderpage.jsx'))
 const Game2048BuilderPage      = lazy(() => import('@games/2048/builderpage.jsx'))
@@ -66,9 +68,12 @@ const SoundifyBuilderPage      = lazy(() => import('@games/soundify/builderpage.
 const TicTacToeBuilderPage     = lazy(() => import('@games/tictactoe/builderpage.jsx'))
 const ChessBuilderPage         = lazy(() => import('@games/chess/builderpage.jsx'))
 const BlockBlasterBuilderPage  = lazy(() => import('./pages/BlockBlasterBuilderPage.jsx'))
+const SpotRegBuilderPage       = lazy(() => import('@games/spotreg/builderpage.jsx'))
+const SpotRegPlayerPage        = lazy(() => import('@games/spotreg/playerpage.jsx'))
 const CandyBlastBuilderPage    = lazy(() => import('@games/candyblast/builderpage.jsx'))
 const CarromBuilderPage        = lazy(() => import('@games/carrom/builderpage.jsx'))
 const ClassicMazeBuilderPage   = lazy(() => import('@games/classicmaze/builderpage.jsx'))
+const StickMazeBuilderPage     = lazy(() => import('@games/stickmaze/builderpage.jsx'))
 const LudoBuilderPage          = lazy(() => import('@games/ludo/builderpage.jsx'))
 const SnakeAndLadderBuilderPage = lazy(() => import('@games/snakeandladder/builderpage.jsx'))
 const TicTacToeMultiplayerBuilderPage = lazy(() => import('@games/tictactoemulti/builderpage.jsx'))
@@ -104,7 +109,7 @@ function ProtectedRoute({ children }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       height: '100vh', background: 'var(--bg)', transition: 'var(--transition)',
     }}>
-      <div className="loader-spin" />
+      <LogoLoader size={56} />
     </div>
   )
   return user ? children : <Navigate to="/login" replace />
@@ -130,7 +135,7 @@ function RouteFallback() {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       height: '100vh', background: 'var(--bg)', transition: 'var(--transition)',
     }}>
-      <div className="loader-spin" />
+      <LogoLoader size={56} />
     </div>
   )
 }
@@ -151,6 +156,8 @@ function AppRoutes() {
       <Route path="/privacy"     element={<PrivacyPage />} />
 
       {/* Player game routes */}
+      <Route path="/play/spotreg/:gameName/:companyName" element={<SpotRegPlayerPage />} />
+      <Route path="/play/spotreg/:gameName" element={<SpotRegPlayerPage />} />
       <Route path="/play/:gameName/:companyName" element={<PlayerPageWrapper />} />
       <Route path="/play/:gameName" element={<PlayerPageWrapper />} />
       <Route path="/play/bejeweled/:id" element={<Navigate to="/play/bejeweled" replace />} />
@@ -191,7 +198,7 @@ function AppRoutes() {
         <Route path="games/:id/pouring-builder"       element={<PouringBuilderPage />} />
         <Route path="games/:id/typer-builder"          element={<TyperBuilderPage />} />
         <Route path="games/:id/math-builder"           element={<MathBuilderPage />} />
-        <Route path="games/:id/maze-builder"           element={<MazeBuilderPage />} />
+        <Route path="games/:id/stickmaze-builder"      element={<MazeBuilderPage />} />
         <Route path="games/:id/screw-builder"          element={<ScrewBuilderPage />} />
         <Route path="games/:id/tower-builder"          element={<TowerBuilderPage />} />
         <Route path="games/:id/responses"             element={<GameResponsesPage />} />
@@ -215,9 +222,11 @@ function AppRoutes() {
         <Route path="games/:id/tictactoe-builder"     element={<TicTacToeBuilderPage />} />
         <Route path="games/:id/chess-builder"          element={<ChessBuilderPage />} />
         <Route path="games/:id/blockblaster-builder"   element={<BlockBlasterBuilderPage />} />
+        <Route path="games/:id/spotreg-builder"       element={<SpotRegBuilderPage />} />
         <Route path="games/:id/candyblast-builder"     element={<CandyBlastBuilderPage />} />
         <Route path="games/:id/Carrom-builder"          element={<CarromBuilderPage />} />
         <Route path="games/:id/classicmaze-builder"    element={<ClassicMazeBuilderPage />} />
+        <Route path="games/:id/stickmaze-builder"      element={<StickMazeBuilderPage />} />
         <Route path="games/:id/ludo-builder"           element={<LudoBuilderPage />} />
         <Route path="games/:id/snakeandladder-builder" element={<SnakeAndLadderBuilderPage />} />
         <Route path="games/:id/tictactoemultiplayer-builder" element={<TicTacToeMultiplayerBuilderPage />} />
@@ -247,11 +256,13 @@ export default function App() {
   return (
     <AccessibilityProvider>
       <ThemeProvider>
-        <a href="#main-content" className="skip-link">Skip to main content</a>
-        <main id="main-content" tabIndex={-1}>
-          <AppRoutes />
-          <CookieBanner />
-        </main>
+        <PromoCoinsProvider>
+          <a href="#main-content" className="skip-link">Skip to main content</a>
+          <main id="main-content" tabIndex={-1}>
+            <AppRoutes />
+            <CookieBanner />
+          </main>
+        </PromoCoinsProvider>
       </ThemeProvider>
     </AccessibilityProvider>
   )

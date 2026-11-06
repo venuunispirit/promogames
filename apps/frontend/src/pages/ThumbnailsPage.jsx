@@ -52,7 +52,7 @@ const CAT_EMOJI = {
   space:'🚀', connect4:'🔴', bejeweled:'💎', tetris:'🧱', stack:'📦', bowling:'🎳', sudoku:'🔢',
   minesweeper:'💣', wordscramble:'🔤', rps:'✊', whackamole:'🔨', hanoi:'🗼', breakout:'🧱',
   bubbleshooter:'🫧', carlaunch:'🏎️', arrowescape:'➡️', stressbuster:'😤', soundify:'🔊',
-  tictactoe:'❌', chess:'♟️', blockblaster:'💥', candyblast:'🍬', Carrom:'🎯', classicmaze:'🏰',
+  tictactoe:'❌', chess:'♟️', blockblaster:'💥', candyblast:'🍬', Carrom:'🎯', classicmaze:'🏰', stickmaze:'🪵',
   ludo:'🎲', snakeandladder:'🪜', tictactoemultiplayer:'🎮',
 }
 const catEmoji = c => CAT_EMOJI[c] || '🎮'

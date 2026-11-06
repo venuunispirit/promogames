@@ -1,12 +1,8 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import api from '../../apps/frontend/src/api'
 
-// ── Mocked API (the real app posts session results to a backend; here we just log) ──
-const api = {
-  post: async (url, body) => {
-    console.log('[mock api.post]', url, body)
-    return { data: { redirect_url: null, message: 'Session recorded (mock)' } }
-  },
-}
+// The shared axios instance (apps/frontend/src/api) reports completions to
+// /api/play/session/complete — a real backend session that may earn PromoCoins.
 
 const STYLES = `
 @keyframes fadeIn{from{opacity:0}to{opacity:1}}
@@ -87,6 +83,16 @@ function loadFont(font) {
   document.head.appendChild(link)
 }
 
+let _audioCtx = null
+function getAudioCtx() {
+  if (!_audioCtx) {
+    const AC = window.AudioContext || window.webkitAudioContext
+    _audioCtx = new AC()
+  }
+  if (_audioCtx.state === 'suspended') _audioCtx.resume()
+  return _audioCtx
+}
+
 function playSound(url) {
   if (!url) return
   try { new Audio(url).play().catch(() => {}) } catch {}
@@ -94,7 +100,7 @@ function playSound(url) {
 
 function playWinSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const ctx = getAudioCtx()
     const t = ctx.currentTime
     const chordFreqs = [261.6, 329.6, 392, 523.3, 659.3]
     chordFreqs.forEach(freq => {
@@ -143,13 +149,12 @@ function playWinSound() {
     sub.connect(subGain).connect(ctx.destination)
     sub.start(t)
     sub.stop(t + 1.2)
-    setTimeout(() => ctx.close(), 1500)
   } catch {}
 }
 
 function playLoseSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const ctx = getAudioCtx()
     const t = ctx.currentTime
     const chord = [392, 466.2, 554.4]
     chord.forEach((freq, i) => {
@@ -187,24 +192,26 @@ function playLoseSound() {
     sub.connect(subGain).connect(ctx.destination)
     sub.start(t)
     sub.stop(t + 1.0)
-    setTimeout(() => ctx.close(), 1300)
   } catch {}
 }
 
 function playSlideSound() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const ctx = getAudioCtx()
+    const now = ctx.currentTime
+    if (now - _lastSlide.t < 0.05) return
+    _lastSlide.t = now
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.type = 'sine'
-    osc.frequency.setValueAtTime(300, ctx.currentTime)
-    osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.06)
-    osc.frequency.exponentialRampToValueAtTime(200, ctx.currentTime + 0.12)
-    gain.gain.setValueAtTime(0.06, ctx.currentTime)
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12)
+    osc.frequency.setValueAtTime(300, now)
+    osc.frequency.exponentialRampToValueAtTime(600, now + 0.06)
+    osc.frequency.exponentialRampToValueAtTime(200, now + 0.12)
+    gain.gain.setValueAtTime(0.06, now)
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12)
     osc.connect(gain).connect(ctx.destination)
-    osc.start(ctx.currentTime)
-    osc.stop(ctx.currentTime + 0.12)
+    osc.start(now)
+    osc.stop(now + 0.12)
     const bufferSize = ctx.sampleRate * 0.08
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
     const data = buffer.getChannelData(0)
@@ -212,38 +219,40 @@ function playSlideSound() {
     const noise = ctx.createBufferSource()
     noise.buffer = buffer
     const noiseGain = ctx.createGain()
-    noiseGain.gain.setValueAtTime(0.04, ctx.currentTime)
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08)
+    noiseGain.gain.setValueAtTime(0.04, now)
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08)
     noise.connect(noiseGain).connect(ctx.destination)
-    noise.start(ctx.currentTime)
-    noise.stop(ctx.currentTime + 0.08)
-    setTimeout(() => ctx.close(), 150)
+    noise.start(now)
+    noise.stop(now + 0.08)
   } catch {}
 }
 
 function playMergeCrash() {
   try {
-    const ctx = new (window.AudioContext || window.webkitAudioContext)()
+    const ctx = getAudioCtx()
+    const now = ctx.currentTime
+    if (now - _lastMerge.t < 0.05) return
+    _lastMerge.t = now
     const osc1 = ctx.createOscillator()
     const gain1 = ctx.createGain()
     osc1.type = 'sine'
-    osc1.frequency.setValueAtTime(420, ctx.currentTime)
-    osc1.frequency.exponentialRampToValueAtTime(180, ctx.currentTime + 0.12)
-    gain1.gain.setValueAtTime(0.15, ctx.currentTime)
-    gain1.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15)
+    osc1.frequency.setValueAtTime(420, now)
+    osc1.frequency.exponentialRampToValueAtTime(180, now + 0.12)
+    gain1.gain.setValueAtTime(0.15, now)
+    gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.15)
     osc1.connect(gain1).connect(ctx.destination)
-    osc1.start(ctx.currentTime)
-    osc1.stop(ctx.currentTime + 0.15)
+    osc1.start(now)
+    osc1.stop(now + 0.15)
     const osc2 = ctx.createOscillator()
     const gain2 = ctx.createGain()
     osc2.type = 'sine'
-    osc2.frequency.setValueAtTime(880, ctx.currentTime)
-    osc2.frequency.exponentialRampToValueAtTime(660, ctx.currentTime + 0.08)
-    gain2.gain.setValueAtTime(0.08, ctx.currentTime)
-    gain2.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1)
+    osc2.frequency.setValueAtTime(880, now)
+    osc2.frequency.exponentialRampToValueAtTime(660, now + 0.08)
+    gain2.gain.setValueAtTime(0.08, now)
+    gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.1)
     osc2.connect(gain2).connect(ctx.destination)
-    osc2.start(ctx.currentTime)
-    osc2.stop(ctx.currentTime + 0.1)
+    osc2.start(now)
+    osc2.stop(now + 0.1)
     const bufferSize = ctx.sampleRate * 0.04
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
     const data = buffer.getChannelData(0)
@@ -251,14 +260,16 @@ function playMergeCrash() {
     const noise = ctx.createBufferSource()
     noise.buffer = buffer
     const noiseGain = ctx.createGain()
-    noiseGain.gain.setValueAtTime(0.06, ctx.currentTime)
-    noiseGain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.05)
+    noiseGain.gain.setValueAtTime(0.06, now)
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.05)
     noise.connect(noiseGain).connect(ctx.destination)
-    noise.start(ctx.currentTime)
-    noise.stop(ctx.currentTime + 0.05)
-    setTimeout(() => ctx.close(), 200)
+    noise.start(now)
+    noise.stop(now + 0.05)
   } catch {}
 }
+
+const _lastSlide = { t: 0 }
+const _lastMerge = { t: 0 }
 
 function vibrate(pattern) {
   try {
@@ -468,7 +479,7 @@ function Game2048PlayerPage({ gameData, sessionToken, onComplete }) {
   const [grid, setGrid] = useState(null)
   const [tiles, setTiles] = useState([])
   const [score, setScore] = useState(0)
-  const [bestScore, setBestScore] = useState(0)
+  const [bestScore, setBestScore] = useState(game?.high_score || 0)
   const [timeLeft, setTimeLeft] = useState(0)
   const [wonState, setWonState] = useState(false)
   const [lostState, setLostState] = useState(false)
@@ -479,6 +490,7 @@ function Game2048PlayerPage({ gameData, sessionToken, onComplete }) {
   const gridRef = useRef(null)
   const scoreRef = useRef(0)
   const boardWrapRef = useRef(null)
+  const boardAreaRef = useRef(null)
 
   const tileColors = useMemo(() => {
     const raw = settings.tile_colors
@@ -571,7 +583,7 @@ function Game2048PlayerPage({ gameData, sessionToken, onComplete }) {
   useEffect(() => {
     if (phase !== 'playing') return
     initGame()
-    setBestScore(prev => { try { const s = localStorage.getItem('g2048_best_' + game.id); return s ? Math.max(prev, parseInt(s)) : prev } catch { return prev } })
+    setBestScore(prev => { try { const s = localStorage.getItem('g2048_best_' + game.id); return s ? Math.max(prev, parseInt(s)) : Math.max(prev, game?.high_score || 0) } catch { return Math.max(prev, game?.high_score || 0) } })
   }, [phase, initGame, game.id])
 
   useEffect(() => {
@@ -608,22 +620,45 @@ function Game2048PlayerPage({ gameData, sessionToken, onComplete }) {
     // Capture phase on document — more reliable than a plain window
     // listener when focus isn't already sitting on the page/iframe.
     document.addEventListener('keydown', handleKey, true)
+    // Swipe handling is scoped to the board itself (NOT the whole page):
+    // calling preventDefault() on touchstart suppresses the browser's
+    // synthetic click event, so doing it at page level made every button
+    // (New Game / Keep Going / Continue / Try Again) dead on touch devices.
     let ts = null
     const onStart = (e) => {
-      try { navigator.vibrate(6) } catch {}
-      ts = { x: e.touches[0].clientX, y: e.touches[0].clientY }
+      // Prevent scroll/zoom while swiping the board.
+      const t = e.touches[0]
+      if (t) {
+        try { e.preventDefault() } catch {}
+        try { navigator.vibrate(6) } catch {}
+        ts = { x: t.clientX, y: t.clientY }
+      }
     }
+    const onMove = (e) => { try { e.preventDefault() } catch {} }
     const onEnd = (e) => {
       if (!ts) return
-      const dx = e.changedTouches[0].clientX - ts.x
-      const dy = e.changedTouches[0].clientY - ts.y
+      const t = e.changedTouches[0]
+      if (!t) { ts = null; return }
+      const dx = t.clientX - ts.x
+      const dy = t.clientY - ts.y
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 20) handleMove(dx > 0 ? 'right' : 'left')
       else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 20) handleMove(dy > 0 ? 'down' : 'up')
       ts = null
     }
-    window.addEventListener('touchstart', onStart, { passive: true })
-    window.addEventListener('touchend', onEnd)
-    return () => { document.removeEventListener('keydown', handleKey, true); window.removeEventListener('touchstart', onStart); window.removeEventListener('touchend', onEnd) }
+    const board = boardAreaRef.current
+    if (board) {
+      board.addEventListener('touchstart', onStart, { passive: false })
+      board.addEventListener('touchend', onEnd)
+      board.addEventListener('touchmove', onMove, { passive: false })
+    }
+    return () => {
+      document.removeEventListener('keydown', handleKey, true)
+      if (board) {
+        board.removeEventListener('touchstart', onStart)
+        board.removeEventListener('touchend', onEnd)
+        board.removeEventListener('touchmove', onMove)
+      }
+    }
   }, [handleMove, phase])
 
   const handleKeepGoing = () => { try { navigator.vibrate(10) } catch {}; setWonState(false) }
@@ -730,7 +765,7 @@ function Game2048PlayerPage({ gameData, sessionToken, onComplete }) {
             </div>
           )}
         </div>
-        <div style={{
+        <div ref={boardAreaRef} style={{
           position: 'relative', width: boardSize, height: boardSize, margin: '0 auto',
           background: 'linear-gradient(145deg, rgba(28,0,52,.94) 0%, rgba(18,0,38,.96) 100%)',
           backdropFilter: 'blur(24px)', WebkitBackdropFilter: 'blur(24px)',

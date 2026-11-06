@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, lazy, Suspense } from 'react'
+import LogoLoader from '../components/LogoLoader'
+
 import useTTS from '../hooks/useTTS'
 import renderMedia, { isVideoUrl } from '../components/renderMedia'
 import { inAnim } from '../components/animations'
@@ -6,6 +7,7 @@ import { useParams, useSearchParams } from 'react-router-dom'
 import axios from 'axios'
 import PlayerAuthModal from '../components/PlayerAuthModal'
 import ShareMenu from '../components/ShareMenu'
+import { attachPromoCoinCapture } from '../lib/promocoins'
 
 // ── Lazy-load game player pages ──────────────────────────────────────────────
 // Each game is only downloaded when the user actually plays it, instead of all
@@ -19,6 +21,7 @@ const PouringPlayerPage = lazy(() => import('@games/pouring/playerpage.jsx'))
 const TyperPlayerPage = lazy(() => import('@games/typer/playerpage.jsx'))
 const MathPlayerPage = lazy(() => import('@games/math/playerpage.jsx'))
 const MazePlayerPage = lazy(() => import('@games/classicmaze/playerpage.jsx'))
+const StickMazePlayerPage = lazy(() => import('@games/stickmaze/playerpage.jsx'))
 const Game2048PlayerPage = lazy(() => import('@games/2048/playerpage.jsx'))
 const SnakePlayerPage = lazy(() => import('@games/snake/playerpage.jsx'))
 const NagarajaPlayerPage = lazy(() => import('@games/nagaraja/playerpage.jsx'))
@@ -201,15 +204,11 @@ const OVERLAY_STYLES = `
   }
 `
 
-function PageLoader({ primaryColor = '#7c6ff7', bg }) {
+function PageLoader({ bg }) {
   return (
     <div style={{ minHeight: '100dvh', background: bg || '#f8f8ff', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 20 }}>
-      <div style={{ position: 'relative', width: 56, height: 56 }}>
-        <div style={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `4px solid ${primaryColor}22`, borderTopColor: primaryColor, animation: 'spin 0.8s linear infinite' }} />
-        <div style={{ position: 'absolute', inset: 8, borderRadius: '50%', border: `3px solid ${primaryColor}33`, borderBottomColor: primaryColor, animation: 'spin 1.2s linear infinite reverse' }} />
-      </div>
+      <LogoLoader size={72} />
       <p style={{ color: '#888', fontSize: 14, fontFamily: 'DM Sans, sans-serif' }}>Loading your experience…</p>
-      <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   )
 }
@@ -268,11 +267,7 @@ function SubmittingPopup({ primaryColor, ff }) {
           alignItems: 'center', justifyContent: 'center',
           margin: '0 auto 20px', animation: 'pulse 1.5s ease-in-out infinite'
         }}>
-          <div style={{
-            width: 28, height: 28, border: `3px solid ${primaryColor}30`,
-            borderTopColor: primaryColor, borderRadius: '50%',
-            animation: 'spin 0.8s linear infinite'
-          }} />
+          <LogoLoader size={28} />
         </div>
         <h3 style={{ fontSize: 20, fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.3 }}>
           Submitting your progress…
@@ -372,6 +367,11 @@ export default function PlayerPage() {
   const [playerProfile, setPlayerProfile] = useState(null)
   const [showContinueBtn, setShowContinueBtn] = useState(false)
   const continueTimerRef = useRef(null)
+
+  // Bridge backend-confirmed PromoCoins rewards to the shell wallet.
+  // Captures both axios (api.js interceptor) and raw-fetch game completions
+  // and forwards the award to the parent window / this document.
+  useEffect(() => attachPromoCoinCapture(), [])
 
   // Timer per question
   const [timeLeft, setTimeLeft] = useState(null)
@@ -848,7 +848,11 @@ export default function PlayerPage() {
       } else if (game.category === 'simon') {
         setPhase('simon')
       } else if (game.category === 'maze') {
-        setPhase('maze')
+        setPhase('stickmaze')
+      } else if (game.category === 'classicmaze') {
+        setPhase('classicmaze')
+      } else if (game.category === 'stickmaze') {
+        setPhase('stickmaze')
       } else if (game.category === 'flappy') {
         setPhase('flappy')
       } else if (game.category === 'bounce') {
@@ -961,6 +965,7 @@ export default function PlayerPage() {
       setTotalScoreable(data.session.total_scoreable || 0)
     }
     setRedirectUrl(data?.redirect_url || null)
+    if (game?.game_type === 'promogames') return
     setPhase('thankyou')
   }, [game, playerProfile])
 
@@ -1805,7 +1810,15 @@ const handleModalClose = () => {
   }
 
   if (phase === 'maze') {
-    return <Suspense fallback={gameFallback}><MazePlayerPage gameData={game} sessionToken={sessionToken} onComplete={() => {}} /></Suspense>
+    return <Suspense fallback={gameFallback}><StickMazePlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
+  }
+
+  if (phase === 'classicmaze') {
+    return <Suspense fallback={gameFallback}><MazePlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
+  }
+
+  if (phase === 'stickmaze') {
+    return <Suspense fallback={gameFallback}><StickMazePlayerPage gameData={game} sessionToken={sessionToken} onComplete={handleGameComplete} /></Suspense>
   }
 
   if (phase === 'screw') {

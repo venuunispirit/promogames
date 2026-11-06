@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../api'
+import LogoLoader from '../components/LogoLoader'
 
 const CSS = `
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,300;9..144,600&display=swap');
 .bi *,.bi *::before,.bi *::after{box-sizing:border-box;margin:0;padding:0}
 .bi{font-family:'DM Sans',sans-serif;color:var(--text);background:var(--bg-secondary);min-height:100vh}
 @keyframes biFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
-@keyframes biSpin{to{transform:rotate(360deg)}}
 @keyframes biModalIn{from{opacity:0;transform:scale(0.96)translateY(6px)}to{opacity:1;transform:none}}
 @keyframes biToastIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 .bi-input{width:100%;padding:10px 14px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface2);outline:none;transition:border-color .15s}
@@ -233,7 +233,7 @@ export default function BrickImagesPage() {
         {/* Image Grid */}
         {loading ? (
           <div style={{ display:'flex',alignItems:'center',justifyContent:'center',gap:10,padding:'80px 0',color:'var(--text3)',fontSize:14 }}>
-            <div style={{ width:20,height:20,border:'2px solid var(--border)',borderTopColor:'#6366f1',borderRadius:'50%',animation:'biSpin .8s linear infinite' }} />
+            <LogoLoader size={24} />
             Loading images…
           </div>
         ) : images.length === 0 ? (

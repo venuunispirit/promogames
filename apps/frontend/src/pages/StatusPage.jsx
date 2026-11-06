@@ -97,6 +97,14 @@ export default function StatusPage() {
           color: var(--text);
           max-width: 1200px;
           margin: 0 auto;
+          /* Opaque background like the other admin pages — without it the dark
+             body left by player-facing pages shows through. The extra
+             box-shadow paints it full-bleed past the 1200px column. */
+          background: var(--bg-secondary);
+          min-height: 100vh;
+          /* Box-shadow only, no clip-path — it would clip the fixed loading
+             overlay. Shadows never create scrollbars. */
+          box-shadow: 0 0 0 100vmax var(--bg-secondary);
         }
         .st-header {
           display: flex;
@@ -256,9 +264,11 @@ export default function StatusPage() {
           border-bottom: 1px solid var(--surface2);
         }
         .st-test-row:last-child { border-bottom: none; }
-        .st-test-pass { background: #fafff7; }
-        .st-test-fail { background: #fff5f5; }
-        .st-test-warn { background: #fffbeb; }
+        /* Translucent status tints instead of hard-coded near-whites
+           (#fafff7 etc.) — those turned expanded rows white in dark mode. */
+        .st-test-pass { background: rgba(22, 163, 74, .07); }
+        .st-test-fail { background: rgba(220, 38, 38, .07); }
+        .st-test-warn { background: rgba(217, 119, 6, .09); }
         .st-test-icon {
           display: flex;
           align-items: center;
@@ -302,7 +312,9 @@ export default function StatusPage() {
         .st-loading-overlay {
           position: fixed;
           inset: 0;
-          background: rgba(255,255,255,0.7);
+          /* Dark scrim like the other app overlays — the previous white haze
+             flashed a bright sheet over dark mode. */
+          background: rgba(0, 0, 0, 0.3);
           display: flex;
           align-items: flex-start;
           justify-content: center;

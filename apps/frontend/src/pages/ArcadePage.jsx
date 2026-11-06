@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useLocation } from 'react-router-dom'
 import GameModal from '../components/GameModal'
 import PlayerNavbar from '../components/PlayerNavbar'
+import LogoLoader from '../components/LogoLoader'
 import MascotBubble from '../components/MascotBubble'
 import MascotCursor from '../components/MascotCursor'
 import GuestGuide from '../components/GuestGuide'
@@ -153,8 +154,6 @@ img{display:block;max-width:100%}
 .arc-empty-ico{font-size:46px;margin-bottom:14px;opacity:.9}
 .arc-empty-txt{font-family:var(--fb);font-size:15px;color:var(--muted);line-height:1.7}
 .arc-loading{display:flex;align-items:center;justify-content:center;gap:12px;padding:140px 20px 80px;font-family:var(--fb);font-size:14px;color:var(--muted)}
-.arc-spin{width:20px;height:20px;border-radius:50%;border:2.5px solid rgba(146,16,246,0.2);border-top-color:var(--purple);animation:arcSpin .7s linear infinite}
-@keyframes arcSpin{to{transform:rotate(360deg)}}
 
 @media(max-width:768px){
   .arc-content{padding-top:84px}
@@ -327,7 +326,7 @@ export default function ArcadePage() {
 
       <div className="arc-content">
         {loading ? (
-          <div className="arc-loading"><div className="arc-spin" /> Loading games…</div>
+          <div className="arc-loading"><LogoLoader size={24} /> Loading games…</div>
         ) : (
           <>
             {/* FEATURED */}

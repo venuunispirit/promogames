@@ -90,7 +90,10 @@ export default function BOLogsPage() {
     <div className="bol-page">
       <style>{`
         .bol-page { --indigo:#6366f1; --violet:#8b5cf6; --ink:#0f172a; --muted:#94a3b8;
-          font-family:'DM Sans',system-ui,sans-serif; padding:32px; max-width:1240px; margin:0 auto; color:var(--ink); }
+          font-family:'DM Sans',system-ui,sans-serif; padding:32px; max-width:1240px; margin:0 auto; color:var(--ink);
+          /* Opaque background like the other admin pages (see PlayersPage.css). */
+          background: var(--bg-secondary); min-height:100vh;
+          box-shadow:0 0 0 100vmax var(--bg-secondary); }
         .bol-head { display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap; margin-bottom:24px; }
         .bol-title { font-family:'Fraunces',serif; font-size:30px; font-weight:700; margin:0; letter-spacing:-.01em; }
         .bol-sub { color:var(--muted); font-size:14px; margin:6px 0 0; }

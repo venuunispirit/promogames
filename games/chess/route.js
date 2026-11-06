@@ -46,26 +46,39 @@ function isRoomExpired(room) {
    table belong to this module, so they are migrated here on first room use —
    same pattern as simon/screw routes. */
 let chessSchemaMigrated = false;
+// `ADD COLUMN IF NOT EXISTS` is MariaDB-only syntax — on MySQL it fails with a
+// parse error, which made every /room and /queue request 500 ("Failed to
+// create room"). Instead, check information_schema.COLUMNS and only ALTER
+// when the column is missing — portable across MySQL and MariaDB.
+async function columnExists(table, column) {
+  const [rows] = await db.query(
+    `SELECT 1 FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ? LIMIT 1`,
+    [table, column]
+  );
+  return rows.length > 0;
+}
+async function addColumnIfMissing(table, column, definition) {
+  if (await columnExists(table, column)) return;
+  await db.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
+}
 async function ensureChessSchema() {
   if (chessSchemaMigrated) return;
-  await Promise.all([
-    db.query(`ALTER TABLE chess_rooms ADD COLUMN IF NOT EXISTS rematch_status ENUM('none','requested','accepted','declined','expired') DEFAULT 'none'`),
-    db.query(`ALTER TABLE chess_rooms ADD COLUMN IF NOT EXISTS rematch_requested_by VARCHAR(100) DEFAULT NULL`),
-    db.query(`ALTER TABLE chess_rooms ADD COLUMN IF NOT EXISTS rematch_requested_by_id INT DEFAULT NULL`),
-    db.query(`ALTER TABLE chess_rooms ADD COLUMN IF NOT EXISTS rematch_requested_at TIMESTAMP NULL DEFAULT NULL`),
-    db.query(`ALTER TABLE chess_rooms ADD COLUMN IF NOT EXISTS rematch_new_room_code VARCHAR(6) DEFAULT NULL`),
-    db.query(`ALTER TABLE chess_rooms ADD COLUMN IF NOT EXISTS rematch_of_id INT DEFAULT NULL`),
-    db.query(`ALTER TABLE chess_rooms ADD COLUMN IF NOT EXISTS active_clock_color ENUM('white','black') DEFAULT 'white'`),
-    db.query(`ALTER TABLE chess_rooms ADD COLUMN IF NOT EXISTS clock_started_at TIMESTAMP NULL DEFAULT NULL`),
-    db.query(`CREATE TABLE IF NOT EXISTS chess_messages (
-      id INT AUTO_INCREMENT PRIMARY KEY,
-      room_id INT NOT NULL,
-      sender_name VARCHAR(100) NOT NULL,
-      message TEXT NOT NULL,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      INDEX idx_msg_room (room_id)
-    )`),
-  ]);
+  await addColumnIfMissing('chess_rooms', 'rematch_status', `ENUM('none','requested','accepted','declined','expired') DEFAULT 'none'`);
+  await addColumnIfMissing('chess_rooms', 'rematch_requested_by', 'VARCHAR(100) DEFAULT NULL');
+  await addColumnIfMissing('chess_rooms', 'rematch_requested_by_id', 'INT DEFAULT NULL');
+  await addColumnIfMissing('chess_rooms', 'rematch_requested_at', 'TIMESTAMP NULL DEFAULT NULL');
+  await addColumnIfMissing('chess_rooms', 'rematch_new_room_code', 'VARCHAR(6) DEFAULT NULL');
+  await addColumnIfMissing('chess_rooms', 'rematch_of_id', 'INT DEFAULT NULL');
+  await addColumnIfMissing('chess_rooms', 'active_clock_color', `ENUM('white','black') DEFAULT 'white'`);
+  await addColumnIfMissing('chess_rooms', 'clock_started_at', 'TIMESTAMP NULL DEFAULT NULL');
+  await db.query(`CREATE TABLE IF NOT EXISTS chess_messages (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    room_id INT NOT NULL,
+    sender_name VARCHAR(100) NOT NULL,
+    message TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_msg_room (room_id)
+  )`);
   chessSchemaMigrated = true;
 }
 

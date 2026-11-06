@@ -597,6 +597,49 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
       );
     }
 
+    // Clone spot registration stations. Each cloned station gets a BRAND NEW code
+    // so the copy's printed QR sheets never open the original activity.
+    if (src.category === 'spotregistration') {
+      const crypto = require('crypto');
+      const [srSettings] = await db.query('SELECT * FROM spotreg_settings WHERE game_id = ?', [gameId]);
+      if (srSettings[0]) {
+        const s = srSettings[0];
+        await db.query(
+          `INSERT INTO spotreg_settings (game_id, bg_color, primary_color, font_family, heading_1, heading_2, heading_3,
+             description_text, heading_1_color, heading_2_color, heading_3_color, description_color, bg_image_url,
+             game_logo_url, station_bg_image_url, thankyou_bg_image_url, intro_text, outro_text, intro_text_color,
+             outro_text_color, start_button_text, scan_button_text, submit_button_text, skip_button_text,
+             complete_heading, complete_text, scan_hint_text, require_order, show_progress, allow_rescan,
+             terms_enabled, terms_text, terms_url, meta_description)
+           VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          [newId, s.bg_color, s.primary_color, s.font_family, s.heading_1, s.heading_2, s.heading_3,
+           s.description_text, s.heading_1_color, s.heading_2_color, s.heading_3_color, s.description_color,
+           s.bg_image_url, s.game_logo_url, s.station_bg_image_url, s.thankyou_bg_image_url, s.intro_text,
+           s.outro_text, s.intro_text_color, s.outro_text_color, s.start_button_text, s.scan_button_text,
+           s.submit_button_text, s.skip_button_text, s.complete_heading, s.complete_text, s.scan_hint_text,
+           s.require_order, s.show_progress, s.allow_rescan, s.terms_enabled, s.terms_text, s.terms_url,
+           s.meta_description]
+        );
+      }
+
+      const [srStations] = await db.query('SELECT * FROM spotreg_stations WHERE game_id = ? ORDER BY station_order, id', [gameId]);
+      for (const st of srStations) {
+        const freshCode = crypto.randomBytes(10).toString('hex').slice(0, 12).toUpperCase();
+        const [newStation] = await db.query(
+          `INSERT INTO spotreg_stations (game_id, station_name, station_code, station_order, icon, heading_1, description_text, image_url, is_active)
+           VALUES (?,?,?,?,?,?,?,?,?)`,
+          [newId, st.station_name, freshCode, st.station_order, st.icon, st.heading_1, st.description_text, st.image_url, st.is_active]
+        );
+        const [stFields] = await db.query('SELECT * FROM spotreg_station_fields WHERE station_id = ? ORDER BY field_order', [st.id]);
+        for (const f of stFields) {
+          await db.query(
+            'INSERT INTO spotreg_station_fields (station_id, field_label, field_type, field_options, is_required, field_order) VALUES (?, ?, ?, ?, ?, ?)',
+            [newStation.insertId, f.field_label, f.field_type, JSON.stringify(f.field_options || []), f.is_required, f.field_order]
+          );
+        }
+      }
+    }
+
     const [newGame] = await db.query('SELECT g.*, c.company_name, c.slug as client_slug FROM games g LEFT JOIN clients c ON g.client_id = c.id WHERE g.id = ?', [newId]);
     res.status(201).json({ success: true, game: newGame[0] });
   } catch (err) {
@@ -880,6 +923,58 @@ router.get('/:id/responses', requireAdmin, async (req, res) => {
       session.answers = answers;
     }
 
+    // Spot Registration has no questions: every value lives on a station row.
+    // Flatten them into labelled keys so the shared Responses table can show
+    // them as ordinary columns, and attach the computed BMI for the report.
+    const [gameRows] = await db.query('SELECT category FROM games WHERE id = ?', [req.params.id]);
+    if (gameRows[0] && gameRows[0].category === 'spotregistration' && sessions.length > 0) {
+      const sessionIds = sessions.map(s => s.id);
+
+      const [stationRows] = await db.query(
+        `SELECT p.session_id, s.station_name, s.station_order, p.answers
+           FROM spotreg_progress p
+           JOIN spotreg_stations s ON s.id = p.station_id
+          WHERE p.session_id IN (?) AND p.completed_at IS NOT NULL
+          ORDER BY s.station_order, s.id`,
+        [sessionIds]
+      );
+
+      const [bmiRows] = await db.query(
+        'SELECT session_id, bmi_value, bmi_category, bmi_percentile, height_cm, weight_kg, age_years, gender, is_adult FROM spotreg_bmi WHERE session_id IN (?)',
+        [sessionIds]
+      );
+      const bmiBySession = new Map(bmiRows.map(r => [r.session_id, r]));
+
+      const bySession = new Map(sessionIds.map(id => [id, {}]));
+      for (const row of stationRows) {
+        let answers = row.answers;
+        if (typeof answers === 'string') {
+          try { answers = JSON.parse(answers); } catch { answers = {}; }
+        }
+        const target = bySession.get(row.session_id);
+        if (!target) continue;
+        for (const [label, value] of Object.entries(answers || {})) {
+          if (value === null || value === undefined || String(value).trim() === '') continue;
+          target[`${row.station_name} — ${label}`] = value;
+        }
+      }
+
+      for (const session of sessions) {
+        session.station_answers = bySession.get(session.id) || {};
+        const bmi = bmiBySession.get(session.id);
+        session.bmi = bmi ? {
+          value: bmi.bmi_value,
+          category: bmi.bmi_category,
+          percentile: bmi.bmi_percentile,
+          height_cm: bmi.height_cm,
+          weight_kg: bmi.weight_kg,
+          age_years: bmi.age_years,
+          gender: bmi.gender,
+          is_adult: bmi.is_adult
+        } : null;
+      }
+    }
+
     res.json({ success: true, sessions });
   } catch (err) { console.error(err); sendError(res, err); }
 });
@@ -906,7 +1001,7 @@ router.put('/:id/status', requireAdmin, async (req, res) => {
         await db.query(
           `DELETE pa FROM player_answers pa
            INNER JOIN player_sessions ps ON pa.session_id = ps.id
-           WHERE ps.game_id = ? AND ps.started_at >= ?`,
+           WHERE ps.game_id = ? AND ps.created_at >= ?`,
           [req.params.id, startedAt]
         );
       } else {
@@ -920,7 +1015,7 @@ router.put('/:id/status', requireAdmin, async (req, res) => {
       // 2. Player sessions (cascades remaining player_answers via FK)
       if (startedAt) {
         await db.query(
-          'DELETE FROM player_sessions WHERE game_id = ? AND started_at >= ?',
+          'DELETE FROM player_sessions WHERE game_id = ? AND created_at >= ?',
           [req.params.id, startedAt]
         );
       } else {

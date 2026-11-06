@@ -565,11 +565,11 @@ export default function SnakeAndLadderPlayerPage({ gameData, sessionToken, onCom
   });
 
   return (
-    <div className={`sl-root ${shake ? "sl-shake" : ""}`}>
+    <div className={`sl-root ${shake ? "sl-shake" : ""} ${screen === "game" ? "sl-in-game" : ""} ${screen === "mode" ? "sl-mode-screen" : ""}`}>
       <audio ref={bgmRef} src="/snake-ladder-bgm.mp3" loop preload="auto" />
       <style>{`
         @import url('https://fonts.googleapis.com/css2?family=Baloo+2:wght@500;700;800&family=Nunito:wght@400;700;900&display=swap');
-        .sl-root{position:relative;width:100%;min-height:100vh;box-sizing:border-box;padding:24px 16px 48px;display:flex;flex-direction:column;align-items:center;font-family:'Nunito',sans-serif;overflow:hidden;background:radial-gradient(circle at 50% -8%,rgba(255,210,130,0.20),transparent 42%),radial-gradient(ellipse at 12% 12%,rgba(255,224,130,0.14),transparent 48%),radial-gradient(ellipse at 88% 22%,rgba(120,255,190,0.10),transparent 52%),radial-gradient(ellipse at 50% 115%,rgba(15,60,38,0.9),transparent 60%),linear-gradient(160deg,#0b2f1d 0%,#123c27 22%,#0f3624 45%,#0c2c1c 70%,#071c12 100%)}
+        .sl-root{position:relative;width:100%;min-height:100vh;min-height:100dvh;box-sizing:border-box;padding:24px 16px 48px;display:flex;flex-direction:column;align-items:center;font-family:'Nunito',sans-serif;overflow:hidden;background:radial-gradient(circle at 50% -8%,rgba(255,210,130,0.20),transparent 42%),radial-gradient(ellipse at 12% 12%,rgba(255,224,130,0.14),transparent 48%),radial-gradient(ellipse at 88% 22%,rgba(120,255,190,0.10),transparent 52%),radial-gradient(ellipse at 50% 115%,rgba(15,60,38,0.9),transparent 60%),linear-gradient(160deg,#0b2f1d 0%,#123c27 22%,#0f3624 45%,#0c2c1c 70%,#071c12 100%)}
         .sl-root.sl-shake{animation:slShake 0.45s ease}
         @keyframes slShake{0%,100%{transform:translate(0,0)}20%{transform:translate(-6px,3px)}40%{transform:translate(5px,-4px)}60%{transform:translate(-4px,4px)}80%{transform:translate(3px,-2px)}}
         .sl-canopy{position:absolute;border-radius:50%;filter:blur(46px);pointer-events:none;animation:slCanopyDrift ease-in-out infinite;will-change:transform}
@@ -600,6 +600,10 @@ export default function SnakeAndLadderPlayerPage({ gameData, sessionToken, onCom
         .sl-mode-card{width:190px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:24px 18px;border-radius:18px;cursor:pointer;background:linear-gradient(160deg,#7a5333,#4a3018 70%);border:3px solid #c8963f;box-shadow:0 12px 24px rgba(0,0,0,0.4),inset 0 2px 4px rgba(255,255,255,0.12),inset 0 -4px 8px rgba(0,0,0,0.4);color:#f4e6c8;transition:transform 0.18s,box-shadow 0.18s,border-color 0.18s}
         .sl-mode-card:hover{transform:translateY(-4px) scale(1.02);border-color:#ffd166;box-shadow:0 18px 30px rgba(0,0,0,0.5),0 0 20px rgba(255,214,102,0.3)}.sl-mode-card:active{transform:translateY(0) scale(0.98)}
         .sl-mode-icon{font-size:34px}.sl-mode-title{font-family:'Baloo 2',cursive;font-weight:700;font-size:17px;color:#ffe0a0}.sl-mode-desc{font-size:11.5px;opacity:0.8;line-height:1.3}
+.sl-mode-card-wide{flex:0 0 100%;width:100%;max-width:340px;padding:24px 16px}
+.sl-mode-card-wide .sl-mode-icon{font-size:40px}
+.sl-mode-card-wide .sl-mode-title{font-size:20px}
+.sl-mode-card-wide .sl-mode-desc{font-size:12.5px}
         .sl-back-link{background:none;border:none;cursor:pointer;color:#d9c290;font-size:13px;text-decoration:underline;text-underline-offset:3px;opacity:0.85;padding:4px 6px}.sl-back-link:hover{opacity:1;color:#ffe0a0}
         .sl-loader{position:relative;width:88px;height:88px;display:flex;align-items:center;justify-content:center}
         .sl-loader-ring{position:absolute;inset:0;border-radius:50%;border:5px solid rgba(200,150,63,0.25);border-top-color:#ffd166;animation:slSpin 1s linear infinite}
@@ -661,7 +665,14 @@ export default function SnakeAndLadderPlayerPage({ gameData, sessionToken, onCom
         .sl-winner-card p{color:#f0dcb0;margin:0 0 18px;font-size:14px}
         .sl-confetti{position:absolute;top:-10px;border-radius:2px;animation:slConfetti linear forwards}
         @keyframes slConfetti{to{transform:translateY(420px) rotate(540deg);opacity:0}}
-        @media(max-width:720px){.sl-stage{flex-direction:column;align-items:center}.sl-panel{max-width:560px}}
+        @media(max-width:720px){.sl-stage{flex-direction:column;align-items:center}.sl-panel{max-width:560px}.sl-root.sl-in-game .sl-sign-wrap{display:none!important}.sl-mode-card{width:auto;flex:1;min-width:0;padding:18px 10px}.sl-mode-card.sl-mode-card-wide{flex:0 0 100%;width:100%;padding:24px 12px}.sl-root.sl-in-game{height:100vh;height:100dvh;padding:8px;justify-content:center;overflow:hidden;overscroll-behavior:none}.sl-root.sl-in-game .sl-stage{justify-content:center;margin:0}.sl-root.sl-in-game .sl-board-frame{width:min(calc(100dvh - 260px),92vw);padding:8px}.sl-root.sl-in-game .sl-panel{min-height:0;gap:6px;padding:0}.sl-root.sl-in-game .sl-die{width:48px;height:48px}.sl-root.sl-in-game .sl-die-face{border-radius:10px}.sl-root.sl-in-game .sl-pip{width:7px;height:7px;margin:-3.5px}.sl-root.sl-in-game .sl-roll-btn{padding:9px 20px;font-size:13px;border-radius:11px}.sl-root.sl-in-game .sl-turn-msg{font-size:11.5px;min-height:14px}}
+.sl-mode-screen{justify-content:center}
+.sl-mode-screen .sl-sign-wrap{margin-bottom:10px}
+.sl-mode-screen .sl-sign{padding:8px 22px}
+.sl-mode-screen .sl-sign h1{font-size:clamp(20px,5vw,32px)}
+.sl-mode-screen .sl-and{font-size:clamp(9px,2vw,13px)}
+.sl-mode-screen .sl-menu-wrap{gap:10px;margin-top:2px}
+@media(max-height:650px){.sl-mode-screen .sl-sign{display:none}.sl-mode-screen .sl-menu-wrap{gap:8px}}
         .sl-lobby{position:relative;z-index:3;display:flex;flex-direction:column;align-items:center;gap:16px;animation:slMenuIn 0.5s ease;max-width:380px;width:100%}
         .sl-lobby h2{font-family:'Baloo 2',cursive;color:#ffe9b0;font-size:22px;margin:0;text-shadow:0 2px 0 #4a2f16}
         .sl-lobby-input{width:100%;padding:12px 16px;border-radius:12px;border:2px solid #8a5a34;background:rgba(0,0,0,0.3);color:#ffe9c8;font-family:'Nunito',sans-serif;font-size:14px;outline:none;box-sizing:border-box}
@@ -703,7 +714,7 @@ export default function SnakeAndLadderPlayerPage({ gameData, sessionToken, onCom
         </div>
       </div>
       {screen === "home" && (<div className="sl-menu-wrap"><p className="sl-tagline">A hand-carved board. Golden ladders. Hungry serpents.</p><button className="sl-cta-btn" onClick={goToModeSelect}>▶ Play</button><div className="sl-home-icons"><span>🪜 9 Ladders</span><span>🐍 10 Snakes</span><span>🎲 2 Players</span></div></div>)}
-      {screen === "mode" && (<div className="sl-menu-wrap"><p className="sl-tagline">Choose your opponent</p><div className="sl-mode-grid"><button className="sl-mode-card" onClick={() => chooseMode("friend")}><span className="sl-mode-icon">🧑‍🤝‍🧑</span><span className="sl-mode-title">VS Friend</span><span className="sl-mode-desc">Take turns on the same device</span></button><button className="sl-mode-card" onClick={() => chooseMode("bot")}><span className="sl-mode-icon">🤖</span><span className="sl-mode-title">VS Bot</span><span className="sl-mode-desc">Challenge the jungle spirit</span></button><button className="sl-mode-card" onClick={() => chooseMode("online")}><span className="sl-mode-icon">🌍</span><span className="sl-mode-title">Online</span><span className="sl-mode-desc">Play with a friend online</span></button></div><button className="sl-back-link" onClick={backToHome}>← Back</button></div>)}
+      {screen === "mode" && (<div className="sl-menu-wrap"><p className="sl-tagline">Choose your opponent</p><div className="sl-mode-grid"><button className="sl-mode-card" onClick={() => chooseMode("friend")}><span className="sl-mode-icon">🧑‍🤝‍🧑</span><span className="sl-mode-title">VS Friend</span><span className="sl-mode-desc">Take turns on the same device</span></button><button className="sl-mode-card" onClick={() => chooseMode("bot")}><span className="sl-mode-icon">🤖</span><span className="sl-mode-title">VS Bot</span><span className="sl-mode-desc">Challenge the jungle spirit</span></button><button className="sl-mode-card sl-mode-card-wide" onClick={() => chooseMode("online")}><span className="sl-mode-icon">🌍</span><span className="sl-mode-title">Online</span><span className="sl-mode-desc">Play with a friend online</span></button></div><button className="sl-back-link" onClick={backToHome}>← Back</button></div>)}
       {screen === "loading" && (<div className="sl-menu-wrap"><div className="sl-loader"><div className="sl-loader-ring" /><div className="sl-loader-dice">🎲</div></div><div className="sl-progress-track"><div className="sl-progress-fill" style={{width:`${loadingProgress}%`}} /></div><p className="sl-loading-text">{LOADING_LINES[loadingLine]}</p></div>)}
       {screen === "lobby" && (<div className="sl-lobby">
         <h2>Online Multiplayer</h2>

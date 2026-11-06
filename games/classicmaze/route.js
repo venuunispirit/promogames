@@ -3,6 +3,7 @@ const router = express.Router();
 const db = require('../../apps/backend/config/db');
 const auth = require('../../apps/backend/middleware/auth');
 const { sendError } = require('../../apps/backend/lib/apiError');
+const { awardLevelCompletionReward } = require('../../apps/backend/lib/promocoins');
 
 router.get('/:gameId/settings', auth, async (req, res) => {
   try {
@@ -53,7 +54,7 @@ router.put('/:gameId/settings', auth, async (req, res) => {
       description_color: description_color || e.description_color || '#888888',
       bg_color: bg_color || e.bg_color || '#0f172a',
       primary_color: primary_color || e.primary_color || '#6366f1',
-      wall_color: wall_color || e.wall_color || '#1e293b',
+      wall_color: wall_color || e.wall_color || '#64748b',
       path_color: path_color || e.path_color || '#ffffff',
       font_family: font_family || e.font_family || 'DM Sans',
       sound_collect_id: sound_collect_id !== undefined && sound_collect_id !== '' ? Number(sound_collect_id) : (e.sound_collect_id || null),
@@ -138,8 +139,7 @@ router.get('/:gameId/generate', auth, async (req, res) => {
     const level = parseInt(req.query.level) || 1;
     const sessionToken = req.query.session_token || '';
     const [rows] = await db.query('SELECT * FROM maze_settings WHERE game_id = ?', [req.params.gameId]);
-    if (!rows[0]) return res.status(404).json({ success: false, message: 'Settings not found' });
-    const s = rows[0];
+    const s = rows[0] || {};
     const min = parseInt(s.grid_size_min) || 5;
     const max = parseInt(s.grid_size_max) || 20;
     const size = getMazeSize(level, min, max);
@@ -183,7 +183,9 @@ router.post('/:gameId/progress', auth, async (req, res) => {
         [nextLevel, JSON.stringify(comp), collectibles_found || 0, time_spent || 0, time_spent || 0, p.id]
       );
       const [updated] = await db.query('SELECT * FROM maze_progress WHERE id = ?', [p.id]);
-      return res.json({ success: true, progress: updated[0] });
+      // ── Auto-reward: every newly completed level earns PromoCoins ──
+      const pc_reward = completed ? await awardLevelCompletionReward({ sessionToken: session_token, level }) : null;
+      return res.json({ success: true, progress: updated[0], pc_reward });
     }
     const comp = completed ? JSON.stringify([level]) : '[]';
     const [result] = await db.query(
@@ -191,7 +193,9 @@ router.post('/:gameId/progress', auth, async (req, res) => {
       [req.params.gameId, session_token, completed ? level + 1 : level, comp, collectibles_found || 0, time_spent || 0]
     );
     const [row] = await db.query('SELECT * FROM maze_progress WHERE id = ?', [result.insertId]);
-    res.json({ success: true, progress: row[0] });
+    // ── Auto-reward: every newly completed level earns PromoCoins ──
+    const pc_reward = completed ? await awardLevelCompletionReward({ sessionToken: session_token, level }) : null;
+    res.json({ success: true, progress: row[0], pc_reward });
   } catch (err) {
     sendError(res, err);
   }

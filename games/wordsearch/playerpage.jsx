@@ -3,13 +3,13 @@ import { Home, Lightbulb, Shuffle, Volume2, VolumeX, LayoutGrid, Trophy, Check, 
 
 const CATEGORIES = {
   animals: { label: 'Safari', emoji: '🦁', tagline: 'Stalk the savanna',
-    words: ['TIGER', 'ZEBRA', 'PANDA', 'EAGLE', 'KOALA', 'OTTER', 'RHINO', 'LEMUR', 'HYENA', 'CAMEL', 'GIRAFFE', 'CHEETAH', 'ELEPHANT', 'GAZELLE'] },
+    words: ['TIGER', 'ZEBRA', 'PANDA', 'EAGLE', 'KOALA', 'OTTER', 'RHINO', 'LEMUR', 'HYENA', 'CAMEL', 'GIRAFFE', 'CHEETAH', 'ELEPHANT', 'GAZELLE', 'LION', 'BEAR', 'FOX', 'WOLF', 'DEER', 'MOOSE', 'ELK', 'BISON', 'MONKEY', 'GORILLA', 'CHIMP', 'APE', 'BABOON', 'SLOTH', 'SKUNK', 'RACCOON', 'BADGER', 'WEASEL', 'FERRET', 'MINK', 'COUGAR', 'PUMA', 'PANTHER', 'JAGUAR', 'LEOPARD', 'LYNX', 'BOBCAT', 'OCELOT', 'SERVAL', 'JACKAL', 'COYOTE', 'DINGO', 'BUFFALO', 'IMPALA', 'KUDU', 'ELAND', 'ORYX', 'ANTELOPE', 'MEERKAT', 'MONGOOSE', 'IGUANA', 'GECKO', 'TORTOISE', 'TURTLE', 'PYTHON', 'COBRA', 'VIPER', 'MAMBA', 'LIZARD', 'TOAD', 'FROG', 'PARROT', 'MACAW', 'TOUCAN', 'OSTRICH', 'EMU', 'PENGUIN', 'FALCON', 'HAWK', 'OWL', 'VULTURE', 'MUSTANG', 'DONKEY', 'MULE', 'LLAMA', 'ALPACA', 'YAK', 'MOLE', 'SQUIRREL', 'CHIPMUNK', 'BEAVER', 'HAMSTER', 'GERBIL', 'RABBIT', 'HARE', 'PORCUPINE', 'ARMADILLO', 'HEDGEHOG', 'CHAMELEON', 'WILDEBEEST', 'SPRINGBOK', 'GEMSBOK', 'SURICATE', 'OKAPI', 'TAPIR', 'CAPYBARA', 'AGUTI', 'PACA', 'MARMOSET', 'HOWLER', 'TAMARIN', 'UAKARI', 'SAKI', 'WOLVERINE'] },
   ocean: { label: 'Ocean', emoji: '🐙', tagline: 'Dive the deep blue',
-    words: ['EEL', 'TUNA', 'CRAB', 'SQUID', 'SHARK', 'WHALE', 'CORAL', 'MANTA', 'URCHIN', 'DOLPHIN', 'LOBSTER', 'OCTOPUS', 'SEAHORSE', 'STARFISH', 'JELLYFISH'] },
+    words: ['EEL', 'TUNA', 'CRAB', 'SQUID', 'SHARK', 'WHALE', 'CORAL', 'MANTA', 'URCHIN', 'DOLPHIN', 'LOBSTER', 'OCTOPUS', 'SEAHORSE', 'STARFISH', 'JELLYFISH', 'SALMON', 'COD', 'BASS', 'PERCH', 'GAR', 'PIKE', 'TROUT', 'HERRING', 'ANCHOVY', 'SARDINE', 'MACKEREL', 'GOLDFISH', 'PUFFER', 'CLOWNFISH', 'ANGELFISH', 'SWORDFISH', 'SAILFISH', 'MARLIN', 'HALIBUT', 'SOLE', 'FLOUNDER', 'RAY', 'MORAY', 'STINGRAY', 'SEAL', 'WALRUS', 'SEALION', 'PORPOISE', 'NARWHAL', 'BELUGA', 'ORCA', 'MANATEE', 'DUGONG', 'SHRIMP', 'PRAWN', 'KRILL', 'OYSTER', 'MUSSEL', 'CLAM', 'SCALLOP', 'SNAIL', 'CONCH', 'WHELK', 'LIMPET', 'BARNACLE', 'ANEMONE', 'SPONGE', 'NUDIBRANCH', 'STONEFISH', 'SCORPIONFISH', 'LIONFISH', 'TRIGGERFISH', 'PARROTFISH', 'GROUPER', 'SNAPPER', 'BARRACUDA', 'TARPON', 'MOONFISH', 'SUNFISH', 'OARFISH', 'FLYINGFISH', 'SAWFISH', 'COELACANTH', 'LANTERNFISH', 'DRAGONFISH', 'HATCHETFISH', 'CUTTLEFISH', 'NAUTILUS', 'HERMIT', 'KINGCRAB', 'SNOWCRAB', 'SPIDERCRAB', 'SEASTAR', 'BLOBFISH', 'GRUNION', 'MULLET', 'SMELT', 'POLLOCK', 'HADDOCK', 'TILEFISH', 'WRASSE', 'TANG', 'DAMSELFISH', 'GUPPY', 'PLECO', 'SPADEFISH', 'BONEFISH', 'GURNARD', 'DOGFISH', 'HAGFISH', 'LAMPREY'] },
   space: { label: 'Space', emoji: '🚀', tagline: 'Chart the cosmos',
-    words: ['COMET', 'ORBIT', 'LUNAR', 'METEOR', 'GALAXY', 'ROCKET', 'PLANET', 'NEBULA', 'SATURN', 'COSMOS', 'ECLIPSE', 'GRAVITY', 'SHUTTLE', 'ASTEROID'] },
+    words: ['COMET', 'ORBIT', 'LUNAR', 'METEOR', 'GALAXY', 'ROCKET', 'PLANET', 'NEBULA', 'SATURN', 'COSMOS', 'ECLIPSE', 'GRAVITY', 'SHUTTLE', 'ASTEROID', 'MARS', 'MOON', 'SUN', 'STAR', 'VENUS', 'MERCURY', 'JUPITER', 'NEPTUNE', 'URANUS', 'PLUTO', 'EARTH', 'SOLAR', 'ORION', 'VEGA', 'POLARIS', 'SIRIUS', 'RIGEL', 'ALPHA', 'BETA', 'AURORA', 'METEORITE', 'METEOROID', 'APOLLO', 'GEMINI', 'SOYUZ', 'SPACEWALK', 'ORBITER', 'LAUNCHPAD', 'BLASTOFF', 'LIFTOFF', 'CENTAUR', 'PIONEER', 'VOYAGER', 'ODYSSEY', 'COSMONAUT', 'ASTRONAUT', 'ALIEN', 'UFO', 'QUASAR', 'PULSAR', 'NOVA', 'BINARY', 'DWARF', 'GIANT', 'STELLAR', 'COSMIC', 'HUBBLE', 'SATELLITE', 'TITAN', 'EUROPA', 'IO', 'PHOBOS', 'DEIMOS', 'TYCHO', 'COPERNICUS', 'ANDROMEDA', 'MILKYWAY', 'SUPERNOVA', 'REDGIANT', 'WHITEDWARF', 'BLACKHOLE', 'LIGHTYEAR', 'TRANSIT', 'PINWHEEL', 'SOMBRERO', 'GLOBULAR', 'OBSERVATORY', 'PERIGEE', 'APOGEE', 'APHELION', 'ZENITH', 'NADIR', 'HORIZON', 'ECLIPTIC', 'EQUINOX', 'SOLSTICE', 'MERIDIAN', 'CELESTIAL', 'ZODIAC', 'CORONA', 'GAMMA', 'DELTA', 'CYGNUS', 'LYRA', 'PLEIADES', 'GEMINID', 'INTERSTELLAR'] },
   sweets: { label: 'Sweets', emoji: '🍩', tagline: 'Raid the bakery',
-    words: ['CANDY', 'MOCHA', 'FUDGE', 'DONUT', 'TOFFEE', 'WAFFLE', 'COOKIE', 'PASTRY', 'MUFFIN', 'ECLAIR', 'PRALINE', 'CARAMEL', 'BISCUIT', 'PANCAKE', 'GUMDROP', 'LOLLIPOP'] },
+    words: ['CANDY', 'MOCHA', 'FUDGE', 'DONUT', 'TOFFEE', 'WAFFLE', 'COOKIE', 'PASTRY', 'MUFFIN', 'ECLAIR', 'PRALINE', 'CARAMEL', 'BISCUIT', 'PANCAKE', 'GUMDROP', 'LOLLIPOP', 'CAKE', 'PIE', 'TART', 'BROWNIE', 'BLONDIE', 'MACARON', 'MERINGUE', 'SOUFFLE', 'CREPE', 'CUPCAKE', 'TRUFFLE', 'NOUGAT', 'CUSTARD', 'PUDDING', 'JELLY', 'JAM', 'HONEY', 'SYRUP', 'ICING', 'SPRINKLE', 'DOUGHNUT', 'CRULLER', 'GELATO', 'SORBET', 'MOUSSE', 'TIRAMISU', 'SUNDAE', 'PARFAIT', 'FLAN', 'BRULEE', 'GANACHE', 'COCOA', 'TORTE', 'TRIFLE', 'SHORTCAKE', 'CHEESECAKE', 'ANGELFOOD', 'REDVELVET', 'SPONGE', 'FONDANT', 'MARZIPAN', 'PECANPIE', 'APPLEPIE', 'KEYLIME', 'OATMEAL', 'RAISIN', 'CREAM', 'BUTTER', 'VANILLA', 'CINNAMON', 'NUTMEG', 'SPICE', 'MAPLE', 'BANANA', 'CHERRY', 'PLUM', 'PEACH', 'APRICOT', 'COCONUT', 'ALMOND', 'WALNUT', 'HAZELNUT', 'CASHEW', 'SESAME', 'PUMPKIN', 'LICORICE', 'TAFFY', 'BUTTERSCOTCH', 'CHOCCHIP', 'CANDYCANE', 'ROCKCANDY', 'COTTONCANDY', 'CANDYAPPLE', 'SWEET', 'DESSERT', 'CHOCBAR', 'KRISPIE', 'BONBON', 'HONEYCOMB', 'LEMONDROP', 'PEPPERMINT', 'SUGARPLUM', 'SWISSROLL', 'LOKUM', 'CHURRO'] },
 };
 
 const DIFFICULTIES = {
@@ -243,14 +243,15 @@ export default function WordHuntGame() {
   }, [won, puzzle, appState]);
 
   useEffect(() => {
-    if (puzzle.placements.length > 0 && Object.keys(foundWords).length === puzzle.placements.length) {
-      setWon(true);
-      setCoins((c) => c + 50);
-      playWin();
-      vibrate([40, 60, 40, 60, 40, 80, 120]);
-    }
+    if (won || puzzle.placements.length === 0) return;
+    const allFound = puzzle.placements.every((p) => foundWords[p.word]);
+    if (!allFound) return;
+    setWon(true);
+    setCoins((c) => c + 50);
+    playWin();
+    vibrate([40, 60, 40, 60, 40, 80, 120]);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [foundWords, puzzle]);
+  }, [foundWords, puzzle, won]);
 
   useEffect(() => {
     if (!won) return;
@@ -366,10 +367,9 @@ export default function WordHuntGame() {
   const progressPct = total ? (foundCount / total) * 100 : 0;
   const strokeW = (100 / puzzle.size) * 0.6;
   const cellFontSize = puzzle.size <= 8 ? '1.6rem' : puzzle.size <= 10 ? '1.25rem' : '1rem';
-  const catInfo = CATEGORIES[category];
 
   return (
-    <div className="ww-root">
+    <div className={`ww-root ${appState === 'playing' ? 'ww-playing' : ''}`}>
       <style>{`
         .ww-root {
           --sky-top:#7BE1F0; --sky-bot:#CFF3D9;
@@ -382,9 +382,10 @@ export default function WordHuntGame() {
           --wood:#8A5A2E; --wood-dark:#6B4220;
           font-family:'Nunito', system-ui, sans-serif;
           color:var(--ink);
-          min-height:100vh; width:100%; box-sizing:border-box;
+          width:100%; box-sizing:border-box;
           display:flex; justify-content:center; position:relative; overflow:hidden;
           padding: clamp(14px,3vw,32px) clamp(10px,3vw,32px) 30px;
+          height:100vh; height:100dvh;
           background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bot) 62%, var(--sky-bot) 100%);
         }
         .ww-root *,.ww-root *::before,.ww-root *::after{box-sizing:border-box;}
@@ -401,7 +402,9 @@ export default function WordHuntGame() {
         .ww-hill.front{bottom:-50px;height:120px;background:var(--hill-front);}
         @media (prefers-reduced-motion: reduce){ .ww-cloud{animation:none;} }
 
-        .ww-shell{position:relative;z-index:1;width:100%;max-width:460px;}
+        .ww-shell{position:relative;z-index:1;width:100%;max-width:460px;display:flex;flex-direction:column;height:100%;min-height:0;}
+        .ww-menu{text-align:center;padding-top:6vh;display:flex;flex-direction:column;}
+        .ww-playing .ww-menu{flex:1;justify-content:center;padding-top:0;}
         .ww-btn{font-family:'Nunito',sans-serif;font-weight:800;border:none;cursor:pointer;border-radius:999px;
           transition:transform .1s ease, box-shadow .1s ease;}
         .ww-btn:active{transform:translateY(2px);}
@@ -479,7 +482,8 @@ export default function WordHuntGame() {
         .ww-grid-wrap{position:relative;margin-bottom:14px;}
         .ww-grid{position:relative;display:grid;gap:0;background:var(--cream);border:4px solid var(--outline);
           border-radius:20px;overflow:hidden;box-shadow:0 10px 0 rgba(90,58,30,0.2), 0 20px 40px -18px rgba(0,0,0,0.4);
-          user-select:none;-webkit-user-select:none;touch-action:none;font-size:${cellFontSize};padding:6px;}
+          user-select:none;-webkit-user-select:none;touch-action:none;font-size:${cellFontSize};padding:6px;container-type:inline-size;}
+        .ww-grid .ww-cell{font-size:calc(58cqw / ${puzzle.size});}
         .ww-cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;
           font-family:'Baloo 2',sans-serif;font-weight:700;color:var(--ink);cursor:pointer;position:relative;
           z-index:2;transition:color .12s ease;}
@@ -546,6 +550,30 @@ export default function WordHuntGame() {
         .ww-bump{display:inline-block;animation:ww-bump-kf .4s ease;}
         @keyframes ww-bump-kf{0%{transform:scale(1);}30%{transform:scale(1.35);}100%{transform:scale(1);}}
 
+        .ww-playing{padding:10px;}
+        .ww-playing .ww-hud{margin-bottom:8px;}
+        .ww-playing .ww-ribbon{margin-bottom:8px;padding:7px 10px 6px;font-size:0.95rem;}
+        .ww-playing .ww-wordbank{margin-bottom:8px;padding:8px 10px;gap:4px 12px;}
+        .ww-playing .ww-word-chip{font-size:0.78rem;}
+        .ww-playing .ww-progress-row{margin-bottom:8px;}
+        .ww-playing .ww-grid-wrap{width:min(100%,calc(100dvh - 300px));margin:0 auto 8px;}
+        .ww-playing .ww-dock{padding:7px 6px;border-radius:18px;}
+        .ww-playing .ww-dock-btn{width:46px;height:46px;border-radius:13px;}
+        .ww-playing .ww-dock-btn svg{width:19px;height:19px;}
+
+        @media (max-height:700px){
+          .ww-title{font-size:clamp(2rem,9vw,3rem);}
+          .ww-menu{padding-top:2vh;}
+          .ww-menu-sub{margin:6px 0 14px;}
+          .ww-panel{padding:14px;}
+          .ww-cat-card{padding:8px 6px;gap:0;}
+          .ww-cat-emoji{font-size:1.3rem;}
+          .ww-cat-name{font-size:0.82rem;}
+          .ww-diff-row{margin-bottom:12px;}
+          .ww-diff-chip{padding:7px 14px;}
+          .ww-playing .ww-grid-wrap{width:min(100%,calc(100dvh - 280px));}
+        }
+
         @media (max-width:380px){ .ww-cat-grid{gap:8px;} .ww-title{font-size:2.3rem;} }
       `}</style>
 
@@ -598,8 +626,6 @@ export default function WordHuntGame() {
               <span className="ww-level-pill">LEVEL {level}</span>
               <span className="ww-coin-pill"><span key={coins} className="ww-bump">🪙 {coins}</span></span>
             </div>
-
-            <div className="ww-ribbon">{catInfo.emoji} {catInfo.label.toUpperCase()}</div>
 
             <div className="ww-wordbank">
               {puzzle.placements.map((p) => (

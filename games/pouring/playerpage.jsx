@@ -10,7 +10,7 @@ import React, { useEffect, useRef, useState } from "react";
  * sensor access (e.g. an iframe without an "accelerometer/gyroscope"
  * Permissions-Policy) — the drag fallback keeps the game fully playable.
  */
-export default function TiltPourGame() {
+export default function TiltPourGame({ gameData, sessionToken, onComplete }) {
   const canvasRef = useRef(null);
   const scoreRef = useRef(null);
   const fillRef = useRef(null);
@@ -370,7 +370,7 @@ export default function TiltPourGame() {
 
     let levelIndex = 0;
     let totalScore = 0;
-    let bestScore = 0;
+    let bestScore = Number(gameData?.high_score) || 0;
     let combo = 1;
 
     let angleDeg = 0;
@@ -1295,6 +1295,18 @@ export default function TiltPourGame() {
         levelIndex++; setupLevel(levelIndex); state = STATE.PLAYING; setOverlay(null);
       } else {
         setFinalScore(totalScore); setOverlay("alldone"); state = STATE.ALLDONE;
+        const finalTotal = totalScore;
+        if (finalTotal > 0 && gameData?.id) {
+          try {
+            let devId = null;
+            try { devId = localStorage.getItem('device_id') || null } catch {}
+            fetch('/api/play/record-score', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ game_id: gameData.id, score: finalTotal, device_id: devId || undefined })
+            }).then(r => r.json()).then(d => { if (d && d.success && d.high_score) { bestScore = Math.max(bestScore, d.high_score); if (bestRef.current) bestRef.current.textContent = bestScore.toLocaleString(); } }).catch(() => {})
+          } catch {}
+        }
       }
     };
     apiRef.current.replay = () => { Audio_.click(); setupLevel(levelIndex); state = STATE.PLAYING; setOverlay(null); };

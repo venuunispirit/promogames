@@ -109,7 +109,7 @@ function NagarajaPlayerPage({ gameData = {}, sessionToken = null, onComplete = (
   const [gameActive, setGameActive] = useState(false)
   const [gameOver, setGameOver] = useState(false)
   const [score, setScore] = useState(0)
-  const [highScore, setHighScore] = useState(0)
+  const [highScore, setHighScore] = useState(gameData?.high_score || 0)
   const [length, setLength] = useState(0)
   const [timeLeft, setTimeLeft] = useState(timeLimit)
 

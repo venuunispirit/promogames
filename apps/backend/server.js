@@ -178,7 +178,7 @@ const { requireAdmin } = require("./middleware/auth");
 const notificationsRoutes = require("./routes/notifications");
 const systemRoutes = require("./routes/system");
 const translateRoutes = require("./routes/translate");
-const { startCompanion, stopCompanion } = require("./libretranslateCompanion");
+const { stopCompanion } = require("./libretranslateCompanion");
 
 app.use("/api/auth", authRoutes);
 app.use("/api/pauth", pauthRoutes);
@@ -552,9 +552,6 @@ initDB()
   .then(() => {
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
-      // Auto-start the translation companion (LibreTranslate) so it comes up
-      // with the backend — no manual step on restart.
-      startCompanion();
     });
 
     const shutdown = () => {

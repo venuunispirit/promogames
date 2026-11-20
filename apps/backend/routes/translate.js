@@ -50,14 +50,10 @@ async function translateText(text, target) {
 
   let translated = text;
   try {
-    translated = await translateLibreTranslate(text, target);
-  } catch (e1) {
-    try {
-      translated = await translateMyMemory(text, target);
-    } catch (e2) {
-      // Both failed — keep original text so TTS still works.
-      translated = text;
-    }
+    translated = await translateMyMemory(text, target);
+  } catch (e) {
+    // Online translation failed — preserve original text.
+    translated = text;
   }
   cache.set(key, translated);
   return translated;

@@ -800,6 +800,25 @@ router.put('/:id/settings', requireAdmin, upload.fields([
       );
     }
 
+    // --- unique code settings (server patch) ---
+    if (req.body.code_generation_enabled !== undefined) {
+      const codeEnabled = coerceBool(req.body.code_generation_enabled);
+      const codeFrom = String(req.body.code_from || '').trim() || null;
+      const codeTo = String(req.body.code_to || '').trim() || null;
+      if (codeEnabled && (!codeFrom || !codeTo)) {
+        return res.status(400).json({ error: 'Code range (from/to) is required when code generation is on' });
+      }
+      await db.query(
+        `UPDATE quiz_settings SET code_generation_enabled=?, code_from=?, code_to=?,
+         code_show_on_thank_you=?, code_send_in_email=?, code_label=? WHERE game_id=?`,
+        [codeEnabled, codeFrom, codeTo,
+         coerceBool(req.body.code_show_on_thank_you),
+         coerceBool(req.body.code_send_in_email),
+         String(req.body.code_label || '').trim() || 'YOUR UNIQUE CODE',
+         req.params.id]
+      );
+    }
+
     // Clean up any duplicate rows — keep the one with the highest id (latest)
     await db.query(
       `DELETE t1 FROM quiz_settings t1

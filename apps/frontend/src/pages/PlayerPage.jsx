@@ -300,7 +300,7 @@ function SubmitModal({ primaryColor, ff, confirmGifUrl, onConfirm, onClose, game
           <div style={{ width: 56, height: 56, borderRadius: '50%', background: `${primaryColor}15`, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', fontFamily: ff, fontSize: 28 }}>✓</div>
         ))}
         <h2 style={{ fontSize: 'clamp(20px,5vw,26px)', fontWeight: 800, color: '#1a1a2e', marginBottom: 10, lineHeight: 1.25 }}>{completionHeadingText || (gameCategory === 'quiz' ? 'Quiz' : gameCategory === 'registration' ? 'Registration' : 'Game') + ' Completed!'}</h2>
-        <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>{completionSubtext || 'Your responses have been recorded.<br />Redirecting you now…'}</p>
+        {completionSubtext ? <p style={{ color: '#666', fontSize: 15, lineHeight: 1.6, marginBottom: 28 }}>{completionSubtext}</p> : null}
         {(completionShowProgressBar === 1 || completionShowProgressBar === true || completionShowProgressBar === '1') && (
           <div style={{ height: 5, background: `${completionProgressBarColor || primaryColor}22`, borderRadius: 10, overflow: 'hidden', marginBottom: 20 }}>
             <div style={{ height: '100%', background: `linear-gradient(90deg, ${completionProgressBarColor || primaryColor}, ${(completionProgressBarColor || primaryColor)}bb)`, borderRadius: 10, animation: 'redirectBar 3s linear forwards' }} />
@@ -1796,7 +1796,7 @@ export default function PlayerPage() {
                         Submit
                       </button>
                     )}
-                    {answered && <div style={{ marginTop:8, padding:'10px 18px', borderRadius:12, background:'rgba(34,197,94,0.1)', border:'1.5px solid rgba(34,197,94,0.3)', color:'#16a34a', fontSize:14, fontWeight:600 }}>✓ Recorded</div>}
+                    {null}
                   </div>
                 ) : question.question_type === 'checkbox' ? (
                   <div style={{ display:'flex', flexDirection:'column', gap:8, marginTop:12 }}>
@@ -1828,7 +1828,7 @@ export default function PlayerPage() {
                         Submit
                       </button>
                     )}
-                    {answered && <div style={{ alignSelf:'center', marginTop:8, padding:'10px 18px', borderRadius:12, background:'rgba(34,197,94,0.1)', border:'1.5px solid rgba(34,197,94,0.3)', color:'#16a34a', fontSize:14, fontWeight:600 }}>✓ Recorded</div>}
+                    {null}
                   </div>
                 ) : question.question_type === 'short_answer' ? (
                   <div style={{ display:'flex', flexDirection:'column', gap:10, alignItems:'center', marginTop:12 }}>
@@ -1876,21 +1876,7 @@ export default function PlayerPage() {
                         Submit Answer
                       </button>
                     )}
-                    {answered && (
-                      <div style={{
-                        marginTop: 8,
-                        padding: '10px 18px',
-                        borderRadius: 12,
-                        background: 'rgba(34,197,94,0.1)',
-                        border: '1.5px solid rgba(34,197,94,0.3)',
-                        fontSize: 14,
-                        fontWeight: 600,
-                        fontFamily: ff,
-                        animation: 'questionEnter 0.3s ease',
-                      }}>
-                        ✓ Answer recorded
-                      </div>
-                    )}
+                    {null}
                   </div>
                 ) : (
                 (question.options || []).map((opt, optIdx) => {

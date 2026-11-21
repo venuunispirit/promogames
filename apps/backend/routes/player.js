@@ -1469,7 +1469,25 @@ router.post('/session/complete', async (req, res) => {
       console.error('Code generation error:', codeErr.message);
     }
 
-    if (emailEnabled && templateOk && playerEmail) {
+    // --- Voucher offers reward ---
+    let rewardVoucher = session.reward_voucher || null;
+    try {
+      if (gameSettings.voucher_offers_enabled) {
+        if (!rewardVoucher) {
+          const offers = String(gameSettings.voucher_offers || '').split(',').map(s => s.trim()).filter(Boolean);
+          if (offers.length) {
+            rewardVoucher = offers[Math.floor(Math.random() * offers.length)];
+            await db.query('UPDATE player_sessions SET reward_voucher = ? WHERE id = ?', [rewardVoucher, session.id]);
+          }
+        }
+      } else {
+        rewardVoucher = null;
+      }
+    } catch (vErr) {
+      console.error('Voucher offer error:', vErr.message);
+    }
+
+    if (emailEnabled && templateOk && playerEmail && !session.email_sent) {
       const template = emailTemplates[0];
       const scoreText = session.total_scoreable > 0
         ? `You scored <strong>${session.score} out of ${session.total_scoreable}</strong>.` : '';
@@ -1493,16 +1511,20 @@ router.post('/session/complete', async (req, res) => {
         .replace(/\{\{website_link\}\}/g, 'https://www.thirdwavecoffeeroasters.com/')
         .replace(/\{\{code\}\}/g, isGuestPlayer ? (redemptionCode || '') : '')
         .replace(/\{\{redemption_code\}\}/g, isGuestPlayer ? (redemptionCode || '') : '')
-        .replace(/\{\{generated_code\}\}/g, generatedCode || '');
+        .replace(/\{\{generated_code\}\}/g, generatedCode || '')
+        .replace(/\{\{voucher\}\}/g, rewardVoucher || '')
+        .replace(/\{\{reward_voucher\}\}/g, rewardVoucher || '');
 
-      const htmlEmail = `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
+      const htmlEmail = (template.use_full_body == 1 || template.use_full_body === true)
+        ? (bodyContent || '')
+        : `<!DOCTYPE html><html><head><meta charset="utf-8"></head>
         <body style="margin:0;padding:0;background:#f4f4f4;font-family:Arial,sans-serif;">
         <table width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f4;padding:20px 0;">
           <tr><td align="center">
             <table width="600" cellpadding="0" cellspacing="0"
               style="background:#fff;border-radius:12px;overflow:hidden;max-width:600px;width:100%;">
               <tr><td style="background:${template.header_color||'#6366f1'};padding:32px 40px;text-align:center;">
-                <h1 style="margin:0;color:#fff;font-size:24px;">${template.header_text||'🎉 Congratulations!'}</h1>
+                <h1 style="margin:0;color:#fff;font-size:24px;">${template.header_text||'Congratulations!'}</h1>
               </td></tr>
               <tr><td style="padding:32px 40px;">
                 ${bodyContent ? `<div style="color:#555;">${bodyContent}</div>` : `<p style="font-size:16px;color:#333;">Hi <strong>${playerName}</strong>, You have completed the game!</p>`}
@@ -1522,7 +1544,7 @@ router.post('/session/complete', async (req, res) => {
           auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
           tls: { rejectUnauthorized: false },
         });
-        await transporter.sendMail({
+        transporter.sendMail({
           from: `"${template.sender_name||'Quiz Platform'}" <${template.sender_email||process.env.SMTP_USER}>`,
           to: playerEmail,
           subject: (template.subject||'You completed the game! 🎉').replace(/\{\{name\}\}/g, playerName),
@@ -1632,7 +1654,7 @@ router.post('/session/complete', async (req, res) => {
         const gameName = games[0]?.name || 'a game';
 
         // Send email 1: Guest offer with code (only for guests, not players)
-        if (!isPlayer && playerEmail && emailSettings.guest_offer?.enabled !== false) {
+        if (!isPlayer && playerEmail && emailSettings.guest_offer?.enabled !== false && !session.email_sent) {
           try {
             const transporter = nodemailer.createTransport({
               host: process.env.SMTP_HOST, port: parseInt(process.env.SMTP_PORT || '587', 10),
@@ -1644,8 +1666,10 @@ router.post('/session/complete', async (req, res) => {
               .replace(/\{\{code\}\}/g, code)
               .replace(/\{\{name\}\}/g, playerName)
               .replace(/\{\{player_name\}\}/g, playerName)
-              .replace(/\{\{game_name\}\}/g, gameName);
-            await transporter.sendMail({
+              .replace(/\{\{game_name\}\}/g, gameName)
+              .replace(/\{\{voucher\}\}/g, rewardVoucher || '')
+              .replace(/\{\{reward_voucher\}\}/g, rewardVoucher || '');
+            transporter.sendMail({
               from: `"PromoGames" <${process.env.SMTP_USER}>`,
               to: playerEmail,
               subject: (emailSettings.guest_offer?.subject || 'Your reward code 🎁').replace(/\{\{name\}\}/g, playerName),
@@ -1670,12 +1694,14 @@ router.post('/session/complete', async (req, res) => {
               .replace(/\{\{code\}\}/g, code)
               .replace(/\{\{player_name\}\}/g, playerName)
               .replace(/\{\{name\}\}/g, playerName)
-              .replace(/\{\{game_name\}\}/g, gameName)
-              .replace(/\{\{bo_name\}\}/g, 'Owner');
+               .replace(/\{\{game_name\}\}/g, gameName)
+               .replace(/\{\{bo_name\}\}/g, 'Owner')
+               .replace(/\{\{voucher\}\}/g, rewardVoucher || '')
+               .replace(/\{\{reward_voucher\}\}/g, rewardVoucher || '');
             const subject = (emailSettings.bo_notification?.subject || 'New play at your location 🎮')
               .replace(/\{\{player_name\}\}/g, playerName)
               .replace(/\{\{game_name\}\}/g, gameName);
-            await transporter.sendMail({
+            transporter.sendMail({
               from: `"PromoGames" <${process.env.SMTP_USER}>`,
               to: boEmail,
               subject,
@@ -1703,6 +1729,8 @@ router.post('/session/complete', async (req, res) => {
       score_info: scoreInfo,
       redirect_url: game?.redirect_url || null,
       generated_code: generatedCode,
+      reward_voucher: rewardVoucher,
+      voucher_message: gameSettings.voucher_message || null,
     });
   } catch (err) {
     console.error('Complete session error:', err);

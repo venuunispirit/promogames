@@ -15,19 +15,19 @@ async function addColumn(conn, table, column, definition) {
     const exists = await columnExists(conn, table, column);
     if (!exists) {
       await conn.query(`ALTER TABLE \`${table}\` ADD COLUMN \`${column}\` ${definition}`);
-      console.log(`✅ Added ${table}.${column}`);
+      console.log(`âœ… Added ${table}.${column}`);
     }
   } catch (err) {
-    console.error(`❌ Failed adding ${table}.${column}:`, err.message);
+    console.error(`âŒ Failed adding ${table}.${column}:`, err.message);
   }
 }
 
 async function safeQuery(conn, sql, label) {
   try {
     await conn.query(sql);
-    if (label) console.log(`✅ ${label}`);
+    if (label) console.log(`âœ… ${label}`);
   } catch (err) {
-    console.error(`❌ ${label || 'Query failed'}:`, err.message);
+    console.error(`âŒ ${label || 'Query failed'}:`, err.message);
   }
 }
 
@@ -43,13 +43,13 @@ async function initDB() {
     charset: 'utf8mb4'
   });
 
-  console.log('🔧 Initializing database...');
+  console.log('ðŸ”§ Initializing database...');
   const dbName = env.DB_NAME;
 
   await safeQuery(connection, `CREATE DATABASE IF NOT EXISTS \`${dbName}\` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci`, 'Database ready');
   await connection.query(`USE \`${dbName}\``);
 
-  console.log('📦 Creating base tables...');
+  console.log('ðŸ“¦ Creating base tables...');
 
   /* USERS */
   await safeQuery(connection, `
@@ -117,7 +117,7 @@ async function initDB() {
     )
   `, 'options table');
 
-  console.log('🚀 Running migrations...');
+  console.log('ðŸš€ Running migrations...');
 
   /* CLIENTS */
   await safeQuery(connection, `
@@ -225,8 +225,8 @@ async function initDB() {
     )
   `, 'player_answers table');
 
-  /* ── NEW: CROSSWORD TABLES ── */
-  console.log('🔤 Creating crossword tables...');
+  /* â”€â”€ NEW: CROSSWORD TABLES â”€â”€ */
+  console.log('ðŸ”¤ Creating crossword tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS crossword_words (
@@ -275,8 +275,8 @@ async function initDB() {
     )
   `, 'crossword_settings table');
 
-  /* ── MEMORY MATCH TABLES ── */
-  console.log('🧩 Creating memory match tables...');
+  /* â”€â”€ MEMORY MATCH TABLES â”€â”€ */
+  console.log('ðŸ§© Creating memory match tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS memory_settings (
@@ -321,7 +321,7 @@ async function initDB() {
       start_button_text VARCHAR(500),
       start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       start_button_bg_color VARCHAR(20),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       continue_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       continue_button_bg_color VARCHAR(20),
       next_button_text VARCHAR(100) DEFAULT 'Next',
@@ -351,8 +351,8 @@ async function initDB() {
     )
   `, 'memory_tiles table');
 
-  /* ── MATH TABLES ── */
-  console.log('🔢 Creating math tables...');
+  /* â”€â”€ MATH TABLES â”€â”€ */
+  console.log('ðŸ”¢ Creating math tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS math_settings (
@@ -360,7 +360,7 @@ async function initDB() {
       game_id INT UNIQUE,
       total_levels INT DEFAULT 100,
       questions_per_level INT DEFAULT 5,
-      operations VARCHAR(100) DEFAULT '+,-,×',
+      operations VARCHAR(100) DEFAULT '+,-,Ã—',
       number_range_start INT DEFAULT 1,
       number_range_end INT DEFAULT 100,
       allow_negative TINYINT(1) DEFAULT 0,
@@ -390,7 +390,7 @@ async function initDB() {
       overlay_animation_out VARCHAR(50) DEFAULT 'flyToTop',
       submit_button_text VARCHAR(500),
       start_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       terms_enabled TINYINT(1) DEFAULT 0,
       terms_text TEXT,
       terms_url VARCHAR(500),
@@ -401,7 +401,7 @@ async function initDB() {
     )
   `, 'math_settings table');
 
-  /* math_settings — visual + image columns (additive, for existing DBs) */
+  /* math_settings â€” visual + image columns (additive, for existing DBs) */
   await addColumn(connection, 'math_settings', 'outro_text_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
   await addColumn(connection, 'math_settings', 'bg_image_url', 'VARCHAR(500)');
   await addColumn(connection, 'math_settings', 'thankyou_bg_image_url', 'VARCHAR(500)');
@@ -423,8 +423,8 @@ async function initDB() {
     )
   `, 'math_progress table');
 
-  /* ── MAZE TABLES ── */
-  console.log('🗺️ Creating maze tables...');
+  /* â”€â”€ MAZE TABLES â”€â”€ */
+  console.log('ðŸ—ºï¸ Creating maze tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS maze_settings (
@@ -436,7 +436,7 @@ async function initDB() {
       show_timer TINYINT(1) DEFAULT 1,
       time_limit_seconds INT DEFAULT 0,
       collectible_count INT DEFAULT 3,
-      collectible_label VARCHAR(100) DEFAULT '★',
+      collectible_label VARCHAR(100) DEFAULT 'â˜…',
       collectible_images JSON,
       heading_1 VARCHAR(500),
       heading_2 VARCHAR(500),
@@ -459,7 +459,7 @@ async function initDB() {
       overlay_animation_out VARCHAR(50) DEFAULT 'flyToTop',
       submit_button_text VARCHAR(500),
       start_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       terms_enabled TINYINT(1) DEFAULT 0,
       terms_text TEXT,
       terms_url VARCHAR(500),
@@ -486,7 +486,7 @@ async function initDB() {
     )
   `, 'maze_progress table');
 
-   /* ── MEMORY SETTINGS COLUMN MIGRATIONS (ensure ALL columns exist) ── */
+   /* â”€â”€ MEMORY SETTINGS COLUMN MIGRATIONS (ensure ALL columns exist) â”€â”€ */
   const memCols = [
     ['grid_rows', 'INT DEFAULT 4'],
     ['heading_1_color', "VARCHAR(20) DEFAULT '#1a1a2e'"],
@@ -498,7 +498,7 @@ async function initDB() {
     ['submit_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
     ['submit_button_bg_color', 'VARCHAR(20)'],
     ['submit_confirm_gif_url', 'VARCHAR(500)'],
-    ['continue_button_text', "VARCHAR(100) DEFAULT 'Continue Now →'"],
+    ['continue_button_text', "VARCHAR(100) DEFAULT 'Continue Now â†’'"],
     ['continue_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'"],
     ['continue_button_bg_color', 'VARCHAR(20)'],
     ['next_button_text', "VARCHAR(100) DEFAULT 'Next'"],
@@ -522,8 +522,8 @@ async function initDB() {
     await addColumn(connection, 'memory_settings', col, def);
   }
 
-  /* ── JIGSAW PUZZLE TABLES ── */
-  console.log('🧩 Creating jigsaw puzzle tables...');
+  /* â”€â”€ JIGSAW PUZZLE TABLES â”€â”€ */
+  console.log('ðŸ§© Creating jigsaw puzzle tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS jigsaw_settings (
@@ -554,7 +554,7 @@ async function initDB() {
       intro_text TEXT,
       outro_text TEXT,
       submit_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       start_button_text VARCHAR(500),
       terms_enabled TINYINT(1) DEFAULT 0,
       terms_text TEXT,
@@ -566,7 +566,7 @@ async function initDB() {
     )
   `, 'jigsaw_settings table');
 
-  /* ── JIGSAW SETTINGS — missing column allow_difficulty_selection ── */
+  /* â”€â”€ JIGSAW SETTINGS â€” missing column allow_difficulty_selection â”€â”€ */
   await addColumn(connection, 'jigsaw_settings', 'allow_difficulty_selection', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'jigsaw_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
   await addColumn(connection, 'jigsaw_settings', 'start_button_bg_color', 'VARCHAR(20)');
@@ -582,14 +582,14 @@ async function initDB() {
   await addColumn(connection, 'jigsaw_settings', 'submit_btn_text', 'VARCHAR(500)');
   await addColumn(connection, 'jigsaw_settings', 'submit_btn_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
   await addColumn(connection, 'jigsaw_settings', 'submit_btn_bg_color', 'VARCHAR(20)');
-  await addColumn(connection, 'jigsaw_settings', 'continue_now_btn_text', "VARCHAR(100) DEFAULT 'Continue Now →'");
+  await addColumn(connection, 'jigsaw_settings', 'continue_now_btn_text', "VARCHAR(100) DEFAULT 'Continue Now â†’'");
   await addColumn(connection, 'jigsaw_settings', 'continue_now_btn_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
   await addColumn(connection, 'jigsaw_settings', 'continue_now_btn_bg_color', 'VARCHAR(20)');
   await addColumn(connection, 'jigsaw_settings', 'description_color', "VARCHAR(20) DEFAULT '#888888'");
   await addColumn(connection, 'jigsaw_settings', 'submit_confirm_gif_url', 'VARCHAR(500)');
 
-  /* ── WORD SEARCH TABLES ── */
-  console.log('🔍 Creating word search tables...');
+  /* â”€â”€ WORD SEARCH TABLES â”€â”€ */
+  console.log('ðŸ” Creating word search tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS wordsearch_settings (
@@ -620,7 +620,7 @@ async function initDB() {
       intro_text TEXT,
       outro_text TEXT,
       submit_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       start_button_text VARCHAR(500),
       terms_enabled TINYINT(1) DEFAULT 0,
       terms_text TEXT,
@@ -644,8 +644,8 @@ async function initDB() {
     )
   `, 'wordsearch_words table');
 
-  /* ── POURING WATER TABLES ── */
-  console.log('💧 Creating pouring water tables...');
+  /* â”€â”€ POURING WATER TABLES â”€â”€ */
+  console.log('ðŸ’§ Creating pouring water tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS pouring_settings (
@@ -682,7 +682,7 @@ async function initDB() {
       intro_text TEXT,
       outro_text TEXT,
       submit_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       start_button_text VARCHAR(500),
       terms_enabled TINYINT(1) DEFAULT 0,
       terms_text TEXT,
@@ -694,8 +694,8 @@ async function initDB() {
     )
   `, 'pouring_settings table');
 
-  /* ── SPEED TYPER TABLES ── */
-  console.log('⌨️ Creating speed typer tables...');
+  /* â”€â”€ SPEED TYPER TABLES â”€â”€ */
+  console.log('âŒ¨ï¸ Creating speed typer tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS typer_settings (
@@ -731,7 +731,7 @@ async function initDB() {
       intro_text TEXT,
       outro_text TEXT,
       submit_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       start_button_text VARCHAR(500),
       terms_enabled TINYINT(1) DEFAULT 0,
       terms_text TEXT,
@@ -755,8 +755,8 @@ async function initDB() {
     )
   `, 'typer_words table');
 
-  /* ── SCREW & REVEAL TABLES ── */
-  console.log('🔩 Creating screw & reveal tables...');
+  /* â”€â”€ SCREW & REVEAL TABLES â”€â”€ */
+  console.log('ðŸ”© Creating screw & reveal tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS screw_settings (
@@ -792,7 +792,7 @@ async function initDB() {
       intro_text TEXT,
       outro_text TEXT,
       submit_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       start_button_text VARCHAR(500),
       reveal_text VARCHAR(500),
       terms_enabled TINYINT(1) DEFAULT 0,
@@ -815,13 +815,13 @@ async function initDB() {
     )
   `, 'screw_settings table');
 
-  /* ── SPOT REGISTRATION (QR-gated multi-station data collection) ──
+  /* â”€â”€ SPOT REGISTRATION (QR-gated multi-station data collection) â”€â”€
      A player registers once, then walks a set of physical stations. Each
      station has a printed QR code; scanning it unlocks that station's form.
      Used at medical camps (height/weight/BP desks) and similar walk-throughs.
      station_code is the secret embedded in the printed QR and is NEVER sent
      to the player before it is scanned. */
-  console.log('📍 Creating spot registration tables...');
+  console.log('ðŸ“ Creating spot registration tables...');
 
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS spotreg_settings (
@@ -937,7 +937,7 @@ async function initDB() {
     )
   `, 'spotreg_progress table');
 
-  /* BMI RESULTS — computed once, at the end of a run, and never shown on the
+  /* BMI RESULTS â€” computed once, at the end of a run, and never shown on the
      thank-you screen; it exists so the emailed report is reproducible. */
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS spotreg_bmi (
@@ -967,7 +967,7 @@ async function initDB() {
       subject VARCHAR(500) DEFAULT 'Your Health Checkup Report',
       sender_name VARCHAR(200) DEFAULT 'Health Camp',
       sender_email VARCHAR(200),
-      header_text VARCHAR(500) DEFAULT '🩺 Your Health Report',
+      header_text VARCHAR(500) DEFAULT 'ðŸ©º Your Health Report',
       header_color VARCHAR(20) DEFAULT '#4F46E5',
       body_html MEDIUMTEXT,
       footer_text TEXT,
@@ -1061,8 +1061,8 @@ async function initDB() {
     )
   `, 'tower_settings table');
 
-  /* ── SNAKE TABLES ── */
-  console.log('🐍 Creating snake tables...');
+  /* â”€â”€ SNAKE TABLES â”€â”€ */
+  console.log('ðŸ Creating snake tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS snake_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1077,7 +1077,7 @@ async function initDB() {
       submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
       sound_eat_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
       intro_text TEXT, outro_text TEXT, submit_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →', start_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’', start_button_text VARCHAR(500),
       reveal_text VARCHAR(500), terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
       terms_url VARCHAR(500), meta_description TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1085,8 +1085,8 @@ async function initDB() {
     )
   `, 'snake_settings table');
 
-  /* ── SNAKE & LADDER TABLE ── */
-  console.log('🐍 Creating snake & ladder tables...');
+  /* â”€â”€ SNAKE & LADDER TABLE â”€â”€ */
+  console.log('ðŸ Creating snake & ladder tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS snake_ladder_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1102,7 +1102,7 @@ async function initDB() {
       show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
       submit_button_text VARCHAR(500), submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       submit_button_bg_color VARCHAR(20),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       continue_button_text_color VARCHAR(20) DEFAULT '#ffffff', continue_button_bg_color VARCHAR(20),
       start_button_text VARCHAR(500), start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       start_button_bg_color VARCHAR(20),
@@ -1113,8 +1113,8 @@ async function initDB() {
     )
   `, 'snake_ladder_settings table');
 
-  /* ── LUDO TABLE ── */
-  console.log('🎲 Creating ludo tables...');
+  /* â”€â”€ LUDO TABLE â”€â”€ */
+  console.log('ðŸŽ² Creating ludo tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS ludo_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1130,7 +1130,7 @@ async function initDB() {
       show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
       submit_button_text VARCHAR(500), submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       submit_button_bg_color VARCHAR(20),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       continue_button_text_color VARCHAR(20) DEFAULT '#ffffff', continue_button_bg_color VARCHAR(20),
       start_button_text VARCHAR(500), start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       start_button_bg_color VARCHAR(20),
@@ -1141,8 +1141,8 @@ async function initDB() {
     )
   `, 'ludo_settings table');
 
-  /* ── Carrom TABLE ── */
-  console.log('🎱 Creating Carrom tables...');
+  /* â”€â”€ Carrom TABLE â”€â”€ */
+  console.log('ðŸŽ± Creating Carrom tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS Carrom_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1158,7 +1158,7 @@ async function initDB() {
       show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
       submit_button_text VARCHAR(500), submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       submit_button_bg_color VARCHAR(20),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       continue_button_text_color VARCHAR(20) DEFAULT '#ffffff', continue_button_bg_color VARCHAR(20),
       start_button_text VARCHAR(500), start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       start_button_bg_color VARCHAR(20),
@@ -1169,8 +1169,8 @@ async function initDB() {
     )
   `, 'Carrom_settings table');
 
-  /* ── TIC TAC TOE MULTIPLAYER TABLE ── */
-  console.log('🎮 Creating tictactoe multiplayer tables...');
+  /* â”€â”€ TIC TAC TOE MULTIPLAYER TABLE â”€â”€ */
+  console.log('ðŸŽ® Creating tictactoe multiplayer tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS tictactoe_multi_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1186,7 +1186,7 @@ async function initDB() {
       show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
       submit_button_text VARCHAR(500), submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       submit_button_bg_color VARCHAR(20),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’',
       continue_button_text_color VARCHAR(20) DEFAULT '#ffffff', continue_button_bg_color VARCHAR(20),
       start_button_text VARCHAR(500), start_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       start_button_bg_color VARCHAR(20),
@@ -1197,8 +1197,8 @@ async function initDB() {
     )
   `, 'tictactoe_multi_settings table');
 
-  /* ── CATCH FALLING OBJECTS TABLES ── */
-  console.log('🧺 Creating catch tables...');
+  /* â”€â”€ CATCH FALLING OBJECTS TABLES â”€â”€ */
+  console.log('ðŸ§º Creating catch tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS catch_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1214,7 +1214,7 @@ async function initDB() {
       submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
       sound_catch_id INT DEFAULT NULL, sound_miss_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
       intro_text TEXT, outro_text TEXT, submit_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →', start_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’', start_button_text VARCHAR(500),
       terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
       terms_url VARCHAR(500), meta_description TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1222,8 +1222,8 @@ async function initDB() {
     )
   `, 'catch_settings table');
 
-  /* ── REACTION TIME TABLES ── */
-  console.log('⚡ Creating reaction tables...');
+  /* â”€â”€ REACTION TIME TABLES â”€â”€ */
+  console.log('âš¡ Creating reaction tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS reaction_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1238,7 +1238,7 @@ async function initDB() {
       submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
       sound_correct_id INT DEFAULT NULL, sound_wrong_id INT DEFAULT NULL,
       intro_text TEXT, outro_text TEXT, submit_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →', start_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’', start_button_text VARCHAR(500),
       terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
       terms_url VARCHAR(500), meta_description TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1246,8 +1246,8 @@ async function initDB() {
     )
   `, 'reaction_settings table');
 
-  /* ── SIMON SAYS TABLES ── */
-  console.log('🎯 Creating simon tables...');
+  /* â”€â”€ SIMON SAYS TABLES â”€â”€ */
+  console.log('ðŸŽ¯ Creating simon tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS simon_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1264,7 +1264,7 @@ async function initDB() {
       submit_confirm_gif_url VARCHAR(500), font_family VARCHAR(100) DEFAULT 'DM Sans',
       sound_correct_id INT DEFAULT NULL, sound_wrong_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
       intro_text TEXT, outro_text TEXT, submit_button_text VARCHAR(500),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue Now →', start_button_text VARCHAR(500),
+      continue_button_text VARCHAR(100) DEFAULT 'Continue Now â†’', start_button_text VARCHAR(500),
       terms_enabled TINYINT(1) DEFAULT 0, terms_text TEXT,
       terms_url VARCHAR(500), meta_description TEXT,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -1272,8 +1272,8 @@ async function initDB() {
     )
   `, 'simon_settings table');
 
-  /* ── CONNECT 4 TABLES ── */
-  console.log('🔴 Creating connect 4 tables...');
+  /* â”€â”€ CONNECT 4 TABLES â”€â”€ */
+  console.log('ðŸ”´ Creating connect 4 tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS connect4_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1290,7 +1290,7 @@ async function initDB() {
       sound_drop_id INT DEFAULT NULL, sound_win_id INT DEFAULT NULL, sound_draw_id INT DEFAULT NULL,
       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       start_button_text VARCHAR(500),
       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -1336,7 +1336,7 @@ async function initDB() {
       sound_flap_id INT DEFAULT NULL, sound_score_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       start_button_text VARCHAR(500),
       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -1385,7 +1385,7 @@ async function initDB() {
       submit_button_text VARCHAR(500),
       submit_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       submit_button_bg_color VARCHAR(20),
-      continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       continue_button_text_color VARCHAR(20) DEFAULT '#ffffff',
       continue_button_bg_color VARCHAR(20),
       start_button_text VARCHAR(500),
@@ -1415,7 +1415,7 @@ async function initDB() {
     )
   `, 'game2048_scores table');
 
-  /* ── CROSSWORD SETTINGS — missing columns for saving all settings ── */
+  /* â”€â”€ CROSSWORD SETTINGS â€” missing columns for saving all settings â”€â”€ */
   await addColumn(connection, 'crossword_settings', 'heading_1_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
   await addColumn(connection, 'crossword_settings', 'heading_2_color', "VARCHAR(20) DEFAULT '#666666'");
   await addColumn(connection, 'crossword_settings', 'heading_3_color', "VARCHAR(20) DEFAULT '#777777'");
@@ -1426,15 +1426,15 @@ async function initDB() {
   await addColumn(connection, 'crossword_settings', 'intro_text', 'TEXT');
   await addColumn(connection, 'crossword_settings', 'outro_text', 'TEXT');
   await addColumn(connection, 'crossword_settings', 'submit_button_text', 'VARCHAR(500)');
-  await addColumn(connection, 'crossword_settings', 'continue_button_text', "VARCHAR(100) DEFAULT 'Continue →'");
+  await addColumn(connection, 'crossword_settings', 'continue_button_text', "VARCHAR(100) DEFAULT 'Continue â†’'");
   await addColumn(connection, 'crossword_settings', 'start_button_text', 'VARCHAR(500)');
   await addColumn(connection, 'crossword_settings', 'terms_enabled', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'crossword_settings', 'terms_text', 'TEXT');
   await addColumn(connection, 'crossword_settings', 'terms_url', 'VARCHAR(500)');
   await addColumn(connection, 'crossword_settings', 'meta_description', 'TEXT');
 
-  /* ── EXISTING COLUMN MIGRATIONS (all from your original, unchanged) ── */
-  console.log('🔄 Running column migrations...');
+  /* â”€â”€ EXISTING COLUMN MIGRATIONS (all from your original, unchanged) â”€â”€ */
+  console.log('ðŸ”„ Running column migrations...');
 
   /* QUESTIONS */
   await addColumn(connection, 'questions', 'question_bg_image_url', 'VARCHAR(500)');
@@ -1455,7 +1455,7 @@ async function initDB() {
   await addColumn(connection, 'options', 'option_color', "VARCHAR(20) DEFAULT '#1a1a2e'");
   await addColumn(connection, 'options', 'option_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
 
-  /* QUESTIONS — open-ended / math question fields */
+  /* QUESTIONS â€” open-ended / math question fields */
   await addColumn(connection, 'questions', 'expected_answer', 'VARCHAR(500) DEFAULT NULL');
   await addColumn(connection, 'questions', 'comparison_type', "VARCHAR(20) DEFAULT 'exact'");
   await addColumn(connection, 'questions', 'answer_text', 'VARCHAR(500) DEFAULT NULL');
@@ -1493,7 +1493,7 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'submit_button_bg_color', 'VARCHAR(20)');
   await addColumn(connection, 'quiz_settings', 'continue_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
   await addColumn(connection, 'quiz_settings', 'continue_button_bg_color', 'VARCHAR(20)');
-  await addColumn(connection, 'quiz_settings', 'next_button_text', "VARCHAR(100) DEFAULT 'Next →'");
+  await addColumn(connection, 'quiz_settings', 'next_button_text', "VARCHAR(100) DEFAULT 'Next â†’'");
   await addColumn(connection, 'quiz_settings', 'next_button_text_color', "VARCHAR(20) DEFAULT '#ffffff'");
   await addColumn(connection, 'quiz_settings', 'next_button_bg_color', 'VARCHAR(20)');
   await addColumn(connection, 'quiz_settings', 'start_button_text', 'VARCHAR(500)');
@@ -1502,12 +1502,44 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'randomize_questions', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'quiz_settings', 'questions_per_session', 'INT DEFAULT 0');
 
-  /* QUIZ SETTINGS — Mascot & Voice (TTS) */
+  /* QUIZ SETTINGS â€” Mascot & Voice (TTS) */
   await addColumn(connection, 'quiz_settings', 'enable_mascot', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'quiz_settings', 'enable_speech', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'quiz_settings', 'speech_language', "VARCHAR(20) DEFAULT 'en'");
   await addColumn(connection, 'quiz_settings', 'speech_rate', 'FLOAT DEFAULT 1');
   await addColumn(connection, 'quiz_settings', 'speech_pitch', 'FLOAT DEFAULT 1');
+
+  /* QUIZ SETTINGS - Voucher Offers */
+  await addColumn(connection, 'quiz_settings', 'voucher_offers_enabled', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'voucher_offers', 'TEXT');
+  await addColumn(connection, 'quiz_settings', 'voucher_message', 'VARCHAR(500)');
+  await addColumn(connection, 'quiz_settings', 'voucher_show_on_thank_you', 'TINYINT(1) DEFAULT 1');
+  await addColumn(connection, 'quiz_settings', 'voucher_html', 'TEXT');
+  await addColumn(connection, 'email_templates', 'use_full_body', 'TINYINT(1) DEFAULT 0');
+
+  /* QUIZ SETTINGS - Code Generation */
+  await addColumn(connection, 'quiz_settings', 'code_generation_enabled', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'code_from', 'VARCHAR(50)');
+  await addColumn(connection, 'quiz_settings', 'code_to', 'VARCHAR(50)');
+  await addColumn(connection, 'quiz_settings', 'code_show_on_thank_you', 'TINYINT(1) DEFAULT 1');
+  await addColumn(connection, 'quiz_settings', 'code_send_in_email', 'TINYINT(1) DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'code_label', 'VARCHAR(100)');
+  await addColumn(connection, 'quiz_settings', 'code_current_number', 'INT DEFAULT 0');
+  await addColumn(connection, 'quiz_settings', 'code_shuffle_k', 'INT');
+  await addColumn(connection, 'quiz_settings', 'code_shuffle_salt', 'INT');
+
+  await safeQuery(connection, `
+    CREATE TABLE IF NOT EXISTS quiz_generated_codes (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      game_id INT NOT NULL,
+      submission_id INT,
+      user_id INT,
+      generated_code VARCHAR(100) NOT NULL,
+      seq_number INT,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE KEY (game_id, generated_code)
+    )
+  `, 'quiz_generated_codes table');
 
   /* GAMES */
   await safeQuery(connection,
@@ -1532,7 +1564,7 @@ async function initDB() {
   await addColumn(connection, 'games', 'updated_by', 'INT DEFAULT NULL');
   await addColumn(connection, 'games', 'meta_description', 'TEXT');
 
-  /* TEMPLATES — reusable player skins (look, fonts, animations, language, TTS, mascot) */
+  /* TEMPLATES â€” reusable player skins (look, fonts, animations, language, TTS, mascot) */
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS templates (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1545,20 +1577,20 @@ async function initDB() {
     )
   `, 'templates table');
 
-  /* GAMES — template link + intro video */
+  /* GAMES â€” template link + intro video */
   await addColumn(connection, 'games', 'template_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'games', 'intro_video_url', 'VARCHAR(500)');
   await addColumn(connection, 'games', 'thumbnail_url', 'VARCHAR(500)');
 
-  /* QUIZ SETTINGS — animation/timing overrides (merged over template) */
+  /* QUIZ SETTINGS â€” animation/timing overrides (merged over template) */
   await addColumn(connection, 'quiz_settings', 'anim_config_json', 'JSON');
 
-  /* BUSINESS OWNERS — link to client */
+  /* BUSINESS OWNERS â€” link to client */
   await addColumn(connection, 'business_owners', 'client_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'business_owners', 'phone', 'VARCHAR(20) DEFAULT NULL');
   await addColumn(connection, 'business_owners', 'pincode', 'VARCHAR(10) DEFAULT NULL');
 
-  /* GAMES — location/parent columns */
+  /* GAMES â€” location/parent columns */
   await addColumn(connection, 'games', 'parent_game_id', 'INT DEFAULT NULL');
   await addColumn(connection, 'games', 'location_name', 'VARCHAR(255) DEFAULT NULL');
   await addColumn(connection, 'games', 'business_owner_id', 'INT DEFAULT NULL');
@@ -1580,11 +1612,12 @@ async function initDB() {
   await addColumn(connection, 'player_sessions', 'selected_question_ids', 'JSON DEFAULT NULL');
   await addColumn(connection, 'player_sessions', 'promo_player_id', 'INT');
   await addColumn(connection, 'player_sessions', 'referred_by', 'INT DEFAULT NULL');
+  await addColumn(connection, 'player_sessions', 'reward_voucher', 'VARCHAR(500)');
 
-  /* SOUNDS — url column used by sounds.js route */
+  /* SOUNDS â€” url column used by sounds.js route */
   await addColumn(connection, 'sounds', 'url', 'VARCHAR(500)');
 
-  /* SCREW SETTINGS — missing fields */
+  /* SCREW SETTINGS â€” missing fields */
   await addColumn(connection, 'screw_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'screw_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'screw_settings', 'submit_button_text_color', "VARCHAR(20) DEFAULT NULL");
@@ -1596,7 +1629,7 @@ async function initDB() {
   await addColumn(connection, 'screw_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'screw_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
 
-  /* ── SIMON SETTINGS — missing button/thankyou color fields ── */
+  /* â”€â”€ SIMON SETTINGS â€” missing button/thankyou color fields â”€â”€ */
   await addColumn(connection, 'simon_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'simon_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'simon_settings', 'thankyou_subtitle', "VARCHAR(500) DEFAULT NULL");
@@ -1608,7 +1641,7 @@ async function initDB() {
   await addColumn(connection, 'simon_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'simon_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
 
-  /* ── SNAKE SETTINGS — missing button/thankyou color fields + reveal_image_url ── */
+  /* â”€â”€ SNAKE SETTINGS â€” missing button/thankyou color fields + reveal_image_url â”€â”€ */
   await addColumn(connection, 'snake_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'snake_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'snake_settings', 'thankyou_subtitle', "VARCHAR(500) DEFAULT NULL");
@@ -1621,7 +1654,7 @@ async function initDB() {
   await addColumn(connection, 'snake_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'snake_settings', 'reveal_image_url', "VARCHAR(500) DEFAULT NULL");
 
-  /* ── CATCH SETTINGS — missing button/thankyou color fields ── */
+  /* â”€â”€ CATCH SETTINGS â€” missing button/thankyou color fields â”€â”€ */
   await addColumn(connection, 'catch_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'catch_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'catch_settings', 'thankyou_subtitle', "VARCHAR(500) DEFAULT NULL");
@@ -1633,7 +1666,7 @@ async function initDB() {
   await addColumn(connection, 'catch_settings', 'start_button_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'catch_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
 
-  /* ── REACTION SETTINGS — missing button/thankyou color fields + time_limit_seconds ── */
+  /* â”€â”€ REACTION SETTINGS â€” missing button/thankyou color fields + time_limit_seconds â”€â”€ */
   await addColumn(connection, 'reaction_settings', 'intro_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'reaction_settings', 'outro_text_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'reaction_settings', 'thankyou_subtitle', "VARCHAR(500) DEFAULT NULL");
@@ -1646,22 +1679,22 @@ async function initDB() {
   await addColumn(connection, 'reaction_settings', 'start_button_bg_color', "VARCHAR(20) DEFAULT NULL");
   await addColumn(connection, 'reaction_settings', 'time_limit_seconds', "INT DEFAULT 0");
 
-  /* ── GAME2048 SETTINGS — missing fields read by player ── */
+  /* â”€â”€ GAME2048 SETTINGS â€” missing fields read by player â”€â”€ */
   await addColumn(connection, 'game2048_settings', 'overlay_animation_in', "VARCHAR(50) DEFAULT 'flyFromBottom'");
   await addColumn(connection, 'game2048_settings', 'keep_going_button_text', "VARCHAR(100) DEFAULT 'Keep Going'");
-  await addColumn(connection, 'game2048_settings', 'claim_prize_button_text', "VARCHAR(100) DEFAULT 'Claim Prize →'");
-  await addColumn(connection, 'game2048_settings', 'new_game_button_text', "VARCHAR(100) DEFAULT '↻ New Game'");
+  await addColumn(connection, 'game2048_settings', 'claim_prize_button_text', "VARCHAR(100) DEFAULT 'Claim Prize â†’'");
+  await addColumn(connection, 'game2048_settings', 'new_game_button_text', "VARCHAR(100) DEFAULT 'â†» New Game'");
 
-  /* ── QUESTIONS — short answer support ── */
+  /* â”€â”€ QUESTIONS â€” short answer support â”€â”€ */
   await addColumn(connection, 'questions', 'answer_text', "VARCHAR(500) DEFAULT NULL");
   await addColumn(connection, 'questions', 'answer_is_number', "TINYINT(1) DEFAULT 0");
   // Change question_type from ENUM to VARCHAR so it can hold 'short_answer'
-  await safeQuery(connection, `ALTER TABLE questions MODIFY COLUMN question_type VARCHAR(50) DEFAULT 'right_wrong'`, 'questions.question_type → VARCHAR(50)');
+  await safeQuery(connection, `ALTER TABLE questions MODIFY COLUMN question_type VARCHAR(50) DEFAULT 'right_wrong'`, 'questions.question_type â†’ VARCHAR(50)');
 
-  /* ── PLAYER ANSWERS — multi-select support (checkbox/select capture choices) ── */
+  /* â”€â”€ PLAYER ANSWERS â€” multi-select support (checkbox/select capture choices) â”€â”€ */
   await addColumn(connection, 'player_answers', 'option_ids', 'JSON');
 
-  /* ── BOUNCE GAME TABLES ── */
+  /* â”€â”€ BOUNCE GAME TABLES â”€â”€ */
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS bounce_settings (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1762,7 +1795,7 @@ async function initDB() {
     )
   `, 'bounce_progress table');
 
-  /* ── SPACE SHOOTER GAME TABLES ── */
+  /* â”€â”€ SPACE SHOOTER GAME TABLES â”€â”€ */
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS space_settings (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -1888,8 +1921,8 @@ async function initDB() {
     )
   `, 'space_progress table');
 
-   /* ── BOWLING TABLES ── */
-  console.log('🎳 Creating bowling tables...');
+   /* â”€â”€ BOWLING TABLES â”€â”€ */
+  console.log('ðŸŽ³ Creating bowling tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS bowling_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1905,7 +1938,7 @@ async function initDB() {
       sound_roll_id INT DEFAULT NULL, sound_strike_id INT DEFAULT NULL, sound_spare_id INT DEFAULT NULL,
       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       start_button_text VARCHAR(500),
       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -1917,8 +1950,8 @@ async function initDB() {
     )
   `, 'bowling_settings table');
 
-  /* ── SUDOKU TABLES ── */
-  console.log('🔢 Creating sudoku tables...');
+  /* â”€â”€ SUDOKU TABLES â”€â”€ */
+  console.log('ðŸ”¢ Creating sudoku tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS sudoku_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1933,7 +1966,7 @@ async function initDB() {
       sound_correct_id INT DEFAULT NULL, sound_wrong_id INT DEFAULT NULL,
       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       start_button_text VARCHAR(500),
       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -1945,8 +1978,8 @@ async function initDB() {
     )
   `, 'sudoku_settings table');
 
-  /* ── MINESWEEPER TABLES ── */
-  console.log('💣 Creating minesweeper tables...');
+  /* â”€â”€ MINESWEEPER TABLES â”€â”€ */
+  console.log('ðŸ’£ Creating minesweeper tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS minesweeper_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1962,7 +1995,7 @@ async function initDB() {
       sound_click_id INT DEFAULT NULL, sound_explode_id INT DEFAULT NULL, sound_win_id INT DEFAULT NULL,
       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       start_button_text VARCHAR(500),
       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -1974,8 +2007,8 @@ async function initDB() {
     )
   `, 'minesweeper_settings table');
 
-  /* ── WORD SCRAMBLE TABLES ── */
-  console.log('🔤 Creating word scramble tables...');
+  /* â”€â”€ WORD SCRAMBLE TABLES â”€â”€ */
+  console.log('ðŸ”¤ Creating word scramble tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS wordscramble_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -1991,7 +2024,7 @@ async function initDB() {
       sound_correct_id INT DEFAULT NULL, sound_wrong_id INT DEFAULT NULL,
       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       start_button_text VARCHAR(500),
       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2012,8 +2045,8 @@ async function initDB() {
     )
   `, 'wordscramble_words table');
 
-  /* ── ROCK PAPER SCISSORS TABLES ── */
-  console.log('✊ Creating rock paper scissors tables...');
+  /* â”€â”€ ROCK PAPER SCISSORS TABLES â”€â”€ */
+  console.log('âœŠ Creating rock paper scissors tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS rps_settings (
       id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -2028,7 +2061,7 @@ async function initDB() {
       sound_win_id INT DEFAULT NULL, sound_lose_id INT DEFAULT NULL, sound_draw_id INT DEFAULT NULL,
       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       start_button_text VARCHAR(500),
       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2040,7 +2073,7 @@ async function initDB() {
     )
   `, 'rps_settings table');
 
-  /* ── ARROW ESCAPE TABLES ── */
+  /* â”€â”€ ARROW ESCAPE TABLES â”€â”€ */
   console.log(' arrow escape tables...');
   await safeQuery(connection, `
     CREATE TABLE IF NOT EXISTS arrowescape_settings (
@@ -2057,7 +2090,7 @@ async function initDB() {
       sound_move_id INT DEFAULT NULL, sound_win_id INT DEFAULT NULL, sound_lose_id INT DEFAULT NULL,
       intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
       outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+      submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
       start_button_text VARCHAR(500),
       start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
       submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2088,8 +2121,8 @@ async function initDB() {
     )
   `, 'arrowescape_levels table');
 
-  /* ── BRICK IMAGES TABLE ── */
-   console.log('🧱 Creating brick images table...');
+  /* â”€â”€ BRICK IMAGES TABLE â”€â”€ */
+   console.log('ðŸ§± Creating brick images table...');
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS brick_images (
        id INT AUTO_INCREMENT PRIMARY KEY,
@@ -2102,8 +2135,8 @@ async function initDB() {
      )
    `, 'brick_images table');
 
-   /* ── BEJEWELED GAME TABLES ── */
-   console.log('💎 Creating bejeweled game tables...');
+   /* â”€â”€ BEJEWELED GAME TABLES â”€â”€ */
+   console.log('ðŸ’Ž Creating bejeweled game tables...');
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS bejeweled_settings (
        id INT AUTO_INCREMENT PRIMARY KEY,
@@ -2147,8 +2180,8 @@ async function initDB() {
      )
     `, 'bejeweled_moves table');
 
-   /* ── TETRIS TABLES ── */
-   console.log('🧱 Creating tetris tables...');
+   /* â”€â”€ TETRIS TABLES â”€â”€ */
+   console.log('ðŸ§± Creating tetris tables...');
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS tetris_settings (
        id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -2167,7 +2200,7 @@ async function initDB() {
        sound_drop_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
        intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
        outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
        start_button_text VARCHAR(500),
        start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
        submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2188,8 +2221,8 @@ async function initDB() {
      )
    `, 'tetris_scores table');
 
-   /* ── STACK TABLES ── */
-   console.log('🏗️ Creating stack tables...');
+   /* â”€â”€ STACK TABLES â”€â”€ */
+   console.log('ðŸ—ï¸ Creating stack tables...');
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS stack_settings (
        id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -2207,7 +2240,7 @@ async function initDB() {
        sound_gameover_id INT DEFAULT NULL,
        intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
        outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
        start_button_text VARCHAR(500),
        start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
        submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2219,8 +2252,8 @@ async function initDB() {
      )
    `, 'stack_settings table');
 
-   /* ── WHACK A MOLE TABLES ── */
-   console.log('🔨 Creating whack a mole tables...');
+   /* â”€â”€ WHACK A MOLE TABLES â”€â”€ */
+   console.log('ðŸ”¨ Creating whack a mole tables...');
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS whackamole_settings (
        id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -2237,7 +2270,7 @@ async function initDB() {
        sound_whack_id INT DEFAULT NULL, sound_miss_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
        intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
        outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
        start_button_text VARCHAR(500),
        start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
        submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2258,8 +2291,8 @@ async function initDB() {
      )
    `, 'whackamole_scores table');
 
-   /* ── HANOI TOWER TABLES ── */
-   console.log('🗼 Creating hanoi tower tables...');
+   /* â”€â”€ HANOI TOWER TABLES â”€â”€ */
+   console.log('ðŸ—¼ Creating hanoi tower tables...');
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS hanoi_settings (
        id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -2274,7 +2307,7 @@ async function initDB() {
        sound_move_id INT DEFAULT NULL, sound_complete_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
        intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
        outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
        start_button_text VARCHAR(500),
        start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
        submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2295,8 +2328,8 @@ async function initDB() {
      )
    `, 'hanoi_scores table');
 
-   /* ── BREAKOUT TABLES ── */
-   console.log('🧱 Creating breakout tables...');
+   /* â”€â”€ BREAKOUT TABLES â”€â”€ */
+   console.log('ðŸ§± Creating breakout tables...');
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS breakout_settings (
        id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -2313,7 +2346,7 @@ async function initDB() {
        sound_hit_id INT DEFAULT NULL, sound_brick_id INT DEFAULT NULL, sound_lose_id INT DEFAULT NULL, sound_win_id INT DEFAULT NULL,
        intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
        outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
        start_button_text VARCHAR(500),
        start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
        submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2334,8 +2367,8 @@ async function initDB() {
      )
    `, 'breakout_scores table');
 
-   /* ── BUBBLE SHOOTER TABLES ── */
-   console.log('🫧 Creating bubble shooter tables...');
+   /* â”€â”€ BUBBLE SHOOTER TABLES â”€â”€ */
+   console.log('ðŸ«§ Creating bubble shooter tables...');
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS bubbleshooter_settings (
        id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -2351,7 +2384,7 @@ async function initDB() {
        sound_shoot_id INT DEFAULT NULL, sound_pop_id INT DEFAULT NULL, sound_gameover_id INT DEFAULT NULL,
        intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
        outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
        start_button_text VARCHAR(500),
        start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
        submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2372,8 +2405,8 @@ async function initDB() {
      )
    `, 'bubbleshooter_scores table');
 
-   /* ── CAR LAUNCH TABLES ── */
-   console.log('🏎️ Creating car launch tables...');
+   /* â”€â”€ CAR LAUNCH TABLES â”€â”€ */
+   console.log('ðŸŽï¸ Creating car launch tables...');
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS carlaunch_settings (
        id INT AUTO_INCREMENT PRIMARY KEY, game_id INT UNIQUE,
@@ -2396,7 +2429,7 @@ async function initDB() {
         show_timer TINYINT(1) DEFAULT 1, time_limit_seconds INT DEFAULT 0,
         intro_text TEXT, intro_text_color VARCHAR(20) DEFAULT NULL,
        outro_text TEXT, outro_text_color VARCHAR(20) DEFAULT NULL,
-       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue →',
+       submit_button_text VARCHAR(500), continue_button_text VARCHAR(100) DEFAULT 'Continue â†’',
        start_button_text VARCHAR(500),
        start_button_text_color VARCHAR(20) DEFAULT NULL, start_button_bg_color VARCHAR(20) DEFAULT NULL,
        submit_button_text_color VARCHAR(20) DEFAULT NULL, submit_button_bg_color VARCHAR(20) DEFAULT NULL,
@@ -2611,7 +2644,7 @@ await safeQuery(connection, `
     )
   `, 'tictactoe_settings table');
 
-   /* ── BUSINESS DEVELOPERS ── */
+   /* â”€â”€ BUSINESS DEVELOPERS â”€â”€ */
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS business_developers (
        id INT AUTO_INCREMENT PRIMARY KEY,
@@ -2626,7 +2659,7 @@ await safeQuery(connection, `
      )
    `, 'business_developers table');
 
-   /* ── BD REQUESTS ── */
+   /* â”€â”€ BD REQUESTS â”€â”€ */
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS bd_requests (
        id INT AUTO_INCREMENT PRIMARY KEY,
@@ -2644,7 +2677,7 @@ await safeQuery(connection, `
      )
    `, 'bd_requests table');
 
-   /* ── BUSINESS OWNERS (replaces BD) ── */
+   /* â”€â”€ BUSINESS OWNERS (replaces BD) â”€â”€ */
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS business_owners (
        id INT AUTO_INCREMENT PRIMARY KEY,
@@ -2659,7 +2692,7 @@ await safeQuery(connection, `
      )
    `, 'business_owners table');
 
-   /* ── BUSINESS OWNER GAMES (links BO to games with location + reward) ── */
+   /* â”€â”€ BUSINESS OWNER GAMES (links BO to games with location + reward) â”€â”€ */
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS business_owner_games (
        id INT AUTO_INCREMENT PRIMARY KEY,
@@ -2678,12 +2711,12 @@ await safeQuery(connection, `
    /* Migrate: add parent_id to existing business_owner_games */
    try {
      await connection.query("ALTER TABLE business_owner_games ADD COLUMN parent_id INT DEFAULT NULL AFTER reward_text");
-     console.log('✅ Added business_owner_games.parent_id column');
+     console.log('âœ… Added business_owner_games.parent_id column');
    } catch (err) {
      // Column might already exist
    }
 
-   /* ── BUSINESS REDEMPTIONS (6-digit code + redemption flow) ── */
+   /* â”€â”€ BUSINESS REDEMPTIONS (6-digit code + redemption flow) â”€â”€ */
    await safeQuery(connection, `
      CREATE TABLE IF NOT EXISTS business_redemptions (
        id INT AUTO_INCREMENT PRIMARY KEY,
@@ -2704,42 +2737,42 @@ await safeQuery(connection, `
      )
    `, 'business_redemptions table');
 
-   /* BUSINESS REDEMPTIONS — migrate existing tables */
+   /* BUSINESS REDEMPTIONS â€” migrate existing tables */
    try {
      await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN code VARCHAR(6) DEFAULT NULL");
-     console.log('✅ Made business_redemptions.code nullable');
+     console.log('âœ… Made business_redemptions.code nullable');
    } catch (err) {
      // Column might already be nullable
    }
    try {
      await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN status ENUM('pending','code_revealed','code_entered','player_confirmed','completed') DEFAULT 'pending'");
-     console.log('✅ Updated business_redemptions.status ENUM');
+     console.log('âœ… Updated business_redemptions.status ENUM');
    } catch (err) {
      // ENUM might already be correct
    }
    await addColumn(connection, 'business_redemptions', 'promo_player_id', 'INT DEFAULT NULL');
    try {
      await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN status ENUM('pending','code_revealed','code_entered','player_confirmed','completed') DEFAULT 'pending'");
-     console.log('✅ Updated business_redemptions.status ENUM');
+     console.log('âœ… Updated business_redemptions.status ENUM');
    } catch (err) {
      // ENUM might already be correct
    }
 
-   /* GAMES — add status column */
+   /* GAMES â€” add status column */
    try {
      const exists = await columnExists(connection, 'games', 'status');
      if (!exists) {
        await connection.query("ALTER TABLE games ADD COLUMN status ENUM('development','testing','live') DEFAULT 'development'");
-       console.log('✅ Added games.status column');
+       console.log('âœ… Added games.status column');
      }
    } catch (err) {
-     console.error('❌ Failed adding games.status:', err.message);
+     console.error('âŒ Failed adding games.status:', err.message);
    }
 
-   /* BUSINESS REDEMPTIONS — add data privacy & accept/reject columns */
+   /* BUSINESS REDEMPTIONS â€” add data privacy & accept/reject columns */
    try {
      await connection.query("ALTER TABLE business_redemptions MODIFY COLUMN status ENUM('pending','code_revealed','code_entered','player_confirmed','completed','rejected') DEFAULT 'pending'");
-     console.log('✅ Added rejected to business_redemptions.status ENUM');
+     console.log('âœ… Added rejected to business_redemptions.status ENUM');
    } catch (err) { /* already added */ }
    await addColumn(connection, 'business_redemptions', 'accepted_by', 'INT DEFAULT NULL');
    await addColumn(connection, 'business_redemptions', 'accepted_at', 'DATETIME DEFAULT NULL');
@@ -2748,21 +2781,21 @@ await safeQuery(connection, `
   await addColumn(connection, 'business_redemptions', 'reject_reason', 'VARCHAR(500) DEFAULT NULL');
   await addColumn(connection, 'business_redemptions', 'table_number', 'VARCHAR(50) DEFAULT NULL');
 
-  // ── Geo columns for map-based location manager (pincode → lat/lng) ──
+  // â”€â”€ Geo columns for map-based location manager (pincode â†’ lat/lng) â”€â”€
   await addColumn(connection, 'business_owners', 'latitude', 'DECIMAL(10,7) DEFAULT NULL');
   await addColumn(connection, 'business_owners', 'longitude', 'DECIMAL(10,7) DEFAULT NULL');
 
-   /* GAMES — add email_settings JSON column */
+   /* GAMES â€” add email_settings JSON column */
    await addColumn(connection, 'games', 'email_settings', "JSON DEFAULT NULL");
 
-   /* GAMES — add game_type column for branded/promogames distinction */
+   /* GAMES â€” add game_type column for branded/promogames distinction */
    await addColumn(connection, 'games', 'game_type', "VARCHAR(50) DEFAULT 'promogames'");
 
-   /* PROMO_PLAYERS — ensure required columns exist */
+   /* PROMO_PLAYERS â€” ensure required columns exist */
    await addColumn(connection, 'promo_players', 'username', "VARCHAR(100) DEFAULT NULL");
    await addColumn(connection, 'promo_players', 'avatar_id', "VARCHAR(50) DEFAULT NULL");
 
-   /* PROMO_PLAYERS — ensure username unique index exists */
+   /* PROMO_PLAYERS â€” ensure username unique index exists */
    try {
      const [[idx]] = await connection.query(
        `SELECT COUNT(*) AS cnt FROM information_schema.STATISTICS
@@ -2771,24 +2804,24 @@ await safeQuery(connection, `
      );
      if (idx.cnt === 0) {
        await connection.query('ALTER TABLE promo_players ADD UNIQUE INDEX idx_username (username)');
-       console.log('✅ Added promo_players.username unique index');
+       console.log('âœ… Added promo_players.username unique index');
      }
    } catch (err) {
-     console.error('❌ username unique index:', err.message);
+     console.error('âŒ username unique index:', err.message);
    }
 
-   /* PC_TRANSACTIONS — add referral_bonus type + session_id column */
+   /* PC_TRANSACTIONS â€” add referral_bonus type + session_id column */
    try {
      await connection.query("ALTER TABLE pc_transactions MODIFY COLUMN type ENUM('earn','spend','reset','referral_bonus') NOT NULL");
    } catch (err) { /* may already be updated */ }
    await addColumn(connection, 'pc_transactions', 'session_id', 'INT DEFAULT NULL');
 
-   /* INTERNAL_TEAM — ensure password/phone/permissions columns exist */
+   /* INTERNAL_TEAM â€” ensure password/phone/permissions columns exist */
    await addColumn(connection, 'internal_team', 'phone', 'VARCHAR(50) DEFAULT NULL');
    await addColumn(connection, 'internal_team', 'password', 'VARCHAR(255) DEFAULT NULL');
    await addColumn(connection, 'internal_team', 'permissions', 'TEXT DEFAULT NULL');
 
-   /* BD_REQUESTS — add assigned_to for internal team */
+   /* BD_REQUESTS â€” add assigned_to for internal team */
    await addColumn(connection, 'bd_requests', 'assigned_to', 'INT DEFAULT NULL');
 
    /* NOTIFICATIONS TABLE */
@@ -2852,7 +2885,7 @@ await safeQuery(connection, `
      )
    `, 'chess_rooms table');
 
-   /* CHESS ROOMS — rematch state (additive migration) */
+   /* CHESS ROOMS â€” rematch state (additive migration) */
    await addColumn(connection, 'chess_rooms', 'rematch_status', "ENUM('none','requested','accepted','declined','expired') DEFAULT 'none'");
    await addColumn(connection, 'chess_rooms', 'rematch_requested_by', "VARCHAR(100) DEFAULT NULL");
    await addColumn(connection, 'chess_rooms', 'rematch_requested_by_id', "INT DEFAULT NULL");
@@ -2860,7 +2893,7 @@ await safeQuery(connection, `
    await addColumn(connection, 'chess_rooms', 'rematch_new_room_code', "VARCHAR(6) DEFAULT NULL");
    await addColumn(connection, 'chess_rooms', 'rematch_of_id', "INT DEFAULT NULL");
 
-   /* CHESS ROOMS — server-side clock tracking */
+   /* CHESS ROOMS â€” server-side clock tracking */
    await addColumn(connection, 'chess_rooms', 'active_clock_color', "ENUM('white','black') DEFAULT 'white'");
    await addColumn(connection, 'chess_rooms', 'clock_started_at', "TIMESTAMP NULL DEFAULT NULL");
 
@@ -2911,7 +2944,7 @@ await safeQuery(connection, `
      )
    `, 'promo_coin_rewards table');
 
-   console.log('👤 Creating admin user...');
+   console.log('ðŸ‘¤ Creating admin user...');
 
   const adminEmail = process.env.ADMIN_EMAIL || 'admin@yourdomain.com';
   const adminPassword = process.env.ADMIN_PASSWORD || 'Admin@123';
@@ -2921,12 +2954,12 @@ await safeQuery(connection, `
     const [existingAdmin] = await connection.query('SELECT id FROM users WHERE email = ?', [adminEmail]);
     if (existingAdmin.length === 0) {
       await connection.query('INSERT INTO users (name, email, password, role) VALUES (?, ?, ?, ?)', ['Admin', adminEmail, hashedPassword, 'admin']);
-      console.log(`✅ Admin created: ${adminEmail}`);
+      console.log(`âœ… Admin created: ${adminEmail}`);
     } else {
-      console.log('ℹ️ Admin already exists');
+      console.log('â„¹ï¸ Admin already exists');
     }
   } catch (err) {
-    console.error('❌ Admin creation failed:', err.message);
+    console.error('âŒ Admin creation failed:', err.message);
   }
 
   /* TOWER GAME SEED */
@@ -2945,15 +2978,15 @@ await safeQuery(connection, `
            VALUES ('Tower Building', 'promo', 'tower', 'promogames', 'tower', ?, 1, 1, 'live')`,
           [clientId]
         );
-        console.log('✅ Tower game seeded');
+        console.log('âœ… Tower game seeded');
       }
     }
   } catch (err) {
-    console.error('❌ Tower game seed failed:', err.message);
+    console.error('âŒ Tower game seed failed:', err.message);
   }
 
   await connection.end();
-  console.log('✅ Migration completed successfully!');
+  console.log('âœ… Migration completed successfully!');
 }
 
 /* ================= EXPORT ================= */
@@ -2964,7 +2997,7 @@ module.exports = initDB;
 
 if (require.main === module) {
   initDB().catch(err => {
-    console.error('❌ Migration failed:', err);
+    console.error('âŒ Migration failed:', err);
     process.exit(1);
   });
 }

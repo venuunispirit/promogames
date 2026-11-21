@@ -1150,8 +1150,9 @@ const [nameInput,     setNameInput]     = useState('')
         'show_completion_modal','completion_heading_text','completion_subtext',
         'completion_show_confetti','completion_show_progress_bar',
         'completion_progress_bar_color','close_button_text','close_button_text_color','completion_redirect_url',
-        'code_generation_enabled','code_from','code_to','code_show_on_thank_you','code_send_in_email','code_label','meta_description']
-      const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech','code_generation_enabled','code_show_on_thank_you','code_send_in_email']
+        'code_generation_enabled','code_from','code_to','code_show_on_thank_you','code_send_in_email','code_label',
+        'voucher_offers_enabled','voucher_offers','voucher_message','voucher_show_on_thank_you','voucher_html','meta_description']
+      const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech','code_generation_enabled','code_show_on_thank_you','code_send_in_email','voucher_offers_enabled','voucher_show_on_thank_you']
       const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time']
       for (const f of fields) {
         let v = settings[f]
@@ -1754,6 +1755,10 @@ const [nameInput,     setNameInput]     = useState('')
                     <ColorPicker value={emailTemplate.header_color||'#6366f1'} onChange={v => setEmailTemplate({ ...emailTemplate, header_color:v })} label="Header Color" />
                   </div>
                   <div className="gb-fg" style={{ marginBottom:14 }}><span className="gb-label">Email Body (HTML)</span><textarea rows={5} value={emailTemplate.body_html||''} onChange={e => setEmailTemplate({ ...emailTemplate, body_html:e.target.value })} placeholder="<p>Thank you, {{name}}!</p>" style={{ resize:'vertical', fontFamily:'monospace', fontSize:13 }} /></div>
+                  <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:14 }}>
+                    <input type="checkbox" checked={!!emailTemplate.use_full_body} onChange={e => setEmailTemplate({ ...emailTemplate, use_full_body: e.target.checked ? 1 : 0 })} style={{ width:16, height:16 }} />
+                    Use this HTML as the full email body (skip default header/footer wrapper)
+                  </label>
                   <div className="gb-fg" style={{ marginBottom:20 }}><span className="gb-label">Footer Text</span><input value={emailTemplate.footer_text||''} onChange={e => setEmailTemplate({ ...emailTemplate, footer_text:e.target.value })} placeholder="© 2024 Your Company" /></div>
                   <div style={{ display:'flex', justifyContent:'flex-end' }}>
                     <button className="gb-btn gb-btn-primary" onClick={saveEmailTemplate} disabled={saving}>{saving ? 'Saving…' : '💾 Save Email Template'}</button>
@@ -2127,6 +2132,54 @@ const [nameInput,     setNameInput]     = useState('')
                 )}
               </div>
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">Voucher Offers</div>
+                <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:14 }}>
+                  When enabled, a random voucher from the list is awarded to each player who completes the quiz, instead of a sequential code.
+                </p>
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:14 }}>
+                  <input type="checkbox" checked={!!settings.voucher_offers_enabled} onChange={e => setSettings({...settings, voucher_offers_enabled: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                  Enable voucher offers on quiz completion
+                </label>
+                {settings.voucher_offers_enabled ? (
+                  <>
+                    <div className="gb-fg" style={{ marginBottom:14 }}>
+                      <span className="gb-label">Vouchers (comma separated)</span>
+                      <textarea
+                        value={settings.voucher_offers || ''}
+                        onChange={e => setSettings({...settings, voucher_offers: e.target.value})}
+                        placeholder="200rs voucher, 500rs voucher, 1000rs voucher"
+                        rows={5}
+                        style={{ fontFamily:'inherit', resize:'vertical' }}
+                      />
+                      <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>Enter vouchers separated by commas, e.g. "200rs voucher, 500rs voucher".</span>
+                    </div>
+                    <div className="gb-fg" style={{ marginBottom:14 }}>
+                      <span className="gb-label">Reward message (shown to player)</span>
+                      <input
+                        value={settings.voucher_message || ''}
+                        onChange={e => setSettings({...settings, voucher_message: e.target.value})}
+                        placeholder="You have won {{voucher}}!"
+                        maxLength={200}
+                      />
+                      <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>Use {'{{voucher}}'} to insert the awarded voucher.</span>
+                    </div>
+                    <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer', marginBottom:8 }}>
+                      <input type="checkbox" checked={!!settings.voucher_show_on_thank_you} onChange={e => setSettings({...settings, voucher_show_on_thank_you: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                      Show the voucher on the Thank You page
+                    </label>
+                    <div className="gb-fg" style={{ marginBottom:14 }}>
+                      <span className="gb-label">Voucher Design (HTML)</span>
+                      <textarea rows={6} value={settings.voucher_html || ''} onChange={e => setSettings({...settings, voucher_html: e.target.value})} placeholder="<div style='padding:20px;border:2px dashed #16a34a;border-radius:12px;text-align:center'><h2>You have won {{voucher}}!</h2></div>" style={{ resize:'vertical', fontFamily:'monospace', fontSize:13 }} />
+                      <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>Design your own voucher. Placeholders: {'{{voucher}}'}, {'{{name}}'}, {'{{game_name}}'}, {'{{score}}'}, {'{{total}}'}.</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="gb-empty" style={{ padding:'18px' }}>
+                    <div style={{ color:'var(--gb-text3)', fontSize:12 }}>Voucher offers are currently disabled.</div>
+                    <div style={{ color:'var(--gb-text3)', fontSize:12, marginTop:4 }}>Enable it above to configure voucher rewards.</div>
+                  </div>
+                )}
+              </div>              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">🗣️ Mascot &amp; Voice (Text-to-Speech)</div>
                 <p style={{ color:'var(--gb-text2)', fontSize:12, marginBottom:14 }}>
                   When enabled, a mascot appears on the player screen and the game text is read aloud to players in the chosen language (translated automatically).

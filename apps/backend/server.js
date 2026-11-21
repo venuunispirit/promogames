@@ -81,6 +81,12 @@ app.use(compression());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Ensure all API JSON responses are UTF-8
+app.use('/api', (req, res, next) => {
+  res.setHeader('Content-Type', 'application/json; charset=utf-8');
+  next();
+});
+
 // ── Optimized WebP serve-through for uploaded images ─────────────────────────
 // config/upload.js generates a compressed .webp sibling for every png/jpg
 // upload. When one exists, serve it transparently for the original URL —

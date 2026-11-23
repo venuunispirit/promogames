@@ -160,16 +160,17 @@ router.post('/games/:gameId/segments', auth, upload.fields([
   { name: 'coupon_image', maxCount: 1 },
   { name: 'overlay_image', maxCount: 1 },
 ]), async (req, res) => {
-  const { label, bg_color, text_color, weight, segment_type, prize_description, coupon_code, segment_order, sound_id } = req.body;
+  const { label, bg_color, text_color, weight, probability, segment_type, prize_description, coupon_code, segment_order, sound_id } = req.body;
   try {
     const coupon_image_url  = req.files?.coupon_image  ? `/uploads/images/${req.files.coupon_image[0].filename}`  : null;
     const overlay_image_url = req.files?.overlay_image ? `/uploads/images/${req.files.overlay_image[0].filename}` : null;
+    const prob = probability !== undefined && probability !== '' ? parseFloat(probability) : null;
 
     const [result] = await db.query(
-      `INSERT INTO spin_segments (game_id,label,bg_color,text_color,weight,segment_type,prize_description,coupon_code,coupon_image_url,overlay_image_url,sound_id,segment_order)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?)`,
+      `INSERT INTO spin_segments (game_id,label,bg_color,text_color,weight,probability,segment_type,prize_description,coupon_code,coupon_image_url,overlay_image_url,sound_id,segment_order)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`,
       [req.params.gameId, label || 'Segment', bg_color || '#7C6FF7', text_color || '#FFFFFF',
-       weight || 100, segment_type || 'prize', prize_description || null, coupon_code || null,
+       weight || 100, prob, segment_type || 'prize', prize_description || null, coupon_code || null,
        coupon_image_url, overlay_image_url, sound_id || null, segment_order || 0]
     );
     const [seg] = await db.query('SELECT * FROM spin_segments WHERE id = ?', [result.insertId]);
@@ -184,12 +185,13 @@ router.put('/segments/:id', auth, upload.fields([
   { name: 'coupon_image', maxCount: 1 },
   { name: 'overlay_image', maxCount: 1 },
 ]), async (req, res) => {
-  const { label, bg_color, text_color, weight, segment_type, prize_description, coupon_code,
+  const { label, bg_color, text_color, weight, probability, segment_type, prize_description, coupon_code,
           coupon_image_url, overlay_image_url, segment_order, sound_id } = req.body;
   try {
     const [existing] = await db.query('SELECT * FROM spin_segments WHERE id = ?', [req.params.id]);
     if (existing.length === 0) return res.status(404).json({ success: false, message: 'Segment not found' });
     const e = existing[0];
+    const prob = probability !== undefined && probability !== '' ? parseFloat(probability) : (probability === '' ? null : e.probability);
 
     let couponImg, overlayImg;
     if (req.files?.coupon_image) {
@@ -206,11 +208,12 @@ router.put('/segments/:id', auth, upload.fields([
     }
 
     await db.query(
-      `UPDATE spin_segments SET label=?,bg_color=?,text_color=?,weight=?,segment_type=?,
+      `UPDATE spin_segments SET label=?,bg_color=?,text_color=?,weight=?,probability=?,segment_type=?,
        prize_description=?,coupon_code=?,coupon_image_url=?,overlay_image_url=?,sound_id=?,segment_order=?
        WHERE id=?`,
       [label ?? e.label, bg_color || e.bg_color, text_color || e.text_color,
-       weight !== undefined ? weight : e.weight, segment_type || e.segment_type,
+       weight !== undefined ? weight : e.weight, prob,
+       segment_type || e.segment_type,
        prize_description !== undefined ? prize_description : e.prize_description,
        coupon_code !== undefined ? coupon_code : e.coupon_code,
        couponImg, overlayImg, sound_id !== undefined ? (sound_id || null) : e.sound_id,

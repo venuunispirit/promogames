@@ -1474,9 +1474,26 @@ router.post('/session/complete', async (req, res) => {
     try {
       if (gameSettings.voucher_offers_enabled) {
         if (!rewardVoucher) {
-          const offers = String(gameSettings.voucher_offers || '').split(',').map(s => s.trim()).filter(Boolean);
-          if (offers.length) {
-            rewardVoucher = offers[Math.floor(Math.random() * offers.length)];
+          let items = [];
+          try { items = JSON.parse(gameSettings.voucher_items || '[]'); } catch (_) { items = []; }
+          items = Array.isArray(items) ? items.map(v => ({ voucher: String(v?.voucher || '').trim(), probability: Number(v?.probability) || 0 })).filter(v => v.voucher) : [];
+          if (!items.length) {
+            items = String(gameSettings.voucher_offers || '').split(',').map(s => s.trim()).filter(Boolean).map(v => ({ voucher: v, probability: 0 }));
+          }
+          if (items.length) {
+            const hasProb = items.some(v => v.probability > 0);
+            if (hasProb) {
+              const total = items.reduce((s, v) => s + (v.probability > 0 ? v.probability : 0), 0);
+              let rand = Math.random() * (total || 1);
+              rewardVoucher = items[items.length - 1].voucher;
+              for (const v of items) {
+                if (v.probability <= 0) continue;
+                rand -= v.probability;
+                if (rand <= 0) { rewardVoucher = v.voucher; break; }
+              }
+            } else {
+              rewardVoucher = items[Math.floor(Math.random() * items.length)].voucher;
+            }
             await db.query('UPDATE player_sessions SET reward_voucher = ? WHERE id = ?', [rewardVoucher, session.id]);
           }
         }

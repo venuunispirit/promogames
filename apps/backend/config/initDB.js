@@ -1512,6 +1512,7 @@ async function initDB() {
   /* QUIZ SETTINGS - Voucher Offers */
   await addColumn(connection, 'quiz_settings', 'voucher_offers_enabled', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'quiz_settings', 'voucher_offers', 'TEXT');
+  await addColumn(connection, 'quiz_settings', 'voucher_items', 'TEXT');
   await addColumn(connection, 'quiz_settings', 'voucher_message', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'voucher_show_on_thank_you', 'TINYINT(1) DEFAULT 1');
   await addColumn(connection, 'quiz_settings', 'voucher_html', 'TEXT');

@@ -101,6 +101,7 @@ async function initSpin() {
       bg_color            VARCHAR(20)  DEFAULT '#7C6FF7',
       text_color          VARCHAR(20)  DEFAULT '#FFFFFF',
       weight              INT          NOT NULL DEFAULT 100,
+      probability         DECIMAL(5,2) DEFAULT NULL,
       segment_type        ENUM('prize','no_prize','try_again') NOT NULL DEFAULT 'prize',
       prize_description   TEXT,
       coupon_code         VARCHAR(100),
@@ -161,6 +162,7 @@ async function initSpin() {
 
   await addColumn(connection, 'spin_segments', 'win_message', 'TEXT');
   await addColumn(connection, 'spin_segments', 'lose_message', 'TEXT');
+  await addColumn(connection, 'spin_segments', 'probability', 'DECIMAL(5,2) DEFAULT NULL');
 
   await connection.end();
   console.log('\n🎉 Spin-the-Wheel migration completed!');

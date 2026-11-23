@@ -216,9 +216,9 @@ router.post('/:id/duplicate', requireAdmin, async (req, res) => {
     if (settings[0]) {
       const s = settings[0];
       await db.query(
-        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, voucher_offers_enabled, voucher_offers, voucher_message, voucher_show_on_thank_you, voucher_html)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.heading_1, s.heading_2, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email, s.heading_1_color, s.heading_2_color, s.intro_text_color, s.thankyou_subtitle, s.outro_text_color, s.thankyou_subtitle_color, s.start_button_text, s.start_button_text_color, s.start_button_bg_color, s.submit_button_text, s.submit_button_text_color, s.submit_button_bg_color, s.continue_button_text, s.continue_button_text_color, s.continue_button_bg_color, s.next_button_text, s.next_button_text_color, s.next_button_bg_color, s.randomize_questions, s.questions_per_session || 0, s.voucher_offers_enabled || 0, s.voucher_offers || null, s.voucher_message || null, s.voucher_show_on_thank_you || 1, s.voucher_html || null]
+        `INSERT INTO quiz_settings (game_id, bg_color, primary_color, show_progress, allow_back, time_per_question, heading_1, heading_2, intro_text, outro_text, bg_image_url, thankyou_bg_image_url, game_logo_url, font_family, submit_confirm_gif_url, terms_enabled, terms_text, terms_url, send_email, heading_1_color, heading_2_color, intro_text_color, thankyou_subtitle, outro_text_color, thankyou_subtitle_color, start_button_text, start_button_text_color, start_button_bg_color, submit_button_text, submit_button_text_color, submit_button_bg_color, continue_button_text, continue_button_text_color, continue_button_bg_color, next_button_text, next_button_text_color, next_button_bg_color, randomize_questions, questions_per_session, voucher_offers_enabled, voucher_offers, voucher_items, voucher_message, voucher_show_on_thank_you, voucher_html)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        [newId, s.bg_color, s.primary_color, s.show_progress, s.allow_back, s.time_per_question, s.heading_1, s.heading_2, s.intro_text, s.outro_text, s.bg_image_url, s.thankyou_bg_image_url, s.game_logo_url, s.font_family, s.submit_confirm_gif_url, s.terms_enabled, s.terms_text, s.terms_url, s.send_email, s.heading_1_color, s.heading_2_color, s.intro_text_color, s.thankyou_subtitle, s.outro_text_color, s.thankyou_subtitle_color, s.start_button_text, s.start_button_text_color, s.start_button_bg_color, s.submit_button_text, s.submit_button_text_color, s.submit_button_bg_color, s.continue_button_text, s.continue_button_text_color, s.continue_button_bg_color, s.next_button_text, s.next_button_text_color, s.next_button_bg_color, s.randomize_questions, s.questions_per_session || 0, s.voucher_offers_enabled || 0, s.voucher_offers || null, s.voucher_items || null, s.voucher_message || null, s.voucher_show_on_thank_you || 1, s.voucher_html || null]
       );
     } else {
       await db.query('INSERT INTO quiz_settings (game_id) VALUES (?)', [newId]);
@@ -822,9 +822,17 @@ router.put('/:id/settings', requireAdmin, upload.fields([
     // --- voucher offers settings (server patch) ---
     if (req.body.voucher_offers_enabled !== undefined) {
       const voucherEnabled = coerceBool(req.body.voucher_offers_enabled);
+      const voucherItemsRaw = req.body.voucher_items;
+      let voucherItems = null;
+      if (voucherItemsRaw !== undefined) {
+        try {
+          const parsed = typeof voucherItemsRaw === 'string' ? JSON.parse(voucherItemsRaw || '[]') : voucherItemsRaw;
+          if (Array.isArray(parsed)) voucherItems = JSON.stringify(parsed.map(v => ({ voucher: String(v?.voucher || '').trim(), probability: Number(v?.probability) || 0 })).filter(v => v.voucher));
+        } catch (_) { voucherItems = null; }
+      }
       await db.query(
-        `UPDATE quiz_settings SET voucher_offers_enabled=?, voucher_offers=?, voucher_message=?, voucher_show_on_thank_you=?, voucher_html=? WHERE game_id=?`,
-        [voucherEnabled, (req.body.voucher_offers !== undefined ? (String(req.body.voucher_offers || '').trim() || null) : null), (req.body.voucher_message !== undefined ? (String(req.body.voucher_message || '').trim() || null) : null), coerceBool(req.body.voucher_show_on_thank_you !== undefined ? req.body.voucher_show_on_thank_you : 1), (req.body.voucher_html !== undefined ? (String(req.body.voucher_html || '').trim() || null) : null), req.params.id]
+        `UPDATE quiz_settings SET voucher_offers_enabled=?, voucher_offers=?, voucher_items=?, voucher_message=?, voucher_show_on_thank_you=?, voucher_html=? WHERE game_id=?`,
+        [voucherEnabled, (req.body.voucher_offers !== undefined ? (String(req.body.voucher_offers || '').trim() || null) : null), voucherItems, (req.body.voucher_message !== undefined ? (String(req.body.voucher_message || '').trim() || null) : null), coerceBool(req.body.voucher_show_on_thank_you !== undefined ? req.body.voucher_show_on_thank_you : 1), (req.body.voucher_html !== undefined ? (String(req.body.voucher_html || '').trim() || null) : null), req.params.id]
       );
     }
 

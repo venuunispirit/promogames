@@ -882,7 +882,11 @@ const [nameInput,     setNameInput]     = useState('')
       if (g.questions?.length) setSelectedQuestionId(g.questions[0].id)
       setFormFields(g.formFields||[])
       setEmailTemplate(g.emailTemplate||{})
-      setSettings({ ...(g.settings||{}), meta_description: g.meta_description || g.settings?.meta_description || '' })
+      const s = { ...(g.settings||{}), meta_description: g.meta_description || g.settings?.meta_description || '' }
+      if (s.voucher_items) { try { s.voucher_items = typeof s.voucher_items === 'string' ? JSON.parse(s.voucher_items) : s.voucher_items } catch { s.voucher_items = [] } }
+      else if (s.voucher_offers) { s.voucher_items = String(s.voucher_offers).split(',').map(x=>x.trim()).filter(Boolean).map(v=>({ voucher:v, probability:0 })) }
+      else { s.voucher_items = [] }
+      setSettings(s)
       setSounds(g.sounds||[])
       setSlugInput(g.slug||'')
       setRedirectUrl(g.redirect_url||'')
@@ -1134,6 +1138,15 @@ const [nameInput,     setNameInput]     = useState('')
         if (parseInt(fromM[2], 10) > parseInt(toM[2], 10)) { showToast('Code From must not be greater than Code To', 'error'); setSaving(false); return }
       }
       const fd = new FormData()
+      const normalizedSettings = { ...settings }
+      if (normalizedSettings.voucher_items !== undefined) {
+        let vi = normalizedSettings.voucher_items
+        if (typeof vi === 'string') { try { vi = JSON.parse(vi || '[]') } catch { vi = [] } }
+        if (!Array.isArray(vi)) vi = []
+        vi = vi.map(v => ({ voucher: String(v?.voucher || '').trim(), probability: v?.probability === '' || v?.probability === undefined ? 0 : Number(v.probability) || 0 })).filter(v => v.voucher)
+        normalizedSettings.voucher_items = JSON.stringify(vi)
+        if (!normalizedSettings.voucher_offers) normalizedSettings.voucher_offers = vi.map(v => v.voucher).join(', ')
+      }
       const fields = ['bg_color','primary_color','show_progress','time_per_question',
         'heading_1','heading_2','intro_text','outro_text','win_sound_id','lose_sound_id',
         'sound_correct_id','sound_wrong_id',
@@ -1151,11 +1164,11 @@ const [nameInput,     setNameInput]     = useState('')
         'completion_show_confetti','completion_show_progress_bar',
         'completion_progress_bar_color','close_button_text','close_button_text_color','completion_redirect_url',
         'code_generation_enabled','code_from','code_to','code_show_on_thank_you','code_send_in_email','code_label',
-        'voucher_offers_enabled','voucher_offers','voucher_message','voucher_show_on_thank_you','voucher_html','meta_description']
+        'voucher_offers_enabled','voucher_offers','voucher_items','voucher_message','voucher_show_on_thank_you','voucher_html','meta_description']
       const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech','code_generation_enabled','code_show_on_thank_you','code_send_in_email','voucher_offers_enabled','voucher_show_on_thank_you']
       const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time']
       for (const f of fields) {
-        let v = settings[f]
+        let v = normalizedSettings[f]
         if (v === undefined || v === '') v = null
         if (bools.includes(f)) v = v ? 1 : 0
         else if (nums.includes(f) && v !== null) v = Number(v)
@@ -2142,17 +2155,22 @@ const [nameInput,     setNameInput]     = useState('')
                 </label>
                 {settings.voucher_offers_enabled ? (
                   <>
-                    <div className="gb-fg" style={{ marginBottom:14 }}>
-                      <span className="gb-label">Vouchers (comma separated)</span>
-                      <textarea
-                        value={settings.voucher_offers || ''}
-                        onChange={e => setSettings({...settings, voucher_offers: e.target.value})}
-                        placeholder="200rs voucher, 500rs voucher, 1000rs voucher"
-                        rows={5}
-                        style={{ fontFamily:'inherit', resize:'vertical' }}
-                      />
-                      <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:2 }}>Enter vouchers separated by commas, e.g. "200rs voucher, 500rs voucher".</span>
-                    </div>
+                      <div className="gb-fg" style={{ marginBottom:14 }}>
+                        <span className="gb-label">Vouchers & Probabilities</span>
+                        <div style={{ display:'flex', flexDirection:'column', gap:8 }}>
+                          {(Array.isArray(settings.voucher_items) ? settings.voucher_items : (()=>{try{return JSON.parse(settings.voucher_items||'[]')}catch{return []}})()).map((v,i,arr)=>(
+                            <div key={i} style={{ display:'grid', gridTemplateColumns:'1fr 110px 34px', gap:8, alignItems:'center' }}>
+                              <input value={v.voucher||''} onChange={e=>{const next=[...arr]; next[i]={...next[i], voucher:e.target.value}; setSettings({...settings,voucher_items:next})}} placeholder="Voucher name/code" />
+                              <input type="number" min="0" max="100" step="0.01" value={v.probability??''} onChange={e=>{const next=[...arr]; next[i]={...next[i], probability:e.target.value===''?'':Number(e.target.value)}; setSettings({...settings,voucher_items:next})}} placeholder="Prob %" />
+                              <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={()=>{const next=arr.filter((_,idx)=>idx!==i); setSettings({...settings,voucher_items:next})}}>✕</button>
+                            </div>
+                          ))}
+                          <div>
+                            <button className="gb-btn gb-btn-ghost gb-btn-sm" onClick={()=>{const arr=Array.isArray(settings.voucher_items)?settings.voucher_items:(()=>{try{return JSON.parse(settings.voucher_items||'[]')}catch{return []}})(); setSettings({...settings,voucher_items:[...arr,{voucher:'',probability:0}]})}}>+ Add Voucher</button>
+                          </div>
+                        </div>
+                        <span style={{ fontSize:11, color:'var(--gb-text3)', marginTop:6, display:'block' }}>Set probability (%) per voucher. If all are 0/empty, selection is random.</span>
+                      </div>
                     <div className="gb-fg" style={{ marginBottom:14 }}>
                       <span className="gb-label">Reward message (shown to player)</span>
                       <input

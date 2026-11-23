@@ -1208,6 +1208,35 @@ router.post('/session/start', async (req, res) => {
     const [gameRows] = await db.query('SELECT game_type FROM games WHERE id = ?', [game_id]);
     const gameType = gameRows[0]?.game_type || 'promogames';
 
+    // ── Optional per-game rule: one completed play per email address ─────────────
+    let oneEmailOnly = false;
+    try {
+      const [settingRows] = await db.query(
+        'SELECT one_email_only FROM quiz_settings WHERE game_id = ? ORDER BY id DESC LIMIT 1', [game_id]
+      );
+      oneEmailOnly = Number(settingRows[0]?.one_email_only) === 1;
+    } catch (_) { /* older databases without the column keep the previous behaviour */ }
+
+    if (oneEmailOnly) {
+      const pd = player_data || {};
+      const emailKey = Object.keys(pd).find(k =>
+        ['email', 'emailaddress', 'e-mail', 'email address'].includes(k.toLowerCase().replace(/\s+/g, ''))
+      );
+      const email = emailKey ? String(pd[emailKey] ?? '').trim() : '';
+      if (email) {
+        const jsonPath = `$.\"${emailKey.replace(/["\\]/g, '\\$&')}\"`;
+        const [existing] = await db.query(
+          `SELECT id FROM player_sessions WHERE game_id = ? AND completed = 1
+           AND (LOWER(TRIM(JSON_UNQUOTE(JSON_EXTRACT(player_data, ?)))) = LOWER(?)
+             OR LOWER(TRIM(JSON_UNQUOTE(JSON_EXTRACT(player_data, '$.\"Email\"')))) = LOWER(?)) LIMIT 1`,
+          [game_id, jsonPath, email, email]
+        );
+        if (existing.length > 0) {
+          return res.status(400).json({ success: false, already_played: true, message: 'This email has already been used to play this game' });
+        }
+      }
+    }
+
     // ── Hardened uniqueness check (only block replay for branded games) ──────────
     if (gameType === 'branded') {
       if (promo_player_id) {

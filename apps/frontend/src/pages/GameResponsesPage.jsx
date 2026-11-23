@@ -111,6 +111,8 @@ export default function GameResponsesPage() {
   // They arrive pre-labelled as "Station — Field" and are shown as normal
   // columns so the camp's data is all visible in one place.
   const isSpotReg = game?.category === 'spotregistration'
+  const voucherFlag = game?.settings?.voucher_offers_enabled
+  const voucherEnabled = voucherFlag === 1 || voucherFlag === '1' || voucherFlag === true
 
   // Union across every row, not just the first: participants may skip
   // optional fields, so a single row never holds the full column list.
@@ -124,6 +126,8 @@ export default function GameResponsesPage() {
   // Reward code (quiz code generation) is stored outside player_data, so add it
   // as a normal column whenever at least one response has one.
   if (!isSpotReg && rows.some(r => r.session.generated_code)) columnKeys.push('Code')
+  // Voucher rewards live on the session rather than in player_data.
+  if (!isSpotReg && voucherEnabled && !columnKeys.includes('Voucher Received')) columnKeys.push('Voucher Received')
   // BMI is derived, not entered, so it gets its own trailing columns.
   const bmiKeys = isSpotReg
     ? ['BMI', 'BMI Category', 'BMI Percentile', 'BMI Height (cm)', 'BMI Weight (kg)']
@@ -131,6 +135,7 @@ export default function GameResponsesPage() {
 
   const valueFor = (row, key) => {
     if (key === 'Code' && row.playerData[key] === undefined) return row.session.generated_code || ''
+    if (key === 'Voucher Received') return row.session.reward_voucher || ''
     if (row.playerData[key] !== undefined) return row.playerData[key]
     if (row.stationAnswers[key] !== undefined) return row.stationAnswers[key]
     if (key === 'BMI') return row.bmi ? row.bmi.value : ''

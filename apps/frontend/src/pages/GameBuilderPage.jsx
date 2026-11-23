@@ -1164,8 +1164,8 @@ const [nameInput,     setNameInput]     = useState('')
         'completion_show_confetti','completion_show_progress_bar',
         'completion_progress_bar_color','close_button_text','close_button_text_color','completion_redirect_url',
         'code_generation_enabled','code_from','code_to','code_show_on_thank_you','code_send_in_email','code_label',
-        'voucher_offers_enabled','voucher_offers','voucher_items','voucher_message','voucher_show_on_thank_you','voucher_html','meta_description']
-      const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech','code_generation_enabled','code_show_on_thank_you','code_send_in_email','voucher_offers_enabled','voucher_show_on_thank_you']
+        'voucher_offers_enabled','voucher_offers','voucher_items','voucher_message','voucher_show_on_thank_you','voucher_html','one_email_only','meta_description']
+      const bools = ['show_progress','terms_enabled','send_email','randomize_questions','enable_mascot','enable_speech','code_generation_enabled','code_show_on_thank_you','code_send_in_email','voucher_offers_enabled','voucher_show_on_thank_you','one_email_only']
       const nums = ['time_per_question','questions_per_session','speech_rate','speech_pitch','idle_overlay_time']
       for (const f of fields) {
         let v = normalizedSettings[f]
@@ -2143,6 +2143,16 @@ const [nameInput,     setNameInput]     = useState('')
                     <div style={{ color:'var(--gb-text3)', fontSize:12, marginTop:4 }}>Enable it above to configure a sequential code range and delivery options.</div>
                   </div>
                 )}
+              </div>
+              <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
+                <div className="gb-section-title">Play Restrictions</div>
+                <label style={{ display:'flex', alignItems:'center', gap:8, fontSize:14, cursor:'pointer' }}>
+                  <input type="checkbox" checked={!!settings.one_email_only} onChange={e => setSettings({...settings, one_email_only: e.target.checked ? 1 : 0})} style={{ width:16, height:16 }} />
+                  Allow only one play per email
+                </label>
+                <p style={{ color:'var(--gb-text3)', fontSize:11, lineHeight:1.5, marginTop:6 }}>
+                  When enabled, the same email address can be used to play this quiz only once.
+                </p>
               </div>
               <div className="gb-card" style={{ marginBottom:16, padding:16 }}>
                 <div className="gb-section-title">Voucher Offers</div>

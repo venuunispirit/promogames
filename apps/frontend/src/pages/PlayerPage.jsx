@@ -384,6 +384,11 @@ export default function PlayerPage() {
   const [rewardVoucher, setRewardVoucher] = useState(null)
   const [completing, setCompleting] = useState(false)
   const [termsAgreed, setTermsAgreed] = useState(false)
+  const [showTermsModal, setShowTermsModal] = useState(false)
+  const handleTermsClick = () => {
+    if (termsAgreed) setTermsAgreed(false)
+    else setShowTermsModal(true)
+  }
   const [questionKey, setQuestionKey] = useState(0)
   const [playerProfile, setPlayerProfile] = useState(null)
   const [showContinueBtn, setShowContinueBtn] = useState(false)
@@ -695,6 +700,7 @@ export default function PlayerPage() {
         document.head.appendChild(twitterCardTag)
 
         const canSkipForm = () => {
+          if (g.settings?.terms_enabled) return false
           if (g.game_type === 'promogames') return true
           if (!profile) return false
           const fields = g.formFields || []
@@ -1459,15 +1465,16 @@ export default function PlayerPage() {
               )
             })}
 
-            {!!s.terms_enabled && (s.terms_text || s.terms_url) && (
+            {!!s.terms_enabled && (
               <div style={{ marginBottom: 16, marginTop: 4 }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-                  <div onClick={() => { setTermsAgreed(!termsAgreed); setFormErrors(prev => { const e = { ...prev }; delete e.__terms; return e }) }} style={{ width: 22, height: 22, flexShrink: 0, marginTop: 2, border: `2px solid ${termsAgreed ? primaryColor : (formErrors.__terms ? '#ef4444' : '#ccc')}`, borderRadius: 5, background: termsAgreed ? primaryColor : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
+                  <div onClick={handleTermsClick} style={{ width: 22, height: 22, flexShrink: 0, marginTop: 2, border: `2px solid ${termsAgreed ? primaryColor : (formErrors.__terms ? '#ef4444' : '#ccc')}`, borderRadius: 5, background: termsAgreed ? primaryColor : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.15s' }}>
                     {termsAgreed && <span style={{ color: '#fff', fontSize: 12, fontWeight: 700 }}>✓</span>}
                   </div>
-                  <span style={{ fontSize: 13, color: hasBgImg ? 'rgba(255,255,255,0.85)' : '#555', lineHeight: 1.5 }}>
+                  <span onClick={handleTermsClick} style={{ fontSize: 13, color: hasBgImg ? 'rgba(255,255,255,0.85)' : '#555', lineHeight: 1.5, cursor: 'pointer' }}>
                     I agree to the{' '}
-                    {s.terms_url ? <a href={s.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: primaryColor, fontWeight: 600, textDecoration: 'underline' }}>{s.terms_text || 'Terms & Conditions'}</a> : <span style={{ color: primaryColor, fontWeight: 600 }}>{s.terms_text || 'Terms & Conditions'}</span>}
+                    {s.terms_url ? <a href={s.terms_url} target="_blank" rel="noopener noreferrer" onClick={e => e.stopPropagation()} style={{ color: primaryColor, fontWeight: 600, textDecoration: 'underline' }}>{s.terms_text || 'Terms & Conditions'}</a> : <span style={{ color: primaryColor, fontWeight: 600 }}>{s.terms_text || 'Terms & Conditions'}</span>}
+                    {s.terms_content && <span style={{ display: 'block', fontSize: 11, textDecoration: 'underline' }}>View terms</span>}
                   </span>
                 </div>
                 {formErrors.__terms && <span style={{ fontSize: 12, color: '#ef4444', fontWeight: 600, display: 'block', marginTop: 4, marginLeft: 32 }}>⚠ {formErrors.__terms}</span>}
@@ -1483,6 +1490,23 @@ export default function PlayerPage() {
             </button>
           </form>
         </div>
+        {showTermsModal && (
+          <div onClick={e => { if (e.target === e.currentTarget) setShowTermsModal(false) }} style={{ position: 'fixed', inset: 0, zIndex: 10000, background: 'rgba(0,0,0,0.72)', backdropFilter: 'blur(8px)', WebkitBackdropFilter: 'blur(8px)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 16, fontFamily: ff }}>
+              <div style={{ width: '100%', maxWidth: 440, maxHeight: '85dvh', display: 'flex', flexDirection: 'column', background: '#fff', borderRadius: 20, overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.3)', animation: 'slideUp 0.2s ease' }}>
+                <div style={{ padding: '20px 22px 14px', borderBottom: '1px solid #eee' }}>
+                  <div style={{ fontSize: 18, fontWeight: 800, color: '#1a1a2e' }}>📜 {s.terms_text || 'Terms & Conditions'}</div>
+                </div>
+                <div style={{ padding: '18px 22px', overflowY: 'auto', fontSize: 14, lineHeight: 1.7, color: '#444', whiteSpace: 'pre-wrap' }}>
+                  {s.terms_content || 'No terms text has been provided.'}
+                  {s.terms_url && <div style={{ marginTop: 14 }}><a href={s.terms_url} target="_blank" rel="noopener noreferrer" style={{ color: primaryColor, fontWeight: 600 }}>Read full terms online ↗</a></div>}
+                </div>
+                <div style={{ padding: '14px 22px 20px', display: 'flex', gap: 10, borderTop: '1px solid #eee' }}>
+                  <button onClick={() => { setTermsAgreed(false); setShowTermsModal(false) }} style={{ flex: 1, background: '#f1f1f7', color: '#555', border: 'none', borderRadius: 12, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Cancel</button>
+                  <button onClick={() => { setTermsAgreed(true); setShowTermsModal(false); setFormErrors(prev => { const e = { ...prev }; delete e.__terms; return e }) }} style={{ flex: 1, background: primaryColor, color: '#fff', border: 'none', borderRadius: 12, padding: '13px', fontSize: 15, fontWeight: 700, cursor: 'pointer' }}>Agree</button>
+                </div>
+            </div>
+          </div>
+        )}
         <style>{OVERLAY_STYLES}</style>
       </div>
     )

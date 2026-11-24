@@ -1466,6 +1466,7 @@ async function initDB() {
   await addColumn(connection, 'quiz_settings', 'thankyou_bg_image_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'terms_enabled', 'TINYINT(1) DEFAULT 0');
   await addColumn(connection, 'quiz_settings', 'terms_text', 'TEXT');
+  await addColumn(connection, 'quiz_settings', 'terms_content', 'TEXT');
   await addColumn(connection, 'quiz_settings', 'terms_url', 'VARCHAR(500)');
   await addColumn(connection, 'quiz_settings', 'send_email', 'TINYINT(1) DEFAULT 1');
   await addColumn(connection, 'quiz_settings', 'win_sound_url', 'VARCHAR(500)');

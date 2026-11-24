@@ -1150,7 +1150,7 @@ const [nameInput,     setNameInput]     = useState('')
       const fields = ['bg_color','primary_color','show_progress','time_per_question',
         'heading_1','heading_2','intro_text','outro_text','win_sound_id','lose_sound_id',
         'sound_correct_id','sound_wrong_id',
-        'terms_enabled','terms_text','terms_url','send_email','font_family',
+        'terms_enabled','terms_text','terms_content','terms_url','send_email','font_family',
         'start_button_text','submit_button_text','continue_button_text',
         'heading_1_color','heading_2_color','intro_text_color',
         'thankyou_subtitle','outro_text_color','thankyou_subtitle_color',
@@ -1647,6 +1647,11 @@ const [nameInput,     setNameInput]     = useState('')
                       <input type="checkbox" id="termsEnabled" checked={!!settings.terms_enabled}
                         onChange={e => setSettings({...settings,terms_enabled:e.target.checked?1:0})} style={{ width:16,height:16 }} />
                       <label htmlFor="termsEnabled" style={{ fontWeight:600, cursor:'pointer', fontSize:13 }}>Require acceptance</label>
+                    </div>
+                    <div className="gb-fg" style={{ marginBottom:10 }}>
+                      <span className="gb-label">Terms &amp; Conditions (popup text)</span>
+                      <textarea rows={5} value={settings.terms_content||''} onChange={e => setSettings({...settings,terms_content:e.target.value})} placeholder="Enter the terms and conditions. Players must read and accept these in a popup before the game starts." style={{ resize:'vertical', fontSize:13 }} />
+                      <span style={{ display:'block', marginTop:5, fontSize:11, color:'var(--gb-text2,#888)' }}>Shown in a popup with Agree / Cancel — the game only starts after Agree.</span>
                     </div>
                     <div className="gb-fg" style={{ marginBottom:10 }}>
                       <span className="gb-label">Label Text</span>
